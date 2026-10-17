@@ -1,0 +1,75 @@
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+
+import { useProfile } from "../app/ProfileContext";
+import { ConfirmModal } from "../components/ConfirmModal";
+import { LanguageSwitcher } from "../components/LanguageSwitcher";
+import { Toast } from "../components/Toast";
+
+export function Settings() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { resetProfile } = useProfile();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  return (
+    <div className="flex max-w-lg flex-col gap-6">
+      <h1 className="text-xl font-semibold text-slate-900">
+        {t("settings.title")}
+      </h1>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 className="mb-2 text-sm font-semibold text-slate-700">
+          {t("settings.language")}
+        </h2>
+        <LanguageSwitcher />
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 className="mb-3 text-sm font-semibold text-slate-700">
+          {t("settings.dataManagement")}
+        </h2>
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => setToast(t("settings.notImplemented"))}
+            className="rounded-md border border-slate-300 px-4 py-2 text-start text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            {t("settings.export")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setToast(t("settings.notImplemented"))}
+            className="rounded-md border border-slate-300 px-4 py-2 text-start text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            {t("settings.import")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirmOpen(true)}
+            className="rounded-md border border-red-200 px-4 py-2 text-start text-sm font-medium text-red-600 hover:bg-red-50"
+          >
+            {t("settings.reset")}
+          </button>
+        </div>
+      </section>
+
+      <ConfirmModal
+        open={confirmOpen}
+        title={t("settings.resetConfirmTitle")}
+        body={t("settings.resetConfirmBody")}
+        confirmLabel={t("common.confirm")}
+        cancelLabel={t("common.cancel")}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          resetProfile();
+          setConfirmOpen(false);
+          navigate("/");
+        }}
+      />
+      <Toast message={toast} onClear={() => setToast(null)} />
+    </div>
+  );
+}

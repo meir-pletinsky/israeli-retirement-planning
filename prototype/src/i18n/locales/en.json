@@ -1,0 +1,99 @@
+{
+  "common": {
+    "appName": "Israeli Retirement Planning",
+    "next": "Next",
+    "back": "Back",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "currencySymbol": "\u20aa"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "myData": "My Data",
+    "projections": "Projections",
+    "settings": "Settings"
+  },
+  "welcome": {
+    "title": "Your retirement plan, on your device",
+    "subtitle": "Estimate your retirement income and readiness \u2014 privately. No account, no server, your financial data never leaves this device.",
+    "start": "Start my plan",
+    "import": "Import data",
+    "privacyNote": "Your financial data stays on this device."
+  },
+  "dashboard": {
+    "kpi": {
+      "monthlyIncome": "Projected Monthly Retirement Income",
+      "netWorth": "Net Worth Today",
+      "fundingGap": "Funding Gap",
+      "yearsToRetirement": "Years to Retirement"
+    },
+    "statusOnTrack": "You're on track to meet your retirement goal.",
+    "statusShortfall": "You may need additional savings to meet your retirement goal.",
+    "chartTitle": "Net Worth Projection",
+    "adjustAssumptions": "Adjust assumptions",
+    "emptyTitle": "No data yet",
+    "emptyBody": "Complete your profile to see your personalized retirement projection.",
+    "emptyCta": "Start My Data"
+  },
+  "myData": {
+    "title": "My Data",
+    "steps": {
+      "personal": {
+        "label": "Personal",
+        "age": "Age",
+        "gender": "Gender",
+        "genderMale": "Male",
+        "genderFemale": "Female",
+        "retirementAge": "Desired retirement age"
+      },
+      "pensionSavings": {
+        "label": "Pension & Savings",
+        "pensionBalance": "Keren Pensia balance",
+        "hishtalmutBalance": "Keren Hishtalmut balance",
+        "otherInvestments": "Other investment assets"
+      },
+      "expenses": {
+        "label": "Expenses",
+        "currentMonthly": "Current monthly expenses",
+        "retirementMonthly": "Expected monthly expenses in retirement"
+      },
+      "assumptions": {
+        "label": "Assumptions",
+        "preset": "Preset",
+        "conservative": "Conservative",
+        "base": "Base",
+        "optimistic": "Optimistic",
+        "investmentReturn": "Investment return",
+        "inflation": "Inflation",
+        "advanced": "Advanced overrides"
+      }
+    }
+  },
+  "projections": {
+    "title": "Projections",
+    "scenario": "Retirement scenario",
+    "scenarioStandard": "Standard",
+    "scenarioEarly": "Early",
+    "scenarioDelayed": "Delayed",
+    "netWorthChart": "Net Worth Projection",
+    "incomeChart": "Income by Source",
+    "viewTable": "Show as table",
+    "viewChart": "Show as chart",
+    "sourcePension": "Pension Fund",
+    "sourceInvestments": "Other Investments"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "currency": "Display currency",
+    "dataManagement": "Data management",
+    "export": "Export data",
+    "import": "Import data",
+    "reset": "Reset all data",
+    "resetConfirmTitle": "Reset all data?",
+    "resetConfirmBody": "This permanently deletes all profile data stored on this device. This cannot be undone.",
+    "about": "About & data sources",
+    "notImplemented": "This is a UI prototype \u2014 no real data logic yet."
+  }
+}

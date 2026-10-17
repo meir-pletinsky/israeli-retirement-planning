@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  font-family:
+    "Inter",
+    "Noto Sans Hebrew",
+    "Noto Sans",
+    system-ui,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+}
