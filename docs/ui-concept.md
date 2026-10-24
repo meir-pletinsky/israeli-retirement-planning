@@ -69,12 +69,34 @@ Primary sections:
 
 Steps, each its own screen on mobile / tab on desktop:
 
-1. **Personal** — age (or DOB), gender, desired retirement age.
-2. **Pension & Savings** — current Keren Pensia balance, Keren Hishtalmut
-   balance, other investment assets (single lump-sum field for MVP).
-3. **Expenses** — current monthly living expenses, expected retirement
+1. **Personal** — age (or DOB), gender, marital status, desired retirement
+   age, tax credit points (Nekudot Zikui), and a collapsible "Tax exemption
+   basket (Kibua Zchuyot)" section (Form 161D submitted, past tax-free
+   severance withdrawn, remaining monthly exemption cap) for users who have
+   gone through rights-fixation.
+2. **Pension & Savings** — a **repeater** of pension/savings accounts (add,
+   edit, remove via a modal form) rather than flat balance fields, so users
+   with several Keren Pensia / Kupat Gemel / Bituach Menahalim / Keren
+   Hishtalmut accounts can model each separately. Each account captures
+   provider, product category, account status, legacy policy model, dates,
+   and total balance up front, with four collapsible "advanced" sections:
+   Balance breakdown (pre/post-2008, Tikun 190, severance), Annuity
+   parameters (guaranteed conversion factor, estimated monthly annuity, tax
+   type, guaranteed payment period), Insurance coverages (death/disability/
+   risk premium), and Investment track & fees. A separate "Other assets"
+   field remains for cash/bonds/real-estate catch-all amounts.
+3. **Equity & Investments** — a repeater of stock/equity holdings (add,
+   edit, remove via modal), covering the three realistic Israeli equity-
+   compensation patterns: employer-granted RSUs/options (Section 102
+   trustee track or Section 3(i), vesting, cost basis), ESPP purchases
+   (discount %, purchase vs. fair-market value, taxable discount vs.
+   capital gain), and personal brokerage holdings (average cost basis,
+   unrealized gain, capital-gains tax rate). The category selector drives
+   which detail section is shown; total value is always derived from
+   quantity × current price, never stored redundantly.
+4. **Expenses** — current monthly living expenses, expected retirement
    monthly expenses (default = same as current, editable).
-4. **Assumptions** — investment return & inflation: three preset chips
+5. **Assumptions** — investment return & inflation: three preset chips
    (Conservative/Base/Optimistic) plus an "advanced" expand to override the
    raw percentages.
 
@@ -82,6 +104,15 @@ Each step: clear field labels + helper text (units, e.g. "monthly, in ₪"),
 inline validation, Next/Back, progress indicator. Completing all steps
 routes to Dashboard; after first completion, My Data becomes editable via
 tabs instead of a forced wizard.
+
+The repeater steps (Pension & Savings, Equity & Investments) share one
+UX pattern: a card list with "Add" button, each card showing a compact
+summary (name + key figure) with Edit/Remove actions, Edit/Add opening a
+large scrollable `FormModal`, and Remove requiring `ConfirmModal`
+confirmation. This keeps the main wizard screen short even though the
+underlying data model (matching the Israeli pension/equity JSON schema
+used to design it) supports dozens of optional, category-specific fields
+per entry.
 
 ### 4. Projections
 
@@ -106,9 +137,15 @@ tabs instead of a forced wizard.
 - `KpiCard` — label, value, trend/status indicator
 - `StatusBanner` — on-track/at-risk/shortfall messaging
 - `Stepper` / `WizardLayout`
-- `CurrencyInput`, `PercentInput`, `AgeInput`, `SelectField`
+- `CurrencyInput`/`NumberField`, `PercentInput`, `AgeInput`, `SelectField`,
+  `TextField`, `DateField`, `CheckboxField`
+- `CollapsibleSection` — expand/collapse wrapper for advanced/optional
+  field groups (used heavily in the Pension/Equity account forms)
+- `FormModal` — large scrollable modal shell (header, body, footer) used
+  to add/edit a single repeater entry (pension account, equity holding)
 - `ProjectionLineChart`, `IncomeStackedBarChart`
-- `ConfirmModal` (used for destructive actions)
+- `ConfirmModal` (used for destructive actions, including repeater-entry
+  removal)
 - `EmptyState`
 
 ## Responsive Behavior

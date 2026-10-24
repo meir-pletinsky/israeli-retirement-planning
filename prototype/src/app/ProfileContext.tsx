@@ -28,7 +28,25 @@ function loadProfile(): ProfileData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return EMPTY_PROFILE;
-    return { ...EMPTY_PROFILE, ...(JSON.parse(raw) as ProfileData) };
+    const parsed = JSON.parse(raw) as Partial<ProfileData>;
+    const merged: ProfileData = {
+      ...EMPTY_PROFILE,
+      ...parsed,
+      personal: { ...EMPTY_PROFILE.personal, ...parsed.personal },
+      taxExemptionBasket: {
+        ...EMPTY_PROFILE.taxExemptionBasket,
+        ...parsed.taxExemptionBasket,
+      },
+    };
+    // Guard against the pre-schema-expansion localStorage shape (plain
+    // numeric fields instead of an accounts/holdings array).
+    if (!Array.isArray(merged.pensionSavings?.accounts)) {
+      merged.pensionSavings = EMPTY_PROFILE.pensionSavings;
+    }
+    if (!Array.isArray(merged.equity?.holdings)) {
+      merged.equity = EMPTY_PROFILE.equity;
+    }
+    return merged;
   } catch {
     return EMPTY_PROFILE;
   }

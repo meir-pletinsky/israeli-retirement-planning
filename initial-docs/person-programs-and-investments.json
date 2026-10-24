@@ -1,0 +1,366 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RetirementPortfolioModel",
+  "description": "Comprehensive model capturing a retiring individual's pension accounts, tax parameters, equity holdings (RSUs, ESPP, personal stocks), and annuities under Israeli regulatory frameworks.",
+  "type": "object",
+  "required": [
+    "personalDetails",
+    "accounts"
+  ],
+  "properties": {
+    "personalDetails": {
+      "type": "object",
+      "description": "Demographic and statutory details of the retiring individual.",
+      "required": [
+        "individualId",
+        "birthDate",
+        "gender",
+        "targetRetirementAge"
+      ],
+      "properties": {
+        "individualId": {
+          "type": "string",
+          "description": "Unique identifier (anonymized ID or internal ref)."
+        },
+        "birthDate": {
+          "type": "string",
+          "format": "date",
+          "description": "Date of birth (YYYY-MM-DD)."
+        },
+        "gender": {
+          "type": "string",
+          "enum": ["MALE", "FEMALE"],
+          "description": "Gender used for statutory life expectancy calculations."
+        },
+        "maritalStatus": {
+          "type": "string",
+          "enum": ["SINGLE", "MARRIED", "DIVORCED", "WIDOWED"]
+        },
+        "targetRetirementAge": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 75,
+          "description": "Planned age at which pension payouts will begin."
+        },
+        "creditPoints": {
+          "type": "number",
+          "minimum": 2.25,
+          "description": "Total personal tax credit points (Nekudot Zikui)."
+        }
+      }
+    },
+    "taxExemptionBasket": {
+      "type": "object",
+      "description": "Tax exemption tracking under Kibua Zchuyot (Form 161D).",
+      "properties": {
+        "form161DSubmitted": {
+          "type": "boolean",
+          "description": "Whether rights fixation (Kibua Zchuyot) has been filed with the Tax Authority."
+        },
+        "pastTaxFreeSeveranceWithdrawn": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Total tax-free severance (Pitzuim) withdrawn during the 32-year lookback period."
+        },
+        "remainingMonthlyExemptionCap": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Calculated remaining monthly tax-free annuity allowance."
+        }
+      }
+    },
+    "accounts": {
+      "type": "array",
+      "description": "List of long-term savings, pension funds, insurance policies, and study funds.",
+      "items": {
+        "$ref": "#/$defs/PensionAccount"
+      }
+    },
+    "equityAndStockInvestments": {
+      "type": "array",
+      "description": "List of stock holdings across employer grants (RSUs/options), ESPP plans, and personal brokerage accounts.",
+      "items": {
+        "$ref": "#/$defs/StockHolding"
+      }
+    }
+  },
+  "$defs": {
+    "PensionAccount": {
+      "type": "object",
+      "required": [
+        "accountId",
+        "providerName",
+        "productCategory",
+        "joinDate",
+        "totalAccumulatedBalance",
+        "balanceBreakdown"
+      ],
+      "properties": {
+        "accountId": {
+          "type": "string",
+          "description": "Policy number or account identifier."
+        },
+        "providerName": {
+          "type": "string",
+          "description": "Institutional body managing the fund (e.g., Clal, Phoenix, Harel)."
+        },
+        "productCategory": {
+          "type": "string",
+          "description": "Regulatory classification of the product.",
+          "enum": [
+            "COMPREHENSIVE_PENSION_FUND",
+            "GENERAL_PENSION_FUND",
+            "MANAGERS_INSURANCE",
+            "PROVIDENT_FUND",
+            "INVESTMENT_PROVIDENT_FUND",
+            "STUDY_FUND",
+            "IRA_PROVIDENT_FUND"
+          ]
+        },
+        "legacyPolicyModel": {
+          "type": "string",
+          "description": "Legacy policy designator if applicable.",
+          "enum": ["NONE", "ADIF", "MEITAV", "PROFIT_SHARING_1992", "BUDGETARY"]
+        },
+        "accountStatus": {
+          "type": "string",
+          "enum": ["ACTIVE_CONTRIBUTING", "PAID_UP_FROZEN", "PAYING_ANNUITY"]
+        },
+        "joinDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "liquidityDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "totalAccumulatedBalance": {
+          "type": "number",
+          "minimum": 0
+        },
+        "balanceBreakdown": {
+          "$ref": "#/$defs/BalanceBreakdown"
+        },
+        "annuityParameters": {
+          "$ref": "#/$defs/AnnuityParameters"
+        },
+        "insuranceCoverages": {
+          "$ref": "#/$defs/InsuranceCoverages"
+        },
+        "investmentAndFees": {
+          "$ref": "#/$defs/InvestmentAndFees"
+        }
+      }
+    },
+    "BalanceBreakdown": {
+      "type": "object",
+      "properties": {
+        "pre2008CapitalBalance": { "type": "number", "minimum": 0 },
+        "post2008AnnuityBalance": { "type": "number", "minimum": 0 },
+        "tikun190CapitalBalance": { "type": "number", "minimum": 0 },
+        "severanceBalance": { "type": "number", "minimum": 0 }
+      }
+    },
+    "AnnuityParameters": {
+      "type": "object",
+      "properties": {
+        "hasGuaranteedFactor": { "type": "boolean" },
+        "conversionFactor": { "type": "number", "minimum": 100, "maximum": 300 },
+        "estimatedMonthlyAnnuity": { "type": "number", "minimum": 0 },
+        "annuityTaxType": {
+          "type": "string",
+          "enum": ["RECOGNIZED_ANNUITY", "QUALIFYING_ANNUITY"]
+        },
+        "guaranteedPaymentMonths": {
+          "type": "integer",
+          "enum": [0, 60, 120, 180, 240]
+        }
+      }
+    },
+    "InsuranceCoverages": {
+      "type": "object",
+      "properties": {
+        "deathCoverageAmount": { "type": "number", "minimum": 0 },
+        "monthlyDisabilityAmount": { "type": "number", "minimum": 0 },
+        "monthlyRiskDeduction": { "type": "number", "minimum": 0 }
+      }
+    },
+    "InvestmentAndFees": {
+      "type": "object",
+      "properties": {
+        "investmentTrackName": { "type": "string" },
+        "feeFromAccumulationPercent": { "type": "number", "minimum": 0, "maximum": 2 },
+        "feeFromDepositPercent": { "type": "number", "minimum": 0, "maximum": 10 },
+        "profitSharingFeePercent": { "type": "number", "minimum": 0, "maximum": 20 },
+        "hasStateYieldGuarantee": { "type": "boolean" }
+      }
+    },
+    "StockHolding": {
+      "type": "object",
+      "description": "Stock position categorized into employer grant (RSU/Option), ESPP, or personal purchases.",
+      "required": [
+        "holdingId",
+        "investmentCategory",
+        "tickerSymbol",
+        "quantity",
+        "currentMarketPriceUSD",
+        "totalValueUSD"
+      ],
+      "properties": {
+        "holdingId": {
+          "type": "string",
+          "description": "Unique position ID."
+        },
+        "investmentCategory": {
+          "type": "string",
+          "enum": [
+            "EMPLOYER_GRANTED_STOCK",
+            "EMPLOYER_ESPP_DISCOUNT",
+            "PERSONAL_BROKERAGE_PURCHASE"
+          ],
+          "description": "EMPLOYER_GRANTED_STOCK = RSUs/Options partially vested/unvested. EMPLOYER_ESPP_DISCOUNT = Purchased at discount via payroll. PERSONAL_BROKERAGE_PURCHASE = Personal brokerage account."
+        },
+        "tickerSymbol": {
+          "type": "string",
+          "description": "Stock ticker symbol (e.g., AAPL, NVDA, MSFT)."
+        },
+        "companyName": {
+          "type": "string",
+          "description": "Issuer company name."
+        },
+        "custodianOrBroker": {
+          "type": "string",
+          "description": "Platform/Trustee holding shares (e.g., E*TRADE Section 102 Trustee, Fidelity, Interactive Brokers, Excellence Brokerage)."
+        },
+        "quantity": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Total number of shares held or granted."
+        },
+        "currentMarketPriceUSD": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Current price per share in USD."
+        },
+        "totalValueUSD": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Quantity * Current Market Price."
+        },
+        "employerGrantDetails": {
+          "$ref": "#/$defs/EmployerGrantDetails"
+        },
+        "esppDetails": {
+          "$ref": "#/$defs/EsppDetails"
+        },
+        "personalPurchaseDetails": {
+          "$ref": "#/$defs/PersonalPurchaseDetails"
+        }
+      }
+    },
+    "EmployerGrantDetails": {
+      "type": "object",
+      "description": "Vesting, trustee, and Section 102 tax status for employer-granted RSUs or stock options.",
+      "properties": {
+        "grantDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "taxTrack": {
+          "type": "string",
+          "enum": [
+            "SECTION_102_CAPITAL_GAINS_TRUSTEE",
+            "SECTION_102_ORDINARY_INCOME_TRUSTEE",
+            "SECTION_3I_NON_TRUSTEE"
+          ],
+          "description": "Section 102 Capital Gains = 25% tax deferred to sale. Section 3(i) = Ordinary income."
+        },
+        "vestedQuantity": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Shares vested but not yet sold/taxed."
+        },
+        "unvestedQuantity": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Shares still pending vesting schedules."
+        },
+        "trusteeHoldingPeriodMet": {
+          "type": "boolean",
+          "description": "True if the mandatory 24-month Section 102 trustee lockup period has passed."
+        },
+        "costBasisAtGrantUSD": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Fair market value per share at grant date."
+        },
+        "estimatedMarginalTaxOnVesting": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Estimated tax liability due upon sale/vesting based on marginal tax rate vs capital gains."
+        }
+      }
+    },
+    "EsppDetails": {
+      "type": "object",
+      "description": "Parameters for Employee Stock Purchase Plan (ESPP) shares bought at a discount.",
+      "properties": {
+        "purchaseDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "discountPercentage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 50,
+          "description": "Percentage discount off market price (typically 15%)."
+        },
+        "purchasePriceUSD": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Actual discounted price paid per share."
+        },
+        "fairMarketValueAtPurchaseUSD": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Market value per share on purchase date (used to calculate discount gain)."
+        },
+        "taxedDiscountValueUSD": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Discount portion taxed as ordinary earned income via payroll."
+        },
+        "capitalGainsOnGrowthUSD": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Growth above fair market value at purchase (taxed at 25% capital gains rate)."
+        }
+      }
+    },
+    "PersonalPurchaseDetails": {
+      "type": "object",
+      "description": "Parameters for stocks bought directly on open market through personal brokerage accounts.",
+      "properties": {
+        "purchaseDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "averageCostBasisUSD": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Average purchase price per share."
+        },
+        "unrealizedCapitalGainUSD": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Current Value minus Total Cost Basis."
+        },
+        "capitalGainsTaxRatePercent": {
+          "type": "number",
+          "default": 25.0,
+          "description": "Standard 25% Israeli real capital gains tax rate on non-employer stocks."
+        }
+      }
+    }
+  }
+}

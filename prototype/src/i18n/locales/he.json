@@ -6,6 +6,9 @@
     "save": "\u05e9\u05de\u05d9\u05e8\u05d4",
     "cancel": "\u05d1\u05d9\u05d8\u05d5\u05dc",
     "confirm": "\u05d0\u05d9\u05e9\u05d5\u05e8",
+    "edit": "\u05e2\u05e8\u05d9\u05db\u05d4",
+    "remove": "\u05d4\u05e1\u05e8\u05d4",
+    "close": "\u05e1\u05d2\u05d9\u05e8\u05d4",
     "currencySymbol": "\u20aa"
   },
   "nav": {
@@ -45,13 +48,142 @@
         "gender": "\u05de\u05d2\u05d3\u05e8",
         "genderMale": "\u05d6\u05db\u05e8",
         "genderFemale": "\u05e0\u05e7\u05d1\u05d4",
-        "retirementAge": "\u05d2\u05d9\u05dc \u05e4\u05e8\u05d9\u05e9\u05d4 \u05e8\u05e6\u05d5\u05d9"
+        "maritalStatus": "מצב משפחתי",
+        "maritalStatusSingle": "רווק/ה",
+        "maritalStatusMarried": "נשוי/אה",
+        "maritalStatusDivorced": "גרוש/ה",
+        "maritalStatusWidowed": "אלמן/ה",
+        "retirementAge": "\u05d2\u05d9\u05dc \u05e4\u05e8\u05d9\u05e9\u05d4 \u05e8\u05e6\u05d5\u05d9",
+        "creditPoints": "נקודות זיכוי מס",
+        "taxExemptionSection": "סל הפטור ממס (קיבוע זכויות)",
+        "form161DSubmitted": "טופס 161D (קיבוע זכויות) הוגש",
+        "pastTaxFreeSeveranceWithdrawn": "פיצויים פטורים ממס שנמשכו עד כה",
+        "remainingMonthlyExemptionCap": "תקרת הפטור החודשית שנותרה לקצבה"
       },
       "pensionSavings": {
         "label": "\u05e4\u05e0\u05e1\u05d9\u05d4 \u05d5\u05d7\u05d9\u05e1\u05db\u05d5\u05df",
-        "pensionBalance": "\u05d9\u05ea\u05e8\u05ea \u05e7\u05e8\u05df \u05e4\u05e0\u05e1\u05d9\u05d4",
-        "hishtalmutBalance": "\u05d9\u05ea\u05e8\u05ea \u05e7\u05e8\u05df \u05d4\u05e9\u05ea\u05dc\u05de\u05d5\u05ea",
-        "otherInvestments": "\u05e0\u05db\u05e1\u05d9\u05dd \u05d0\u05d7\u05e8\u05d9\u05dd"
+        "accountsTitle": "חשבונות פנסיה וחיסכון",
+        "addAccount": "הוספת חשבון",
+        "noAccounts": "עדיין לא נוספו חשבונות. הוסיפו קרנות פנסיה, קופות גמל, פוליסות ביטוח מנהלים או קרנות השתלמות.",
+        "untitledAccount": "חשבון ללא שם",
+        "accountFormTitle": "חשבון פנסיה / חיסכון",
+        "removeConfirmTitle": "להסיר את החשבון?",
+        "removeConfirmBody": "פעולה זו תמחק לצמיתות את החשבון ואת כל פרטיו מהפרופיל שלך.",
+        "otherAssets": "נכסים נוספים (מזומן, אג״ח, נדל״ן וכו׳)",
+        "fields": {
+          "providerName": "שם הגוף המוסדי",
+          "productCategory": "קטגוריית מוצר",
+          "accountStatus": "סטטוס חשבון",
+          "legacyPolicyModel": "דגם פוליסה ישן",
+          "joinDate": "תאריך הצטרפות",
+          "liquidityDate": "תאריך נזילות",
+          "totalAccumulatedBalance": "יתרה צבורה כוללת",
+          "sectionBalanceBreakdown": "פירוט יתרות",
+          "pre2008CapitalBalance": "יתרת הון לפני 2008",
+          "post2008AnnuityBalance": "יתרת קצבה אחרי 2008",
+          "tikun190CapitalBalance": "יתרת הון (תיקון 190)",
+          "severanceBalance": "יתרת פיצויים",
+          "sectionAnnuityParameters": "פרמטרי קצבה",
+          "hasGuaranteedFactor": "קיים מקדם המרה מובטח",
+          "conversionFactor": "מקדם המרה",
+          "estimatedMonthlyAnnuity": "קצבה חודשית משוערת",
+          "annuityTaxType": "סוג מיסוי הקצבה",
+          "guaranteedPaymentMonths": "תקופת תשלום מובטחת",
+          "sectionInsuranceCoverages": "כיסויים ביטוחיים",
+          "deathCoverageAmount": "סכום כיסוי למקרה פטירה",
+          "monthlyDisabilityAmount": "קצבה חודשית לאובדן כושר עבודה",
+          "monthlyRiskDeduction": "ניכוי חודשי לפרמיית סיכון",
+          "sectionInvestmentAndFees": "מסלול השקעה ודמי ניהול",
+          "investmentTrackName": "שם מסלול ההשקעה",
+          "feeFromAccumulationPercent": "דמי ניהול מצבירה",
+          "feeFromDepositPercent": "דמי ניהול מהפקדה",
+          "profitSharingFeePercent": "דמי ניהול מהשתתפות ברווחים",
+          "hasStateYieldGuarantee": "קיימת ערבות תשואה ממשלתית"
+        },
+        "options": {
+          "productCategory": {
+            "comprehensivePension": "קרן פנסיה מקיפה",
+            "generalPension": "קרן פנסיה כללית",
+            "managersInsurance": "ביטוח מנהלים",
+            "providentFund": "קופת גמל",
+            "investmentProvidentFund": "קופת גמל להשקעה",
+            "studyFund": "קרן השתלמות",
+            "iraProvidentFund": "קופת גמל IRA"
+          },
+          "accountStatus": {
+            "activeContributing": "פעיל \u2014 בהפקדה",
+            "paidUpFrozen": "מוקפא / ללא הפקדות",
+            "payingAnnuity": "משלם קצבה"
+          },
+          "legacyPolicyModel": {
+            "none": "ללא",
+            "adif": "עדיף",
+            "meitav": "מיטב",
+            "profitSharing1992": "משתתפת ברווחים (1992)",
+            "budgetary": "תקציבית"
+          },
+          "annuityTaxType": {
+            "recognizedAnnuity": "קצבה מוכרת",
+            "qualifyingAnnuity": "קצבה מזכה"
+          },
+          "guaranteedPaymentMonths": {
+            "0": "ללא",
+            "60": "60 חודשים",
+            "120": "120 חודשים",
+            "180": "180 חודשים",
+            "240": "240 חודשים"
+          }
+        }
+      },
+      "equity": {
+        "label": "מניות והשקעות",
+        "holdingsTitle": "אחזקות מניות והשקעות",
+        "addHolding": "הוספת אחזקה",
+        "noHoldings": "עדיין לא נוספו אחזקות. הוסיפו מניות/אופציות מהמעסיק, מניות ESPP, או אחזקות בברוקראז׳ אישי.",
+        "untitledHolding": "אחזקה ללא שם",
+        "holdingFormTitle": "מניה / אחזקת השקעה",
+        "removeConfirmTitle": "להסיר את האחזקה?",
+        "removeConfirmBody": "פעולה זו תמחק לצמיתות את האחזקה ואת כל פרטיה מהפרופיל שלך.",
+        "fields": {
+          "investmentCategory": "קטגוריית השקעה",
+          "tickerSymbol": "סימול (טיקר)",
+          "companyName": "שם החברה",
+          "custodianOrBroker": "גוף משמורת / ברוקר",
+          "quantity": "כמות (מניות)",
+          "currentMarketPriceUSD": "מחיר שוק נוכחי",
+          "totalValue": "שווי כולל",
+          "sectionEmployerGrantDetails": "פרטי הענקה מהמעסיק (RSU / אופציות)",
+          "grantDate": "תאריך הענקה",
+          "taxTrack": "מסלול מיסוי",
+          "vestedQuantity": "כמות שהבשילה (vested)",
+          "unvestedQuantity": "כמות שטרם הבשילה",
+          "trusteeHoldingPeriodMet": "תקופת החזקה אצל נאמן (24 חודשים) הושלמה",
+          "costBasisAtGrantUSD": "בסיס עלות בעת ההענקה",
+          "estimatedMarginalTaxOnVesting": "מס משוער בעת הבשלה/מכירה",
+          "sectionEsppDetails": "פרטי ESPP",
+          "purchaseDate": "תאריך רכישה",
+          "discountPercentage": "אחוז הנחה",
+          "purchasePriceUSD": "מחיר הרכישה ששולם",
+          "fairMarketValueAtPurchaseUSD": "שווי שוק הוגן בעת הרכישה",
+          "taxedDiscountValueUSD": "שווי ההנחה החייב במס כהכנסה",
+          "capitalGainsOnGrowthUSD": "רווח הון מעבר לשווי בעת הרכישה",
+          "sectionPersonalPurchaseDetails": "פרטי ברוקראז׳ אישי",
+          "averageCostBasisUSD": "בסיס עלות ממוצע",
+          "unrealizedCapitalGainUSD": "רווח הון לא ממומש",
+          "capitalGainsTaxRatePercent": "שיעור מס רווח הון"
+        },
+        "options": {
+          "investmentCategory": {
+            "employerGrantedStock": "מניות שהוענקו מהמעסיק (RSU / אופציות)",
+            "employerEsppDiscount": "ESPP (תוכנית רכישת מניות לעובדים)",
+            "personalBrokeragePurchase": "רכישה בברוקראז׳ אישי"
+          },
+          "taxTrack": {
+            "section102CapitalGainsTrustee": "סעיף 102 \u2014 רווח הון (באמצעות נאמן)",
+            "section102OrdinaryIncomeTrustee": "סעיף 102 \u2014 הכנסה פירותית (באמצעות נאמן)",
+            "section3iNonTrustee": "סעיף 3(י) \u2014 ללא נאמן"
+          }
+        }
       },
       "expenses": {
         "label": "\u05d4\u05d5\u05e6\u05d0\u05d5\u05ea",

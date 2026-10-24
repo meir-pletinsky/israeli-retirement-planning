@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "personalDetails": {
+    "individualId": "ISR-RET-2026-102",
+    "birthDate": "1963-11-04",
+    "gender": "FEMALE",
+    "maritalStatus": "SINGLE",
+    "targetRetirementAge": 65,
+    "creditPoints": 2.75
+  },
+  "taxExemptionBasket": {
+    "form161DSubmitted": true,
+    "pastTaxFreeSeveranceWithdrawn": 80000.0,
+    "remainingMonthlyExemptionCap": 4500.0
+  },
+  "accounts": [
+    {
+      "accountId": "PHX-5544112",
+      "providerName": "Phoenix Financial",
+      "productCategory": "PROVIDENT_FUND",
+      "legacyPolicyModel": "NONE",
+      "accountStatus": "PAID_UP_FROZEN",
+      "joinDate": "2005-03-10",
+      "liquidityDate": "2023-11-04",
+      "totalAccumulatedBalance": 620000.0,
+      "balanceBreakdown": {
+        "pre2008CapitalBalance": 620000.0,
+        "post2008AnnuityBalance": 0.0,
+        "tikun190CapitalBalance": 0.0,
+        "severanceBalance": 0.0
+      },
+      "annuityParameters": {
+        "hasGuaranteedFactor": false,
+        "conversionFactor": 210.0,
+        "estimatedMonthlyAnnuity": 2952.0,
+        "annuityTaxType": "RECOGNIZED_ANNUITY",
+        "guaranteedPaymentMonths": 120
+      },
+      "insuranceCoverages": {
+        "deathCoverageAmount": 0.0,
+        "monthlyDisabilityAmount": 0.0,
+        "monthlyRiskDeduction": 0.0
+      },
+      "investmentAndFees": {
+        "investmentTrackName": "General Investment Track",
+        "feeFromAccumulationPercent": 0.35,
+        "feeFromDepositPercent": 0.0,
+        "profitSharingFeePercent": 0.0,
+        "hasStateYieldGuarantee": false
+      }
+    }
+  ],
+  "equityAndStockInvestments": [
+    {
+      "holdingId": "EQ-RSU-201",
+      "investmentCategory": "EMPLOYER_GRANTED_STOCK",
+      "tickerSymbol": "MSFT",
+      "companyName": "Microsoft Corporation",
+      "custodianOrBroker": "Fidelity / Altshuler Shaham Trustee (Sec. 102)",
+      "quantity": 350,
+      "currentMarketPriceUSD": 430.0,
+      "totalValueUSD": 150500.0,
+      "employerGrantDetails": {
+        "grantDate": "2022-09-01",
+        "taxTrack": "SECTION_102_CAPITAL_GAINS_TRUSTEE",
+        "vestedQuantity": 350,
+        "unvestedQuantity": 0,
+        "trusteeHoldingPeriodMet": true,
+        "costBasisAtGrantUSD": 250.0,
+        "estimatedMarginalTaxOnVesting": 37625.0
+      }
+    },
+    {
+      "holdingId": "EQ-PERS-202",
+      "investmentCategory": "PERSONAL_BROKERAGE_PURCHASE",
+      "tickerSymbol": "AAPL",
+      "companyName": "Apple Inc.",
+      "custodianOrBroker": "Bank Hapoalim Brokerage",
+      "quantity": 600,
+      "currentMarketPriceUSD": 225.0,
+      "totalValueUSD": 135000.0,
+      "personalPurchaseDetails": {
+        "purchaseDate": "2019-06-20",
+        "averageCostBasisUSD": 120.0,
+        "unrealizedCapitalGainUSD": 63000.0,
+        "capitalGainsTaxRatePercent": 25.0
+      }
+    }
+  ]
+}

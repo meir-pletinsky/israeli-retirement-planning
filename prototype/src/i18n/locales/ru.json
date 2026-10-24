@@ -6,6 +6,9 @@
     "save": "Сохранить",
     "cancel": "Отмена",
     "confirm": "Подтвердить",
+    "edit": "Изменить",
+    "remove": "Удалить",
+    "close": "Закрыть",
     "currencySymbol": "\u20aa"
   },
   "nav": {
@@ -45,13 +48,142 @@
         "gender": "Пол",
         "genderMale": "Мужской",
         "genderFemale": "Женский",
-        "retirementAge": "Желаемый возраст выхода на пенсию"
+        "maritalStatus": "Семейное положение",
+        "maritalStatusSingle": "Холост/не замужем",
+        "maritalStatusMarried": "Женат/замужем",
+        "maritalStatusDivorced": "В разводе",
+        "maritalStatusWidowed": "Вдовец/вдова",
+        "retirementAge": "Желаемый возраст выхода на пенсию",
+        "creditPoints": "Налоговые кредитные баллы (Некудот Зикуй)",
+        "taxExemptionSection": "Корзина налоговых льгот (Кибуа Зхуйот)",
+        "form161DSubmitted": "Форма 161D (фиксация прав) подана",
+        "pastTaxFreeSeveranceWithdrawn": "Уже снятые необлагаемые выходные пособия",
+        "remainingMonthlyExemptionCap": "Оставшийся необлагаемый ежемесячный лимит аннуитета"
       },
       "pensionSavings": {
         "label": "Пенсия и накопления",
-        "pensionBalance": "Баланс пенсионного фонда (Керен Пенсия)",
-        "hishtalmutBalance": "Баланс фонда обучения (Керен Хиштальмут)",
-        "otherInvestments": "Прочие инвестиционные активы"
+        "accountsTitle": "Пенсионные и накопительные счета",
+        "addAccount": "Добавить счёт",
+        "noAccounts": "Счета ещё не добавлены. Добавьте пенсионные фонды, фонды обеспечения (купат гемель), полисы страхования менеджеров или фонды обучения.",
+        "untitledAccount": "Счёт без названия",
+        "accountFormTitle": "Пенсионный / накопительный счёт",
+        "removeConfirmTitle": "Удалить этот счёт?",
+        "removeConfirmBody": "Это навсегда удалит счёт и все его данные из вашего профиля.",
+        "otherAssets": "Прочие активы (наличные, облигации, недвижимость и т.д.)",
+        "fields": {
+          "providerName": "Название управляющей компании",
+          "productCategory": "Категория продукта",
+          "accountStatus": "Статус счёта",
+          "legacyPolicyModel": "Устаревшая модель полиса",
+          "joinDate": "Дата открытия",
+          "liquidityDate": "Дата ликвидности",
+          "totalAccumulatedBalance": "Общий накопленный баланс",
+          "sectionBalanceBreakdown": "Разбивка баланса",
+          "pre2008CapitalBalance": "Капитальный баланс до 2008 года",
+          "post2008AnnuityBalance": "Аннуитетный баланс после 2008 года",
+          "tikun190CapitalBalance": "Капитальный баланс (Тикун 190)",
+          "severanceBalance": "Баланс выходного пособия",
+          "sectionAnnuityParameters": "Параметры аннуитета",
+          "hasGuaranteedFactor": "Есть гарантированный коэффициент конвертации",
+          "conversionFactor": "Коэффициент конвертации",
+          "estimatedMonthlyAnnuity": "Расчётный ежемесячный аннуитет",
+          "annuityTaxType": "Тип налогообложения аннуитета",
+          "guaranteedPaymentMonths": "Гарантированный период выплат",
+          "sectionInsuranceCoverages": "Страховые покрытия",
+          "deathCoverageAmount": "Сумма страхования на случай смерти",
+          "monthlyDisabilityAmount": "Ежемесячная выплата по инвалидности",
+          "monthlyRiskDeduction": "Ежемесячное удержание за страхование риска",
+          "sectionInvestmentAndFees": "Инвестиционный трек и комиссии",
+          "investmentTrackName": "Название инвестиционного трека",
+          "feeFromAccumulationPercent": "Комиссия от накоплений",
+          "feeFromDepositPercent": "Комиссия от взносов",
+          "profitSharingFeePercent": "Комиссия от участия в прибыли",
+          "hasStateYieldGuarantee": "Есть государственная гарантия доходности"
+        },
+        "options": {
+          "productCategory": {
+            "comprehensivePension": "Комплексный пенсионный фонд",
+            "generalPension": "Общий пенсионный фонд",
+            "managersInsurance": "Страхование менеджеров",
+            "providentFund": "Фонд обеспечения (купат гемель)",
+            "investmentProvidentFund": "Инвестиционный фонд обеспечения",
+            "studyFund": "Фонд обучения (Керен Хиштальмут)",
+            "iraProvidentFund": "IRA фонд обеспечения"
+          },
+          "accountStatus": {
+            "activeContributing": "Активный \u2014 взносы вносятся",
+            "paidUpFrozen": "Оплаченный / заморожен",
+            "payingAnnuity": "Выплата аннуитета"
+          },
+          "legacyPolicyModel": {
+            "none": "Нет",
+            "adif": "Адиф",
+            "meitav": "Мейтав",
+            "profitSharing1992": "Участие в прибыли (1992)",
+            "budgetary": "Бюджетный"
+          },
+          "annuityTaxType": {
+            "recognizedAnnuity": "Признанный аннуитет",
+            "qualifyingAnnuity": "Квалифицированный аннуитет"
+          },
+          "guaranteedPaymentMonths": {
+            "0": "Нет",
+            "60": "60 месяцев",
+            "120": "120 месяцев",
+            "180": "180 месяцев",
+            "240": "240 месяцев"
+          }
+        }
+      },
+      "equity": {
+        "label": "Акции и инвестиции",
+        "holdingsTitle": "Акции и инвестиционные позиции",
+        "addHolding": "Добавить позицию",
+        "noHoldings": "Позиции ещё не добавлены. Добавьте акции/опционы от работодателя, акции ESPP или позиции личного брокерского счёта.",
+        "untitledHolding": "Позиция без названия",
+        "holdingFormTitle": "Акция / инвестиционная позиция",
+        "removeConfirmTitle": "Удалить эту позицию?",
+        "removeConfirmBody": "Это навсегда удалит позицию и все её данные из вашего профиля.",
+        "fields": {
+          "investmentCategory": "Категория инвестиции",
+          "tickerSymbol": "Тикер",
+          "companyName": "Название компании",
+          "custodianOrBroker": "Депозитарий / брокер",
+          "quantity": "Количество (акций)",
+          "currentMarketPriceUSD": "Текущая рыночная цена",
+          "totalValue": "Общая стоимость",
+          "sectionEmployerGrantDetails": "Детали гранта от работодателя (RSU / опционы)",
+          "grantDate": "Дата предоставления",
+          "taxTrack": "Налоговый трек",
+          "vestedQuantity": "Закреплённое количество",
+          "unvestedQuantity": "Незакреплённое количество",
+          "trusteeHoldingPeriodMet": "24-месячный период хранения у доверительного управляющего пройден",
+          "costBasisAtGrantUSD": "Базовая стоимость на момент предоставления",
+          "estimatedMarginalTaxOnVesting": "Расчётный налог при закреплении/продаже",
+          "sectionEsppDetails": "Детали ESPP",
+          "purchaseDate": "Дата покупки",
+          "discountPercentage": "Процент скидки",
+          "purchasePriceUSD": "Уплаченная цена покупки",
+          "fairMarketValueAtPurchaseUSD": "Справедливая рыночная стоимость на момент покупки",
+          "taxedDiscountValueUSD": "Скидка, облагаемая налогом как доход",
+          "capitalGainsOnGrowthUSD": "Прирост капитала сверх цены на момент покупки",
+          "sectionPersonalPurchaseDetails": "Детали личного брокерского счёта",
+          "averageCostBasisUSD": "Средняя базовая стоимость",
+          "unrealizedCapitalGainUSD": "Нереализованный прирост капитала",
+          "capitalGainsTaxRatePercent": "Ставка налога на прирост капитала"
+        },
+        "options": {
+          "investmentCategory": {
+            "employerGrantedStock": "Акции от работодателя (RSU / опционы)",
+            "employerEsppDiscount": "ESPP (план покупки акций сотрудниками)",
+            "personalBrokeragePurchase": "Покупка на личном брокерском счёте"
+          },
+          "taxTrack": {
+            "section102CapitalGainsTrustee": "Статья 102 \u2014 прирост капитала (с доверительным управляющим)",
+            "section102OrdinaryIncomeTrustee": "Статья 102 \u2014 обычный доход (с доверительным управляющим)",
+            "section3iNonTrustee": "Статья 3(и) \u2014 без доверительного управляющего"
+          }
+        }
       },
       "expenses": {
         "label": "Расходы",

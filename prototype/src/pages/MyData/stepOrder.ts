@@ -1,6 +1,7 @@
 export const STEP_ORDER = [
   "personal",
   "pension-savings",
+  "equity",
   "expenses",
   "assumptions",
 ] as const;

@@ -4,6 +4,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 
 import { isRtl } from "../i18n";
 import { AssumptionsStep } from "../pages/MyData/AssumptionsStep";
+import { EquityStep } from "../pages/MyData/EquityStep";
 import { ExpensesStep } from "../pages/MyData/ExpensesStep";
 import { MyDataLayout } from "../pages/MyData/MyDataLayout";
 import { PensionSavingsStep } from "../pages/MyData/PensionSavingsStep";
@@ -38,6 +39,7 @@ export function App() {
           <Route index element={<Navigate to="personal" replace />} />
           <Route path="personal" element={<PersonalStep />} />
           <Route path="pension-savings" element={<PensionSavingsStep />} />
+          <Route path="equity" element={<EquityStep />} />
           <Route path="expenses" element={<ExpensesStep />} />
           <Route path="assumptions" element={<AssumptionsStep />} />
         </Route>

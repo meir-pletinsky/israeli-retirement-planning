@@ -4,6 +4,10 @@ import { useLocation, useNavigate, Outlet } from "react-router-dom";
 import { Stepper } from "../../components/Stepper";
 import { STEP_ORDER, type StepKey } from "./stepOrder";
 
+function toCamelCase(key: string): string {
+  return key.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
+}
+
 export function MyDataLayout() {
   const { t } = useTranslation();
   const location = useLocation();
@@ -14,9 +18,7 @@ export function MyDataLayout() {
 
   const steps = STEP_ORDER.map((key) => ({
     key,
-    label: t(
-      `myData.steps.${key === "pension-savings" ? "pensionSavings" : key}.label`,
-    ),
+    label: t(`myData.steps.${toCamelCase(key)}.label`),
   }));
 
   return (

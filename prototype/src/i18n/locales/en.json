@@ -6,6 +6,9 @@
     "save": "Save",
     "cancel": "Cancel",
     "confirm": "Confirm",
+    "edit": "Edit",
+    "remove": "Remove",
+    "close": "Close",
     "currencySymbol": "\u20aa"
   },
   "nav": {
@@ -45,13 +48,142 @@
         "gender": "Gender",
         "genderMale": "Male",
         "genderFemale": "Female",
-        "retirementAge": "Desired retirement age"
+        "maritalStatus": "Marital status",
+        "maritalStatusSingle": "Single",
+        "maritalStatusMarried": "Married",
+        "maritalStatusDivorced": "Divorced",
+        "maritalStatusWidowed": "Widowed",
+        "retirementAge": "Desired retirement age",
+        "creditPoints": "Tax credit points (Nekudot Zikui)",
+        "taxExemptionSection": "Tax exemption basket (Kibua Zchuyot)",
+        "form161DSubmitted": "Rights fixation (Form 161D) submitted",
+        "pastTaxFreeSeveranceWithdrawn": "Tax-free severance withdrawn to date",
+        "remainingMonthlyExemptionCap": "Remaining monthly tax-free annuity allowance"
       },
       "pensionSavings": {
         "label": "Pension & Savings",
-        "pensionBalance": "Keren Pensia balance",
-        "hishtalmutBalance": "Keren Hishtalmut balance",
-        "otherInvestments": "Other investment assets"
+        "accountsTitle": "Pension & savings accounts",
+        "addAccount": "Add account",
+        "noAccounts": "No accounts added yet. Add your pension funds, provident funds, managers insurance policies, or study funds.",
+        "untitledAccount": "Untitled account",
+        "accountFormTitle": "Pension / savings account",
+        "removeConfirmTitle": "Remove this account?",
+        "removeConfirmBody": "This permanently removes the account and its details from your profile.",
+        "otherAssets": "Other assets (cash, bonds, real estate, etc.)",
+        "fields": {
+          "providerName": "Provider name",
+          "productCategory": "Product category",
+          "accountStatus": "Account status",
+          "legacyPolicyModel": "Legacy policy model",
+          "joinDate": "Join date",
+          "liquidityDate": "Liquidity date",
+          "totalAccumulatedBalance": "Total accumulated balance",
+          "sectionBalanceBreakdown": "Balance breakdown",
+          "pre2008CapitalBalance": "Pre-2008 capital balance",
+          "post2008AnnuityBalance": "Post-2008 annuity balance",
+          "tikun190CapitalBalance": "Tikun 190 capital balance",
+          "severanceBalance": "Severance balance",
+          "sectionAnnuityParameters": "Annuity parameters",
+          "hasGuaranteedFactor": "Has guaranteed conversion factor",
+          "conversionFactor": "Conversion factor",
+          "estimatedMonthlyAnnuity": "Estimated monthly annuity",
+          "annuityTaxType": "Annuity tax type",
+          "guaranteedPaymentMonths": "Guaranteed payment period",
+          "sectionInsuranceCoverages": "Insurance coverages",
+          "deathCoverageAmount": "Death coverage amount",
+          "monthlyDisabilityAmount": "Monthly disability amount",
+          "monthlyRiskDeduction": "Monthly risk premium deduction",
+          "sectionInvestmentAndFees": "Investment track & fees",
+          "investmentTrackName": "Investment track name",
+          "feeFromAccumulationPercent": "Fee from accumulation",
+          "feeFromDepositPercent": "Fee from deposit",
+          "profitSharingFeePercent": "Profit-sharing fee",
+          "hasStateYieldGuarantee": "Has state yield guarantee"
+        },
+        "options": {
+          "productCategory": {
+            "comprehensivePension": "Comprehensive pension fund",
+            "generalPension": "General pension fund",
+            "managersInsurance": "Managers insurance",
+            "providentFund": "Provident fund",
+            "investmentProvidentFund": "Investment provident fund",
+            "studyFund": "Study fund (Keren Hishtalmut)",
+            "iraProvidentFund": "IRA provident fund"
+          },
+          "accountStatus": {
+            "activeContributing": "Active \u2014 contributing",
+            "paidUpFrozen": "Paid-up / frozen",
+            "payingAnnuity": "Paying annuity"
+          },
+          "legacyPolicyModel": {
+            "none": "None",
+            "adif": "Adif",
+            "meitav": "Meitav",
+            "profitSharing1992": "Profit sharing (1992)",
+            "budgetary": "Budgetary"
+          },
+          "annuityTaxType": {
+            "recognizedAnnuity": "Recognized annuity",
+            "qualifyingAnnuity": "Qualifying annuity"
+          },
+          "guaranteedPaymentMonths": {
+            "0": "None",
+            "60": "60 months",
+            "120": "120 months",
+            "180": "180 months",
+            "240": "240 months"
+          }
+        }
+      },
+      "equity": {
+        "label": "Equity & Investments",
+        "holdingsTitle": "Stock & equity holdings",
+        "addHolding": "Add holding",
+        "noHoldings": "No equity holdings added yet. Add employer RSUs/options, ESPP shares, or personal brokerage positions.",
+        "untitledHolding": "Untitled holding",
+        "holdingFormTitle": "Stock / equity holding",
+        "removeConfirmTitle": "Remove this holding?",
+        "removeConfirmBody": "This permanently removes the holding and its details from your profile.",
+        "fields": {
+          "investmentCategory": "Investment category",
+          "tickerSymbol": "Ticker symbol",
+          "companyName": "Company name",
+          "custodianOrBroker": "Custodian / broker",
+          "quantity": "Quantity (shares)",
+          "currentMarketPriceUSD": "Current market price",
+          "totalValue": "Total value",
+          "sectionEmployerGrantDetails": "Employer grant details (RSU / options)",
+          "grantDate": "Grant date",
+          "taxTrack": "Tax track",
+          "vestedQuantity": "Vested quantity",
+          "unvestedQuantity": "Unvested quantity",
+          "trusteeHoldingPeriodMet": "24-month trustee holding period met",
+          "costBasisAtGrantUSD": "Cost basis at grant",
+          "estimatedMarginalTaxOnVesting": "Estimated tax on vesting/sale",
+          "sectionEsppDetails": "ESPP details",
+          "purchaseDate": "Purchase date",
+          "discountPercentage": "Discount percentage",
+          "purchasePriceUSD": "Purchase price paid",
+          "fairMarketValueAtPurchaseUSD": "Fair market value at purchase",
+          "taxedDiscountValueUSD": "Discount taxed as income",
+          "capitalGainsOnGrowthUSD": "Capital gain above purchase FMV",
+          "sectionPersonalPurchaseDetails": "Personal brokerage details",
+          "averageCostBasisUSD": "Average cost basis",
+          "unrealizedCapitalGainUSD": "Unrealized capital gain",
+          "capitalGainsTaxRatePercent": "Capital gains tax rate"
+        },
+        "options": {
+          "investmentCategory": {
+            "employerGrantedStock": "Employer-granted stock (RSU / options)",
+            "employerEsppDiscount": "ESPP (employee stock purchase plan)",
+            "personalBrokeragePurchase": "Personal brokerage purchase"
+          },
+          "taxTrack": {
+            "section102CapitalGainsTrustee": "Section 102 \u2014 capital gains (trustee)",
+            "section102OrdinaryIncomeTrustee": "Section 102 \u2014 ordinary income (trustee)",
+            "section3iNonTrustee": "Section 3(i) \u2014 non-trustee"
+          }
+        }
       },
       "expenses": {
         "label": "Expenses",

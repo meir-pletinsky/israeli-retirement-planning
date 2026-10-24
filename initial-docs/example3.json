@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "personalDetails": {
+    "individualId": "ISR-RET-2026-102",
+    "birthDate": "1970-03-14",
+    "gender": "FEMALE",
+    "maritalStatus": "MARRIED",
+    "targetRetirementAge": 65,
+    "creditPoints": 2.75
+  },
+  "taxExemptionBasket": {
+    "form161DSubmitted": false,
+    "pastTaxFreeSeveranceWithdrawn": 0.0,
+    "remainingMonthlyExemptionCap": 5422.0
+  },
+  "accounts": [
+    {
+      "accountId": "HAR-MED-778899",
+      "providerName": "Harel Pension & Provident (Atudot)",
+      "productCategory": "COMPREHENSIVE_PENSION_FUND",
+      "legacyPolicyModel": "NONE",
+      "accountStatus": "ACTIVE_CONTRIBUTING",
+      "joinDate": "2002-09-01",
+      "liquidityDate": "2035-03-14",
+      "totalAccumulatedBalance": 1850000.0,
+      "balanceBreakdown": {
+        "pre2008CapitalBalance": 120000.0,
+        "post2008AnnuityBalance": 1530000.0,
+        "tikun190CapitalBalance": 0.0,
+        "severanceBalance": 200000.0
+      },
+      "annuityParameters": {
+        "hasGuaranteedFactor": false,
+        "conversionFactor": 195.0,
+        "estimatedMonthlyAnnuity": 9487.0,
+        "annuityTaxType": "QUALIFYING_ANNUITY",
+        "guaranteedPaymentMonths": 240
+      },
+      "insuranceCoverages": {
+        "deathCoverageAmount": 450000.0,
+        "monthlyDisabilityAmount": 22000.0,
+        "monthlyRiskDeduction": 185.0
+      },
+      "investmentAndFees": {
+        "investmentTrackName": "General Track (מסלול כללי)",
+        "feeFromAccumulationPercent": 0.18,
+        "feeFromDepositPercent": 1.2,
+        "profitSharingFeePercent": 0.0,
+        "hasStateYieldGuarantee": true
+      }
+    },
+    {
+      "accountId": "PHX-KH-332211",
+      "providerName": "Phoenix Excellence",
+      "productCategory": "STUDY_FUND",
+      "legacyPolicyModel": "NONE",
+      "accountStatus": "ACTIVE_CONTRIBUTING",
+      "joinDate": "2012-01-15",
+      "liquidityDate": "2018-01-15",
+      "totalAccumulatedBalance": 420000.0,
+      "balanceBreakdown": {
+        "pre2008CapitalBalance": 420000.0,
+        "post2008AnnuityBalance": 0.0,
+        "tikun190CapitalBalance": 0.0,
+        "severanceBalance": 0.0
+      },
+      "annuityParameters": {
+        "hasGuaranteedFactor": false,
+        "conversionFactor": 200.0,
+        "estimatedMonthlyAnnuity": 0.0,
+        "annuityTaxType": "RECOGNIZED_ANNUITY",
+        "guaranteedPaymentMonths": 0
+      },
+      "insuranceCoverages": {
+        "deathCoverageAmount": 0.0,
+        "monthlyDisabilityAmount": 0.0,
+        "monthlyRiskDeduction": 0.0
+      },
+      "investmentAndFees": {
+        "investmentTrackName": "S&P 500 Index Tracking",
+        "feeFromAccumulationPercent": 0.3,
+        "feeFromDepositPercent": 0.0,
+        "profitSharingFeePercent": 0.0,
+        "hasStateYieldGuarantee": false
+      }
+    }
+  ],
+  "equityAndStockInvestments": [
+    {
+      "holdingId": "EQ-RSU-201",
+      "investmentCategory": "EMPLOYER_GRANTED_STOCK",
+      "tickerSymbol": "ISRG",
+      "companyName": "Intuitive Surgical Inc. (Advisory Board Grant)",
+      "custodianOrBroker": "E*TRADE / ESOP Excellence Trustee (Sec. 102)",
+      "quantity": 300,
+      "currentMarketPriceUSD": 490.0,
+      "totalValueUSD": 147000.0,
+      "employerGrantDetails": {
+        "grantDate": "2024-06-01",
+        "taxTrack": "SECTION_102_CAPITAL_GAINS_TRUSTEE",
+        "vestedQuantity": 150,
+        "unvestedQuantity": 150,
+        "trusteeHoldingPeriodMet": true,
+        "costBasisAtGrantUSD": 380.0,
+        "estimatedMarginalTaxOnVesting": 36750.0
+      }
+    },
+    {
+      "holdingId": "EQ-PERS-202",
+      "investmentCategory": "PERSONAL_BROKERAGE_PURCHASE",
+      "tickerSymbol": "IXJ",
+      "companyName": "iShares Global Healthcare ETF",
+      "custodianOrBroker": "Interactive Brokers LLC",
+      "quantity": 1100,
+      "currentMarketPriceUSD": 95.0,
+      "totalValueUSD": 104500.0,
+      "personalPurchaseDetails": {
+        "purchaseDate": "2018-10-12",
+        "averageCostBasisUSD": 62.0,
+        "unrealizedCapitalGainUSD": 36300.0,
+        "capitalGainsTaxRatePercent": 25.0
+      }
+    }
+  ]
+}

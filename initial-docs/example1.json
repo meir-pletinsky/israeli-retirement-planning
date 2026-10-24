@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "personalDetails": {
+    "individualId": "ISR-RET-2026-101",
+    "birthDate": "1965-05-18",
+    "gender": "MALE",
+    "maritalStatus": "MARRIED",
+    "targetRetirementAge": 67,
+    "creditPoints": 2.25
+  },
+  "taxExemptionBasket": {
+    "form161DSubmitted": false,
+    "pastTaxFreeSeveranceWithdrawn": 0,
+    "remainingMonthlyExemptionCap": 5422.0
+  },
+  "accounts": [
+    {
+      "accountId": "CLAL-9255621",
+      "providerName": "Clal Insurance",
+      "productCategory": "MANAGERS_INSURANCE",
+      "legacyPolicyModel": "ADIF",
+      "accountStatus": "ACTIVE_CONTRIBUTING",
+      "joinDate": "2000-11-01",
+      "liquidityDate": "2032-05-18",
+      "totalAccumulatedBalance": 1450000.0,
+      "balanceBreakdown": {
+        "pre2008CapitalBalance": 580000.0,
+        "post2008AnnuityBalance": 870000.0,
+        "tikun190CapitalBalance": 0.0,
+        "severanceBalance": 0.0
+      },
+      "annuityParameters": {
+        "hasGuaranteedFactor": true,
+        "conversionFactor": 198.5,
+        "estimatedMonthlyAnnuity": 4382.0,
+        "annuityTaxType": "QUALIFYING_ANNUITY",
+        "guaranteedPaymentMonths": 180
+      },
+      "insuranceCoverages": {
+        "deathCoverageAmount": 0.0,
+        "monthlyDisabilityAmount": 0.0,
+        "monthlyRiskDeduction": 0.0
+      },
+      "investmentAndFees": {
+        "investmentTrackName": "Profit Sharing 1992 (משתתפת ברווחים)",
+        "feeFromAccumulationPercent": 0.6,
+        "feeFromDepositPercent": 0.0,
+        "profitSharingFeePercent": 12.65,
+        "hasStateYieldGuarantee": false
+      }
+    }
+  ],
+  "equityAndStockInvestments": [
+    {
+      "holdingId": "EQ-RSU-001",
+      "investmentCategory": "EMPLOYER_GRANTED_STOCK",
+      "tickerSymbol": "NVDA",
+      "companyName": "NVIDIA Corporation",
+      "custodianOrBroker": "E*TRADE / ESOP Excellence Trustee (Sec. 102)",
+      "quantity": 1200,
+      "currentMarketPriceUSD": 130.0,
+      "totalValueUSD": 156000.0,
+      "employerGrantDetails": {
+        "grantDate": "2024-02-01",
+        "taxTrack": "SECTION_102_CAPITAL_GAINS_TRUSTEE",
+        "vestedQuantity": 600,
+        "unvestedQuantity": 600,
+        "trusteeHoldingPeriodMet": true,
+        "costBasisAtGrantUSD": 75.0,
+        "estimatedMarginalTaxOnVesting": 39000.0
+      }
+    },
+    {
+      "holdingId": "EQ-ESPP-002",
+      "investmentCategory": "EMPLOYER_ESPP_DISCOUNT",
+      "tickerSymbol": "NVDA",
+      "companyName": "NVIDIA Corporation",
+      "custodianOrBroker": "E*TRADE Financial",
+      "quantity": 400,
+      "currentMarketPriceUSD": 130.0,
+      "totalValueUSD": 52000.0,
+      "esppDetails": {
+        "purchaseDate": "2025-08-31",
+        "discountPercentage": 15.0,
+        "purchasePriceUSD": 93.5,
+        "fairMarketValueAtPurchaseUSD": 110.0,
+        "taxedDiscountValueUSD": 6600.0,
+        "capitalGainsOnGrowthUSD": 8000.0
+      }
+    },
+    {
+      "holdingId": "EQ-PERS-003",
+      "investmentCategory": "PERSONAL_BROKERAGE_PURCHASE",
+      "tickerSymbol": "VOO",
+      "companyName": "Vanguard S&P 500 ETF",
+      "custodianOrBroker": "Interactive Brokers LLC",
+      "quantity": 500,
+      "currentMarketPriceUSD": 510.0,
+      "totalValueUSD": 255000.0,
+      "personalPurchaseDetails": {
+        "purchaseDate": "2020-03-15",
+        "averageCostBasisUSD": 280.0,
+        "unrealizedCapitalGainUSD": 115000.0,
+        "capitalGainsTaxRatePercent": 25.0
+      }
+    }
+  ]
+}
