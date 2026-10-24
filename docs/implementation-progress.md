@@ -21,13 +21,13 @@ those remain Phase 2/3 per `docs/plan.md`.
       README/docs references.
 - [x] A2. Add Vitest + React Testing Library + jsdom; `npm test` script;
       one smoke test passing.
-- [~] A3. Add Dexie; versioned IndexedDB schema + repository module for the
-      profile (per `docs/architecture.md` → Data & Persistence). (in progress)
-- [ ] A4. Replace `ProfileContext`'s localStorage persistence with the Dexie
+- [x] A3. Add Dexie; versioned IndexedDB schema + repository module for the
+      profile (per `docs/architecture.md` → Data & Persistence).
+- [x] A4. Replace `ProfileContext`'s localStorage persistence with the Dexie
       repository (keep the context's public API stable for pages).
-- [ ] A5. Wire Settings page Export/Import buttons to real JSON
+- [~] A5. Wire Settings page Export/Import buttons to real JSON
       export/download and import/upload (with shape validation), Reset
-      stays working.
+      stays working. (in progress)
 - [ ] A6. GitHub Actions CI workflow: lint, typecheck, test, build on push/PR.
 - [ ] A7. GitHub Actions deploy workflow: build + publish `app/dist` to
       GitHub Pages on merge to `main`.

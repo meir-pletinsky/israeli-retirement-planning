@@ -3,14 +3,20 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 
+import {
+  clearAllData,
+  loadOnboardedFromDb,
+  loadProfileFromDb,
+  migrateLegacyLocalStorageIfNeeded,
+  saveOnboardedToDb,
+  saveProfileToDb,
+} from "../storage/db";
 import { EMPTY_PROFILE, type ProfileData } from "../types";
-
-const STORAGE_KEY = "irp_profile";
-const ONBOARDED_KEY = "irp_onboarded";
 
 interface ProfileContextValue {
   profile: ProfileData;
@@ -24,43 +30,44 @@ const ProfileContext = createContext<ProfileContextValue | undefined>(
   undefined,
 );
 
-function loadProfile(): ProfileData {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return EMPTY_PROFILE;
-    const parsed = JSON.parse(raw) as Partial<ProfileData>;
-    const merged: ProfileData = {
-      ...EMPTY_PROFILE,
-      ...parsed,
-      personal: { ...EMPTY_PROFILE.personal, ...parsed.personal },
-      taxExemptionBasket: {
-        ...EMPTY_PROFILE.taxExemptionBasket,
-        ...parsed.taxExemptionBasket,
-      },
-    };
-    // Guard against the pre-schema-expansion localStorage shape (plain
-    // numeric fields instead of an accounts/holdings array).
-    if (!Array.isArray(merged.pensionSavings?.accounts)) {
-      merged.pensionSavings = EMPTY_PROFILE.pensionSavings;
-    }
-    if (!Array.isArray(merged.equity?.holdings)) {
-      merged.equity = EMPTY_PROFILE.equity;
-    }
-    return merged;
-  } catch {
-    return EMPTY_PROFILE;
-  }
-}
-
 export function ProfileProvider({ children }: { children: ReactNode }) {
-  const [profile, setProfile] = useState<ProfileData>(loadProfile);
-  const [onboarded, setOnboarded] = useState<boolean>(
-    () => localStorage.getItem(ONBOARDED_KEY) === "true",
-  );
+  const [profile, setProfile] = useState<ProfileData>(EMPTY_PROFILE);
+  const [onboarded, setOnboarded] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const hasLoadedRef = useRef(false);
+
+  // Load persisted state from IndexedDB (via Dexie) once on mount. Routing
+  // decisions (e.g. onboarded -> /dashboard) must not run against stale
+  // defaults, so rendering of `children` is withheld until this resolves
+  // (see the isReady guard below).
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      await migrateLegacyLocalStorageIfNeeded();
+      const [storedProfile, storedOnboarded] = await Promise.all([
+        loadProfileFromDb(),
+        loadOnboardedFromDb(),
+      ]);
+      if (cancelled) return;
+      if (storedProfile) setProfile(storedProfile);
+      setOnboarded(storedOnboarded);
+      hasLoadedRef.current = true;
+      setIsReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+    if (!hasLoadedRef.current) return;
+    void saveProfileToDb(profile);
   }, [profile]);
+
+  useEffect(() => {
+    if (!hasLoadedRef.current) return;
+    void saveOnboardedToDb(onboarded);
+  }, [onboarded]);
 
   const value = useMemo<ProfileContextValue>(
     () => ({
@@ -68,19 +75,17 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       updateProfile: (patch) =>
         setProfile((prev) => ({ ...prev, ...patch })),
       onboarded,
-      completeOnboarding: () => {
-        localStorage.setItem(ONBOARDED_KEY, "true");
-        setOnboarded(true);
-      },
+      completeOnboarding: () => setOnboarded(true),
       resetProfile: () => {
-        localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem(ONBOARDED_KEY);
+        void clearAllData();
         setProfile(EMPTY_PROFILE);
         setOnboarded(false);
       },
     }),
     [profile, onboarded],
   );
+
+  if (!isReady) return null;
 
   return (
     <ProfileContext.Provider value={value}>

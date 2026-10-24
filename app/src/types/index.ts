@@ -281,4 +281,33 @@ export const EMPTY_PROFILE: ProfileData = {
   assumptions: { preset: "base", ...ASSUMPTION_PRESETS.base },
 };
 
+/**
+ * Defensively merges a possibly-partial/stale profile object (from an older
+ * localStorage build, a hand-edited JSON import, etc.) onto `EMPTY_PROFILE`
+ * so missing or mis-shaped fields fall back to safe defaults instead of
+ * crashing the app.
+ */
+export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined): ProfileData {
+  const merged: ProfileData = {
+    ...EMPTY_PROFILE,
+    ...parsed,
+    personal: { ...EMPTY_PROFILE.personal, ...parsed?.personal },
+    taxExemptionBasket: {
+      ...EMPTY_PROFILE.taxExemptionBasket,
+      ...parsed?.taxExemptionBasket,
+    },
+    expenses: { ...EMPTY_PROFILE.expenses, ...parsed?.expenses },
+    assumptions: { ...EMPTY_PROFILE.assumptions, ...parsed?.assumptions },
+  };
+  // Guard against the pre-schema-expansion shape (plain numeric fields
+  // instead of an accounts/holdings array).
+  if (!Array.isArray(merged.pensionSavings?.accounts)) {
+    merged.pensionSavings = EMPTY_PROFILE.pensionSavings;
+  }
+  if (!Array.isArray(merged.equity?.holdings)) {
+    merged.equity = EMPTY_PROFILE.equity;
+  }
+  return merged;
+}
+
 export type RetirementScenario = "standard" | "early" | "delayed";
