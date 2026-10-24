@@ -233,6 +233,8 @@
     "resetConfirmTitle": "Reset all data?",
     "resetConfirmBody": "This permanently deletes all profile data stored on this device. This cannot be undone.",
     "about": "About & data sources",
-    "notImplemented": "This is a UI prototype \u2014 no real data logic yet."
+    "exportSuccess": "Data exported.",
+    "importSuccess": "Data imported successfully.",
+    "importError": "Couldn't import this file. Please choose a valid exported profile JSON."
   }
 }

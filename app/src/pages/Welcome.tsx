@@ -1,14 +1,31 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
+import { useProfile } from "../app/ProfileContext";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { Toast } from "../components/Toast";
+import { importProfileFromFile } from "../storage/profileIO";
 
 export function Welcome() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { updateProfile, completeOnboarding } = useProfile();
   const [toast, setToast] = useState<string | null>(null);
+  const [toastTone, setToastTone] = useState<"default" | "error">("default");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleImportFile(file: File) {
+    try {
+      const imported = await importProfileFromFile(file);
+      updateProfile(imported);
+      completeOnboarding();
+      navigate("/dashboard");
+    } catch {
+      setToastTone("error");
+      setToast(t("settings.importError"));
+    }
+  }
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center bg-slate-50 px-6 py-12">
@@ -30,17 +47,28 @@ export function Welcome() {
           </button>
           <button
             type="button"
-            onClick={() => setToast(t("settings.notImplemented"))}
+            onClick={() => fileInputRef.current?.click()}
             className="rounded-md border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"
           >
             {t("welcome.import")}
           </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (file) void handleImportFile(file);
+            }}
+          />
         </div>
         <p className="mt-6 text-xs text-slate-400">
           {t("welcome.privacyNote")}
         </p>
       </div>
-      <Toast message={toast} onClear={() => setToast(null)} />
+      <Toast message={toast} tone={toastTone} onClear={() => setToast(null)} />
     </div>
   );
 }

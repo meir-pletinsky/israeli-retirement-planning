@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
+import { exportProfileToFile, importProfileFromFile } from "../storage/profileIO";
 import { useProfile } from "../app/ProfileContext";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
@@ -10,9 +11,31 @@ import { Toast } from "../components/Toast";
 export function Settings() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { resetProfile } = useProfile();
+  const { profile, updateProfile, completeOnboarding, resetProfile } =
+    useProfile();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [toastTone, setToastTone] = useState<"default" | "error">("default");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function handleExport() {
+    exportProfileToFile(profile);
+    setToastTone("default");
+    setToast(t("settings.exportSuccess"));
+  }
+
+  async function handleImportFile(file: File) {
+    try {
+      const imported = await importProfileFromFile(file);
+      updateProfile(imported);
+      completeOnboarding();
+      setToastTone("default");
+      setToast(t("settings.importSuccess"));
+    } catch {
+      setToastTone("error");
+      setToast(t("settings.importError"));
+    }
+  }
 
   return (
     <div className="flex max-w-lg flex-col gap-6">
@@ -34,18 +57,29 @@ export function Settings() {
         <div className="flex flex-col gap-2">
           <button
             type="button"
-            onClick={() => setToast(t("settings.notImplemented"))}
+            onClick={handleExport}
             className="rounded-md border border-slate-300 px-4 py-2 text-start text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
             {t("settings.export")}
           </button>
           <button
             type="button"
-            onClick={() => setToast(t("settings.notImplemented"))}
+            onClick={() => fileInputRef.current?.click()}
             className="rounded-md border border-slate-300 px-4 py-2 text-start text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
             {t("settings.import")}
           </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (file) void handleImportFile(file);
+            }}
+          />
           <button
             type="button"
             onClick={() => setConfirmOpen(true)}
@@ -69,7 +103,7 @@ export function Settings() {
           navigate("/");
         }}
       />
-      <Toast message={toast} onClear={() => setToast(null)} />
+      <Toast message={toast} tone={toastTone} onClear={() => setToast(null)} />
     </div>
   );
 }
