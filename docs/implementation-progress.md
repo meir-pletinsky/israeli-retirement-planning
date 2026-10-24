@@ -19,10 +19,10 @@ those remain Phase 2/3 per `docs/plan.md`.
 
 - [x] A1. Rename `prototype/` → `app/` (git mv, preserve history); update
       README/docs references.
-- [ ] A2. Add Vitest + React Testing Library + jsdom; `npm test` script;
+- [x] A2. Add Vitest + React Testing Library + jsdom; `npm test` script;
       one smoke test passing.
-- [ ] A3. Add Dexie; versioned IndexedDB schema + repository module for the
-      profile (per `docs/architecture.md` → Data & Persistence).
+- [~] A3. Add Dexie; versioned IndexedDB schema + repository module for the
+      profile (per `docs/architecture.md` → Data & Persistence). (in progress)
 - [ ] A4. Replace `ProfileContext`'s localStorage persistence with the Dexie
       repository (keep the context's public API stable for pages).
 - [ ] A5. Wire Settings page Export/Import buttons to real JSON
