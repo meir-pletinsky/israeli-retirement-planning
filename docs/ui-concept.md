@@ -2,7 +2,9 @@
 
 Companion to `docs/plan.md`. Describes the information architecture,
 screens, components, and visual direction for the MVP. A click-through
-prototype implementing this (no calculation logic) lives in `prototype/`.
+prototype implementing this (no calculation logic) was built first, then
+evolved in place into the real application — see `app/` and
+`docs/implementation-progress.md`.
 
 ## Design Principles
 
@@ -163,10 +165,13 @@ per entry.
   labels (required for screen readers in all three languages).
 - Contrast meets WCAG AA for text and key UI elements.
 
-## Prototype Scope (`prototype/`)
+## Prototype Scope (historical — superseded by `app/`)
 
 A React + TypeScript + Vite + Tailwind app implementing the screens above
 with static/mock data and working navigation, language switching (with RTL
 flip), and responsive layout — **no real calculation logic**. Purpose: get
 sign-off on structure, navigation, and visual direction before the domain
-engine and persistence layer are built in Phase 1 implementation.
+engine and persistence layer are built in Phase 1 implementation. That
+prototype folder was later renamed `app/` and is being extended in place
+with real persistence and calculations; see `docs/implementation-progress.md`
+for current status.

@@ -1,14 +1,8 @@
-# UI Concept Prototype
+# Israeli Retirement Planning — App
 
-Click-through prototype for the Israeli Retirement Planning app's Phase 1
-(MVP) UI. See `../docs/ui-concept.md` for the design spec this implements
-and `../docs/plan.md` for the overall roadmap.
-
-**This is UI-only**: navigation, layout, localization (English/Russian/
-Hebrew incl. RTL), and responsive behavior are real; all numbers on the
-Dashboard/Projections screens are static mock data (`src/data/mockData.ts`).
-Profile form values are kept in React state + `localStorage` just so the
-wizard feels real — there is no calculation engine yet.
+The application (evolved from an earlier click-through prototype). See
+`../docs/ui-concept.md` for the design spec, `../docs/plan.md` for the
+roadmap, and `../docs/implementation-progress.md` for current build status.
 
 ## Stack
 
@@ -32,8 +26,10 @@ src/
   app/        # App root, routing, AppShell (nav), profile state
   pages/      # Welcome, Dashboard, My Data (wizard), Projections, Settings
   components/ # Shared UI (KpiCard, charts, form fields, modal, etc.)
+  domain/     # Pure calculation engine (no UI deps), unit-tested
+  storage/    # Persistence (Dexie-backed profile repository, export/import)
   i18n/       # en/ru/he translation resources + i18next setup
-  data/       # Mock projection data
+  data/       # Static fallback datasets (see docs/architecture.md)
   types/      # Shared TypeScript types
 ```
 
@@ -42,3 +38,4 @@ src/
 - `npm run dev` — start the dev server
 - `npm run build` — type-check and produce a production build
 - `npm run lint` — run oxlint
+- `npm test` — run the Vitest test suite

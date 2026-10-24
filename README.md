@@ -16,8 +16,11 @@ funds, Bituach Leumi, investments, and more.
   with an MVP scope.
 - [`docs/ui-concept.md`](docs/ui-concept.md) — UI/UX concept: information
   architecture, screens, components, visual direction, localization & RTL.
-- [`prototype/`](prototype) — interactive click-through UI prototype (no
-  calculation logic yet) implementing the UI concept above.
+- [`docs/implementation-progress.md`](docs/implementation-progress.md) —
+  live implementation checklist; read this to see what's built and resume
+  work across sessions.
+- [`app/`](app) — the application (evolved from the original click-through
+  prototype; same stack, now with real persistence and calculations).
 
 ## Requirements
 
