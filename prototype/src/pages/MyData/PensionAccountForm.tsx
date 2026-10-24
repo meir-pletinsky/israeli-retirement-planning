@@ -59,6 +59,9 @@ export function PensionAccountForm({
 
   const { balanceBreakdown, annuityParameters, insuranceCoverages, investmentAndFees } =
     account;
+  const providerSuggestions = t("myData.steps.pensionSavings.providerSuggestions", {
+    returnObjects: true,
+  }) as string[];
 
   return (
     <div className="flex flex-col gap-4">
@@ -66,6 +69,8 @@ export function PensionAccountForm({
         label={f("providerName")}
         value={account.providerName}
         onChange={(providerName) => onChange({ providerName })}
+        suggestions={providerSuggestions}
+        suggestionsId="pension-provider-suggestions"
       />
       <SelectField
         label={f("productCategory")}

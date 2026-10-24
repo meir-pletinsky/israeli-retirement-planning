@@ -70,6 +70,13 @@
         "removeConfirmTitle": "Remove this account?",
         "removeConfirmBody": "This permanently removes the account and its details from your profile.",
         "otherAssets": "Other assets (cash, bonds, real estate, etc.)",
+        "providerSuggestions": [
+          "Clal Insurance and Finance",
+          "The Phoenix Group",
+          "Menora Mivtachim",
+          "Harel Insurance and Finance",
+          "Migdal Group"
+        ],
         "fields": {
           "providerName": "Provider name",
           "productCategory": "Product category",
