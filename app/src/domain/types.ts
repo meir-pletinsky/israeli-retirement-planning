@@ -2,9 +2,8 @@ import type { RetirementScenario } from "../types";
 
 /**
  * A single year's projected net worth, expressed in today's money (real
- * terms — see `netWorth.ts` for why). Shape matches the prototype's
- * `NetWorthPoint` (src/data/mockData.ts) so Phase C can swap the data
- * source without touching the chart components.
+ * terms — see `netWorth.ts` for why). This is the shape the `NetWorthChart`
+ * component expects.
  */
 export interface NetWorthPoint {
   age: number;

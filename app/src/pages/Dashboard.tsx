@@ -6,7 +6,14 @@ import { NetWorthChart } from "../components/charts/NetWorthChart";
 import { EmptyState } from "../components/EmptyState";
 import { KpiCard } from "../components/KpiCard";
 import { StatusBanner } from "../components/StatusBanner";
-import { getMockNetWorthProjection, MOCK_KPIS } from "../data/mockData";
+import {
+  aggregateCurrentNetWorth,
+  calculateFundingGap,
+  estimateRetirementIncome,
+  projectNetWorth,
+  resolveRetirementAge,
+  yearsToRetirement,
+} from "../domain";
 
 export function Dashboard() {
   const { t } = useTranslation();
@@ -30,28 +37,31 @@ export function Dashboard() {
     );
   }
 
-  const data = getMockNetWorthProjection("standard");
-  const isShortfall = MOCK_KPIS.fundingGap < 0;
+  const data = projectNetWorth(profile, "standard");
+  const netWorthToday = aggregateCurrentNetWorth(profile);
+  const { monthlyIncomeTodayMoney } = estimateRetirementIncome(profile, "standard");
+  const fundingGap = calculateFundingGap(profile, "standard");
+  const isShortfall = fundingGap.status === "shortfall";
 
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           label={t("dashboard.kpi.monthlyIncome")}
-          value={`${currencySymbol}${MOCK_KPIS.monthlyIncome.toLocaleString()}`}
+          value={`${currencySymbol}${monthlyIncomeTodayMoney.toLocaleString()}`}
         />
         <KpiCard
           label={t("dashboard.kpi.netWorth")}
-          value={`${currencySymbol}${MOCK_KPIS.netWorth.toLocaleString()}`}
+          value={`${currencySymbol}${Math.round(netWorthToday).toLocaleString()}`}
         />
         <KpiCard
           label={t("dashboard.kpi.fundingGap")}
-          value={`${currencySymbol}${MOCK_KPIS.fundingGap.toLocaleString()}`}
+          value={`${currencySymbol}${fundingGap.monthlyGap.toLocaleString()}`}
           status={isShortfall ? "negative" : "positive"}
         />
         <KpiCard
           label={t("dashboard.kpi.yearsToRetirement")}
-          value={MOCK_KPIS.yearsToRetirement}
+          value={yearsToRetirement(profile, "standard")}
         />
       </div>
 
@@ -78,7 +88,7 @@ export function Dashboard() {
         </div>
         <NetWorthChart
           data={data}
-          retirementAge={profile.personal.retirementAge ?? 67}
+          retirementAge={resolveRetirementAge(profile, "standard")}
           currencySymbol={currencySymbol}
         />
       </div>

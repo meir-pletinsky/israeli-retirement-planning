@@ -61,11 +61,13 @@ Snapshot as of this handoff:
     via `actions/deploy-pages`. **Verified green end-to-end**: both
     workflows succeeded on the latest push, and the live URL returns
     HTTP 200.
-- **Phase B (domain calculation engine): NOT STARTED.** Next up — pure-TS,
-  unit-tested net worth projection / retirement income / funding gap
-  functions in `app/src/domain/`.
-- **Phase C (wire calculations into UI): NOT STARTED.** Dashboard and
-  Projections pages still show mock data; depends on Phase B.
+- **Phase B (domain calculation engine): ALL DONE.** Pure-TS, unit-tested
+  net worth projection / retirement income / funding gap / income-breakdown
+  functions in `app/src/domain/` (34 tests, all green).
+- **Phase C (wire calculations into UI): ALL DONE.** Dashboard and
+  Projections pages now use the domain engine instead of mock data;
+  Personal step has required-field + retirement-age validation. Verified
+  end-to-end in-browser with a real profile.
 - **Phase D (testing/docs/deploy verification):** D3 (verify live deploy +
   README link) is done as a side effect of A7. D1 (component tests) and D2
   (docs updates reflecting final implementation) remain.

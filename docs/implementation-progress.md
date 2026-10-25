@@ -62,12 +62,35 @@ those remain Phase 2/3 per `docs/plan.md`.
 
 ## Phase C — Wire calculations into UI
 
-- [ ] C1. Dashboard: replace mock KPIs/chart with real calculated values
-      from the domain engine + stored profile.
-- [ ] C2. Projections page: replace mock data with real domain-engine
+- [x] C1. Dashboard: replace mock KPIs/chart with real calculated values
+      from the domain engine + stored profile. `Dashboard.tsx` now calls
+      `aggregateCurrentNetWorth`, `projectNetWorth`, `estimateRetirementIncome`,
+      `calculateFundingGap`, `resolveRetirementAge`, `yearsToRetirement`.
+      Verified in-browser with a real profile (age 45, retirement 67, other
+      assets ₪200,000, desired expenses ₪6,000/mo): KPIs showed
+      ₪2,180 projected income, ₪200,000 net worth today, -₪3,820 funding
+      gap, 22 years to retirement — all consistent with the inputs.
+- [x] C2. Projections page: replace mock data with real domain-engine
       output; scenario controls (retirement age) recalculate live.
-- [ ] C3. My Data wizard: confirm/add validation for fields the calc engine
-      requires; graceful handling of incomplete profiles.
+      `Projections.tsx` now uses `projectNetWorth` per scenario (early/
+      standard/delayed) and the new `estimateIncomeBreakdown()` (added to
+      the domain engine as C2-supporting work, with its own
+      `incomeBreakdown.test.ts` — 34 tests total project-wide, all green)
+      for the income-by-source chart. Verified in-browser: net worth chart
+      shows realistic growth-then-drawdown curve, income breakdown chart
+      renders with real pension/investment split.
+- [x] C3. My Data wizard: add validation for fields the calc engine
+      requires. Scope: Personal step only — `age` and `retirementAge` are
+      required and `retirementAge` must exceed `age`, since every domain
+      calculation depends on both. Implemented via `NumberField`'s new
+      `error` prop, `StepFooter`'s new `isValid`/`onInvalidAttempt` gating,
+      and `PersonalStep`'s `showErrors` state (errors only shown after a
+      blocked "Next" attempt, not on initial load). Other steps/fields are
+      intentionally left unvalidated: the domain engine already defaults
+      missing balances/expenses to 0 and degrades gracefully (e.g. a
+      ₪0 funding gap baseline), so stricter validation elsewhere is
+      deferred unless it proves necessary. Verified in-browser: blank
+      Personal step blocks "Next" with inline errors; valid input proceeds.
 
 ## Phase D — Testing, docs, deploy verification
 

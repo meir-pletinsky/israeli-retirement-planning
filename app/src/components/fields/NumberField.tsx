@@ -8,6 +8,7 @@ interface NumberFieldProps {
   suffix?: ReactNode;
   min?: number;
   max?: number;
+  error?: string;
 }
 
 export function NumberField({
@@ -18,11 +19,16 @@ export function NumberField({
   suffix,
   min,
   max,
+  error,
 }: NumberFieldProps) {
   return (
     <label className="block">
       <span className="text-sm font-medium text-slate-700">{label}</span>
-      <div className="mt-1 flex items-center rounded-md border border-slate-300 bg-white focus-within:border-teal-500">
+      <div
+        className={`mt-1 flex items-center rounded-md border bg-white focus-within:border-teal-500 ${
+          error ? "border-red-400" : "border-slate-300"
+        }`}
+      >
         <input
           type="number"
           inputMode="decimal"
@@ -38,10 +44,14 @@ export function NumberField({
           <span className="pe-3 text-sm text-slate-400">{suffix}</span>
         )}
       </div>
-      {helperText && (
-        <span className="mt-1 block text-xs text-slate-400">
-          {helperText}
-        </span>
+      {error ? (
+        <span className="mt-1 block text-xs text-red-600">{error}</span>
+      ) : (
+        helperText && (
+          <span className="mt-1 block text-xs text-slate-400">
+            {helperText}
+          </span>
+        )
       )}
     </label>
   );

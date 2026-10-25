@@ -9,7 +9,7 @@ import {
   YAxis,
 } from "recharts";
 
-import type { IncomeBreakdownPoint } from "../../data/mockData";
+import type { IncomeBreakdownPoint } from "../../domain";
 
 interface IncomeBreakdownChartProps {
   data: IncomeBreakdownPoint[];

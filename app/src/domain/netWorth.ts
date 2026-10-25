@@ -37,6 +37,14 @@ export function resolveRetirementAge(
   }
 }
 
+/** Whole years remaining until retirement under the given scenario (floored at 0). */
+export function yearsToRetirement(
+  profile: ProfileData,
+  scenario: RetirementScenario = "standard",
+): number {
+  return Math.max(resolveRetirementAge(profile, scenario) - resolveCurrentAge(profile), 0);
+}
+
 /**
  * Real (inflation-adjusted) annual rate of return, derived from the
  * nominal assumption set. Projecting in real terms means every output is

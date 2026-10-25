@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useProfile } from "../../app/ProfileContext";
@@ -20,6 +21,18 @@ export function PersonalStep() {
   const { profile, updateProfile } = useProfile();
   const { personal, taxExemptionBasket } = profile;
   const currency = t("common.currencySymbol");
+  const [showErrors, setShowErrors] = useState(false);
+
+  // These two fields drive every domain calculation (see app/src/domain);
+  // require them explicitly so the dashboard never silently substitutes
+  // defaults without the user realizing it.
+  const ageMissing = personal.age === null;
+  const retirementAgeMissing = personal.retirementAge === null;
+  const retirementBeforeAge =
+    !ageMissing &&
+    !retirementAgeMissing &&
+    personal.retirementAge! <= personal.age!;
+  const isValid = !ageMissing && !retirementAgeMissing && !retirementBeforeAge;
 
   return (
     <div className="flex max-w-lg flex-col gap-4">
@@ -29,6 +42,11 @@ export function PersonalStep() {
         onChange={(age) => updateProfile({ personal: { ...personal, age } })}
         min={18}
         max={100}
+        error={
+          showErrors && ageMissing
+            ? t("myData.validation.required")
+            : undefined
+        }
       />
       <SelectField
         label={t("myData.steps.personal.gender")}
@@ -64,6 +82,13 @@ export function PersonalStep() {
         }
         min={50}
         max={80}
+        error={
+          showErrors && retirementAgeMissing
+            ? t("myData.validation.required")
+            : showErrors && retirementBeforeAge
+              ? t("myData.validation.retirementAfterAge")
+              : undefined
+        }
       />
       <NumberField
         label={t("myData.steps.personal.creditPoints")}
@@ -113,7 +138,11 @@ export function PersonalStep() {
         />
       </CollapsibleSection>
 
-      <StepFooter currentKey="personal" />
+      <StepFooter
+        currentKey="personal"
+        isValid={isValid}
+        onInvalidAttempt={() => setShowErrors(true)}
+      />
     </div>
   );
 }

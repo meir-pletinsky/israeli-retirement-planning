@@ -2,12 +2,10 @@ import clsx from "clsx";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { useProfile } from "../app/ProfileContext";
 import { IncomeBreakdownChart } from "../components/charts/IncomeBreakdownChart";
 import { NetWorthChart } from "../components/charts/NetWorthChart";
-import {
-  getMockIncomeBreakdown,
-  getMockNetWorthProjection,
-} from "../data/mockData";
+import { estimateIncomeBreakdown, projectNetWorth } from "../domain";
 import type { RetirementScenario } from "../types";
 
 const SCENARIOS: RetirementScenario[] = ["early", "standard", "delayed"];
@@ -18,12 +16,13 @@ function scenarioLabelKey(scenario: RetirementScenario): string {
 
 export function Projections() {
   const { t } = useTranslation();
+  const { profile } = useProfile();
   const [scenario, setScenario] = useState<RetirementScenario>("standard");
   const [view, setView] = useState<"chart" | "table">("chart");
   const currencySymbol = t("common.currencySymbol");
 
-  const netWorthData = getMockNetWorthProjection(scenario);
-  const incomeData = getMockIncomeBreakdown();
+  const netWorthData = projectNetWorth(profile, scenario);
+  const incomeData = estimateIncomeBreakdown(profile, scenario);
 
   return (
     <div className="flex flex-col gap-6">

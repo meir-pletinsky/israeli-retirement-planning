@@ -41,6 +41,10 @@
   },
   "myData": {
     "title": "My Data",
+    "validation": {
+      "required": "This field is required.",
+      "retirementAfterAge": "Retirement age must be greater than your current age."
+    },
     "steps": {
       "personal": {
         "label": "Personal",

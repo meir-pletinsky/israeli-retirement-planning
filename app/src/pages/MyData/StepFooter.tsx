@@ -6,14 +6,30 @@ import { nextStep, prevStep, type StepKey } from "./stepOrder";
 
 interface StepFooterProps {
   currentKey: StepKey;
+  /** When false, clicking Next/Save is blocked and `onInvalidAttempt` fires instead of navigating. */
+  isValid?: boolean;
+  onInvalidAttempt?: () => void;
 }
 
-export function StepFooter({ currentKey }: StepFooterProps) {
+export function StepFooter({ currentKey, isValid = true, onInvalidAttempt }: StepFooterProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { completeOnboarding } = useProfile();
   const next = nextStep(currentKey);
   const prev = prevStep(currentKey);
+
+  const handleNext = () => {
+    if (!isValid) {
+      onInvalidAttempt?.();
+      return;
+    }
+    if (next) {
+      navigate(`/my-data/${next}`);
+    } else {
+      completeOnboarding();
+      navigate("/dashboard");
+    }
+  };
 
   return (
     <div className="mt-2 flex justify-between">
@@ -27,14 +43,7 @@ export function StepFooter({ currentKey }: StepFooterProps) {
       </button>
       <button
         type="button"
-        onClick={() => {
-          if (next) {
-            navigate(`/my-data/${next}`);
-          } else {
-            completeOnboarding();
-            navigate("/dashboard");
-          }
-        }}
+        onClick={handleNext}
         className="rounded-md bg-teal-600 px-5 py-2 text-sm font-semibold text-white hover:bg-teal-700"
       >
         {next ? t("common.next") : t("common.save")}

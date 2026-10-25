@@ -9,7 +9,7 @@ import {
   YAxis,
 } from "recharts";
 
-import type { NetWorthPoint } from "../../data/mockData";
+import type { NetWorthPoint } from "../../domain";
 
 interface NetWorthChartProps {
   data: NetWorthPoint[];
