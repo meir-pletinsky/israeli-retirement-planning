@@ -94,8 +94,18 @@ those remain Phase 2/3 per `docs/plan.md`.
 
 ## Phase D — Testing, docs, deploy verification
 
-- [ ] D1. Component tests for key flows (account/holding repeater add-edit-
-      remove, dashboard rendering with calculated values).
+- [x] D1. Component tests for key flows (account/holding repeater add-edit-
+      remove, dashboard rendering with calculated values). Added
+      `fake-indexeddb` as a dev dependency so `ProfileProvider`'s real
+      Dexie-backed load/save path runs unmodified in tests (via a new
+      `src/test/renderWithProviders.tsx` helper). `Dashboard.test.tsx`
+      covers the pre-onboarding empty state and KPI rendering against a
+      seeded profile, computing expectations via the same domain-engine
+      calls the component uses (rather than hardcoded snapshot numbers) so
+      the test tracks real behavior. `MyData/PensionSavingsStep.test.tsx`
+      exercises the full account repeater: add → edit → remove, including
+      the confirm-removal modal. 3 new tests (37 total project-wide, all
+      green).
 - [ ] D2. Update `docs/architecture.md` / `docs/plan.md` / `README.md` to
       reflect implemented status and any deviations from the original plan.
 - [x] D3. Verify the live GitHub Pages deployment; add the live link to
