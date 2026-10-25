@@ -11,6 +11,29 @@ buildable roadmap. Confirmed with the project owner:
 - Deliverables before implementation: this plan, `docs/ui-concept.md`, and
   an interactive click-through prototype (no calculation logic yet).
 
+## Status
+
+Phase 1 (MVP) is implemented — app shell, i18n/RTL, Dexie persistence +
+export/import, domain calculation engine, dashboard/projections wiring,
+wizard validation, CI + GitHub Pages deploy, and initial component tests
+are all done. See [`docs/implementation-progress.md`](implementation-progress.md)
+for the authoritative, task-by-task checklist and logged deviations.
+
+Known gaps vs. this document's original Phase 1 output list (not blockers,
+but should be addressed before calling Phase 1 fully spec-complete):
+
+- **No "current salary" input or ongoing-contribution modeling.** The data
+  model (richer than this plan originally assumed — see
+  `person-programs-and-investments.json` and `docs/ui-concept.md`) only
+  captures point-in-time account balances, so projections grow existing
+  balances but don't model future contributions from salary. Revisit if/when
+  a salary field is added.
+- **"Early retirement feasibility date" isn't solved for.** What's
+  implemented instead is a 3-way scenario *comparison* (early/standard/
+  delayed, at fixed age offsets — see `domain/constants.ts`), not a
+  calculation of the earliest age at which the funding gap turns
+  non-negative. A true feasibility solver is a reasonable Phase 2 addition.
+
 ## Open Items to Validate (flagged from initial docs)
 
 These aren't blockers for planning/UI concept, but should be confirmed with

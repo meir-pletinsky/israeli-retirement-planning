@@ -106,8 +106,17 @@ those remain Phase 2/3 per `docs/plan.md`.
       exercises the full account repeater: add → edit → remove, including
       the confirm-removal modal. 3 new tests (37 total project-wide, all
       green).
-- [ ] D2. Update `docs/architecture.md` / `docs/plan.md` / `README.md` to
+- [x] D2. Update `docs/architecture.md` / `docs/plan.md` / `README.md` to
       reflect implemented status and any deviations from the original plan.
+      Added a Status section to each of `architecture.md` and `plan.md`
+      (linking to this file), corrected the stale ESLint+Prettier lint
+      table row to `oxlint`, updated the `domain/` structure diagram to
+      match the actual flat layout, noted the External Data Sources
+      section is unimplemented Phase-4 scope, logged the repo-visibility
+      deviation under Deployment, and flagged two real gaps vs. the
+      original Phase 1 output list: no salary/contribution modeling, and
+      no true "early retirement feasibility date" solver (only a 3-way
+      scenario comparison). Added a Getting Started section to `README.md`.
 - [x] D3. Verify the live GitHub Pages deployment; add the live link to
       `README.md`. (Done as part of A7; re-verify after future deploys that
       change routing/assets.)

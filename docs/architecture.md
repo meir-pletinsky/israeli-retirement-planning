@@ -6,6 +6,14 @@ Replaces the corrupted/truncated draft previously at
 `initial-docs/Retirement Planning App - Architecture & Development Plan.md`
 (that file ended mid-chat-export and is kept only for historical reference).
 
+**Implementation status:** this document describes the architecture as
+*designed*. Phase 1 (MVP) now *implements* most of it — see
+[`docs/implementation-progress.md`](implementation-progress.md) for the
+task-by-task build log and a few deviations from the plan below (repo
+visibility, linter choice, FX placeholder rate). The sections below are
+kept largely as originally written; where the real implementation diverges
+materially, a note is added inline.
+
 ## Vision
 
 A privacy-first Israeli retirement planning application. All user financial
@@ -54,7 +62,7 @@ storage. The app is a static bundle; all computation happens client-side.
 | Local storage | Dexie.js (IndexedDB wrapper) | structured, versioned schema, supports export/import |
 | Charts | Recharts | net worth / income projection visualizations |
 | Testing | Vitest + React Testing Library | unit tests for calculation engine are priority #1 |
-| Lint/format | ESLint + Prettier | enforced in CI |
+| Lint/format | `oxlint` | **Deviation:** chosen over ESLint+Prettier during the prototype phase for speed/simplicity; enforced in CI. See `docs/implementation-progress.md` deviations log. |
 | CI/CD | GitHub Actions | lint + test + build + deploy to GitHub Pages |
 | Hosting | GitHub Pages | free static hosting |
 
@@ -66,10 +74,10 @@ src/
   pages/            # one folder per route/screen
   components/       # shared/reusable UI components
   domain/           # pure calculation engine (no React/DOM deps)
-    bituach-leumi/
-    pension-fund/
-    provident-fund/
-    ...
+    bituach-leumi/  # Phase 2 — not yet created; domain/ is currently flat
+    pension-fund/   # (constants.ts, types.ts, netWorth.ts, retirementIncome.ts,
+    provident-fund/ # fundingGap.ts, incomeBreakdown.ts, index.ts), since
+    ...             # Phase 1 doesn't need per-source modeling yet.
   data/             # static fallback datasets (rates, tables), external data clients
   storage/          # Dexie schema, repositories, export/import
   i18n/             # translation resources (en, ru, he) + setup
@@ -95,6 +103,11 @@ needed.
 - No analytics or telemetry is sent off-device for user financial inputs.
 
 ## External Data Sources
+
+**Not yet implemented** (Phase 4 scope). The only live stand-in today is a
+single fixed FX constant (`FALLBACK_USD_TO_ILS_RATE` in
+`app/src/domain/constants.ts`) used to value USD-denominated equity
+holdings — a placeholder, not the fetch-then-fallback architecture below.
 
 Functional spec Section 11 lists many potential external feeds (CPI,
 inflation history, FX rates, capital market returns, risk-free rate, pension
@@ -148,6 +161,11 @@ else (important for Monte Carlo/default assumptions reproducibility).
   Pages on merge to `main`.
 - No environment secrets are required for the MVP (no backend, no private
   API keys committed).
+- **Deviation:** the repo is **public**, not private as originally intended.
+  GitHub Pages publishing from a private repo requires a paid GitHub plan;
+  this account is on the Free plan. User approved making the repo public
+  rather than switching to a different free host. See
+  `docs/implementation-progress.md` for the full note.
 
 ## Phasing
 

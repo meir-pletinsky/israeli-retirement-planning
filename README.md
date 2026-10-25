@@ -9,6 +9,25 @@ funds, Bituach Leumi, investments, and more.
 [`docs/implementation-progress.md`](docs/implementation-progress.md) for
 current build status).
 
+**Status:** Phase 1 (MVP) implemented — see
+[`docs/implementation-progress.md`](docs/implementation-progress.md) for
+the detailed checklist and [`docs/plan.md`](docs/plan.md)'s Status section
+for known gaps vs. the original spec.
+
+## Getting started
+
+```powershell
+git clone https://github.com/meir-pletinsky/israeli-retirement-planning.git
+cd israeli-retirement-planning/app
+npm ci
+npm run dev        # http://localhost:5173/
+```
+
+Requires Node 22 (matches the CI workflow). Other useful commands (run
+from `app/`): `npm run build`, `npm run lint`, `npm run typecheck`,
+`npm test`. See [`docs/SESSION-HANDOFF.md`](docs/SESSION-HANDOFF.md) for a
+fuller cross-machine setup/resume guide.
+
 ## Project documents
 
 - [`initial-docs/`](initial-docs) — original source material (functional
