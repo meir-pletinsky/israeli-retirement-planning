@@ -36,14 +36,29 @@ those remain Phase 2/3 per `docs/plan.md`.
 
 ## Phase B — Domain calculation engine (pure TS, unit-tested)
 
-- [ ] B1. Formalize domain calculation input/output types in
-      `app/src/domain/` (reuse `app/src/types`).
-- [ ] B2. Net worth projection function: given accounts/holdings/other
-      assets + assumptions, project balances forward to life expectancy.
-- [ ] B3. Retirement income estimate function (deterministic, MVP-level).
-- [ ] B4. Funding gap + retirement-readiness indicator function.
-- [ ] B5. Vitest unit tests for B2–B4 (the highest-priority tests in the
-      whole project per `docs/architecture.md`).
+- [x] B1. Formalize domain calculation input/output types in
+      `app/src/domain/` (reuse `app/src/types`). See `domain/types.ts` +
+      `domain/constants.ts`.
+- [x] B2. Net worth projection function: given accounts/holdings/other
+      assets + assumptions, project balances forward to the planning
+      horizon. `domain/netWorth.ts` → `projectNetWorth()`. Projects in real
+      (inflation-adjusted) terms so output is already "in today's money";
+      no ongoing-contribution modeling yet (no salary/contribution field in
+      the data model — balances only).
+- [x] B3. Retirement income estimate function (deterministic, MVP-level).
+      `domain/retirementIncome.ts` → `estimateRetirementIncome()`: amortizes
+      the projected balance at retirement over the remaining planning
+      horizon (annuity/loan-payment formula) for a sustainable monthly
+      figure, independent of desired expenses.
+- [x] B4. Funding gap + retirement-readiness indicator function.
+      `domain/fundingGap.ts` → `calculateFundingGap()`: estimated
+      sustainable income minus desired `expenses.retirementMonthly`;
+      `status: "onTrack" | "shortfall"` matches the existing
+      `StatusBanner` component's prop type.
+- [x] B5. Vitest unit tests for B2–B4 (the highest-priority tests in the
+      whole project per `docs/architecture.md`). 25 new tests across
+      `netWorth.test.ts` / `retirementIncome.test.ts` / `fundingGap.test.ts`
+      (32 total project-wide, all green).
 
 ## Phase C — Wire calculations into UI
 
@@ -73,3 +88,13 @@ those remain Phase 2/3 per `docs/plan.md`.
   Free plan. User approved making the repo public so Pages (Actions-based
   deploy) could be used as originally planned, instead of switching to a
   different free host.
+- **Equity FX conversion placeholder.** The data model allows USD-
+  denominated equity holdings but there's no live/bundled FX feed yet
+  (that's Phase 4 "External Data" scope). `domain/constants.ts` defines a
+  fixed `FALLBACK_USD_TO_ILS_RATE` placeholder so equity still counts
+  toward net worth instead of being silently dropped; replace with real FX
+  data in Phase 4.
+- **Early/Delayed scenario offsets are Phase-1 assumptions**, not sourced
+  from the functional spec (which only names the three scenarios, not their
+  exact age deltas): early = standard retirement age − 5 years (floored at
+  60), delayed = standard + 3 years. See `domain/constants.ts`.
