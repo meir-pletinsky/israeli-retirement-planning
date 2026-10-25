@@ -28,9 +28,11 @@ those remain Phase 2/3 per `docs/plan.md`.
 - [x] A5. Wire Settings page Export/Import buttons to real JSON
       export/download and import/upload (with shape validation), Reset
       stays working.
-- [~] A6. GitHub Actions CI workflow: lint, typecheck, test, build on push/PR. (in progress)
-- [ ] A7. GitHub Actions deploy workflow: build + publish `app/dist` to
-      GitHub Pages on merge to `main`.
+- [x] A6. GitHub Actions CI workflow: lint, typecheck, test, build on push/PR.
+- [x] A7. GitHub Actions deploy workflow: build + publish `app/dist` to
+      GitHub Pages on merge to `main`. Live at
+      https://meir-pletinsky.github.io/israeli-retirement-planning/
+      (verified: both workflows green, site returns HTTP 200 after push).
 
 ## Phase B — Domain calculation engine (pure TS, unit-tested)
 
@@ -58,10 +60,16 @@ those remain Phase 2/3 per `docs/plan.md`.
       remove, dashboard rendering with calculated values).
 - [ ] D2. Update `docs/architecture.md` / `docs/plan.md` / `README.md` to
       reflect implemented status and any deviations from the original plan.
-- [ ] D3. Verify the live GitHub Pages deployment; add the live link to
-      `README.md`.
+- [x] D3. Verify the live GitHub Pages deployment; add the live link to
+      `README.md`. (Done as part of A7; re-verify after future deploys that
+      change routing/assets.)
 
 ## Deviations from original docs (log as they happen)
 
 - Linting uses `oxlint` (already chosen during prototype phase) rather than
   ESLint+Prettier as `docs/architecture.md` originally proposed.
+- **Repo visibility: private → public.** GitHub Pages publishing from a
+  private repo requires GitHub Pro/Team/Enterprise; this account is on the
+  Free plan. User approved making the repo public so Pages (Actions-based
+  deploy) could be used as originally planned, instead of switching to a
+  different free host.
