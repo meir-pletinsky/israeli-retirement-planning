@@ -46,7 +46,8 @@ the canonical repo/branch combo configured in GitHub's Pages settings.
 ## What's done vs. in progress
 
 Full authoritative checklist: [`docs/implementation-progress.md`](implementation-progress.md).
-Snapshot as of this handoff:
+Snapshot as of this handoff: **Phases A, B, C, and D are all done** — the
+Phase 1 MVP implementation plan is complete.
 
 - **Phase A (project setup & infra): ALL DONE.**
   - A1 `prototype/` → `app/` rename.
@@ -63,14 +64,36 @@ Snapshot as of this handoff:
     HTTP 200.
 - **Phase B (domain calculation engine): ALL DONE.** Pure-TS, unit-tested
   net worth projection / retirement income / funding gap / income-breakdown
-  functions in `app/src/domain/` (34 tests, all green).
+  functions in `app/src/domain/`.
 - **Phase C (wire calculations into UI): ALL DONE.** Dashboard and
-  Projections pages now use the domain engine instead of mock data;
-  Personal step has required-field + retirement-age validation. Verified
-  end-to-end in-browser with a real profile.
-- **Phase D (testing/docs/deploy verification):** D3 (verify live deploy +
-  README link) is done as a side effect of A7. D1 (component tests) and D2
-  (docs updates reflecting final implementation) remain.
+  Projections pages use the domain engine instead of mock data; Personal
+  step has required-field + retirement-age validation. Verified end-to-end
+  in-browser with a real profile.
+- **Phase D (testing/docs/deploy verification): ALL DONE.**
+  - D1: component tests for key flows (`Dashboard.test.tsx`,
+    `MyData/PensionSavingsStep.test.tsx` — add/edit/remove repeater flow),
+    using `fake-indexeddb` so `ProfileProvider`'s real persistence path
+    runs unmodified in tests.
+  - D2: `docs/architecture.md` / `docs/plan.md` / `README.md` updated to
+    reflect implemented status, including two logged gaps vs. the original
+    Phase 1 spec: no salary/contribution modeling, and no true "early
+    retirement feasibility" solver (only a fixed-offset scenario
+    comparison).
+  - D3: live deploy verified (done as a side effect of A7).
+- 37 tests total, all green; lint/typecheck/build all green as of the last
+  push.
+
+## Where to go next
+
+Phase 1 MVP is complete. Natural next steps (not yet started, no code
+written):
+
+- **Phase 2** per `docs/plan.md`: Bituach Leumi module, Provident
+  Fund/Managers Insurance nuance, couples/household modeling, per-source
+  retirement timeline.
+- Or first close the two gaps logged in `docs/plan.md`'s Status section
+  (salary/contribution modeling, true feasibility-date solver) if those
+  matter more than starting Phase 2 breadth.
 
 ## Key technical decisions to know before continuing
 
