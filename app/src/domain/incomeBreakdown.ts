@@ -1,8 +1,7 @@
 import type { ProfileData } from "../types";
-import { MAX_PLANNING_AGE } from "./constants";
-import { simulateDrawdown } from "./drawdown";
-import { resolveRetirementAge } from "./profileBasics";
-import { estimateRetirementIncomeAtAge } from "./retirementIncome";
+import { simulateHouseholdDrawdown } from "./drawdown";
+import { buildHousehold, resolveRetirementTiming, type RetirementTiming } from "./household";
+import { estimateHouseholdRetirementIncome } from "./retirementIncome";
 import { SOURCE_KINDS, type SourceKind } from "./sources";
 import type { RetirementScenario } from "./types";
 
@@ -43,36 +42,38 @@ const BAND_FOR_KIND: Record<SourceKind, IncomeBandKey> = {
  * Splits the estimated sustainable monthly retirement income (see
  * `retirementIncome.ts`) by source and age, using the same year-by-year
  * simulation as the net-worth projection (see `drawdown.ts`):
- * - The Bituach Leumi pension and any account annuities are their own bands
- *   from their start age on.
+ * - The Bituach Leumi pension (with any spouse supplement) and account
+ *   annuities are their own bands from their start age on.
  * - The rest is paid from savings, split across each kind in proportion to
  *   the capital that is unlocked at that age. Capital that is still locked
  *   (e.g. a pension fund before age 60) does not contribute until it opens,
  *   so the mix shifts at each unlock.
  * There is no withdrawal ordering or tax optimisation yet (Phase 3 scope —
  * see docs/plan.md), so unlocked kinds are drawn on pro rata.
+ *
+ * Points start when the household retires (the later spouse) and are
+ * labelled with the primary user's age.
  */
-export function estimateIncomeBreakdown(
+export function estimateIncomeBreakdownForTiming(
   profile: ProfileData,
-  scenario: RetirementScenario = "standard",
+  timing: RetirementTiming,
 ): IncomeBreakdownPoint[] {
-  const retirementAge = resolveRetirementAge(profile, scenario);
-  const { monthlyIncomeTodayMoney } = estimateRetirementIncomeAtAge(profile, retirementAge);
-  const rows = simulateDrawdown(profile, retirementAge, monthlyIncomeTodayMoney);
-  const rowByAge = new Map(rows.map((row) => [row.age, row]));
+  const household = buildHousehold(profile, timing);
+  const { monthlyIncomeTodayMoney } = estimateHouseholdRetirementIncome(household);
+  const rows = simulateHouseholdDrawdown(household, monthlyIncomeTodayMoney);
 
   const points: IncomeBreakdownPoint[] = [];
   // When all unlocked capital has been used up (the last year of a fully
   // amortized plan) keep showing the previous mix rather than an empty bar.
   let lastShares = rows[0].capitalShare;
-  for (let age = retirementAge; age <= MAX_PLANNING_AGE; age += 1) {
-    const row = rowByAge.get(age) ?? rows[0];
+  for (let index = Math.ceil(household.retirementYears); index < rows.length; index += 1) {
+    const row = rows[index];
     const hasCapital = SOURCE_KINDS.some((kind) => row.capitalShare[kind] > 0);
     const shares = hasCapital ? row.capitalShare : lastShares;
     lastShares = shares;
 
     const point: IncomeBreakdownPoint = {
-      age,
+      age: row.age,
       pensionFund: 0,
       providentFund: 0,
       managersInsurance: 0,
@@ -103,4 +104,12 @@ export function estimateIncomeBreakdown(
     points.push(point);
   }
   return points;
+}
+
+/** `estimateIncomeBreakdownForTiming` at the retirement ages implied by `scenario`. */
+export function estimateIncomeBreakdown(
+  profile: ProfileData,
+  scenario: RetirementScenario = "standard",
+): IncomeBreakdownPoint[] {
+  return estimateIncomeBreakdownForTiming(profile, resolveRetirementTiming(profile, scenario));
 }

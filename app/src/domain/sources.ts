@@ -2,7 +2,9 @@ import type { PensionAccount, ProductCategory, ProfileData } from "../types";
 import { ACCESS_RULES } from "./accessRules";
 import { futureValueOfMonthlyContributions, monthlyContributionForAccount } from "./contributions";
 import {
+  accountsInPlan,
   aggregateOtherBalance,
+  ownAccounts,
   realAnnualReturnRate,
   resolveCurrentAge,
 } from "./profileBasics";
@@ -138,10 +140,12 @@ function buildAnnuity(
 }
 
 /**
- * Breaks the profile into the individual sources retirement income is drawn
- * from: one per pension/savings account plus a single bucket for non-pension
- * investments. Values are in today's money (real terms), as everywhere in the
- * engine. The sum of `valueAtRetirement` equals `projectBalanceAtAge`.
+ * Breaks one person's finances into the individual sources retirement income
+ * is drawn from: one per pension/savings account they own plus a single
+ * bucket for non-pension investments. Values are in today's money (real
+ * terms), as everywhere in the engine. The sum of `valueAtRetirement` equals
+ * `projectBalanceAtAge`. For a couple this describes the primary user only;
+ * `household.ts` builds one set of sources per spouse.
  */
 export function buildSources(profile: ProfileData, retirementAge: number): RetirementSource[] {
   const currentAge = resolveCurrentAge(profile);
@@ -150,7 +154,7 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
   const growth = Math.pow(1 + rate, years);
   const salary = profile.personal.monthlyGrossSalary ?? 0;
 
-  const sources: RetirementSource[] = profile.pensionSavings.accounts.map((account) => {
+  const sources: RetirementSource[] = ownAccounts(profile).map((account) => {
     const kind = sourceKindForCategory(account.productCategory);
     const balance = account.totalAccumulatedBalance ?? 0;
     const monthlyContribution = monthlyContributionForAccount(account, salary);
@@ -182,9 +186,9 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
   return sources;
 }
 
-/** Accounts that hold money but have no product type, so their access rules are unknown. */
+/** Counted accounts that hold money but have no product type, so their access rules are unknown. */
 export function countUncategorizedAccounts(profile: ProfileData): number {
-  return profile.pensionSavings.accounts.filter(
+  return accountsInPlan(profile).filter(
     (account) => account.productCategory === null && (account.totalAccumulatedBalance ?? 0) > 0,
   ).length;
 }

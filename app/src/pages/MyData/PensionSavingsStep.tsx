@@ -5,6 +5,7 @@ import { useProfile } from "../../app/ProfileContext";
 import { ConfirmModal } from "../../components/ConfirmModal";
 import { FormModal } from "../../components/FormModal";
 import { NumberField } from "../../components/fields/NumberField";
+import { isHouseholdActive } from "../../domain";
 import { createEmptyPensionAccount, type PensionAccount } from "../../types";
 import { PensionAccountCard } from "./PensionAccountCard";
 import { PensionAccountForm } from "./PensionAccountForm";
@@ -15,6 +16,12 @@ export function PensionSavingsStep() {
   const { profile, updateProfile } = useProfile();
   const { pensionSavings } = profile;
   const currency = t("common.currencySymbol");
+  const householdActive = isHouseholdActive(profile);
+  // Accounts can belong to either spouse; keep showing the owner if any
+  // account is still marked as the spouse's after a status change.
+  const showOwner =
+    profile.personal.maritalStatus === "married" ||
+    pensionSavings.accounts.some((account) => account.owner === "spouse");
 
   const [editingAccount, setEditingAccount] = useState<PensionAccount | null>(
     null,
@@ -70,6 +77,8 @@ export function PensionSavingsStep() {
               key={account.id}
               account={account}
               currencySymbol={currency}
+              showOwner={showOwner}
+              notCounted={account.owner === "spouse" && !householdActive}
               onEdit={() => setEditingAccount(account)}
               onRemove={() => setRemovingId(account.id)}
             />
@@ -115,6 +124,7 @@ export function PensionSavingsStep() {
         {editingAccount && (
           <PensionAccountForm
             account={editingAccount}
+            showOwner={showOwner}
             onChange={(patch) =>
               setEditingAccount({ ...editingAccount, ...patch })
             }

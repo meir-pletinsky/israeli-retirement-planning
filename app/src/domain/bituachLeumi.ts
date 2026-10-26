@@ -27,8 +27,9 @@ export function statutoryRetirementAge(gender: Gender | null, birthYear: number)
  * - Eligibility: 144 insured months in total, or 60 months in the last 10
  *   years before the claim age.
  *
- * Not modelled: the earnings test between the statutory age and 70, spouse
- * and child supplements, and the means-tested income supplement.
+ * Not modelled: the earnings test between the statutory age and 70, child
+ * supplements, and the means-tested income supplement. The spouse supplement
+ * is added by the household layer (see `household.ts`).
  *
  * `referenceYear` is injectable so tests do not depend on the clock.
  */
@@ -90,14 +91,24 @@ export function estimateBituachLeumiPension(
     seniorityRate,
     deferralRate,
     monthlyPension,
+    spouseSupplement: null,
   };
 }
 
 /**
  * The income-supplement guarantee is a minimum total income for people with
- * low other income. Returns true when the user's projected total retirement
- * income is below it, i.e. they may qualify (subject to a means test).
+ * low other income. Returns true when the projected total retirement income
+ * is below it, i.e. they may qualify (subject to a means test). A couple is
+ * compared against the couple guarantee.
  */
-export function mayQualifyForIncomeSupplement(totalMonthlyIncome: number): boolean {
-  return totalMonthlyIncome < RATES.incomeSupplementGuaranteeSingleUnder70;
+export function mayQualifyForIncomeSupplement(
+  totalMonthlyIncome: number,
+  isCouple: boolean = false,
+): boolean {
+  return (
+    totalMonthlyIncome <
+    (isCouple
+      ? RATES.incomeSupplementGuaranteeCouple
+      : RATES.incomeSupplementGuaranteeSingleUnder70)
+  );
 }

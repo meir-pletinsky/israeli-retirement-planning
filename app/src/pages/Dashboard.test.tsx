@@ -335,4 +335,131 @@ describe("Dashboard", () => {
       expect(await screen.findByText(/may be entitled to an income supplement/i)).toBeInTheDocument();
     });
   });
+
+  describe("household", () => {
+    // 0% real return keeps the expected ages exact (see household.test.ts).
+    const zeroRealReturn = { investmentReturnPct: 4, inflationPct: 4 };
+    const married = { maritalStatus: "married" as const };
+
+    async function seed(profile: ReturnType<typeof buildTestProfile>) {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+    }
+
+    it("shows the age at which both spouses can retire together", async () => {
+      await seed(
+        buildTestProfile({
+          age: 50,
+          otherAssets: 1_500_000,
+          retirementMonthlyExpenses: 5000,
+          ...zeroRealReturn,
+          ...married,
+          spouse: { age: 48 },
+        }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      expect(await screen.findByText("Age 67")).toBeInTheDocument();
+      expect(screen.getByText("Years from today: 17")).toBeInTheDocument();
+      expect(
+        screen.getByText("Both of you retire together: you at 67, your spouse at 65."),
+      ).toBeInTheDocument();
+    });
+
+    it("keeps the single-person feasibility card unchanged", async () => {
+      await seed(
+        buildTestProfile({
+          age: 50,
+          otherAssets: 1_500_000,
+          retirementMonthlyExpenses: 5000,
+          ...zeroRealReturn,
+        }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      expect(await screen.findByText("Age 65")).toBeInTheDocument();
+      expect(screen.queryByText(/Both of you retire together/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/projection covers your whole household/i)).not.toBeInTheDocument();
+    });
+
+    it("ignores a spouse until their age is entered", async () => {
+      await seed(
+        buildTestProfile({ age: 50, retirementAge: 67, otherAssets: 1_500_000, ...zeroRealReturn, ...married }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      expect(await screen.findByText("Net Worth Today")).toBeInTheDocument();
+      expect(screen.queryByText(/projection covers your whole household/i)).not.toBeInTheDocument();
+    });
+
+    it("explains that the chart covers the household", async () => {
+      await seed(
+        buildTestProfile({
+          age: 50,
+          retirementAge: 65,
+          otherAssets: 1_500_000,
+          ...zeroRealReturn,
+          ...married,
+          spouse: { age: 48, retirementAge: 63 },
+        }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      expect(
+        await screen.findByText("The projection covers your whole household. The age axis shows your age."),
+      ).toBeInTheDocument();
+    });
+
+    it("shows each spouse's Bituach Leumi pension and the supplement for a spouse without one", async () => {
+      await seed(
+        buildTestProfile({
+          age: 60,
+          retirementAge: 67,
+          gender: "male",
+          bituachLeumi: { includeInProjection: true },
+          ...married,
+          spouse: {
+            age: 58,
+            retirementAge: 58,
+            gender: "female",
+            bituachLeumi: { insuredYearsToDate: 0 },
+          },
+        }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      expect(await screen.findByRole("heading", { name: "You" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Your spouse" })).toBeInTheDocument();
+      expect(screen.getByText("Each pension starts at its owner's own age.")).toBeInTheDocument();
+      expect(screen.getByText("\u20aa2,757 per month")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Includes a \u20aa924 per month supplement for a spouse without a pension, from age 67.",
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it("lists the Bituach Leumi pension without member headings for a single person", async () => {
+      await seed(
+        buildTestProfile({
+          age: 40,
+          retirementAge: 67,
+          gender: "male",
+          bituachLeumi: { includeInProjection: true },
+        }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      expect(await screen.findByText("\u20aa2,757 per month")).toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: "You" })).not.toBeInTheDocument();
+      expect(screen.queryByText("Each pension starts at its owner's own age.")).not.toBeInTheDocument();
+      expect(screen.queryByText(/supplement for a spouse/)).not.toBeInTheDocument();
+    });
+  });
 });

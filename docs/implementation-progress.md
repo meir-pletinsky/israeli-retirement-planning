@@ -14,7 +14,8 @@ prototype (see `docs/ui-concept.md` + the schema-driven data model). The
 calculation engine starts simple (aggregate balances, deterministic growth)
 and does **not** yet model tax — that remains Phase 3 per `docs/plan.md`.
 Bituach Leumi was added as the first Phase 2 module (Phase F below), and the
-per-source access/annuity model as the second (Phase G).
+per-source access/annuity model as the second (Phase G) and couples/household
+planning as the third (Phase H).
 
 ## Phase A — Project setup & infra
 
@@ -196,7 +197,7 @@ Pre-phase validation of the four `docs/plan.md` open items was done first
       backfill, Dashboard card states, Personal step form).
 - [x] F6. Remaining Phase 2 items were split: Provident Fund / Managers
       Insurance nuance and the per-source timeline are done in Phase G;
-      couples/household (spouse supplement ₪924) is still not started.
+      couples/household (spouse supplement ₪924) is done in Phase H.
 
 ## Phase G — Phase 2: per-source access rules, annuities and timeline
 
@@ -242,7 +243,86 @@ only, see `docs/plan.md` → "Open Items" item 5).
       states; Projections timeline). Checked in the browser in English and
       Hebrew (RTL).
 
+## Phase H — Phase 2: couples / household
+
+Pre-phase rule validation was done first (2026-10-26; btl.gov.il, see
+`docs/plan.md` → "Open Items" item 6). Design decisions, agreed with the
+user: spouse details live in the Personal step; each pension/savings
+account has an owner (other assets and stocks stay household-level);
+household spending starts when the later spouse retires, while each spouse
+stops contributing and claims their own Bituach Leumi at their own ages;
+"earliest feasible" means the earliest year both can retire together.
+
+- [x] H1. Data model. `profile.spouse` (`age`, `gender`, `retirementAge`,
+      `monthlyGrossSalary`, `bituachLeumi`) and `PensionAccount.owner`
+      (`self` | `spouse`), both backfilled by `normalizeProfile()` — no
+      Dexie bump. A spouse joins the plan only when `maritalStatus` is
+      `married` **and** `spouse.age` is set (`isHouseholdActive`); otherwise
+      spouse-owned accounts are ignored, so single-person results are
+      unchanged. Common-law partners are treated as married.
+- [x] H2. Household model. `domain/household.ts` builds a view per member
+      (own accounts and sources, own contributions, own Bituach Leumi) and
+      the retirement timing (`resolveRetirementTiming` for the early /
+      standard / delayed scenarios, `retirementTimingAtAge` and
+      `spouseAgeAt` for the feasibility scan, which keep the spouse's age
+      linked to yours through the age gap). A single person is a household
+      of one.
+- [x] H3. Engine. The household clock counts years from today; the
+      displayed age is the primary user's. The plan runs until the youngest
+      member is 90, so rows can pass your age 90 when the spouse is younger.
+      Withdrawals start when the later spouse retires; each member
+      contributes until their own retirement age. `contributions.ts`,
+      `retirementIncome.ts`, `drawdown.ts`, `incomeBreakdown.ts`,
+      `netWorth.ts`, `fundingGap.ts` and `feasibility.ts` all go through
+      this model; `RetirementIncomeEstimate` gained `members` and
+      `householdRetirementAge`, and the feasibility result a `spouseAge`.
+- [x] H4. Spouse supplement. The ₪924/month supplement goes to a member
+      whose own pension is included, eligible and above 0, when the other
+      spouse has no pension of their own. It starts at the later of the
+      recipient's claim age and the date the spouse stops working or
+      reaches the exempt age (woman 67, man 70), and ends when the spouse's
+      own pension starts. Income-supplement hint uses the ₪6,912 couple
+      guarantee.
+- [x] H5. UI + i18n (en/ru/he). Spouse section in the Personal step (shown
+      when married; the rest waits for the spouse's age), an owner select on
+      the account form and an owner / "not counted" badge on account cards,
+      one Bituach Leumi block per spouse (with the supplement note), a
+      "both of you retire together" line on the feasibility card, the
+      spouse's age beside each timeline segment, and household notes under
+      the Dashboard chart and on Projections.
+- [x] H6. Tests: 192 total, all green (new `household.test.ts`,
+      `normalizeProfile.test.ts`; spouse cases in the Personal step,
+      Pension & savings step, Dashboard and Projections tests). Checked in
+      the browser in English and Hebrew (RTL).
+
 ## Deviations from original docs (log as they happen)
+
+- **Household modeling assumptions (Phase H).**
+  - Household spending starts when the later spouse retires. Until then
+    each member keeps contributing to their own accounts until their own
+    retirement age; the model assumes the working spouse's salary is not
+    available to cover spending after the first spouse retires.
+  - Payments that start before the household retires (a Bituach Leumi
+    pension, an account annuity) are counted from the household's
+    retirement and are not drawn in the simulation earlier — a
+    conservative simplification.
+  - The scenario functions (early / standard / delayed) shift both
+    spouses by the same offsets from their entered ages (floor 60,
+    default 67 when empty). The feasibility scan keeps the spouse's age
+    linked to yours through the age gap.
+  - A spouse's Bituach Leumi pension is calculated like yours. The
+    ₪924 supplement waits until the spouse stops working because its
+    income-test threshold could not be confirmed (it then assumes full
+    payment). No child supplement, survivor analysis or tax effects
+    (the spouse's credit points are Phase 3).
+  - To plan a spouse with no pension, enter 0 insured years and a
+    retirement age equal to their current age.
+  - **Behavior change:** a retirement age already in the past now
+    amortizes the funding over the remaining years from today instead of
+    producing a negative period (a minor fix made while generalizing the
+    timing; no earlier test depended on it).
+  - A single person, or a married user who has not entered a spouse age,
+    gets exactly the previous results.
 
 - **Per-source modeling assumptions (Phase G).**
   - An account with no product type is treated as a pension fund that is
@@ -268,8 +348,9 @@ only, see `docs/plan.md` → "Open Items" item 5).
   - Access rules were validated against secondary sources only.
 
 - **Bituach Leumi modeling assumptions (Phase F).** Single-person rate
-  only; spouse/child supplements, the earnings test between the statutory
-  age and 70, and the means-tested income supplement are not modeled. The
+  only (the spouse supplement was added in Phase H); the child
+  supplement, the earnings test between the statutory age and 70, and the
+  means-tested income supplement are not modeled. The
   current-year amounts are used as today's-money values for all future
   years. Retiring after the statutory age assumes the pension is deferred
   (5%/year) because of work income. New and legacy profiles **include the

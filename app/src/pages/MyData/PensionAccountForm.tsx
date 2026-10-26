@@ -7,6 +7,7 @@ import { NumberField } from "../../components/fields/NumberField";
 import { SelectField } from "../../components/fields/SelectField";
 import { TextField } from "../../components/fields/TextField";
 import type {
+  AccountOwner,
   AccountStatus,
   AnnuityTaxType,
   GuaranteedPaymentMonths,
@@ -14,6 +15,8 @@ import type {
   PensionAccount,
   ProductCategory,
 } from "../../types";
+
+const ACCOUNT_OWNERS: AccountOwner[] = ["self", "spouse"];
 
 const PRODUCT_CATEGORIES: ProductCategory[] = [
   "comprehensivePension",
@@ -45,11 +48,14 @@ const GUARANTEED_MONTHS: GuaranteedPaymentMonths[] = [0, 60, 120, 180, 240];
 interface PensionAccountFormProps {
   account: PensionAccount;
   onChange: (patch: Partial<PensionAccount>) => void;
+  /** Lets the user say whose account it is; only meaningful for a married user. */
+  showOwner?: boolean;
 }
 
 export function PensionAccountForm({
   account,
   onChange,
+  showOwner = false,
 }: PensionAccountFormProps) {
   const { t } = useTranslation();
   const currency = t("common.currencySymbol");
@@ -65,6 +71,17 @@ export function PensionAccountForm({
 
   return (
     <div className="flex flex-col gap-4">
+      {showOwner && (
+        <SelectField
+          label={f("owner")}
+          value={account.owner}
+          onChange={(v) => onChange({ owner: v as AccountOwner })}
+          options={ACCOUNT_OWNERS.map((v) => ({
+            value: v,
+            label: opt("owner", v),
+          }))}
+        />
+      )}
       <TextField
         label={f("providerName")}
         value={account.providerName}
@@ -166,7 +183,9 @@ export function PensionAccountForm({
       </CollapsibleSection>
 
       <CollapsibleSection title={f("sectionContributions")}>
-        <p className="text-xs text-slate-500">{f("contributionsHelper")}</p>
+        <p className="text-xs text-slate-500">
+          {f(showOwner ? "contributionsHelperOwner" : "contributionsHelper")}
+        </p>
         <NumberField
           label={f("employeeRatePercent")}
           value={contributions.employeeRatePercent}

@@ -1,8 +1,13 @@
 import type { ProfileData } from "../types";
-import { estimateBituachLeumiPension } from "./bituachLeumi";
-import { MAX_PLANNING_AGE } from "./constants";
-import { realAnnualReturnRate, resolveRetirementAge } from "./profileBasics";
-import { buildSources, countUncategorizedAccounts } from "./sources";
+import {
+  buildHousehold,
+  primaryAgeAtMemberAge,
+  resolveRetirementTiming,
+  retirementTimingAtAge,
+  yearsUntilAge,
+  type Household,
+  type RetirementTiming,
+} from "./household";
 import type { RetirementAccessSummary, RetirementIncomeEstimate, RetirementScenario } from "./types";
 
 /** Present value of 1 paid at the end of each of `months` months, at `monthlyRate`. */
@@ -14,79 +19,111 @@ function annuityFactor(monthlyRate: number, months: number): number {
 
 interface Stream {
   monthly: number;
-  /** Months after retirement until the payments start. */
+  /** Months after household retirement until the payments start. */
   startMonth: number;
+  /** Months after household retirement at which the payments stop (the horizon when they last). */
+  endMonth: number;
 }
 
 interface Spendable {
   value: number;
+  /** The primary user's age at which the capital can be spent. */
   unlockAge: number;
-  /** Months after retirement until the capital can be spent (0 = already accessible). */
+  /** Months after household retirement until the capital can be spent (0 = already accessible). */
   unlockMonth: number;
 }
 
 /**
  * Estimates the sustainable monthly retirement income (in today's money)
- * that the projected savings at `retirementAge` can provide, fully
- * amortized from that age through `MAX_PLANNING_AGE`. This is independent
- * of the user's desired expenses — see `fundingGap.ts` for the comparison
- * against `expenses.retirementMonthly`.
+ * that a household's projected savings can provide from the moment the later
+ * spouse retires, fully amortized through the planning horizon. A single
+ * person is a household of one. This is independent of the user's desired
+ * expenses — see `fundingGap.ts` for the comparison against
+ * `expenses.retirementMonthly`.
  *
  * Uses the standard annuity/amortization formula so the balance reaches
  * (approximately) zero at the end of the planning horizon, rather than a
  * naive balance-divided-by-months estimate that ignores ongoing growth.
  *
- * Two things shape the level S a person can spend every month:
- * - Fixed streams (the Bituach Leumi pension, and accounts converted to an
- *   annuity) pay from their start month `m`, so savings only fund S before
- *   they start and S minus the stream after.
+ * Time is counted in months after household retirement. Each member's pot
+ * is projected to their own retirement and then keeps growing until the
+ * household retires. Two things shape the level S the household can spend
+ * every month:
+ * - Fixed streams (Bituach Leumi pensions, the spouse supplement, and
+ *   accounts converted to an annuity) pay from their start month and, for the
+ *   supplement, stop at an end month. Streams that start before household
+ *   retirement count from retirement, so earlier payments are ignored.
  * - Locked capital (e.g. a pension fund before age 60) cannot fund spending
  *   before it unlocks.
  *
  * For every month `t` at which something changes (the horizon `M`, each
- * unlock, each stream start), the spending needed through `t` must be
+ * unlock, each stream start or end), the spending needed through `t` must be
  * covered by the capital unlocked before `t` plus the streams paid so far:
- * `S * A(t) - sum(stream * (A(t) - A(m))) <= unlocked capital`, where A is
- * the annuity factor. S is the largest value meeting all of them. With
- * nothing locked and no streams, only the horizon constraint remains: the
- * plain amortization.
+ * `S * A(t) - sum(stream * (A(min(t, end)) - A(start))) <= unlocked capital`,
+ * where A is the annuity factor. S is the largest value meeting all of them.
+ * With nothing locked and no streams, only the horizon constraint remains:
+ * the plain amortization.
  */
-export function estimateRetirementIncomeAtAge(
-  profile: ProfileData,
-  retirementAge: number,
+export function estimateHouseholdRetirementIncome(
+  household: Household,
 ): RetirementIncomeEstimate {
-  const annualRate = realAnnualReturnRate(profile.assumptions);
-  const sources = buildSources(profile, retirementAge);
-  const bituachLeumi = estimateBituachLeumiPension(profile, retirementAge);
-  const netWorthAtRetirement = sources.reduce((sum, source) => sum + source.valueAtRetirement, 0);
+  const { members, rate: annualRate, retirementYears, horizonYears } = household;
+  const primary = members[0];
 
-  const monthsInRetirement = Math.round((MAX_PLANNING_AGE - retirementAge) * 12);
+  const monthsInRetirement = Math.round((horizonYears - retirementYears) * 12);
+  const horizonMonths = Math.max(monthsInRetirement, 0);
   const monthlyRate = Math.pow(1 + annualRate, 1 / 12) - 1;
-  const monthsAfterRetirement = (age: number) =>
-    Math.min(Math.max(Math.round((age - retirementAge) * 12), 0), Math.max(monthsInRetirement, 0));
+  const monthsAfterRetirement = (yearsFromNow: number) =>
+    Math.min(Math.max(Math.round((yearsFromNow - retirementYears) * 12), 0), horizonMonths);
 
   const streams: Stream[] = [];
-  if (bituachLeumi.monthlyPension > 0) {
-    streams.push({
-      monthly: bituachLeumi.monthlyPension,
-      startMonth: monthsAfterRetirement(bituachLeumi.claimAge),
-    });
-  }
   const spendable: Spendable[] = [];
   let accountAnnuityMonthly = 0;
-  for (const source of sources) {
-    if (source.annuity) {
-      accountAnnuityMonthly += source.annuity.monthly;
+  let netWorthAtRetirement = 0;
+
+  for (const member of members) {
+    const monthsFromAge = (age: number) => monthsAfterRetirement(yearsUntilAge(member, age));
+    const ownRetirementYears = Math.max(member.retirementAge - member.currentAge, 0);
+    // An earlier retiree's pot keeps growing until the household retires.
+    const catchUpGrowth = Math.pow(1 + annualRate, retirementYears - ownRetirementYears);
+
+    const { monthlyPension, claimAge, spouseSupplement } = member.bituachLeumi;
+    if (monthlyPension > 0) {
       streams.push({
-        monthly: source.annuity.monthly,
-        startMonth: monthsAfterRetirement(source.annuity.startAge),
+        monthly: monthlyPension,
+        startMonth: monthsFromAge(claimAge),
+        endMonth: horizonMonths,
       });
-    } else {
-      spendable.push({
-        value: source.valueAtRetirement,
-        unlockAge: source.unlockAge,
-        unlockMonth: Math.max(Math.round((source.unlockAge - retirementAge) * 12), 0),
-      });
+    }
+    if (spouseSupplement) {
+      const startMonth = monthsFromAge(spouseSupplement.startAge);
+      const endMonth =
+        spouseSupplement.endAge === null ? horizonMonths : monthsFromAge(spouseSupplement.endAge);
+      if (endMonth > startMonth) {
+        streams.push({ monthly: spouseSupplement.monthly, startMonth, endMonth });
+      }
+    }
+
+    for (const source of member.sources) {
+      const value = source.valueAtRetirement * catchUpGrowth;
+      netWorthAtRetirement += value;
+      if (source.annuity) {
+        accountAnnuityMonthly += source.annuity.monthly;
+        streams.push({
+          monthly: source.annuity.monthly,
+          startMonth: monthsFromAge(source.annuity.startAge),
+          endMonth: horizonMonths,
+        });
+      } else {
+        spendable.push({
+          value,
+          unlockAge: primaryAgeAtMemberAge(household, member, source.unlockAge),
+          unlockMonth: Math.max(
+            Math.round((yearsUntilAge(member, source.unlockAge) - retirementYears) * 12),
+            0,
+          ),
+        });
+      }
     }
   }
 
@@ -104,17 +141,24 @@ export function estimateRetirementIncomeAtAge(
     unconstrainedMonthlyIncome: 0,
     limitingAge: null,
     accountAnnuityMonthly: Math.round(accountAnnuityMonthly),
-    uncategorizedAccounts: countUncategorizedAccounts(profile),
+    uncategorizedAccounts: household.uncategorizedAccounts,
+  };
+
+  const base = {
+    retirementAge: primary.retirementAge,
+    householdRetirementAge: household.drawdownStartAge,
+    netWorthAtRetirement: Math.round(netWorthAtRetirement),
+    bituachLeumi: primary.bituachLeumi,
+    members: members.map((member) => ({
+      role: member.role,
+      currentAge: member.currentAge,
+      retirementAge: member.retirementAge,
+      bituachLeumi: member.bituachLeumi,
+    })),
   };
 
   if (monthsInRetirement <= 0) {
-    return {
-      monthlyIncomeTodayMoney: 0,
-      retirementAge,
-      netWorthAtRetirement: Math.round(netWorthAtRetirement),
-      bituachLeumi,
-      access,
-    };
+    return { ...base, monthlyIncomeTodayMoney: 0, access };
   }
 
   /** The largest level monthly spending that is funded through month `months` of retirement. */
@@ -128,7 +172,8 @@ export function estimateRetirementIncomeAtAge(
         (sum, stream) =>
           sum +
           stream.monthly *
-            (annuityFactor(monthlyRate, months) - annuityFactor(monthlyRate, stream.startMonth)),
+            (annuityFactor(monthlyRate, Math.min(months, stream.endMonth)) -
+              annuityFactor(monthlyRate, stream.startMonth)),
         0,
       );
     return (unlockedCapital + paidStreams) / annuityFactor(monthlyRate, months);
@@ -141,8 +186,10 @@ export function estimateRetirementIncomeAtAge(
     }
   }
   for (const stream of streams) {
-    if (stream.startMonth > 0 && stream.startMonth < monthsInRetirement) {
-      checkpoints.add(stream.startMonth);
+    for (const month of [stream.startMonth, stream.endMonth]) {
+      if (month > 0 && month < monthsInRetirement) {
+        checkpoints.add(month);
+      }
     }
   }
 
@@ -159,23 +206,41 @@ export function estimateRetirementIncomeAtAge(
 
   const bridgeLimited = monthlyIncome < unconstrained - 0.5;
   return {
+    ...base,
     monthlyIncomeTodayMoney: Math.round(monthlyIncome),
-    retirementAge,
-    netWorthAtRetirement: Math.round(netWorthAtRetirement),
-    bituachLeumi,
     access: {
       ...access,
       bridgeLimited,
       unconstrainedMonthlyIncome: Math.round(unconstrained),
-      limitingAge: bridgeLimited ? retirementAge + limitingMonth / 12 : null,
+      limitingAge: bridgeLimited ? household.drawdownStartAge + limitingMonth / 12 : null,
     },
   };
 }
 
-/** Same as `estimateRetirementIncomeAtAge`, at the retirement age implied by `scenario`. */
+/** `estimateHouseholdRetirementIncome` for the given retirement ages. */
+export function estimateRetirementIncomeForTiming(
+  profile: ProfileData,
+  timing: RetirementTiming,
+): RetirementIncomeEstimate {
+  return estimateHouseholdRetirementIncome(buildHousehold(profile, timing));
+}
+
+/**
+ * Estimates the sustainable monthly retirement income if the primary user
+ * retires at `retirementAge`. For a couple, the spouse retires at the same
+ * moment (their age follows from the age gap).
+ */
+export function estimateRetirementIncomeAtAge(
+  profile: ProfileData,
+  retirementAge: number,
+): RetirementIncomeEstimate {
+  return estimateRetirementIncomeForTiming(profile, retirementTimingAtAge(profile, retirementAge));
+}
+
+/** Same as `estimateRetirementIncomeForTiming`, at the retirement ages implied by `scenario`. */
 export function estimateRetirementIncome(
   profile: ProfileData,
   scenario: RetirementScenario = "standard",
 ): RetirementIncomeEstimate {
-  return estimateRetirementIncomeAtAge(profile, resolveRetirementAge(profile, scenario));
+  return estimateRetirementIncomeForTiming(profile, resolveRetirementTiming(profile, scenario));
 }

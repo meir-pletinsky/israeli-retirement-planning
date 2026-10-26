@@ -6,6 +6,7 @@ export * from "./contributions";
 export * from "./drawdown";
 export * from "./feasibility";
 export * from "./fundingGap";
+export * from "./household";
 export * from "./incomeBreakdown";
 export * from "./netWorth";
 export * from "./retirementIncome";

@@ -30,12 +30,20 @@
       "earliestAge": "Age {{age}}",
       "yearsFromNow": "Years from today: {{years}}",
       "feasibleNow": "Your current assets already cover your target retirement spending.",
+      "bothRetire": "Both of you retire together: you at {{age}}, your spouse at {{spouseAge}}.",
       "notFeasible": "Your target retirement spending isn't reachable by age {{age}} with your current savings and contributions. Try lowering expenses, saving more, or adjusting your assumptions.",
       "noTarget": "Enter your expected monthly retirement expenses to see how soon you could retire.",
       "noTargetCta": "Add expenses"
     },
     "bituachLeumi": {
       "title": "Bituach Leumi Old-Age Pension",
+      "ownAges": "Each pension starts at its owner's own age.",
+      "member": {
+        "self": "You",
+        "spouse": "Your spouse"
+      },
+      "spouseSupplement": "Includes a {{amount}} per month supplement for a spouse without a pension, from age {{start}}.",
+      "spouseSupplementUntil": "Includes a {{amount}} per month supplement for a spouse without a pension, from age {{start}} until age {{end}}, when the spouse's own pension starts.",
       "monthlyPension": "{{amount}} per month",
       "startsAt": "Starts at age {{age}}",
       "ageYears": "{{years}}",
@@ -71,6 +79,7 @@
     "statusOnTrack": "You're on track to meet your retirement goal.",
     "statusShortfall": "You may need additional savings to meet your retirement goal.",
     "chartTitle": "Net Worth Projection",
+    "householdChartNote": "The projection covers your whole household. The age axis shows your age.",
     "adjustAssumptions": "Adjust assumptions",
     "emptyTitle": "No data yet",
     "emptyBody": "Complete your profile to see your personalized retirement projection.",
@@ -80,7 +89,8 @@
     "title": "My Data",
     "validation": {
       "required": "This field is required.",
-      "retirementAfterAge": "Retirement age must be greater than your current age."
+      "retirementAfterAge": "Retirement age must be greater than your current age.",
+      "spouseRetirementBeforeAge": "Your spouse's retirement age can't be lower than their current age."
     },
     "steps": {
       "personal": {
@@ -108,7 +118,22 @@
         "bituachLeumiInsuredYears": "Insured years to date",
         "bituachLeumiInsuredYearsHelper": "Leave empty to assume you have been insured since age 21.",
         "bituachLeumiOverride": "Monthly pension from Bituach Leumi's calculator",
-        "bituachLeumiOverrideHelper": "Optional. Replaces the estimate; enter the amount in today's money."
+        "bituachLeumiOverrideHelper": "Optional. Replaces the estimate; enter the amount in today's money.",
+        "spouseSection": "Spouse or partner",
+        "spouseIntro": "Enter your spouse's age to plan together. Their pension accounts and Bituach Leumi pension then join your projections, and you stop contributing and claim at your own ages. Common-law partners count as married.",
+        "spouseAge": "Spouse's age",
+        "spouseAgeHelper": "Leave empty to plan on your own.",
+        "spouseGender": "Spouse's gender",
+        "spouseRetirementAge": "Spouse's retirement age",
+        "spouseRetirementAgeHelper": "Household spending starts when the later of you two retires. Enter their current age if they have already stopped working.",
+        "spouseMonthlyGrossSalary": "Spouse's monthly gross salary",
+        "spouseMonthlyGrossSalaryHelper": "Used to project their pension and savings deposits until they retire. Leave empty to assume no further deposits.",
+        "spouseBituachLeumiSection": "Spouse's Bituach Leumi pension",
+        "spouseBituachLeumiIntro": "Estimated from their gender, age and insured years. If your spouse has no pension of their own, you may also receive a spouse supplement.",
+        "spouseBituachLeumiInclude": "Include their state pension in projections",
+        "spouseBituachLeumiInsuredYears": "Spouse's insured years to date",
+        "spouseBituachLeumiInsuredYearsHelper": "Leave empty to assume they have been insured since age 21. Enter 0 if they have never been insured.",
+        "spouseBituachLeumiOverride": "Spouse's monthly pension from Bituach Leumi's calculator"
       },
       "pensionSavings": {
         "label": "Pension & Savings",
@@ -116,6 +141,7 @@
         "addAccount": "Add account",
         "noAccounts": "No accounts added yet. Add your pension funds, provident funds, managers insurance policies, or study funds.",
         "untitledAccount": "Untitled account",
+        "ownerNotCounted": "Not counted \u2014 add your spouse's age",
         "accountFormTitle": "Pension / savings account",
         "removeConfirmTitle": "Remove this account?",
         "removeConfirmBody": "This permanently removes the account and its details from your profile.",
@@ -128,6 +154,7 @@
           "Migdal Group"
         ],
         "fields": {
+          "owner": "Account owner",
           "providerName": "Provider name",
           "productCategory": "Product category",
           "accountStatus": "Account status",
@@ -137,6 +164,7 @@
           "totalAccumulatedBalance": "Total accumulated balance",
           "sectionContributions": "Ongoing contributions",
           "contributionsHelper": "Percent of your monthly gross salary deposited each month. Only counted while the account status is \"Active \u2014 contributing\". Typical pension: 6% employee, 6.5% employer, 6% severance.",
+          "contributionsHelperOwner": "Percent of the account owner's monthly gross salary deposited each month. Only counted while the account status is \"Active \u2014 contributing\". Typical pension: 6% employee, 6.5% employer, 6% severance.",
           "employeeRatePercent": "Employee contribution rate",
           "employerRatePercent": "Employer contribution rate",
           "severanceRatePercent": "Severance contribution rate",
@@ -164,6 +192,10 @@
           "hasStateYieldGuarantee": "Has state yield guarantee"
         },
         "options": {
+          "owner": {
+            "self": "Me",
+            "spouse": "My spouse"
+          },
           "productCategory": {
             "comprehensivePension": "Comprehensive pension fund",
             "generalPension": "General pension fund",
@@ -273,6 +305,7 @@
     "scenarioDelayed": "Delayed",
     "netWorthChart": "Net Worth Projection",
     "incomeChart": "Income by Source",
+    "householdNote": "The plan covers your whole household and ages are yours. Early and delayed scenarios move both retirement dates.",
     "viewTable": "Show as table",
     "viewChart": "Show as chart",
     "sourcePension": "Pension Fund",
@@ -287,7 +320,8 @@
       "ages": "Ages",
       "sources": "Paying sources",
       "income": "Monthly income",
-      "range": "{{from}}–{{to}}"
+      "range": "{{from}}–{{to}}",
+      "spouseAges": "Spouse:"
     }
   },
   "settings": {

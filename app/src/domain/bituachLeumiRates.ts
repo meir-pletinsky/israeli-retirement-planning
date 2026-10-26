@@ -48,6 +48,24 @@ export const BITUACH_LEUMI_RATES = {
    * Entitlement itself is means-tested, so this is only used as a hint.
    */
   incomeSupplementGuaranteeSingleUnder70: 4375,
+
+  /**
+   * Spouse supplement: paid to a pensioner for a spouse who is an Israeli
+   * resident and receives no Bituach Leumi pension of their own. Common-law
+   * partners count as married. Source:
+   * https://www.btl.gov.il/benefits/old_age/Shum/Pages/Tosafot.aspx
+   */
+  spouseSupplementMonthly: 924,
+  /**
+   * The spouse's own income is tested unless the spouse is a woman aged 67+
+   * or a man aged 70+. The income threshold is not on the official page, so
+   * it is deliberately not modelled: the supplement is counted only once the
+   * spouse has stopped working or reached these ages.
+   */
+  spouseIncomeTestExemptAgeWoman: 67,
+  spouseIncomeTestExemptAgeMan: 70,
+  /** Guaranteed minimum total monthly income for a couple (income-supplement hint only). */
+  incomeSupplementGuaranteeCouple: 6912,
 } as const;
 
 /** Women's statutory retirement age for those born in 1960-1969, in years (e.g. 62y 4m = 62.333). */

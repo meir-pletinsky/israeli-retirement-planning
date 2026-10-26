@@ -1,4 +1,5 @@
 import type { PensionAccount, ProfileData } from "../types";
+import { ownAccounts } from "./profileBasics";
 
 /**
  * Monthly deposit into one account, in today's money: gross monthly salary
@@ -22,13 +23,14 @@ export function monthlyContributionForAccount(
 }
 
 /**
- * Total monthly deposits across all active accounts, in today's money.
- * Salary is held constant in real terms (no real wage growth) until
- * retirement.
+ * Total monthly deposits across the primary user's active accounts, in
+ * today's money. Salary is held constant in real terms (no real wage growth)
+ * until retirement. A spouse's accounts are driven by the spouse's salary and
+ * are handled per member in `household.ts`.
  */
 export function totalMonthlyContribution(profile: ProfileData): number {
   const salary = profile.personal.monthlyGrossSalary ?? 0;
-  return profile.pensionSavings.accounts.reduce(
+  return ownAccounts(profile).reduce(
     (sum, account) => sum + monthlyContributionForAccount(account, salary),
     0,
   );

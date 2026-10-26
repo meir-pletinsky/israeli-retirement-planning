@@ -2,7 +2,8 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { clearAllData, loadProfileFromDb } from "../../storage/db";
+import { clearAllData, loadProfileFromDb, saveProfileToDb } from "../../storage/db";
+import { buildTestProfile } from "../../test/domainFixtures";
 import { renderWithProviders } from "../../test/renderWithProviders";
 import { PensionSavingsStep } from "./PensionSavingsStep";
 
@@ -80,5 +81,91 @@ describe("PensionSavingsStep — accounts repeater", () => {
         severanceRatePercent: 6,
       });
     });
+  });
+});
+
+describe("PensionSavingsStep — account owner", () => {
+  const married = { maritalStatus: "married" as const, spouse: { age: 48 } };
+
+  async function seed(profile: ReturnType<typeof buildTestProfile>) {
+    await saveProfileToDb(profile);
+  }
+
+  it("does not ask who owns an account for a single person", async () => {
+    const user = userEvent.setup();
+    await seed(buildTestProfile({ age: 50, pensionBalances: [100_000] }));
+    renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
+
+    await screen.findByText("Test Provider");
+    expect(screen.queryByText("Me")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Edit" }));
+    expect(screen.queryByLabelText("Account owner")).not.toBeInTheDocument();
+  });
+
+  it("lets a married user assign an account to their spouse", async () => {
+    const user = userEvent.setup();
+    await seed(buildTestProfile({ age: 50, ...married, pensionBalances: [100_000] }));
+    renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
+
+    expect(await screen.findByText("Me")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Edit" }));
+    await user.selectOptions(screen.getByLabelText("Account owner"), "spouse");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(await screen.findByText("My spouse")).toBeInTheDocument();
+    await waitFor(async () => {
+      const stored = await loadProfileFromDb();
+      expect(stored?.pensionSavings.accounts[0].owner).toBe("spouse");
+    });
+  });
+
+  it("defaults a new account to the user", async () => {
+    const user = userEvent.setup();
+    await seed(buildTestProfile({ age: 50, ...married }));
+    renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
+
+    await user.click(await screen.findByRole("button", { name: "Add account" }));
+    expect(screen.getByLabelText("Account owner")).toHaveValue("self");
+  });
+
+  it("warns that a spouse's account is not counted until the spouse's age is entered", async () => {
+    const profile = buildTestProfile({
+      age: 50,
+      maritalStatus: "married",
+      pensionBalances: [100_000],
+      pensionAccountOverrides: [{ owner: "spouse" }],
+    });
+    await seed(profile);
+    renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
+
+    expect(await screen.findByText("Not counted \u2014 add your spouse's age")).toBeInTheDocument();
+  });
+
+  it("keeps showing the owner after the user is no longer married", async () => {
+    const profile = buildTestProfile({
+      age: 50,
+      maritalStatus: "divorced",
+      pensionBalances: [100_000],
+      pensionAccountOverrides: [{ owner: "spouse" }],
+    });
+    await seed(profile);
+    renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
+
+    expect(await screen.findByText("Not counted \u2014 add your spouse's age")).toBeInTheDocument();
+  });
+
+  it("counts a spouse's account once the household is active", async () => {
+    await seed(
+      buildTestProfile({
+        age: 50,
+        ...married,
+        pensionBalances: [100_000],
+        pensionAccountOverrides: [{ owner: "spouse" }],
+      }),
+    );
+    renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
+
+    expect(await screen.findByText("My spouse")).toBeInTheDocument();
+    expect(screen.queryByText(/Not counted/)).not.toBeInTheDocument();
   });
 });

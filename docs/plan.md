@@ -19,7 +19,8 @@ wizard validation, CI + GitHub Pages deploy, and initial component tests
 are all done. The first Phase 2 module, **Bituach Leumi**, is also done
 (Phase F), followed by the **per-source model** (Phase G): per-product
 access/liquidity rules, account annuitization and a per-source retirement
-timeline. See [`docs/implementation-progress.md`](implementation-progress.md)
+timeline, and **couples/household** (Phase H): a spouse, per-account owners,
+staggered retirement and the Bituach Leumi spouse supplement. See [`docs/implementation-progress.md`](implementation-progress.md)
 for the authoritative, task-by-task checklist and logged deviations.
 
 Known gaps vs. this document's original Phase 1 output list: **both are now
@@ -42,7 +43,8 @@ Pre-Phase-2 check, **2026-10-26**. Items 1–2 were validated against
 authoritative sources and drove the implementation; items 3–4 are
 partially resolved and flagged for manual verification before their
 modules ship; item 5 (per-product access rules) was checked against
-secondary sources before Phase G.
+secondary sources before Phase G; item 6 (couples) was validated against
+btl.gov.il before Phase H.
 
 1. **Bituach Leumi old-age pension — validated** (btl.gov.il; implemented
    in `domain/bituachLeumi*.ts`, every amount tied to an effective date and
@@ -107,6 +109,21 @@ secondary sources before Phase G.
      study-fund "3 years" exception for retirement; official conversion
      factor tables; the early-withdrawal penalty (Phase 3, tax); the
      severance (*pitzuim*) split.
+6. **Couples — validated against btl.gov.il (2026-10-26; implemented in
+   `domain/household.ts`).**
+   - The **spouse supplement (₪924/month)** is paid to the pensioner only
+     for a spouse who lives in Israel and receives no Bituach Leumi pension
+     of their own. If both spouses qualify, each receives a single-rate
+     pension. Common-law partners count as married.
+   - The supplement is **income-tested** unless the spouse is a woman aged
+     67+ or a man aged 70+. The income threshold itself could **not** be
+     confirmed, so it is not hard-coded: the model starts the supplement
+     only once the spouse has stopped working (or is past that age) and
+     assumes it is then paid in full.
+   - The couple income-supplement guarantee (₪6,912) is used for the hint
+     when the household is a couple. The child supplement is out of scope.
+   - Tax treatment of a couple (the spouse's credit points, separate
+     assessment) is Phase 3.
 
 ## Phase 1 — MVP (functional spec Section 14)
 
@@ -142,7 +159,7 @@ Technical scope:
 - CI (lint/test/build) + GitHub Pages deploy
 
 **Out of scope for Phase 1:** Bituach Leumi detailed eligibility rules,
-couples/household modeling, survivor analysis, tax module, external live
+couples/household modeling (added in Phase 2), survivor analysis, tax module, external live
 data feeds, Monte Carlo, real estate, Keren Hishtalmut/Provident
 Fund/Managers Insurance nuance beyond basic balance+growth.
 
@@ -153,7 +170,8 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
   statutory retirement age, seniority and deferral supplements, qualifying
   period, a manual override for BTL's own calculator figure, and an
   income-supplement hint, with the rates' effective date and source shown on
-  the Dashboard. Single-rate only; spouse/child supplements, the earnings
+  the Dashboard. Single-rate only; the spouse supplement came with
+  couples (below), while the child supplement, the earnings
   test and the means-tested income supplement itself are not modeled. The
   "earliest claim age" idea was dropped because BTL has no early claim.
 - **Per-source model — done** (Phase G in
@@ -168,7 +186,21 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
   accounts; Projections shows a six-band income chart and a retirement
   timeline by source and age. Tax, early-withdrawal penalties and
   withdrawal-order optimization remain Phase 3.
-- Couple user type: per-spouse data + combined household view
+- **Couples / household — done** (Phase H in
+  [`docs/implementation-progress.md`](implementation-progress.md);
+  rules in Open Item 6). Marital status "married" reveals a spouse section
+  in the Personal step (age, gender, retirement age, salary, Bituach Leumi
+  inputs); each pension/savings account has an owner (you or your spouse).
+  Other assets and stocks stay household-level. Household spending starts
+  when the later spouse retires; each spouse keeps contributing until their
+  own retirement age and claims their own Bituach Leumi pension at their own
+  age, plus the ₪924 spouse supplement where it applies. "Earliest feasible"
+  is the earliest year both can retire together. A spouse only joins the
+  plan once their age is entered, and single-person results are unchanged.
+  Not modeled: survivor analysis (Phase 3), tax, the working spouse's salary
+  after the first spouse retires, payments that start before the household
+  retires (they count from retirement and are not drawn earlier), the child
+  supplement.
 
 ## Phase 3 — Risk, Tax & Life Events
 

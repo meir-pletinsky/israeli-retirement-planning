@@ -1,4 +1,4 @@
-import type { Assumptions, ProfileData } from "../types";
+import type { Assumptions, PensionAccount, ProfileData } from "../types";
 import {
   DEFAULT_CURRENT_AGE,
   DEFAULT_RETIREMENT_AGE,
@@ -15,16 +15,21 @@ export function resolveCurrentAge(profile: ProfileData): number {
 }
 
 /**
- * The retirement age to use for a given scenario. "Standard" is whatever the
- * user entered (or the default); "early"/"delayed" shift it by a fixed
- * number of years — see docs/implementation-progress.md for why these
- * offsets (no canonical source defines them for Phase 1).
+ * Whether the plan covers a spouse: the user is married and has entered the
+ * spouse's age. Until then the spouse's data and accounts are ignored, so a
+ * half-filled spouse form cannot change a single-person plan.
  */
-export function resolveRetirementAge(
-  profile: ProfileData,
-  scenario: RetirementScenario,
-): number {
-  const standard = profile.personal.retirementAge ?? DEFAULT_RETIREMENT_AGE;
+export function isHouseholdActive(profile: ProfileData): boolean {
+  return profile.personal.maritalStatus === "married" && profile.spouse.age !== null;
+}
+
+/** The spouse's age; only meaningful while `isHouseholdActive`. */
+export function resolveSpouseCurrentAge(profile: ProfileData): number {
+  return profile.spouse.age ?? DEFAULT_CURRENT_AGE;
+}
+
+/** Applies a scenario's offset to an entered retirement age. */
+function shiftRetirementAge(standard: number, scenario: RetirementScenario): number {
   switch (scenario) {
     case "early":
       return Math.max(MIN_RETIREMENT_AGE, standard - EARLY_RETIREMENT_OFFSET_YEARS);
@@ -36,12 +41,43 @@ export function resolveRetirementAge(
   }
 }
 
-/** Whole years remaining until retirement under the given scenario (floored at 0). */
+/**
+ * The retirement age to use for a given scenario. "Standard" is whatever the
+ * user entered (or the default); "early"/"delayed" shift it by a fixed
+ * number of years — see docs/implementation-progress.md for why these
+ * offsets (no canonical source defines them for Phase 1).
+ */
+export function resolveRetirementAge(
+  profile: ProfileData,
+  scenario: RetirementScenario,
+): number {
+  return shiftRetirementAge(profile.personal.retirementAge ?? DEFAULT_RETIREMENT_AGE, scenario);
+}
+
+/** The spouse's retirement age for a scenario; the same offsets apply as for the primary user. */
+export function resolveSpouseRetirementAge(
+  profile: ProfileData,
+  scenario: RetirementScenario,
+): number {
+  return shiftRetirementAge(profile.spouse.retirementAge ?? DEFAULT_RETIREMENT_AGE, scenario);
+}
+
+/**
+ * Whole years remaining until retirement under the given scenario (floored
+ * at 0). For a couple this is when the later spouse retires, which is when
+ * household spending starts to be drawn from savings.
+ */
 export function yearsToRetirement(
   profile: ProfileData,
   scenario: RetirementScenario = "standard",
 ): number {
-  return Math.max(resolveRetirementAge(profile, scenario) - resolveCurrentAge(profile), 0);
+  const own = Math.max(resolveRetirementAge(profile, scenario) - resolveCurrentAge(profile), 0);
+  if (!isHouseholdActive(profile)) return own;
+  const spouse = Math.max(
+    resolveSpouseRetirementAge(profile, scenario) - resolveSpouseCurrentAge(profile),
+    0,
+  );
+  return Math.max(own, spouse);
 }
 
 /**
@@ -58,9 +94,26 @@ export function realAnnualReturnRate(assumptions: Assumptions): number {
   );
 }
 
-/** Sum of all pension/savings account balances (missing treated as 0), in ILS. */
+/** The primary user's own accounts. */
+export function ownAccounts(profile: ProfileData): PensionAccount[] {
+  return profile.pensionSavings.accounts.filter((account) => account.owner !== "spouse");
+}
+
+/** The spouse's accounts; empty unless the plan covers a spouse. */
+export function spouseAccounts(profile: ProfileData): PensionAccount[] {
+  return isHouseholdActive(profile)
+    ? profile.pensionSavings.accounts.filter((account) => account.owner === "spouse")
+    : [];
+}
+
+/** Every account the plan counts: the user's, plus the spouse's when the plan covers a spouse. */
+export function accountsInPlan(profile: ProfileData): PensionAccount[] {
+  return [...ownAccounts(profile), ...spouseAccounts(profile)];
+}
+
+/** Sum of all counted pension/savings account balances (missing treated as 0), in ILS. */
 export function aggregatePensionBalance(profile: ProfileData): number {
-  return profile.pensionSavings.accounts.reduce(
+  return accountsInPlan(profile).reduce(
     (sum, account) => sum + (account.totalAccumulatedBalance ?? 0),
     0,
   );

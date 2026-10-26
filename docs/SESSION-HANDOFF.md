@@ -47,9 +47,43 @@ the canonical repo/branch combo configured in GitHub's Pages settings.
 
 Full authoritative checklist: [`docs/implementation-progress.md`](implementation-progress.md).
 Snapshot as of this handoff: **Phases A–E are done** (Phase 1 MVP and its
-two logged gaps), **Phase F (Bituach Leumi module) is done**, and **Phase G
-(per-source access rules, annuities and timeline) is done**, committed and
-pushed to `main`.
+two logged gaps), **Phase F (Bituach Leumi module) is done**, **Phase G
+(per-source access rules, annuities and timeline) is done**, and **Phase H
+(couples/household) is done**. Phases A–G are committed and pushed to
+`main`; check `git log` to see whether Phase H has been committed yet.
+
+- **Phase H (Phase 2 — couples/household): ALL DONE.** Pre-phase validation
+  of the spouse-supplement rules is in `docs/plan.md` → "Open Items" item 6
+  (btl.gov.il).
+  - Data: `profile.spouse` (`age`, `gender`, `retirementAge`,
+    `monthlyGrossSalary`, `bituachLeumi`) and `PensionAccount.owner`
+    (`self` | `spouse`), both backfilled in `normalizeProfile()`. The
+    household is active only when `maritalStatus` is `married` **and**
+    `spouse.age` is set (`isHouseholdActive` in `domain/profileBasics.ts`);
+    otherwise spouse-owned accounts are ignored and results equal the
+    single-person ones. Other assets, equity, expenses and assumptions stay
+    household-level.
+  - `domain/household.ts` (`buildHousehold`, `resolveRetirementTiming`,
+    `retirementTimingAtAge`, `spouseAgeAt`): per-member views and timing.
+    The clock counts years from today and the displayed age is yours; the
+    plan runs until the youngest member is 90. Withdrawals start when the
+    later spouse retires; each member contributes until their own
+    retirement age and claims their own Bituach Leumi at their own age.
+    "Earliest feasible" = the earliest age at which both can retire
+    together (the spouse's age is linked through the age gap).
+  - ₪924 spouse supplement: paid to a member with an eligible, included
+    pension while the spouse has none; it starts once the spouse stops
+    working (income-test threshold unconfirmed) and ends when the spouse's
+    own pension starts. Couple income-supplement hint uses ₪6,912.
+  - UI: `MyData/SpouseSection.tsx`, owner select/badge on pension accounts,
+    `BituachLeumiCard` per member, `FeasibilityCard` "both retire" line,
+    `RetirementTimeline` spouse ages, household notes on Dashboard and
+    Projections; i18n en/ru/he.
+  - To plan a spouse with no pension: 0 insured years and a retirement age
+    equal to their current age.
+  - Not modeled: survivor analysis, tax, the working spouse's salary after
+    the first spouse retires, payments that start before the household
+    retires (counted from retirement), the child supplement.
 
 - **Phase G (Phase 2 — per-source model): ALL DONE.** Pre-phase validation of
   the access rules is in `docs/plan.md` → "Open Items" item 5 (secondary
@@ -92,7 +126,7 @@ pushed to `main`.
     `normalizeProfile()`.
   - UI: Personal step section, Dashboard `BituachLeumiCard`, third chart
     band on Projections; i18n en/ru/he.
-  - Not modeled: spouse/child supplements, earnings test, means-tested
+  - Not modeled: child supplement, earning test, means-tested
     income supplement (hint only). Tax constants are still unverified.
 - **Phase E (close Phase 1 gaps): ALL DONE.**
   - E1: `domain/feasibility.ts` → `findEarliestFeasibleRetirementAge()`
@@ -135,18 +169,17 @@ pushed to `main`.
     reflect implemented status (the two gaps it logged were closed in
     Phase E).
   - D3: live deploy verified (done as a side effect of A7).
-- 152 tests total, all green; lint/typecheck/build all green.
+- 192 tests total, all green; lint/typecheck/build all green.
 
 ## Where to go next
 
-Phase 1, the Bituach Leumi module and the per-source model are complete.
-Remaining, not yet started:
+Phase 1 and the Phase 2 modules (Bituach Leumi, per-source model,
+couples/household) are complete. Remaining, not yet started:
 
-- **Rest of Phase 2** per `docs/plan.md`: couples/household modeling
-  (per-spouse profiles, combined view, BL spouse supplement ₪924).
 - **Phase 3 tax module:** manually verify the tax constants listed in
   `docs/plan.md` → "Open Items" (item 3) against Tax Authority circulars
-  first.
+  first. Couple tax effects (the spouse's credit points) belong here too.
+- **Survivor analysis** (simulate the death of either spouse), Phase 3.
 - Possible refinements to the contribution model: real wage growth, a
   per-account salary override, the study-fund **annual deposit** ceiling
   (₪15,712/month salary), and showing the feasibility result on the

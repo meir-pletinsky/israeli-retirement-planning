@@ -113,8 +113,13 @@ export const EMPTY_ACCOUNT_CONTRIBUTIONS: AccountContributions = {
   severanceRatePercent: null,
 };
 
+/** Whose account it is. Only meaningful for couples; everything else belongs to the primary user. */
+export type AccountOwner = "self" | "spouse";
+
 export interface PensionAccount {
   id: string;
+  /** Defaults to "self"; "spouse" accounts count only while the plan covers a spouse. */
+  owner: AccountOwner;
   providerName: string;
   productCategory: ProductCategory | null;
   legacyPolicyModel: LegacyPolicyModel | null;
@@ -132,6 +137,7 @@ export interface PensionAccount {
 export function createEmptyPensionAccount(): PensionAccount {
   return {
     id: createId(),
+    owner: "self",
     providerName: "",
     productCategory: null,
     legacyPolicyModel: null,
@@ -286,8 +292,31 @@ export const EMPTY_BITUACH_LEUMI: BituachLeumiData = {
   monthlyPensionOverride: null,
 };
 
+/**
+ * The spouse's own basics. The spouse joins the plan once `maritalStatus` is
+ * "married" and `age` is entered; their accounts are the ones owned by
+ * "spouse". Expenses, assumptions, other assets and equity stay household-level.
+ */
+export interface SpouseData {
+  age: number | null;
+  gender: Gender | null;
+  retirementAge: number | null;
+  /** Gross monthly salary in today's money; basis for the spouse's own account contributions. */
+  monthlyGrossSalary: number | null;
+  bituachLeumi: BituachLeumiData;
+}
+
+export const EMPTY_SPOUSE: SpouseData = {
+  age: null,
+  gender: null,
+  retirementAge: null,
+  monthlyGrossSalary: null,
+  bituachLeumi: { ...EMPTY_BITUACH_LEUMI },
+};
+
 export interface ProfileData {
   personal: PersonalData;
+  spouse: SpouseData;
   taxExemptionBasket: TaxExemptionBasket;
   bituachLeumi: BituachLeumiData;
   pensionSavings: PensionSavingsData;
@@ -305,6 +334,7 @@ export const EMPTY_PROFILE: ProfileData = {
     creditPoints: null,
     monthlyGrossSalary: null,
   },
+  spouse: { ...EMPTY_SPOUSE },
   taxExemptionBasket: {
     form161DSubmitted: false,
     pastTaxFreeSeveranceWithdrawn: null,
@@ -328,6 +358,11 @@ export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined
     ...EMPTY_PROFILE,
     ...parsed,
     personal: { ...EMPTY_PROFILE.personal, ...parsed?.personal },
+    spouse: {
+      ...EMPTY_SPOUSE,
+      ...parsed?.spouse,
+      bituachLeumi: { ...EMPTY_BITUACH_LEUMI, ...parsed?.spouse?.bituachLeumi },
+    },
     taxExemptionBasket: {
       ...EMPTY_PROFILE.taxExemptionBasket,
       ...parsed?.taxExemptionBasket,
@@ -341,11 +376,13 @@ export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined
   if (!Array.isArray(merged.pensionSavings?.accounts)) {
     merged.pensionSavings = EMPTY_PROFILE.pensionSavings;
   } else {
-    // Accounts saved before contribution rates existed lack `contributions`.
+    // Accounts saved before contribution rates existed lack `contributions`,
+    // and ones saved before couples were supported lack `owner`.
     merged.pensionSavings = {
       ...merged.pensionSavings,
       accounts: merged.pensionSavings.accounts.map((account) => ({
         ...account,
+        owner: account.owner === "spouse" ? "spouse" : "self",
         contributions: {
           ...EMPTY_ACCOUNT_CONTRIBUTIONS,
           ...account.contributions,

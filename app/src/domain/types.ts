@@ -16,12 +16,30 @@ export interface RetirementIncomeEstimate {
   /**
    * Sustainable monthly income in today's money, from retirement through the planning horizon.
    * Includes the Bituach Leumi pension and any account annuities from their start age onward.
+   * For a couple it is the household's income, from the moment the later spouse retires.
    */
   monthlyIncomeTodayMoney: number;
+  /** The primary user's retirement age. */
   retirementAge: number;
+  /**
+   * The primary user's age when the household starts drawing on savings: their
+   * own retirement age for a single person, the later spouse's retirement
+   * moment for a couple.
+   */
+  householdRetirementAge: number;
   netWorthAtRetirement: number;
+  /** The primary user's own Bituach Leumi estimate (also `members[0].bituachLeumi`). */
   bituachLeumi: BituachLeumiEstimate;
+  /** One entry for a single person, two (user first, spouse second) for a couple. */
+  members: HouseholdMemberEstimate[];
   access: RetirementAccessSummary;
+}
+
+export interface HouseholdMemberEstimate {
+  role: "self" | "spouse";
+  currentAge: number;
+  retirementAge: number;
+  bituachLeumi: BituachLeumiEstimate;
 }
 
 /** How much of the savings can actually be spent when retiring, given each product's access rules. */
@@ -59,6 +77,21 @@ export interface BituachLeumiEstimate {
   deferralRate: number;
   /** Monthly pension in today's money; 0 when excluded or not eligible. */
   monthlyPension: number;
+  /** Spouse supplement this person receives for their spouse; null when none. Set by the household layer. */
+  spouseSupplement: SpouseSupplement | null;
+}
+
+/**
+ * The flat supplement paid to a pensioner for a spouse who has no pension of
+ * their own. Ages are the recipient's own age.
+ */
+export interface SpouseSupplement {
+  /** Monthly amount in today's money. */
+  monthly: number;
+  /** Recipient's age from which it is counted. */
+  startAge: number;
+  /** Recipient's age at which it stops (the spouse's own pension starts); null = for life. */
+  endAge: number | null;
 }
 
 export interface FundingGapResult {
@@ -78,9 +111,12 @@ export type FeasibilityStatus = "noTarget" | "feasible" | "notFeasible";
 
 export interface RetirementFeasibility {
   status: FeasibilityStatus;
+  /** The primary user's earliest age. For a couple, both retire together at this and `spouseAge`. */
   earliestAge: number | null;
   /** Years from the user's current age; 0 means they could retire today. */
   yearsFromNow: number | null;
+  /** The spouse's age at that moment. Only present for a feasible couple. */
+  spouseAge?: number;
 }
 
 export type { RetirementScenario };

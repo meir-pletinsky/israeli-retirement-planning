@@ -10,7 +10,7 @@ interface FeasibilityCardProps {
 
 export function FeasibilityCard({ feasibility, maxSearchAge }: FeasibilityCardProps) {
   const { t } = useTranslation();
-  const { status, earliestAge, yearsFromNow } = feasibility;
+  const { status, earliestAge, yearsFromNow, spouseAge } = feasibility;
   const yearsLabel = yearsFromNow === null ? null : Math.round(yearsFromNow);
 
   return (
@@ -32,6 +32,11 @@ export function FeasibilityCard({ feasibility, maxSearchAge }: FeasibilityCardPr
               ? t("dashboard.feasibility.feasibleNow")
               : t("dashboard.feasibility.yearsFromNow", { years: yearsLabel })}
           </p>
+          {spouseAge !== undefined && (
+            <p className="text-sm text-slate-600">
+              {t("dashboard.feasibility.bothRetire", { age: earliestAge, spouseAge })}
+            </p>
+          )}
         </div>
       )}
 

@@ -1,11 +1,11 @@
 import type { ProfileData } from "../types";
 import { futureValueOfMonthlyContributions, totalMonthlyContribution } from "./contributions";
-import { simulateDrawdown } from "./drawdown";
+import { simulateDrawdownForScenario } from "./drawdown";
+import { selfProfileView } from "./household";
 import {
   aggregateCurrentNetWorth,
   realAnnualReturnRate,
   resolveCurrentAge,
-  resolveRetirementAge,
 } from "./profileBasics";
 import type { NetWorthPoint, RetirementScenario } from "./types";
 
@@ -13,6 +13,7 @@ export {
   aggregateCurrentNetWorth,
   aggregateOtherBalance,
   aggregatePensionBalance,
+  isHouseholdActive,
   realAnnualReturnRate,
   resolveCurrentAge,
   resolveRetirementAge,
@@ -23,15 +24,16 @@ export {
  * Projected balance (today's money) when the user reaches `targetAge`, before
  * any retirement withdrawals: current balances compounded at the real
  * return, plus ongoing monthly contributions (see `contributions.ts`) made
- * every year up to `targetAge`.
+ * every year up to `targetAge`. Covers the primary user's own finances (a
+ * spouse's accounts are excluded).
  */
 export function projectBalanceAtAge(profile: ProfileData, targetAge: number): number {
-  const years = Math.max(targetAge - resolveCurrentAge(profile), 0);
-  const rate = realAnnualReturnRate(profile.assumptions);
-  const grownBalance = aggregateCurrentNetWorth(profile) * Math.pow(1 + rate, years);
+  const own = selfProfileView(profile);
+  const years = Math.max(targetAge - resolveCurrentAge(own), 0);
+  const rate = realAnnualReturnRate(own.assumptions);
+  const grownBalance = aggregateCurrentNetWorth(own) * Math.pow(1 + rate, years);
   return (
-    grownBalance +
-    futureValueOfMonthlyContributions(totalMonthlyContribution(profile), rate, years)
+    grownBalance + futureValueOfMonthlyContributions(totalMonthlyContribution(own), rate, years)
   );
 }
 
@@ -47,14 +49,15 @@ export function projectBalanceAtAge(profile: ProfileData, targetAge: number): nu
  *   unlocked at that age can be spent (see `drawdown.ts` and `sources.ts`).
  *   Contributions stop.
  * - Balances are floored at 0 (no borrowing/negative-net-worth modeling yet).
+ *
+ * For a couple the points cover the whole household, drawing starts when the
+ * later spouse retires, and the ages are the primary user's.
  */
 export function projectNetWorth(
   profile: ProfileData,
   scenario: RetirementScenario = "standard",
 ): NetWorthPoint[] {
-  return simulateDrawdown(
-    profile,
-    resolveRetirementAge(profile, scenario),
-    profile.expenses.retirementMonthly ?? 0,
-  ).map(({ age, netWorth }) => ({ age, netWorth: Math.round(netWorth) }));
+  return simulateDrawdownForScenario(profile, scenario, profile.expenses.retirementMonthly ?? 0).map(
+    ({ age, netWorth }) => ({ age, netWorth: Math.round(netWorth) }),
+  );
 }

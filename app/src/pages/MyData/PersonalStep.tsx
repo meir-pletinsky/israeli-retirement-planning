@@ -8,6 +8,7 @@ import { NumberField } from "../../components/fields/NumberField";
 import { SelectField } from "../../components/fields/SelectField";
 import type { Gender, MaritalStatus } from "../../types";
 import { StepFooter } from "./StepFooter";
+import { SpouseSection } from "./SpouseSection";
 
 const MARITAL_STATUSES: MaritalStatus[] = [
   "single",
@@ -32,7 +33,22 @@ export function PersonalStep() {
     !ageMissing &&
     !retirementAgeMissing &&
     personal.retirementAge! <= personal.age!;
-  const isValid = !ageMissing && !retirementAgeMissing && !retirementBeforeAge;
+
+  // The spouse joins the plan once their age is entered, from which point
+  // their retirement age matters too. Unlike the primary user they may have
+  // retired already (retirement age equal to their age).
+  const { spouse } = profile;
+  const isMarried = personal.maritalStatus === "married";
+  const spouseError: "retirementAgeMissing" | "retirementBeforeAge" | null =
+    !isMarried || spouse.age === null
+      ? null
+      : spouse.retirementAge === null
+        ? "retirementAgeMissing"
+        : spouse.retirementAge < spouse.age
+          ? "retirementBeforeAge"
+          : null;
+  const isValid =
+    !ageMissing && !retirementAgeMissing && !retirementBeforeAge && spouseError === null;
 
   return (
     <div className="flex max-w-lg flex-col gap-4">
@@ -109,6 +125,8 @@ export function PersonalStep() {
         min={0}
         max={10}
       />
+
+      {isMarried && <SpouseSection error={showErrors ? spouseError : null} />}
 
       <CollapsibleSection title={t("myData.steps.personal.taxExemptionSection")}>
         <CheckboxField

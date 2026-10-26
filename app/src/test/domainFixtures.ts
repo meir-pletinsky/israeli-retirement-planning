@@ -1,5 +1,12 @@
-import type { BituachLeumiData, Gender, PensionAccount, ProfileData } from "../types";
-import { EMPTY_ACCOUNT_CONTRIBUTIONS, EMPTY_PROFILE } from "../types";
+import type {
+  BituachLeumiData,
+  Gender,
+  MaritalStatus,
+  PensionAccount,
+  ProfileData,
+  SpouseData,
+} from "../types";
+import { EMPTY_ACCOUNT_CONTRIBUTIONS, EMPTY_PROFILE, EMPTY_SPOUSE } from "../types";
 
 /**
  * Builds a `ProfileData` for domain-engine tests, starting from
@@ -12,6 +19,12 @@ export function buildTestProfile(overrides: {
   gender?: Gender;
   retirementAge?: number;
   monthlyGrossSalary?: number;
+  maritalStatus?: MaritalStatus;
+  /** Spouse basics; the household is active once `maritalStatus` is "married" and `spouse.age` is set. */
+  spouse?: Partial<Omit<SpouseData, "bituachLeumi">> & {
+    /** Excluded from projections by default, like the primary user's. */
+    bituachLeumi?: Partial<BituachLeumiData>;
+  };
   /** Bituach Leumi inputs; excluded from projections by default so other tests stay isolated from it. */
   bituachLeumi?: Partial<BituachLeumiData>;
   investmentReturnPct?: number;
@@ -29,6 +42,8 @@ export function buildTestProfile(overrides: {
     gender,
     retirementAge,
     monthlyGrossSalary,
+    maritalStatus,
+    spouse,
     bituachLeumi,
     investmentReturnPct,
     inflationPct,
@@ -48,11 +63,22 @@ export function buildTestProfile(overrides: {
       gender: gender ?? null,
       retirementAge: retirementAge ?? null,
       monthlyGrossSalary: monthlyGrossSalary ?? null,
+      maritalStatus: maritalStatus ?? null,
+    },
+    spouse: {
+      ...EMPTY_SPOUSE,
+      ...spouse,
+      bituachLeumi: {
+        ...EMPTY_SPOUSE.bituachLeumi,
+        includeInProjection: false,
+        ...spouse?.bituachLeumi,
+      },
     },
     bituachLeumi: { ...EMPTY_PROFILE.bituachLeumi, includeInProjection: false, ...bituachLeumi },
     pensionSavings: {
       accounts: pensionBalances.map((balance, index) => ({
         id: `test-account-${index}`,
+        owner: "self" as const,
         providerName: "Test Provider",
         productCategory: null,
         legacyPolicyModel: null,

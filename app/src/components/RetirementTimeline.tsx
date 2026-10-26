@@ -7,10 +7,19 @@ interface RetirementTimelineProps {
   segments: TimelineSegment[];
   labels: Record<IncomeBandKey, string>;
   currencySymbol: string;
+  /** For a couple: the spouse's age when the primary user is the given age. */
+  spouseAgeAt?: (selfAge: number) => number;
 }
 
-export function RetirementTimeline({ segments, labels, currencySymbol }: RetirementTimelineProps) {
+export function RetirementTimeline({
+  segments,
+  labels,
+  currencySymbol,
+  spouseAgeAt,
+}: RetirementTimelineProps) {
   const { t } = useTranslation();
+  const formatRange = (from: number, to: number) =>
+    from === to ? String(from) : t("projections.timeline.range", { from, to });
 
   return (
     <section
@@ -40,14 +49,15 @@ export function RetirementTimeline({ segments, labels, currencySymbol }: Retirem
             {segments.map((segment) => (
               <tr key={segment.fromAge} className="border-t border-slate-100 align-top">
                 <td className="py-2 pe-3 tabular-nums">
-                  <span dir="ltr">
-                    {segment.fromAge === segment.toAge
-                      ? segment.fromAge
-                      : t("projections.timeline.range", {
-                          from: segment.fromAge,
-                          to: segment.toAge,
-                        })}
-                  </span>
+                  <span dir="ltr">{formatRange(segment.fromAge, segment.toAge)}</span>
+                  {spouseAgeAt && (
+                    <span className="block text-xs text-slate-500">
+                      {t("projections.timeline.spouseAges")}{" "}
+                      <span dir="ltr">
+                        {formatRange(spouseAgeAt(segment.fromAge), spouseAgeAt(segment.toAge))}
+                      </span>
+                    </span>
+                  )}
                 </td>
                 <td className="py-2 pe-3">
                   <ul className="flex flex-col gap-0.5">

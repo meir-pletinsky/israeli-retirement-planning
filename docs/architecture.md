@@ -79,9 +79,14 @@ src/
                     # retirementIncome.ts, drawdown.ts, netWorth.ts,
                     # incomeBreakdown.ts, timeline.ts, fundingGap.ts,
                     # contributions.ts, feasibility.ts, bituachLeumi.ts,
-                    # bituachLeumiRates.ts, index.ts) rather than split into
+                    # bituachLeumiRates.ts, household.ts, index.ts) rather
+                    # than split into
                     # per-product folders — products differ by rule data
                     # (accessRules.ts, sources.ts), not by calculation.
+                    # household.ts builds a per-spouse view (retirement
+                    # timing, own sources and Bituach Leumi, the spouse
+                    # supplement) that the engine uses for couples; a
+                    # single person is a household of one.
   data/             # static fallback datasets (rates, tables), external data clients
   storage/          # Dexie schema, repositories, export/import
   i18n/             # translation resources (en, ru, he) + setup

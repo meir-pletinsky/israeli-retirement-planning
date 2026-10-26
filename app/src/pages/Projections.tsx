@@ -10,7 +10,9 @@ import {
   type IncomeBandKey,
   buildRetirementTimeline,
   estimateIncomeBreakdown,
+  isHouseholdActive,
   projectNetWorth,
+  spouseAgeAt,
 } from "../domain";
 import type { RetirementScenario } from "../types";
 
@@ -30,6 +32,7 @@ export function Projections() {
   const netWorthData = projectNetWorth(profile, scenario);
   const incomeData = estimateIncomeBreakdown(profile, scenario);
   const timeline = buildRetirementTimeline(incomeData);
+  const isCouple = isHouseholdActive(profile);
   const bandLabels: Record<IncomeBandKey, string> = {
     pensionFund: t("projections.sourcePension"),
     providentFund: t("projections.sourceProvidentFund"),
@@ -67,6 +70,10 @@ export function Projections() {
           ))}
         </div>
       </div>
+
+      {isCouple && (
+        <p className="-mt-3 text-xs text-slate-500">{t("projections.householdNote")}</p>
+      )}
 
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-2 flex items-center justify-between">
@@ -129,6 +136,7 @@ export function Projections() {
         segments={timeline}
         labels={bandLabels}
         currencySymbol={currencySymbol}
+        spouseAgeAt={isCouple ? (age) => spouseAgeAt(profile, age) : undefined}
       />
     </div>
   );

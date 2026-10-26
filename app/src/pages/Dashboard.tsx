@@ -16,7 +16,6 @@ import {
   estimateRetirementIncome,
   findEarliestFeasibleRetirementAge,
   projectNetWorth,
-  resolveRetirementAge,
   yearsToRetirement,
 } from "../domain";
 
@@ -44,7 +43,9 @@ export function Dashboard() {
 
   const data = projectNetWorth(profile, "standard");
   const netWorthToday = aggregateCurrentNetWorth(profile);
-  const { monthlyIncomeTodayMoney, bituachLeumi, access } = estimateRetirementIncome(profile, "standard");
+  const { monthlyIncomeTodayMoney, members, access, householdRetirementAge } =
+    estimateRetirementIncome(profile, "standard");
+  const isCouple = members.length > 1;
   const fundingGap = calculateFundingGap(profile, "standard");
   const isShortfall = fundingGap.status === "shortfall";
   const feasibility = findEarliestFeasibleRetirementAge(profile);
@@ -88,7 +89,7 @@ export function Dashboard() {
       <SourceAccessCard access={access} />
 
       <BituachLeumiCard
-        estimate={bituachLeumi}
+        members={members}
         monthlyIncomeTodayMoney={monthlyIncomeTodayMoney}
       />
 
@@ -106,9 +107,12 @@ export function Dashboard() {
         </div>
         <NetWorthChart
           data={data}
-          retirementAge={resolveRetirementAge(profile, "standard")}
+          retirementAge={householdRetirementAge}
           currencySymbol={currencySymbol}
         />
+        {isCouple && (
+          <p className="mt-2 text-xs text-slate-500">{t("dashboard.householdChartNote")}</p>
+        )}
       </div>
     </div>
   );

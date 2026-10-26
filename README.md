@@ -10,9 +10,11 @@ funds, Bituach Leumi, investments, and more.
 current build status).
 
 **Status:** Phase 1 (MVP) implemented, including salary/contribution
-modeling and an earliest-feasible-retirement-age solver, plus two Phase 2
-modules: the Bituach Leumi state pension and a per-source model (access
-ages, annuity conversion, per-source retirement timeline) — see
+modeling and an earliest-feasible-retirement-age solver, plus three Phase 2
+modules: the Bituach Leumi state pension, a per-source model (access
+ages, annuity conversion, per-source retirement timeline) and
+couples/household planning (a spouse, per-account owners, staggered
+retirement, the Bituach Leumi spouse supplement) — see
 [`docs/implementation-progress.md`](docs/implementation-progress.md) for
 the detailed checklist and [`docs/plan.md`](docs/plan.md)'s Status section
 for how it compares to the original spec.
