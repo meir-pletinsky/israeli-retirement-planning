@@ -16,6 +16,7 @@ interface IncomeBreakdownChartProps {
   currencySymbol: string;
   pensionLabel: string;
   investmentsLabel: string;
+  bituachLeumiLabel: string;
 }
 
 export function IncomeBreakdownChart({
@@ -23,6 +24,7 @@ export function IncomeBreakdownChart({
   currencySymbol,
   pensionLabel,
   investmentsLabel,
+  bituachLeumiLabel,
 }: IncomeBreakdownChartProps) {
   return (
     <ResponsiveContainer width="100%" height={280}>
@@ -52,6 +54,13 @@ export function IncomeBreakdownChart({
           name={investmentsLabel}
           stackId="income"
           fill="#94a3b8"
+          radius={[0, 0, 0, 0]}
+        />
+        <Bar
+          dataKey="bituachLeumi"
+          name={bituachLeumiLabel}
+          stackId="income"
+          fill="#f59e0b"
           radius={[4, 4, 0, 0]}
         />
       </BarChart>

@@ -46,15 +46,26 @@ the canonical repo/branch combo configured in GitHub's Pages settings.
 ## What's done vs. in progress
 
 Full authoritative checklist: [`docs/implementation-progress.md`](implementation-progress.md).
-Snapshot as of this handoff: **Phases A, B, C, D and E are all done** — the
-Phase 1 MVP is complete and both gaps originally logged against it
-(salary/contribution modeling, earliest-feasible-retirement-age solver) are
-closed.
+Snapshot as of this handoff: **Phases A–E are done** (Phase 1 MVP and its
+two logged gaps) and **Phase F (Phase 2: Bituach Leumi module) is done**.
 
-> **Uncommitted work:** Phase E was implemented in a local working tree and
-> may not yet be committed/pushed — check `git status` before assuming
-> `main` contains it.
-
+- **Phase F (Phase 2 — Bituach Leumi): ALL DONE** (pre-phase validation of
+  the plan's open items is in `docs/plan.md` → "Open Items").
+  - `domain/bituachLeumiRates.ts` (sourced constants + effective date +
+    `womenRetirementAge`) and `domain/bituachLeumi.ts`
+    (`statutoryRetirementAge`, `estimateBituachLeumiPension`,
+    `mayQualifyForIncomeSupplement`).
+  - Flows into `estimateRetirementIncomeAtAge` (bridge formula),
+    `projectNetWorth` (withdrawal offset from the claim age),
+    `estimateIncomeBreakdown` (third band), funding gap and the feasibility
+    solver.
+  - `profile.bituachLeumi` (`includeInProjection` default **true**,
+    `insuredYearsToDate`, `monthlyPensionOverride`), backfilled in
+    `normalizeProfile()`.
+  - UI: Personal step section, Dashboard `BituachLeumiCard`, third chart
+    band on Projections; i18n en/ru/he.
+  - Not modeled: spouse/child supplements, earnings test, means-tested
+    income supplement (hint only). Tax constants are still unverified.
 - **Phase E (close Phase 1 gaps): ALL DONE.**
   - E1: `domain/feasibility.ts` → `findEarliestFeasibleRetirementAge()`
     (linear scan to age 80) + Dashboard `FeasibilityCard`.
@@ -96,19 +107,23 @@ closed.
     reflect implemented status (the two gaps it logged were closed in
     Phase E).
   - D3: live deploy verified (done as a side effect of A7).
-- 74 tests total, all green; lint/typecheck/build all green.
+- 108 tests total, all green; lint/typecheck/build all green.
 
 ## Where to go next
 
-Phase 1 MVP and its two logged gaps are complete. Natural next steps (not
-yet started, no code written):
+Phase 1 and the Bituach Leumi module are complete. Remaining, not yet
+started:
 
-- **Phase 2** per `docs/plan.md`: Bituach Leumi module, Provident
-  Fund/Managers Insurance nuance, couples/household modeling, per-source
-  retirement timeline.
+- **Rest of Phase 2** per `docs/plan.md`: Provident Fund/Managers Insurance
+  nuance, couples/household modeling (incl. BL spouse supplement ₪924),
+  per-source retirement timeline.
+- **Phase 3 tax module:** manually verify the tax constants listed in
+  `docs/plan.md` → "Open Items" (item 3) against Tax Authority circulars
+  first.
 - Possible refinements to the contribution model: real wage growth, a
-  per-account salary override, study-fund tax-free-ceiling handling, and
-  showing the feasibility result on the Projections page.
+  per-account salary override, the study-fund **annual deposit** ceiling
+  (₪15,712/month salary), and showing the feasibility result on the
+  Projections page.
 
 ## Key technical decisions to know before continuing
 

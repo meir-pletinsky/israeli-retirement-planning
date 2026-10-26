@@ -10,7 +10,8 @@ funds, Bituach Leumi, investments, and more.
 current build status).
 
 **Status:** Phase 1 (MVP) implemented, including salary/contribution
-modeling and an earliest-feasible-retirement-age solver — see
+modeling and an earliest-feasible-retirement-age solver, plus the first
+Phase 2 module (Bituach Leumi state pension) — see
 [`docs/implementation-progress.md`](docs/implementation-progress.md) for
 the detailed checklist and [`docs/plan.md`](docs/plan.md)'s Status section
 for how it compares to the original spec.

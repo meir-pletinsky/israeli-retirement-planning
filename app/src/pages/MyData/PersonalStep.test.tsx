@@ -36,3 +36,42 @@ describe("PersonalStep — monthly gross salary", () => {
     });
   });
 });
+
+describe("PersonalStep — Bituach Leumi", () => {
+  async function openSection(user: ReturnType<typeof userEvent.setup>) {
+    renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+    await user.click(await screen.findByRole("button", { name: /Bituach Leumi old-age pension/ }));
+  }
+
+  it("includes the state pension by default", async () => {
+    const user = userEvent.setup();
+    await openSection(user);
+
+    expect(screen.getByRole("checkbox", { name: /Include the state pension/ })).toBeChecked();
+  });
+
+  it("persists the include toggle", async () => {
+    const user = userEvent.setup();
+    await openSection(user);
+
+    await user.click(screen.getByRole("checkbox", { name: /Include the state pension/ }));
+
+    await waitFor(async () => {
+      expect((await loadProfileFromDb())?.bituachLeumi.includeInProjection).toBe(false);
+    });
+  });
+
+  it("persists insured years and a manual pension amount", async () => {
+    const user = userEvent.setup();
+    await openSection(user);
+
+    await user.type(screen.getByLabelText(/Insured years to date/), "12");
+    await user.type(screen.getByLabelText(/Monthly pension from Bituach Leumi's calculator/), "2500");
+
+    await waitFor(async () => {
+      const saved = (await loadProfileFromDb())?.bituachLeumi;
+      expect(saved?.insuredYearsToDate).toBe(12);
+      expect(saved?.monthlyPensionOverride).toBe(2500);
+    });
+  });
+});

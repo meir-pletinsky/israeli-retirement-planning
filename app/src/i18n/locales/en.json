@@ -34,6 +34,22 @@
       "noTarget": "Enter your expected monthly retirement expenses to see how soon you could retire.",
       "noTargetCta": "Add expenses"
     },
+    "bituachLeumi": {
+      "title": "Bituach Leumi Old-Age Pension",
+      "monthlyPension": "{{amount}} per month",
+      "startsAt": "Starts at age {{age}}",
+      "ageYears": "{{years}}",
+      "ageYearsMonths": "{{years}} years {{months}} months",
+      "seniority": "Includes a {{percent}}% seniority supplement.",
+      "deferral": "Includes a {{percent}}% supplement for deferring past the statutory age ({{age}}).",
+      "usingOverride": "Based on the amount you entered from Bituach Leumi.",
+      "excluded": "The state pension is not included in your projections.",
+      "notEligible": "Based on your insured years you may not qualify yet: the pension requires {{lifetime}} insured months, or {{recent}} within the last 10 years.",
+      "incomeSupplementHint": "With total income below {{amount}} you may be entitled to an income supplement (means-tested; not included in this estimate).",
+      "editSettings": "Edit Bituach Leumi settings",
+      "ratesAsOf": "Rates as of {{date}}.",
+      "source": "Source: Bituach Leumi"
+    },
     "kpi": {
       "monthlyIncome": "Projected Monthly Retirement Income",
       "netWorth": "Net Worth Today",
@@ -73,7 +89,14 @@
         "taxExemptionSection": "Tax exemption basket (Kibua Zchuyot)",
         "form161DSubmitted": "Rights fixation (Form 161D) submitted",
         "pastTaxFreeSeveranceWithdrawn": "Tax-free severance withdrawn to date",
-        "remainingMonthlyExemptionCap": "Remaining monthly tax-free annuity allowance"
+        "remainingMonthlyExemptionCap": "Remaining monthly tax-free annuity allowance",
+        "bituachLeumiSection": "Bituach Leumi old-age pension",
+        "bituachLeumiIntro": "Estimates your state old-age pension from your gender, age and insured years. It is paid from the statutory retirement age, even if you stop working earlier.",
+        "bituachLeumiInclude": "Include the state pension in projections",
+        "bituachLeumiInsuredYears": "Insured years to date",
+        "bituachLeumiInsuredYearsHelper": "Leave empty to assume you have been insured since age 21.",
+        "bituachLeumiOverride": "Monthly pension from Bituach Leumi's calculator",
+        "bituachLeumiOverrideHelper": "Optional. Replaces the estimate; enter the amount in today's money."
       },
       "pensionSavings": {
         "label": "Pension & Savings",
@@ -240,7 +263,8 @@
     "viewTable": "Show as table",
     "viewChart": "Show as chart",
     "sourcePension": "Pension Fund",
-    "sourceInvestments": "Other Investments"
+    "sourceInvestments": "Other Investments",
+    "sourceBituachLeumi": "Bituach Leumi"
   },
   "settings": {
     "title": "Settings",

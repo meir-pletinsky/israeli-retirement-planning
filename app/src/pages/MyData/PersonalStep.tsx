@@ -19,7 +19,7 @@ const MARITAL_STATUSES: MaritalStatus[] = [
 export function PersonalStep() {
   const { t } = useTranslation();
   const { profile, updateProfile } = useProfile();
-  const { personal, taxExemptionBasket } = profile;
+  const { personal, taxExemptionBasket, bituachLeumi } = profile;
   const currency = t("common.currencySymbol");
   const [showErrors, setShowErrors] = useState(false);
 
@@ -144,6 +144,45 @@ export function PersonalStep() {
               },
             })
           }
+          suffix={currency}
+        />
+      </CollapsibleSection>
+
+      <CollapsibleSection title={t("myData.steps.personal.bituachLeumiSection")}>
+        <p className="text-sm text-slate-600">
+          {t("myData.steps.personal.bituachLeumiIntro")}
+        </p>
+        <CheckboxField
+          label={t("myData.steps.personal.bituachLeumiInclude")}
+          checked={bituachLeumi.includeInProjection}
+          onChange={(includeInProjection) =>
+            updateProfile({
+              bituachLeumi: { ...bituachLeumi, includeInProjection },
+            })
+          }
+        />
+        <NumberField
+          label={t("myData.steps.personal.bituachLeumiInsuredYears")}
+          helperText={t("myData.steps.personal.bituachLeumiInsuredYearsHelper")}
+          value={bituachLeumi.insuredYearsToDate}
+          onChange={(insuredYearsToDate) =>
+            updateProfile({
+              bituachLeumi: { ...bituachLeumi, insuredYearsToDate },
+            })
+          }
+          min={0}
+          max={60}
+        />
+        <NumberField
+          label={t("myData.steps.personal.bituachLeumiOverride")}
+          helperText={t("myData.steps.personal.bituachLeumiOverrideHelper")}
+          value={bituachLeumi.monthlyPensionOverride}
+          onChange={(monthlyPensionOverride) =>
+            updateProfile({
+              bituachLeumi: { ...bituachLeumi, monthlyPensionOverride },
+            })
+          }
+          min={0}
           suffix={currency}
         />
       </CollapsibleSection>

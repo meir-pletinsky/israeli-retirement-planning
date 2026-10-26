@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import { useProfile } from "../app/ProfileContext";
+import { BituachLeumiCard } from "../components/BituachLeumiCard";
 import { NetWorthChart } from "../components/charts/NetWorthChart";
 import { EmptyState } from "../components/EmptyState";
 import { FeasibilityCard } from "../components/FeasibilityCard";
@@ -42,7 +43,7 @@ export function Dashboard() {
 
   const data = projectNetWorth(profile, "standard");
   const netWorthToday = aggregateCurrentNetWorth(profile);
-  const { monthlyIncomeTodayMoney } = estimateRetirementIncome(profile, "standard");
+  const { monthlyIncomeTodayMoney, bituachLeumi } = estimateRetirementIncome(profile, "standard");
   const fundingGap = calculateFundingGap(profile, "standard");
   const isShortfall = fundingGap.status === "shortfall";
   const feasibility = findEarliestFeasibleRetirementAge(profile);
@@ -81,6 +82,11 @@ export function Dashboard() {
       <FeasibilityCard
         feasibility={feasibility}
         maxSearchAge={MAX_RETIREMENT_SEARCH_AGE}
+      />
+
+      <BituachLeumiCard
+        estimate={bituachLeumi}
+        monthlyIncomeTodayMoney={monthlyIncomeTodayMoney}
       />
 
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">

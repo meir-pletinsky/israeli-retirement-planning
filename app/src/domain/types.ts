@@ -13,10 +13,31 @@ export interface NetWorthPoint {
 export type ReadinessStatus = "onTrack" | "shortfall";
 
 export interface RetirementIncomeEstimate {
-  /** Sustainable monthly income in today's money, from retirement through the planning horizon. */
+  /**
+   * Sustainable monthly income in today's money, from retirement through the planning horizon.
+   * Includes the Bituach Leumi pension from its claim age onward when it is included.
+   */
   monthlyIncomeTodayMoney: number;
   retirementAge: number;
   netWorthAtRetirement: number;
+  bituachLeumi: BituachLeumiEstimate;
+}
+
+export interface BituachLeumiEstimate {
+  /** Whether the user chose to include the state pension in projections. */
+  included: boolean;
+  eligible: boolean;
+  /** `override` when the user entered a figure from Bituach Leumi's own calculator. */
+  source: "calculated" | "override";
+  statutoryRetirementAge: number;
+  /** Age the pension starts being paid. May be fractional (e.g. 62.333 = 62y 4m). */
+  claimAge: number;
+  insuredYearsAtClaim: number;
+  /** Fractions, e.g. 0.5 = +50%. */
+  seniorityRate: number;
+  deferralRate: number;
+  /** Monthly pension in today's money; 0 when excluded or not eligible. */
+  monthlyPension: number;
 }
 
 export interface FundingGapResult {

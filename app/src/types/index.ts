@@ -270,9 +270,26 @@ export interface ExpensesData {
   retirementMonthly: number | null;
 }
 
+/** Inputs for the Bituach Leumi (National Insurance) old-age pension estimate. */
+export interface BituachLeumiData {
+  /** When false, the estimated state pension is left out of all retirement income projections. */
+  includeInProjection: boolean;
+  /** Full insured/resident years accrued so far; null = assume insured continuously since age 21. */
+  insuredYearsToDate: number | null;
+  /** Monthly pension in today's money from Bituach Leumi's own calculator; replaces the computed estimate when set. */
+  monthlyPensionOverride: number | null;
+}
+
+export const EMPTY_BITUACH_LEUMI: BituachLeumiData = {
+  includeInProjection: true,
+  insuredYearsToDate: null,
+  monthlyPensionOverride: null,
+};
+
 export interface ProfileData {
   personal: PersonalData;
   taxExemptionBasket: TaxExemptionBasket;
+  bituachLeumi: BituachLeumiData;
   pensionSavings: PensionSavingsData;
   equity: EquityData;
   expenses: ExpensesData;
@@ -293,6 +310,7 @@ export const EMPTY_PROFILE: ProfileData = {
     pastTaxFreeSeveranceWithdrawn: null,
     remainingMonthlyExemptionCap: null,
   },
+  bituachLeumi: { ...EMPTY_BITUACH_LEUMI },
   pensionSavings: { accounts: [], otherAssets: null },
   equity: { holdings: [] },
   expenses: { currentMonthly: null, retirementMonthly: null },
@@ -314,6 +332,7 @@ export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined
       ...EMPTY_PROFILE.taxExemptionBasket,
       ...parsed?.taxExemptionBasket,
     },
+    bituachLeumi: { ...EMPTY_PROFILE.bituachLeumi, ...parsed?.bituachLeumi },
     expenses: { ...EMPTY_PROFILE.expenses, ...parsed?.expenses },
     assumptions: { ...EMPTY_PROFILE.assumptions, ...parsed?.assumptions },
   };

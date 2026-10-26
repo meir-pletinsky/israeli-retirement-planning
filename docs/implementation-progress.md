@@ -12,8 +12,9 @@ Scope note: Phase 1 here targets `docs/plan.md`'s "Phase 1 — MVP", but with
 the richer pension-account / equity-holding input model already built in the
 prototype (see `docs/ui-concept.md` + the schema-driven data model). The
 calculation engine starts simple (aggregate balances, deterministic growth)
-and does **not** yet model annuity conversion nuance, Bituach Leumi, or tax —
-those remain Phase 2/3 per `docs/plan.md`.
+and does **not** yet model annuity conversion nuance or tax — those remain
+Phase 2/3 per `docs/plan.md`. Bituach Leumi was added as the first Phase 2
+module (Phase F below).
 
 ## Phase A — Project setup & infra
 
@@ -156,8 +157,61 @@ those remain Phase 2/3 per `docs/plan.md`.
       earlier), `normalizeProfile` back-compat, the feasibility card, and
       the new form fields (74 tests total, all green).
 
+## Phase F — Phase 2: Bituach Leumi (state old-age pension)
+
+Pre-phase validation of the four `docs/plan.md` open items was done first
+(2026-10-26); results are recorded in `docs/plan.md` → "Open Items".
+
+- [x] F1. Sourced constants and benefit engine.
+      `domain/bituachLeumiRates.ts` holds the BTL amounts/ages with an
+      effective date (`2026-01-01`) and source URL, plus
+      `womenRetirementAge(birthYear)`. `domain/bituachLeumi.ts`:
+      `statutoryRetirementAge()`, `estimateBituachLeumiPension()` and
+      `mayQualifyForIncomeSupplement()`.
+      Pension = `1838 × (1 + seniority) × (1 + deferral)`; seniority =
+      2%/full insured year capped at 50%; deferral = 5%/full year between
+      the statutory age and 70 (claim age = `min(max(statutory,
+      retirementAge), 70)`); eligibility = 144 insured months, or 60 within
+      the last 10 years. A `monthlyPensionOverride` replaces the calculated
+      amount and forces eligibility.
+- [x] F2. Integration into the engine. `estimateRetirementIncomeAtAge` uses
+      a "bridge" formula so savings carry the gap before the pension starts
+      and spending stays level (`S = (V + B·(A(N) − A(monthsUntilClaim)))
+      / A(N)`; identical to the old formula when `B = 0`). `projectNetWorth`
+      offsets withdrawals by the pension from the claim age;
+      `estimateIncomeBreakdown` gained a `bituachLeumi` band. Funding gap
+      and the feasibility solver pick it up unchanged (e.g. 3M assets, age
+      40, ₪6,000/month: earliest age 49 without the pension, 41 with a
+      ₪2,000 pension).
+- [x] F3. Data model. `profile.bituachLeumi` (`includeInProjection`,
+      `insuredYearsToDate`, `monthlyPensionOverride`), backfilled by
+      `normalizeProfile()` — no Dexie bump.
+- [x] F4. UI + i18n (en/ru/he). Personal step "Bituach Leumi old-age
+      pension" section; Dashboard `BituachLeumiCard` (pension, claim age,
+      seniority/deferral notes, not-eligible/excluded states, income
+      supplement hint, rates "as of" date and source link); a third bar in
+      the Projections income chart.
+- [x] F5. Tests: 108 total, all green (new `bituachLeumi.test.ts`, BL cases
+      in the income / net-worth / breakdown / feasibility tests, profile
+      backfill, Dashboard card states, Personal step form).
+- [ ] F6. Remaining Phase 2: Provident Fund and Managers Insurance nuance,
+      couples/household (spouse supplement ₪924), per-source retirement
+      timeline. Not started.
+
 ## Deviations from original docs (log as they happen)
 
+- **Bituach Leumi modeling assumptions (Phase F).** Single-person rate
+  only; spouse/child supplements, the earnings test between the statutory
+  age and 70, and the means-tested income supplement are not modeled. The
+  current-year amounts are used as today's-money values for all future
+  years. Retiring after the statutory age assumes the pension is deferred
+  (5%/year) because of work income. New and legacy profiles **include the
+  pension by default** (`includeInProjection: true`), so existing users'
+  income estimates rise; the Dashboard card makes that visible and the
+  Personal step can switch it off. `buildTestProfile` excludes it by
+  default so older tests stay isolated. Women's retirement age uses birth
+  year (derived from age and the current year), which is exact for
+  1960–1969 cohorts; cohorts born before mid-1947 are not modeled.
 - **Contribution modeling assumptions (Phase E).** Salary is held constant
   in real terms (no real wage growth); deposits are end-of-month, compounded
   monthly at the real return; all contributions are attributed to the

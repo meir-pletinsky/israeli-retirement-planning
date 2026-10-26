@@ -89,3 +89,79 @@ describe("estimateRetirementIncomeAtAge", () => {
     expect(at67).toBeGreaterThan(at60);
   });
 });
+
+describe("estimateRetirementIncomeAtAge with the Bituach Leumi pension", () => {
+  // 4% nominal return and 4% inflation => 0% real return, so results are exact.
+  const zeroReal = { investmentReturnPct: 4, inflationPct: 4 };
+
+  it("adds the pension on top of the savings income when it starts at retirement", () => {
+    const profile = buildTestProfile({
+      age: 67,
+      gender: "male",
+      pensionBalances: [120_000],
+      bituachLeumi: { includeInProjection: true, monthlyPensionOverride: 1000 },
+      ...zeroReal,
+    });
+    const result = estimateRetirementIncomeAtAge(profile, 67);
+    // (120,000 + 1,000 * 276 months) / 276 months.
+    expect(result.monthlyIncomeTodayMoney).toBe(1435);
+    expect(result.bituachLeumi.monthlyPension).toBe(1000);
+  });
+
+  it("smooths spending across the gap before the pension starts", () => {
+    // Retire at 60 and claim at 67: savings carry 84 months alone, then share the load.
+    const profile = buildTestProfile({
+      age: 60,
+      gender: "male",
+      pensionBalances: [600_000],
+      bituachLeumi: { includeInProjection: true, monthlyPensionOverride: 2000 },
+      ...zeroReal,
+    });
+    const result = estimateRetirementIncomeAtAge(profile, 60);
+    // (600,000 + 2,000 * 276 months of pension) / 360 months.
+    expect(result.monthlyIncomeTodayMoney).toBe(3200);
+    expect(result.bituachLeumi.claimAge).toBe(67);
+  });
+
+  it("uses the women's claim age for a woman retiring before it", () => {
+    // Born 1986 -> claim at 65; 300 pension months out of 360.
+    const profile = buildTestProfile({
+      age: 40,
+      gender: "female",
+      bituachLeumi: { includeInProjection: true, monthlyPensionOverride: 3000 },
+      ...zeroReal,
+    });
+    const result = estimateRetirementIncomeAtAge(profile, 60);
+    expect(result.bituachLeumi.claimAge).toBe(65);
+    expect(result.monthlyIncomeTodayMoney).toBe(2500);
+  });
+
+  it("gives a retiree with no savings the calculated pension", () => {
+    const profile = buildTestProfile({
+      age: 30,
+      gender: "male",
+      bituachLeumi: { includeInProjection: true },
+      ...zeroReal,
+    });
+    expect(estimateRetirementIncomeAtAge(profile, 67).monthlyIncomeTodayMoney).toBe(2757);
+  });
+
+  it("is unchanged when the pension is excluded", () => {
+    const base = {
+      age: 60,
+      gender: "male" as const,
+      pensionBalances: [600_000],
+      ...zeroReal,
+    };
+    const excluded = buildTestProfile({
+      ...base,
+      bituachLeumi: { includeInProjection: false, monthlyPensionOverride: 2000 },
+    });
+    const result = estimateRetirementIncomeAtAge(excluded, 60);
+    const baseline = estimateRetirementIncomeAtAge(buildTestProfile(base), 60);
+    expect(result.monthlyIncomeTodayMoney).toBe(1667);
+    expect(result.monthlyIncomeTodayMoney).toBe(baseline.monthlyIncomeTodayMoney);
+    expect(result.netWorthAtRetirement).toBe(baseline.netWorthAtRetirement);
+    expect(result.bituachLeumi.monthlyPension).toBe(0);
+  });
+});

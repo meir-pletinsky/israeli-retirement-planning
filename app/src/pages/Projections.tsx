@@ -108,6 +108,7 @@ export function Projections() {
           currencySymbol={currencySymbol}
           pensionLabel={t("projections.sourcePension")}
           investmentsLabel={t("projections.sourceInvestments")}
+          bituachLeumiLabel={t("projections.sourceBituachLeumi")}
         />
       </div>
     </div>

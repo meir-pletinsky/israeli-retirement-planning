@@ -137,6 +137,41 @@ describe("projectNetWorth", () => {
     expect(points[points.length - 1].netWorth).toBe(0);
   });
 
+  it("offsets withdrawals with the Bituach Leumi pension once it is claimed", () => {
+    // 0% real return. Man retires at 60 with 1,000,000, spends 5,000/month, and claims a
+    // 2,000/month pension at 67: 60,000/year of withdrawals before, 36,000/year after.
+    const profile = buildTestProfile({
+      age: 60,
+      retirementAge: 60,
+      gender: "male",
+      investmentReturnPct: 4,
+      inflationPct: 4,
+      pensionBalances: [1_000_000],
+      retirementMonthlyExpenses: 5_000,
+      bituachLeumi: { includeInProjection: true, monthlyPensionOverride: 2_000 },
+    });
+    const points = projectNetWorth(profile);
+    const at = (age: number) => points.find((p) => p.age === age)!.netWorth;
+    // The start point (age 60) has no withdrawal: 6 x 60,000 by 66, then 4 x 36,000 by 70.
+    expect(at(66)).toBe(640_000);
+    expect(at(70)).toBe(496_000);
+  });
+
+  it("does not offset withdrawals when the pension is excluded", () => {
+    const profile = buildTestProfile({
+      age: 60,
+      retirementAge: 60,
+      gender: "male",
+      investmentReturnPct: 4,
+      inflationPct: 4,
+      pensionBalances: [1_000_000],
+      retirementMonthlyExpenses: 5_000,
+      bituachLeumi: { includeInProjection: false, monthlyPensionOverride: 2_000 },
+    });
+    const points = projectNetWorth(profile);
+    expect(points.find((p) => p.age === 70)!.netWorth).toBe(400_000);
+  });
+
   it("uses an earlier retirement age for the early scenario", () => {
     const profile = buildTestProfile({
       age: 60,

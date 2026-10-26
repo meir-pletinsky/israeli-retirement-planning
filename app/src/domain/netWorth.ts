@@ -1,4 +1,5 @@
 import type { Assumptions, ProfileData } from "../types";
+import { estimateBituachLeumiPension } from "./bituachLeumi";
 import {
   DEFAULT_CURRENT_AGE,
   DEFAULT_RETIREMENT_AGE,
@@ -111,7 +112,8 @@ export function projectBalanceAtAge(profile: ProfileData, targetAge: number): nu
  *   monthly contributions (salary x per-account rates, see `contributions.ts`)
  *   are added each year.
  * - From retirement age onward: balance grows, then the desired retirement
- *   monthly expense (annualized) is withdrawn. Contributions stop.
+ *   monthly expense (annualized) is withdrawn, less the Bituach Leumi
+ *   pension once it starts (see `bituachLeumi.ts`). Contributions stop.
  * - Balance is floored at 0 (no borrowing/negative-net-worth modeling yet).
  */
 export function projectNetWorth(
@@ -122,6 +124,8 @@ export function projectNetWorth(
   const retirementAge = resolveRetirementAge(profile, scenario);
   const rate = realAnnualReturnRate(profile.assumptions);
   const annualWithdrawal = (profile.expenses.retirementMonthly ?? 0) * 12;
+  const bituachLeumi = estimateBituachLeumiPension(profile, retirementAge);
+  const annualPension = bituachLeumi.monthlyPension * 12;
   const annualContribution = futureValueOfMonthlyContributions(
     totalMonthlyContribution(profile),
     rate,
@@ -137,7 +141,8 @@ export function projectNetWorth(
       balance += annualContribution;
     }
     if (age >= retirementAge) {
-      balance -= annualWithdrawal;
+      const pensionIncome = age >= bituachLeumi.claimAge ? annualPension : 0;
+      balance -= Math.max(annualWithdrawal - pensionIncome, 0);
     }
     balance = Math.max(balance, 0);
     points.push({ age, netWorth: Math.round(balance) });

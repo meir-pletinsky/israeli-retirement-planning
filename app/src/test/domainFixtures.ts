@@ -1,4 +1,4 @@
-import type { PensionAccount, ProfileData } from "../types";
+import type { BituachLeumiData, Gender, PensionAccount, ProfileData } from "../types";
 import { EMPTY_ACCOUNT_CONTRIBUTIONS, EMPTY_PROFILE } from "../types";
 
 /**
@@ -9,8 +9,11 @@ import { EMPTY_ACCOUNT_CONTRIBUTIONS, EMPTY_PROFILE } from "../types";
  */
 export function buildTestProfile(overrides: {
   age?: number;
+  gender?: Gender;
   retirementAge?: number;
   monthlyGrossSalary?: number;
+  /** Bituach Leumi inputs; excluded from projections by default so other tests stay isolated from it. */
+  bituachLeumi?: Partial<BituachLeumiData>;
   investmentReturnPct?: number;
   inflationPct?: number;
   pensionBalances?: number[];
@@ -23,8 +26,10 @@ export function buildTestProfile(overrides: {
 }): ProfileData {
   const {
     age,
+    gender,
     retirementAge,
     monthlyGrossSalary,
+    bituachLeumi,
     investmentReturnPct,
     inflationPct,
     pensionBalances = [],
@@ -40,9 +45,11 @@ export function buildTestProfile(overrides: {
     personal: {
       ...EMPTY_PROFILE.personal,
       age: age ?? null,
+      gender: gender ?? null,
       retirementAge: retirementAge ?? null,
       monthlyGrossSalary: monthlyGrossSalary ?? null,
     },
+    bituachLeumi: { ...EMPTY_PROFILE.bituachLeumi, includeInProjection: false, ...bituachLeumi },
     pensionSavings: {
       accounts: pensionBalances.map((balance, index) => ({
         id: `test-account-${index}`,

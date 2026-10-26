@@ -124,6 +124,25 @@ describe("findEarliestFeasibleRetirementAge", () => {
     expect(early).toEqual(late);
   });
 
+  it("retires earlier when the Bituach Leumi pension is counted", () => {
+    const common = {
+      age: 40,
+      otherAssets: 3_000_000,
+      retirementMonthlyExpenses: 6000,
+      gender: "male" as const,
+      ...ZERO_REAL_RETURN,
+    };
+    const without = findEarliestFeasibleRetirementAge(buildTestProfile(common));
+    const withPension = findEarliestFeasibleRetirementAge(
+      buildTestProfile({
+        ...common,
+        bituachLeumi: { includeInProjection: true, monthlyPensionOverride: 2000 },
+      }),
+    );
+    expect(without).toEqual({ status: "feasible", earliestAge: 49, yearsFromNow: 9 });
+    expect(withPension).toEqual({ status: "feasible", earliestAge: 41, yearsFromNow: 1 });
+  });
+
   it("is the true boundary: feasible at the result, a shortfall one year earlier", () => {
     const profiles = [
       buildTestProfile({ age: 35, otherAssets: 800_000, retirementMonthlyExpenses: 7000 }),

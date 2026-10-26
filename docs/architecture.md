@@ -77,8 +77,9 @@ src/
     bituach-leumi/  # Phase 2 — not yet created; domain/ is currently flat
     pension-fund/   # (constants.ts, types.ts, netWorth.ts, retirementIncome.ts,
     provident-fund/ # fundingGap.ts, incomeBreakdown.ts, contributions.ts,
-    ...             # feasibility.ts, index.ts), since Phase 1 doesn't need
-                    # per-source modeling yet.
+    ...             # feasibility.ts, bituachLeumi.ts, bituachLeumiRates.ts,
+                    # index.ts), since Phase 1 doesn't need per-source
+                    # modeling yet.
   data/             # static fallback datasets (rates, tables), external data clients
   storage/          # Dexie schema, repositories, export/import
   i18n/             # translation resources (en, ru, he) + setup

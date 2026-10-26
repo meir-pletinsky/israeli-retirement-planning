@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   EMPTY_ACCOUNT_CONTRIBUTIONS,
+  EMPTY_BITUACH_LEUMI,
   EMPTY_PROFILE,
   createEmptyPensionAccount,
   type ProfileData,
@@ -79,6 +80,23 @@ describe("importProfileFromFile", () => {
     const result = await importProfileFromFile(file);
 
     expect(result.pensionSavings.accounts[0].contributions).toEqual(account.contributions);
+  });
+
+  it("includes the Bituach Leumi pension by default for profiles exported before it existed", async () => {
+    const result = await importProfileFromFile(makeJsonFile(JSON.stringify({ personal: { age: 50 } })));
+
+    expect(result.bituachLeumi).toEqual(EMPTY_BITUACH_LEUMI);
+    expect(result.bituachLeumi.includeInProjection).toBe(true);
+  });
+
+  it("preserves saved Bituach Leumi settings", async () => {
+    const bituachLeumi = { includeInProjection: false, insuredYearsToDate: 12, monthlyPensionOverride: 2500 };
+
+    const result = await importProfileFromFile(
+      makeJsonFile(JSON.stringify({ personal: { age: 50 }, bituachLeumi })),
+    );
+
+    expect(result.bituachLeumi).toEqual(bituachLeumi);
   });
 });
 

@@ -16,7 +16,8 @@ buildable roadmap. Confirmed with the project owner:
 Phase 1 (MVP) is implemented — app shell, i18n/RTL, Dexie persistence +
 export/import, domain calculation engine, dashboard/projections wiring,
 wizard validation, CI + GitHub Pages deploy, and initial component tests
-are all done. See [`docs/implementation-progress.md`](implementation-progress.md)
+are all done. The first Phase 2 module, **Bituach Leumi**, is also done
+(Phase F). See [`docs/implementation-progress.md`](implementation-progress.md)
 for the authoritative, task-by-task checklist and logged deviations.
 
 Known gaps vs. this document's original Phase 1 output list: **both are now
@@ -35,23 +36,49 @@ closed** (see Phase E in
 
 ## Open Items to Validate (flagged from initial docs)
 
-These aren't blockers for planning/UI concept, but should be confirmed with
-authoritative sources (Bituach Leumi, Ministry of Finance, Tax Authority)
-before the real calculation engine ships in Phase 2+:
+Pre-Phase-2 check, **2026-10-26**. Items 1–2 were validated against
+authoritative sources and drove the implementation; items 3–4 are
+partially resolved and flagged for manual verification before their
+modules ship.
 
-- Exact current Bituach Leumi old-age pension eligibility ages, amounts, and
-  income-supplement thresholds (change periodically; must not be hardcoded
-  without a source/date shown to the user).
-- Keren Hishtalmut liquidity rule (6-year holding period) and any
-  profession-specific exceptions.
-- Current tax brackets/credits applicable to retirement withdrawals vs.
-  earned income.
-- Whether "Managers Insurance" guaranteed annuity factors are still sold
-  (legacy-only product) — affects whether this is a "current product" input
-  or a "legacy policy" input in the UI.
-
-These will be tracked as implementation tasks in their respective phases,
-not resolved here.
+1. **Bituach Leumi old-age pension — validated** (btl.gov.il; implemented
+   in `domain/bituachLeumi*.ts`, every amount tied to an effective date and
+   shown with a source link in the UI).
+   - Retirement age: men 67; women 62 up to 65 by birth year (1960 → 62y4m,
+     1962 → 63, 1966 → 64, 1970+ → 65). From age 70 the pension is paid
+     regardless of work income.
+   - **No early-claim option.** Between the retirement age and 70 an
+     earnings test applies; the pension can only be deferred, with a
+     **5% supplement per deferred year** of the full pension.
+   - Basic pension from 01.01.2026: ₪1,838 single / ₪2,762 couple; spouse
+     supplement ₪924; child supplement ₪581 (max 2). **Seniority
+     supplement: 2% per full insured year, capped at 50%** (BTL's page
+     states "per full year"; there is no 10-year threshold).
+   - Qualifying period: 144 insured months, or 60 within the last 10 years.
+   - Income-supplement guarantee (means-tested) from 01.01.2026: ₪4,375
+     single under 70, ₪6,912 couple. Used only as a hint, not modeled.
+   - Amounts are updated every 1 January (mostly by the average wage).
+2. **Keren Hishtalmut — validated.** Liquidity is 6 years, or 3 years when
+   used for study or retirement. The limit that exists is on **annual
+   deposits**: ₪15,712/month salary (≈ ₪18,852/year combined 10%), frozen
+   through 2027; self-employed ₪13,203 deductible and ₪20,566
+   capital-gains-exempt. The "₪4.3M tax-free withdrawal cap" and the
+   "15-year self-employed track" mentioned earlier could **not** be
+   confirmed and are not planned. Modeling the deposit ceiling is an
+   optional refinement.
+3. **Tax brackets/credits — sourced but unconfirmed (medium confidence).**
+   gov.il / taxes.gov.il blocked automated access. 2026 monthly brackets
+   found: 10% to 7,010; 14% to 10,060; 20% to 19,000; 31% to 25,100;
+   35% to 53,970; 47% above (the 5th/6th boundary differs between sources);
+   credit point ₪242 (2025 is ambiguous: ₪235 vs ₪242); pension exemption
+   (kitzva mezuka) 57.5% with a ₪9,430/month ceiling; surtax 3% above
+   ₪721,560/year plus 2% on capital income; capital gains 25%.
+   **Verify against the Tax Authority's published circulars in a browser
+   before hard-coding any tax constant in Phase 3.**
+4. **Managers Insurance — resolved (medium confidence).** Policies with a
+   guaranteed annuity factor have not been sold since 1 Jan 2013
+   (Circular 2012-1-5), so it is a legacy-policy input, which matches the
+   existing `LegacyPolicyModel` field.
 
 ## Phase 1 — MVP (functional spec Section 14)
 
@@ -93,8 +120,14 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
 
 ## Phase 2 — Core Retirement Sources & Couples
 
-- Bituach Leumi module: eligibility, earliest claim age, estimated monthly
-  benefit, income-supplement eligibility (with source/date shown)
+- **Bituach Leumi module — done** (see Phase F in
+  [`docs/implementation-progress.md`](implementation-progress.md)):
+  statutory retirement age, seniority and deferral supplements, qualifying
+  period, a manual override for BTL's own calculator figure, and an
+  income-supplement hint, with the rates' effective date and source shown on
+  the Dashboard. Single-rate only; spouse/child supplements, the earnings
+  test and the means-tested income supplement itself are not modeled. The
+  "earliest claim age" idea was dropped because BTL has no early claim.
 - Provident Fund (Kupat Gemel) and Managers Insurance modules
 - Couple user type: per-spouse data + combined household view
 - Retirement timeline model (income by source, age-banded)
