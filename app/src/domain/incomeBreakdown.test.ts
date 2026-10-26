@@ -26,4 +26,28 @@ describe("estimateIncomeBreakdown", () => {
     const points = estimateIncomeBreakdown(profile);
     expect(points[0]).toEqual({ age: 67, pensionFund: 0, investments: 0 });
   });
+
+  it("attributes ongoing contributions to the pension share", () => {
+    // 0% real return. Other assets 100,000; no pension balance yet, but
+    // 1,850/month of contributions for 10 years = 222,000 -> pension share 222k / 322k.
+    const profile = buildTestProfile({
+      age: 50,
+      retirementAge: 60,
+      monthlyGrossSalary: 10_000,
+      investmentReturnPct: 4,
+      inflationPct: 4,
+      pensionBalances: [0],
+      otherAssets: 100_000,
+      pensionAccountOverrides: [
+        {
+          accountStatus: "activeContributing",
+          contributions: { employeeRatePercent: 6, employerRatePercent: 6.5, severanceRatePercent: 6 },
+        },
+      ],
+    });
+    const [first] = estimateIncomeBreakdown(profile);
+    // 322,000 / (30 * 12) = 894.4 -> 894/mo; pension share = 894 * 222/322 ~= 616.
+    expect(first.pensionFund + first.investments).toBe(894);
+    expect(first.pensionFund).toBe(Math.round((894 * 222_000) / 322_000));
+  });
 });

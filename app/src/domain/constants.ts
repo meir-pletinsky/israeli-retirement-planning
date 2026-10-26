@@ -19,6 +19,14 @@ export const DELAYED_RETIREMENT_OFFSET_YEARS = 3;
 export const MIN_RETIREMENT_AGE = 60;
 
 /**
+ * Upper bound for the earliest-feasible-retirement-age search (matches the
+ * Personal step's max retirement age input). If no age up to here closes
+ * the funding gap, the solver reports "not feasible" rather than suggesting
+ * an unrealistically late retirement.
+ */
+export const MAX_RETIREMENT_SEARCH_AGE = 80;
+
+/**
  * Deterministic planning horizon (not an actuarial/mortality-based life
  * expectancy — that's Phase 4/Monte Carlo scope per docs/plan.md).
  */

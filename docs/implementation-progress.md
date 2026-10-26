@@ -43,8 +43,8 @@ those remain Phase 2/3 per `docs/plan.md`.
       assets + assumptions, project balances forward to the planning
       horizon. `domain/netWorth.ts` → `projectNetWorth()`. Projects in real
       (inflation-adjusted) terms so output is already "in today's money";
-      no ongoing-contribution modeling yet (no salary/contribution field in
-      the data model — balances only).
+      originally balances-only — ongoing contributions were added later in
+      Phase E (E2).
 - [x] B3. Retirement income estimate function (deterministic, MVP-level).
       `domain/retirementIncome.ts` → `estimateRetirementIncome()`: amortizes
       the projected balance at retirement over the remaining planning
@@ -121,8 +121,49 @@ those remain Phase 2/3 per `docs/plan.md`.
       `README.md`. (Done as part of A7; re-verify after future deploys that
       change routing/assets.)
 
+## Phase E — Close Phase 1 gaps (post-MVP)
+
+- [x] E1. Earliest-feasible-retirement-age solver.
+      `domain/feasibility.ts` → `findEarliestFeasibleRetirementAge()` scans
+      whole ages from `ceil(currentAge)` to `max(MAX_RETIREMENT_SEARCH_AGE
+      (80), currentAge)` and returns the first age whose funding gap is
+      non-negative (`calculateFundingGapAtAge`). Linear scan, not
+      bisection: the gap isn't guaranteed monotonic in retirement age (e.g.
+      a negative real return). Result is `feasible` / `notFeasible` /
+      `noTarget` (no positive `expenses.retirementMonthly`). To support it,
+      `netWorth` / `retirementIncome` / `fundingGap` gained `*AtAge`
+      variants (`projectBalanceAtAge`, `estimateRetirementIncomeAtAge`,
+      `calculateFundingGapAtAge`); the scenario-based functions delegate to
+      them, so existing behavior is unchanged. Dashboard shows a new
+      `FeasibilityCard` (earliest age, years from today, and
+      feasible-now / not-reachable / add-expenses messages).
+- [x] E2. Salary / ongoing-contribution modeling.
+      New `personal.monthlyGrossSalary` (Personal step) and per-account
+      `contributions` (`employeeRatePercent` / `employerRatePercent` /
+      `severanceRatePercent`, "Ongoing contributions" section of the
+      account form). `domain/contributions.ts` computes monthly deposits
+      (salary × summed rates, **only for `activeContributing` accounts**)
+      and their closed-form future value. Contributions flow into
+      `projectNetWorth` (until retirement age), retirement income, funding
+      gap, the feasibility solver, and the pension share of the income
+      breakdown. `ProfileContext` now runs `normalizeProfile()` on load, and
+      `normalizeProfile()` backfills `contributions`, so stored/imported
+      profiles from before this change keep working. **No Dexie version
+      bump needed** — the profile is stored as a single opaque blob.
+- [x] E3. i18n (en/ru/he) for the salary field, contribution fields, and
+      feasibility card; tests for contributions math, the solver (incl.
+      boundary property: feasible at the result, shortfall one year
+      earlier), `normalizeProfile` back-compat, the feasibility card, and
+      the new form fields (74 tests total, all green).
+
 ## Deviations from original docs (log as they happen)
 
+- **Contribution modeling assumptions (Phase E).** Salary is held constant
+  in real terms (no real wage growth); deposits are end-of-month, compounded
+  monthly at the real return; all contributions are attributed to the
+  "pension" bucket in the income breakdown; no tax/fee drag on deposits.
+  Typical Israeli rates to enter: pension 6% employee + 6.5% employer + 6%
+  severance; study fund 2.5% + 7.5%.
 - Linting uses `oxlint` (already chosen during prototype phase) rather than
   ESLint+Prettier as `docs/architecture.md` originally proposed.
 - **Repo visibility: private → public.** GitHub Pages publishing from a

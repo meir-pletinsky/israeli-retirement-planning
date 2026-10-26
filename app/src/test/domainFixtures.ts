@@ -1,5 +1,5 @@
-import type { ProfileData } from "../types";
-import { EMPTY_PROFILE } from "../types";
+import type { PensionAccount, ProfileData } from "../types";
+import { EMPTY_ACCOUNT_CONTRIBUTIONS, EMPTY_PROFILE } from "../types";
 
 /**
  * Builds a `ProfileData` for domain-engine tests, starting from
@@ -10,9 +10,12 @@ import { EMPTY_PROFILE } from "../types";
 export function buildTestProfile(overrides: {
   age?: number;
   retirementAge?: number;
+  monthlyGrossSalary?: number;
   investmentReturnPct?: number;
   inflationPct?: number;
   pensionBalances?: number[];
+  /** Index-aligned with `pensionBalances`; merged onto each generated account. */
+  pensionAccountOverrides?: Partial<PensionAccount>[];
   otherAssets?: number;
   equity?: { quantity: number; priceUSD: number }[];
   currentMonthlyExpenses?: number;
@@ -21,9 +24,11 @@ export function buildTestProfile(overrides: {
   const {
     age,
     retirementAge,
+    monthlyGrossSalary,
     investmentReturnPct,
     inflationPct,
     pensionBalances = [],
+    pensionAccountOverrides = [],
     otherAssets,
     equity = [],
     currentMonthlyExpenses,
@@ -36,6 +41,7 @@ export function buildTestProfile(overrides: {
       ...EMPTY_PROFILE.personal,
       age: age ?? null,
       retirementAge: retirementAge ?? null,
+      monthlyGrossSalary: monthlyGrossSalary ?? null,
     },
     pensionSavings: {
       accounts: pensionBalances.map((balance, index) => ({
@@ -47,6 +53,7 @@ export function buildTestProfile(overrides: {
         joinDate: null,
         liquidityDate: null,
         totalAccumulatedBalance: balance,
+        contributions: { ...EMPTY_ACCOUNT_CONTRIBUTIONS },
         balanceBreakdown: {
           pre2008CapitalBalance: null,
           post2008AnnuityBalance: null,
@@ -72,6 +79,7 @@ export function buildTestProfile(overrides: {
           profitSharingFeePercent: null,
           hasStateYieldGuarantee: false,
         },
+        ...pensionAccountOverrides[index],
       })),
       otherAssets: otherAssets ?? null,
     },

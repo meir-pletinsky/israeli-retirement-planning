@@ -19,20 +19,19 @@ wizard validation, CI + GitHub Pages deploy, and initial component tests
 are all done. See [`docs/implementation-progress.md`](implementation-progress.md)
 for the authoritative, task-by-task checklist and logged deviations.
 
-Known gaps vs. this document's original Phase 1 output list (not blockers,
-but should be addressed before calling Phase 1 fully spec-complete):
+Known gaps vs. this document's original Phase 1 output list: **both are now
+closed** (see Phase E in
+[`docs/implementation-progress.md`](implementation-progress.md)).
 
-- **No "current salary" input or ongoing-contribution modeling.** The data
-  model (richer than this plan originally assumed — see
-  `person-programs-and-investments.json` and `docs/ui-concept.md`) only
-  captures point-in-time account balances, so projections grow existing
-  balances but don't model future contributions from salary. Revisit if/when
-  a salary field is added.
-- **"Early retirement feasibility date" isn't solved for.** What's
-  implemented instead is a 3-way scenario *comparison* (early/standard/
-  delayed, at fixed age offsets — see `domain/constants.ts`), not a
-  calculation of the earliest age at which the funding gap turns
-  non-negative. A true feasibility solver is a reasonable Phase 2 addition.
+- **Salary / ongoing-contribution modeling — done.** `personal.monthlyGrossSalary`
+  plus per-account employee/employer/severance contribution percentages
+  feed monthly deposits (active accounts only, until retirement) into the
+  projections. Salary is held constant in real terms (no real wage growth).
+- **Earliest feasible retirement age — done.**
+  `findEarliestFeasibleRetirementAge()` scans upward from the user's
+  current age and returns the first age whose funding gap is non-negative;
+  the Dashboard shows it alongside the 3-way early/standard/delayed
+  scenario comparison.
 
 ## Open Items to Validate (flagged from initial docs)
 

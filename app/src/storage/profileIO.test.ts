@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { EMPTY_PROFILE, type ProfileData } from "../types";
+import {
+  EMPTY_ACCOUNT_CONTRIBUTIONS,
+  EMPTY_PROFILE,
+  createEmptyPensionAccount,
+  type ProfileData,
+} from "../types";
 import { exportProfileToFile, importProfileFromFile } from "./profileIO";
 
 function makeJsonFile(content: string, name = "profile.json"): File {
@@ -47,6 +52,33 @@ describe("importProfileFromFile", () => {
     const file = makeJsonFile(JSON.stringify([1, 2, 3]));
 
     await expect(importProfileFromFile(file)).rejects.toThrow();
+  });
+
+  it("backfills contribution fields on accounts exported before they existed", async () => {
+    const { contributions: _omitted, ...legacyAccount } = createEmptyPensionAccount();
+    const legacyProfile = {
+      personal: { age: 45 },
+      pensionSavings: { accounts: [legacyAccount], otherAssets: null },
+    };
+
+    const result = await importProfileFromFile(makeJsonFile(JSON.stringify(legacyProfile)));
+
+    expect(result.personal.monthlyGrossSalary).toBeNull();
+    expect(result.pensionSavings.accounts[0].contributions).toEqual(EMPTY_ACCOUNT_CONTRIBUTIONS);
+  });
+
+  it("preserves contribution rates already present on an account", async () => {
+    const account = {
+      ...createEmptyPensionAccount(),
+      contributions: { employeeRatePercent: 6, employerRatePercent: 6.5, severanceRatePercent: null },
+    };
+    const file = makeJsonFile(
+      JSON.stringify({ pensionSavings: { accounts: [account], otherAssets: null } }),
+    );
+
+    const result = await importProfileFromFile(file);
+
+    expect(result.pensionSavings.accounts[0].contributions).toEqual(account.contributions);
   });
 });
 

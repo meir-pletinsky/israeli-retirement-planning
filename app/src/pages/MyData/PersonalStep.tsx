@@ -91,6 +91,16 @@ export function PersonalStep() {
         }
       />
       <NumberField
+        label={t("myData.steps.personal.monthlyGrossSalary")}
+        helperText={t("myData.steps.personal.monthlyGrossSalaryHelper")}
+        value={personal.monthlyGrossSalary}
+        onChange={(monthlyGrossSalary) =>
+          updateProfile({ personal: { ...personal, monthlyGrossSalary } })
+        }
+        min={0}
+        suffix={currency}
+      />
+      <NumberField
         label={t("myData.steps.personal.creditPoints")}
         value={personal.creditPoints}
         onChange={(creditPoints) =>

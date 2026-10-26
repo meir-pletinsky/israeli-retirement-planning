@@ -25,6 +25,15 @@
     "privacyNote": "Your financial data stays on this device."
   },
   "dashboard": {
+    "feasibility": {
+      "title": "Earliest Feasible Retirement",
+      "earliestAge": "Age {{age}}",
+      "yearsFromNow": "Years from today: {{years}}",
+      "feasibleNow": "Your current assets already cover your target retirement spending.",
+      "notFeasible": "Your target retirement spending isn't reachable by age {{age}} with your current savings and contributions. Try lowering expenses, saving more, or adjusting your assumptions.",
+      "noTarget": "Enter your expected monthly retirement expenses to see how soon you could retire.",
+      "noTargetCta": "Add expenses"
+    },
     "kpi": {
       "monthlyIncome": "Projected Monthly Retirement Income",
       "netWorth": "Net Worth Today",
@@ -58,6 +67,8 @@
         "maritalStatusDivorced": "Divorced",
         "maritalStatusWidowed": "Widowed",
         "retirementAge": "Desired retirement age",
+        "monthlyGrossSalary": "Monthly gross salary",
+        "monthlyGrossSalaryHelper": "Used to project ongoing pension and savings deposits until retirement. Leave empty to assume no further deposits.",
         "creditPoints": "Tax credit points (Nekudot Zikui)",
         "taxExemptionSection": "Tax exemption basket (Kibua Zchuyot)",
         "form161DSubmitted": "Rights fixation (Form 161D) submitted",
@@ -89,6 +100,11 @@
           "joinDate": "Join date",
           "liquidityDate": "Liquidity date",
           "totalAccumulatedBalance": "Total accumulated balance",
+          "sectionContributions": "Ongoing contributions",
+          "contributionsHelper": "Percent of your monthly gross salary deposited each month. Only counted while the account status is \"Active \u2014 contributing\". Typical pension: 6% employee, 6.5% employer, 6% severance.",
+          "employeeRatePercent": "Employee contribution rate",
+          "employerRatePercent": "Employer contribution rate",
+          "severanceRatePercent": "Severance contribution rate",
           "sectionBalanceBreakdown": "Balance breakdown",
           "pre2008CapitalBalance": "Pre-2008 capital balance",
           "post2008AnnuityBalance": "Post-2008 annuity balance",

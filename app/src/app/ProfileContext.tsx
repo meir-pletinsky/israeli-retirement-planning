@@ -16,7 +16,7 @@ import {
   saveOnboardedToDb,
   saveProfileToDb,
 } from "../storage/db";
-import { EMPTY_PROFILE, type ProfileData } from "../types";
+import { EMPTY_PROFILE, normalizeProfile, type ProfileData } from "../types";
 
 interface ProfileContextValue {
   profile: ProfileData;
@@ -49,7 +49,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         loadOnboardedFromDb(),
       ]);
       if (cancelled) return;
-      if (storedProfile) setProfile(storedProfile);
+      if (storedProfile) setProfile(normalizeProfile(storedProfile));
       setOnboarded(storedOnboarded);
       hasLoadedRef.current = true;
       setIsReady(true);

@@ -26,6 +26,8 @@ export interface PersonalData {
   maritalStatus: MaritalStatus | null;
   /** Total personal tax credit points (Nekudot Zikui). */
   creditPoints: number | null;
+  /** Gross monthly salary in today's money; basis for ongoing pension/savings contributions. */
+  monthlyGrossSalary: number | null;
 }
 
 /** Tax exemption tracking under Kibua Zchuyot (Form 161D). Optional — most users won't know these yet. */
@@ -98,6 +100,19 @@ export interface InvestmentAndFees {
   hasStateYieldGuarantee: boolean;
 }
 
+/** Ongoing deposit rates into an account, each as a percent of gross monthly salary. */
+export interface AccountContributions {
+  employeeRatePercent: number | null;
+  employerRatePercent: number | null;
+  severanceRatePercent: number | null;
+}
+
+export const EMPTY_ACCOUNT_CONTRIBUTIONS: AccountContributions = {
+  employeeRatePercent: null,
+  employerRatePercent: null,
+  severanceRatePercent: null,
+};
+
 export interface PensionAccount {
   id: string;
   providerName: string;
@@ -107,6 +122,7 @@ export interface PensionAccount {
   joinDate: string | null;
   liquidityDate: string | null;
   totalAccumulatedBalance: number | null;
+  contributions: AccountContributions;
   balanceBreakdown: BalanceBreakdown;
   annuityParameters: AnnuityParameters;
   insuranceCoverages: InsuranceCoverages;
@@ -123,6 +139,7 @@ export function createEmptyPensionAccount(): PensionAccount {
     joinDate: null,
     liquidityDate: null,
     totalAccumulatedBalance: null,
+    contributions: { ...EMPTY_ACCOUNT_CONTRIBUTIONS },
     balanceBreakdown: {
       pre2008CapitalBalance: null,
       post2008AnnuityBalance: null,
@@ -269,6 +286,7 @@ export const EMPTY_PROFILE: ProfileData = {
     retirementAge: null,
     maritalStatus: null,
     creditPoints: null,
+    monthlyGrossSalary: null,
   },
   taxExemptionBasket: {
     form161DSubmitted: false,
@@ -303,6 +321,18 @@ export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined
   // instead of an accounts/holdings array).
   if (!Array.isArray(merged.pensionSavings?.accounts)) {
     merged.pensionSavings = EMPTY_PROFILE.pensionSavings;
+  } else {
+    // Accounts saved before contribution rates existed lack `contributions`.
+    merged.pensionSavings = {
+      ...merged.pensionSavings,
+      accounts: merged.pensionSavings.accounts.map((account) => ({
+        ...account,
+        contributions: {
+          ...EMPTY_ACCOUNT_CONTRIBUTIONS,
+          ...account.contributions,
+        },
+      })),
+    };
   }
   if (!Array.isArray(merged.equity?.holdings)) {
     merged.equity = EMPTY_PROFILE.equity;

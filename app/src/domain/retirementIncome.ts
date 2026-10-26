@@ -1,39 +1,25 @@
 import type { ProfileData } from "../types";
 import { MAX_PLANNING_AGE } from "./constants";
-import { aggregateCurrentNetWorth, realAnnualReturnRate, resolveCurrentAge, resolveRetirementAge } from "./netWorth";
+import { projectBalanceAtAge, realAnnualReturnRate, resolveRetirementAge } from "./netWorth";
 import type { RetirementIncomeEstimate, RetirementScenario } from "./types";
-
-/** Grows a balance at a fixed annual rate from one age to another (no withdrawals). */
-function growBalance(balance: number, annualRate: number, fromAge: number, toAge: number): number {
-  const years = Math.max(toAge - fromAge, 0);
-  return balance * Math.pow(1 + annualRate, years);
-}
 
 /**
  * Estimates the sustainable monthly retirement income (in today's money)
- * that the projected net worth at retirement can provide, fully amortized
- * from retirement age through `MAX_PLANNING_AGE`. This is independent of
- * the user's desired expenses — see `fundingGap.ts` for the comparison
+ * that the projected net worth at `retirementAge` can provide, fully
+ * amortized from that age through `MAX_PLANNING_AGE`. This is independent
+ * of the user's desired expenses — see `fundingGap.ts` for the comparison
  * against `expenses.retirementMonthly`.
  *
  * Uses the standard annuity/amortization formula so the balance reaches
  * (approximately) zero at the end of the planning horizon, rather than a
  * naive balance-divided-by-months estimate that ignores ongoing growth.
  */
-export function estimateRetirementIncome(
+export function estimateRetirementIncomeAtAge(
   profile: ProfileData,
-  scenario: RetirementScenario = "standard",
+  retirementAge: number,
 ): RetirementIncomeEstimate {
-  const currentAge = resolveCurrentAge(profile);
-  const retirementAge = resolveRetirementAge(profile, scenario);
   const annualRate = realAnnualReturnRate(profile.assumptions);
-
-  const netWorthAtRetirement = growBalance(
-    aggregateCurrentNetWorth(profile),
-    annualRate,
-    currentAge,
-    retirementAge,
-  );
+  const netWorthAtRetirement = projectBalanceAtAge(profile, retirementAge);
 
   const monthsInRetirement = Math.round((MAX_PLANNING_AGE - retirementAge) * 12);
   if (monthsInRetirement <= 0) {
@@ -55,4 +41,12 @@ export function estimateRetirementIncome(
     retirementAge,
     netWorthAtRetirement: Math.round(netWorthAtRetirement),
   };
+}
+
+/** Same as `estimateRetirementIncomeAtAge`, at the retirement age implied by `scenario`. */
+export function estimateRetirementIncome(
+  profile: ProfileData,
+  scenario: RetirementScenario = "standard",
+): RetirementIncomeEstimate {
+  return estimateRetirementIncomeAtAge(profile, resolveRetirementAge(profile, scenario));
 }

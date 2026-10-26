@@ -4,12 +4,15 @@ import { Link } from "react-router-dom";
 import { useProfile } from "../app/ProfileContext";
 import { NetWorthChart } from "../components/charts/NetWorthChart";
 import { EmptyState } from "../components/EmptyState";
+import { FeasibilityCard } from "../components/FeasibilityCard";
 import { KpiCard } from "../components/KpiCard";
 import { StatusBanner } from "../components/StatusBanner";
 import {
+  MAX_RETIREMENT_SEARCH_AGE,
   aggregateCurrentNetWorth,
   calculateFundingGap,
   estimateRetirementIncome,
+  findEarliestFeasibleRetirementAge,
   projectNetWorth,
   resolveRetirementAge,
   yearsToRetirement,
@@ -42,6 +45,7 @@ export function Dashboard() {
   const { monthlyIncomeTodayMoney } = estimateRetirementIncome(profile, "standard");
   const fundingGap = calculateFundingGap(profile, "standard");
   const isShortfall = fundingGap.status === "shortfall";
+  const feasibility = findEarliestFeasibleRetirementAge(profile);
 
   return (
     <div className="flex flex-col gap-6">
@@ -72,6 +76,11 @@ export function Dashboard() {
             ? t("dashboard.statusShortfall")
             : t("dashboard.statusOnTrack")
         }
+      />
+
+      <FeasibilityCard
+        feasibility={feasibility}
+        maxSearchAge={MAX_RETIREMENT_SEARCH_AGE}
       />
 
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">

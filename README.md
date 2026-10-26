@@ -9,10 +9,11 @@ funds, Bituach Leumi, investments, and more.
 [`docs/implementation-progress.md`](docs/implementation-progress.md) for
 current build status).
 
-**Status:** Phase 1 (MVP) implemented — see
+**Status:** Phase 1 (MVP) implemented, including salary/contribution
+modeling and an earliest-feasible-retirement-age solver — see
 [`docs/implementation-progress.md`](docs/implementation-progress.md) for
 the detailed checklist and [`docs/plan.md`](docs/plan.md)'s Status section
-for known gaps vs. the original spec.
+for how it compares to the original spec.
 
 ## Getting started
 

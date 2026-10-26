@@ -8,6 +8,7 @@ import {
   MAX_PLANNING_AGE,
   MIN_RETIREMENT_AGE,
 } from "./constants";
+import { futureValueOfMonthlyContributions, totalMonthlyContribution } from "./contributions";
 import type { NetWorthPoint, RetirementScenario } from "./types";
 
 /** `personal.age`, falling back to a reasonable default when not yet entered. */
@@ -59,35 +60,58 @@ export function realAnnualReturnRate(assumptions: Assumptions): number {
   );
 }
 
-/**
- * Sums all balances currently known for the profile into a single "today"
- * net worth figure, in ILS:
- * - Pension/savings accounts: `totalAccumulatedBalance` (missing treated as 0).
- * - `otherAssets` catch-all (cash, bonds, real estate, etc.).
- * - Equity holdings: `quantity * currentMarketPriceUSD`, converted at
- *   `FALLBACK_USD_TO_ILS_RATE` (see constants.ts — no live FX feed yet).
- */
-export function aggregateCurrentNetWorth(profile: ProfileData): number {
-  const pensionTotal = profile.pensionSavings.accounts.reduce(
+/** Sum of all pension/savings account balances (missing treated as 0), in ILS. */
+export function aggregatePensionBalance(profile: ProfileData): number {
+  return profile.pensionSavings.accounts.reduce(
     (sum, account) => sum + (account.totalAccumulatedBalance ?? 0),
     0,
   );
+}
+
+/**
+ * Non-pension assets in ILS: the `otherAssets` catch-all (cash, bonds, real
+ * estate, etc.) plus equity holdings (`quantity * currentMarketPriceUSD`,
+ * converted at `FALLBACK_USD_TO_ILS_RATE` — see constants.ts, no live FX
+ * feed yet).
+ */
+export function aggregateOtherBalance(profile: ProfileData): number {
   const otherAssets = profile.pensionSavings.otherAssets ?? 0;
   const equityTotal = profile.equity.holdings.reduce((sum, holding) => {
     const marketValueUSD = (holding.quantity ?? 0) * (holding.currentMarketPriceUSD ?? 0);
     return sum + marketValueUSD * FALLBACK_USD_TO_ILS_RATE;
   }, 0);
-  return pensionTotal + otherAssets + equityTotal;
+  return otherAssets + equityTotal;
+}
+
+/** Sums all balances currently known for the profile into a single "today" net worth figure, in ILS. */
+export function aggregateCurrentNetWorth(profile: ProfileData): number {
+  return aggregatePensionBalance(profile) + aggregateOtherBalance(profile);
+}
+
+/**
+ * Projected balance (today's money) when the user reaches `targetAge`, before
+ * any retirement withdrawals: current balances compounded at the real
+ * return, plus ongoing monthly contributions (see `contributions.ts`) made
+ * every year up to `targetAge`.
+ */
+export function projectBalanceAtAge(profile: ProfileData, targetAge: number): number {
+  const years = Math.max(targetAge - resolveCurrentAge(profile), 0);
+  const rate = realAnnualReturnRate(profile.assumptions);
+  const grownBalance = aggregateCurrentNetWorth(profile) * Math.pow(1 + rate, years);
+  return (
+    grownBalance +
+    futureValueOfMonthlyContributions(totalMonthlyContribution(profile), rate, years)
+  );
 }
 
 /**
  * Projects net worth year-by-year from the user's current age through
  * `MAX_PLANNING_AGE`, entirely in today's money (real terms):
- * - Before retirement: balance grows at the real return rate (Phase 1 does
- *   not model ongoing contributions — there's no salary/contribution input
- *   in the current data model, only point-in-time balances).
+ * - Until retirement age: balance grows at the real return rate and ongoing
+ *   monthly contributions (salary x per-account rates, see `contributions.ts`)
+ *   are added each year.
  * - From retirement age onward: balance grows, then the desired retirement
- *   monthly expense (annualized) is withdrawn.
+ *   monthly expense (annualized) is withdrawn. Contributions stop.
  * - Balance is floored at 0 (no borrowing/negative-net-worth modeling yet).
  */
 export function projectNetWorth(
@@ -98,12 +122,20 @@ export function projectNetWorth(
   const retirementAge = resolveRetirementAge(profile, scenario);
   const rate = realAnnualReturnRate(profile.assumptions);
   const annualWithdrawal = (profile.expenses.retirementMonthly ?? 0) * 12;
+  const annualContribution = futureValueOfMonthlyContributions(
+    totalMonthlyContribution(profile),
+    rate,
+    1,
+  );
 
   let balance = aggregateCurrentNetWorth(profile);
   const points: NetWorthPoint[] = [{ age: currentAge, netWorth: Math.round(balance) }];
 
   for (let age = currentAge + 1; age <= MAX_PLANNING_AGE; age += 1) {
     balance *= 1 + rate;
+    if (age <= retirementAge) {
+      balance += annualContribution;
+    }
     if (age >= retirementAge) {
       balance -= annualWithdrawal;
     }

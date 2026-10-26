@@ -7,6 +7,7 @@ import {
 } from "./constants";
 import {
   aggregateCurrentNetWorth,
+  projectBalanceAtAge,
   projectNetWorth,
   realAnnualReturnRate,
   resolveCurrentAge,
@@ -150,5 +151,97 @@ describe("projectNetWorth", () => {
     const standardAt65 = standard.find((p) => p.age === 65)!.netWorth;
     const earlyAt65 = early.find((p) => p.age === 65)!.netWorth;
     expect(earlyAt65).toBeLessThan(standardAt65);
+  });
+
+  describe("with ongoing contributions", () => {
+    // 0% real return so expectations are exact. 18.5% of 10,000 = 1,850/month = 22,200/year.
+    const contributing = {
+      age: 40,
+      retirementAge: 42,
+      monthlyGrossSalary: 10_000,
+      investmentReturnPct: 4,
+      inflationPct: 4,
+      pensionBalances: [100_000],
+      pensionAccountOverrides: [
+        {
+          accountStatus: "activeContributing" as const,
+          contributions: {
+            employeeRatePercent: 6,
+            employerRatePercent: 6.5,
+            severanceRatePercent: 6,
+          },
+        },
+      ],
+    };
+
+    it("adds contributions each working year and stops at retirement", () => {
+      const points = projectNetWorth(buildTestProfile(contributing));
+      expect(points.find((p) => p.age === 41)!.netWorth).toBe(122_200);
+      expect(points.find((p) => p.age === 42)!.netWorth).toBe(144_400);
+      expect(points.find((p) => p.age === 43)!.netWorth).toBe(144_400);
+    });
+
+    it("stops contributing earlier under the early scenario", () => {
+      const profile = buildTestProfile({ ...contributing, age: 58, retirementAge: 66 });
+      const early = projectNetWorth(profile, "early"); // retires at 61
+      const standard = projectNetWorth(profile, "standard"); // retires at 66
+      expect(early.find((p) => p.age === 70)!.netWorth).toBe(100_000 + 22_200 * 3);
+      expect(standard.find((p) => p.age === 70)!.netWorth).toBe(100_000 + 22_200 * 8);
+    });
+
+    it("ignores accounts that are not actively contributing", () => {
+      const profile = buildTestProfile({
+        ...contributing,
+        pensionAccountOverrides: [{ ...contributing.pensionAccountOverrides[0], accountStatus: "paidUpFrozen" }],
+      });
+      expect(projectNetWorth(profile).find((p) => p.age === 42)!.netWorth).toBe(100_000);
+    });
+
+    it("agrees with projectBalanceAtAge at retirement when compounding at a real return", () => {
+      const profile = buildTestProfile({
+        ...contributing,
+        retirementAge: 55,
+        investmentReturnPct: 6,
+        inflationPct: 2.5,
+      });
+      const atRetirement = projectNetWorth(profile).find((p) => p.age === 55)!.netWorth;
+      expect(Math.abs(atRetirement - projectBalanceAtAge(profile, 55))).toBeLessThanOrEqual(1);
+    });
+  });
+});
+
+describe("projectBalanceAtAge", () => {
+  it("compounds today's balance at the real return rate", () => {
+    const profile = buildTestProfile({
+      age: 60,
+      investmentReturnPct: 6,
+      inflationPct: 2.5,
+      pensionBalances: [500_000],
+    });
+    expect(Math.round(projectBalanceAtAge(profile, 67))).toBe(632_476);
+  });
+
+  it("does not shrink or grow the balance for ages at or before today", () => {
+    const profile = buildTestProfile({ age: 60, pensionBalances: [500_000] });
+    expect(projectBalanceAtAge(profile, 60)).toBe(500_000);
+    expect(projectBalanceAtAge(profile, 50)).toBe(500_000);
+  });
+
+  it("adds the future value of monthly contributions", () => {
+    const profile = buildTestProfile({
+      age: 40,
+      monthlyGrossSalary: 10_000,
+      investmentReturnPct: 4,
+      inflationPct: 4,
+      pensionBalances: [100_000],
+      pensionAccountOverrides: [
+        {
+          accountStatus: "activeContributing",
+          contributions: { employeeRatePercent: 6, employerRatePercent: 6.5, severanceRatePercent: 6 },
+        },
+      ],
+    });
+    // 100,000 + 1,850 * 12 * 10 years.
+    expect(projectBalanceAtAge(profile, 50)).toBeCloseTo(322_000, 4);
   });
 });

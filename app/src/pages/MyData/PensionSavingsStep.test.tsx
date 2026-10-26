@@ -2,7 +2,7 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { clearAllData } from "../../storage/db";
+import { clearAllData, loadProfileFromDb } from "../../storage/db";
 import { renderWithProviders } from "../../test/renderWithProviders";
 import { PensionSavingsStep } from "./PensionSavingsStep";
 
@@ -55,5 +55,30 @@ describe("PensionSavingsStep — accounts repeater", () => {
       expect(screen.queryByText("Menora Mivtachim")).not.toBeInTheDocument(),
     );
     expect(screen.getByText(/no accounts added yet/i)).toBeInTheDocument();
+  });
+
+  it("saves contribution rates entered in the Ongoing contributions section", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<PensionSavingsStep />, {
+      route: "/my-data/pension-savings",
+    });
+
+    await user.click(await screen.findByRole("button", { name: "Add account" }));
+    await user.type(screen.getByLabelText("Provider name"), "Clal");
+    await user.click(screen.getByRole("button", { name: /ongoing contributions/i }));
+    await user.type(screen.getByLabelText(/Employee contribution rate/), "6");
+    await user.type(screen.getByLabelText(/Employer contribution rate/), "6.5");
+    await user.type(screen.getByLabelText(/Severance contribution rate/), "6");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await screen.findByText("Clal");
+    await waitFor(async () => {
+      const stored = await loadProfileFromDb();
+      expect(stored?.pensionSavings.accounts[0].contributions).toEqual({
+        employeeRatePercent: 6,
+        employerRatePercent: 6.5,
+        severanceRatePercent: 6,
+      });
+    });
   });
 });

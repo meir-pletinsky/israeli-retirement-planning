@@ -57,7 +57,7 @@ export function PensionAccountForm({
   const opt = (group: string, value: string | number) =>
     t(`myData.steps.pensionSavings.options.${group}.${value}`);
 
-  const { balanceBreakdown, annuityParameters, insuranceCoverages, investmentAndFees } =
+  const { balanceBreakdown, annuityParameters, insuranceCoverages, investmentAndFees, contributions } =
     account;
   const providerSuggestions = t("myData.steps.pensionSavings.providerSuggestions", {
     returnObjects: true,
@@ -162,6 +162,40 @@ export function PensionAccountForm({
             })
           }
           suffix={currency}
+        />
+      </CollapsibleSection>
+
+      <CollapsibleSection title={f("sectionContributions")}>
+        <p className="text-xs text-slate-500">{f("contributionsHelper")}</p>
+        <NumberField
+          label={f("employeeRatePercent")}
+          value={contributions.employeeRatePercent}
+          onChange={(v) =>
+            onChange({ contributions: { ...contributions, employeeRatePercent: v } })
+          }
+          suffix="%"
+          min={0}
+          max={100}
+        />
+        <NumberField
+          label={f("employerRatePercent")}
+          value={contributions.employerRatePercent}
+          onChange={(v) =>
+            onChange({ contributions: { ...contributions, employerRatePercent: v } })
+          }
+          suffix="%"
+          min={0}
+          max={100}
+        />
+        <NumberField
+          label={f("severanceRatePercent")}
+          value={contributions.severanceRatePercent}
+          onChange={(v) =>
+            onChange({ contributions: { ...contributions, severanceRatePercent: v } })
+          }
+          suffix="%"
+          min={0}
+          max={100}
         />
       </CollapsibleSection>
 

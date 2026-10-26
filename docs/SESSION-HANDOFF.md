@@ -46,8 +46,26 @@ the canonical repo/branch combo configured in GitHub's Pages settings.
 ## What's done vs. in progress
 
 Full authoritative checklist: [`docs/implementation-progress.md`](implementation-progress.md).
-Snapshot as of this handoff: **Phases A, B, C, and D are all done** — the
-Phase 1 MVP implementation plan is complete.
+Snapshot as of this handoff: **Phases A, B, C, D and E are all done** — the
+Phase 1 MVP is complete and both gaps originally logged against it
+(salary/contribution modeling, earliest-feasible-retirement-age solver) are
+closed.
+
+> **Uncommitted work:** Phase E was implemented in a local working tree and
+> may not yet be committed/pushed — check `git status` before assuming
+> `main` contains it.
+
+- **Phase E (close Phase 1 gaps): ALL DONE.**
+  - E1: `domain/feasibility.ts` → `findEarliestFeasibleRetirementAge()`
+    (linear scan to age 80) + Dashboard `FeasibilityCard`.
+  - E2: `personal.monthlyGrossSalary` + per-account contribution
+    percentages; `domain/contributions.ts`; contributions flow into
+    projections, income, funding gap, feasibility, and income breakdown.
+    Salary is constant in real terms; only `activeContributing` accounts
+    deposit; deposits stop at retirement age.
+  - E3: i18n en/ru/he + tests.
+  - `ProfileContext` now calls `normalizeProfile()` on load; no Dexie
+    version bump was needed (profile is one opaque blob).
 
 - **Phase A (project setup & infra): ALL DONE.**
   - A1 `prototype/` → `app/` rename.
@@ -75,25 +93,22 @@ Phase 1 MVP implementation plan is complete.
     using `fake-indexeddb` so `ProfileProvider`'s real persistence path
     runs unmodified in tests.
   - D2: `docs/architecture.md` / `docs/plan.md` / `README.md` updated to
-    reflect implemented status, including two logged gaps vs. the original
-    Phase 1 spec: no salary/contribution modeling, and no true "early
-    retirement feasibility" solver (only a fixed-offset scenario
-    comparison).
+    reflect implemented status (the two gaps it logged were closed in
+    Phase E).
   - D3: live deploy verified (done as a side effect of A7).
-- 37 tests total, all green; lint/typecheck/build all green as of the last
-  push.
+- 74 tests total, all green; lint/typecheck/build all green.
 
 ## Where to go next
 
-Phase 1 MVP is complete. Natural next steps (not yet started, no code
-written):
+Phase 1 MVP and its two logged gaps are complete. Natural next steps (not
+yet started, no code written):
 
 - **Phase 2** per `docs/plan.md`: Bituach Leumi module, Provident
   Fund/Managers Insurance nuance, couples/household modeling, per-source
   retirement timeline.
-- Or first close the two gaps logged in `docs/plan.md`'s Status section
-  (salary/contribution modeling, true feasibility-date solver) if those
-  matter more than starting Phase 2 breadth.
+- Possible refinements to the contribution model: real wage growth, a
+  per-account salary override, study-fund tax-free-ceiling handling, and
+  showing the feasibility result on the Projections page.
 
 ## Key technical decisions to know before continuing
 
@@ -101,8 +116,9 @@ written):
   (`app/src/storage/db.ts`). Export/Import is the only way data leaves the
   device (`app/src/storage/profileIO.ts`).
 - **`normalizeProfile()`** (`app/src/types/index.ts`) is the single
-  defensive-merge used both for legacy localStorage migration and JSON
-  import — don't duplicate this logic elsewhere.
+  defensive-merge used for legacy localStorage migration, JSON import, and
+  (since Phase E) every load from Dexie — don't duplicate this logic
+  elsewhere. Any new profile field must be backfilled there.
 - **Vite `base` differs by command**: `/` in dev, `/israeli-retirement-planning/`
   in build (`app/vite.config.ts`), and `main.tsx`'s `BrowserRouter` reads
   `import.meta.env.BASE_URL` for its `basename` — this is required for the
@@ -113,9 +129,13 @@ written):
   copies the built `index.html` to `404.html` after build — keep this step
   if the deploy workflow is ever rewritten.
 - **i18n locale files** (`app/src/i18n/locales/{en,ru,he}.json`): `he.json`
-  uses `\uXXXX` escapes throughout; `en.json`/`ru.json` use raw UTF-8. Keep
-  this in mind when grepping/editing — a raw-Cyrillic search won't match
-  Hebrew's escaped form and vice versa.
+  mixes `\uXXXX` escapes (older sections) and raw Hebrew (newer sections);
+  `en.json`/`ru.json` use raw UTF-8. Keep this in mind when grepping/editing
+  — a raw-Cyrillic search won't match Hebrew's escaped form and vice versa.
+- **Installing deps behind a lagging npm proxy:** if `npm ci` 404s on
+  recently released versions, `npm install --no-package-lock` from `app/`
+  works for local verification — don't commit the resulting lockfile
+  changes.
 - **Linting is `oxlint`**, not ESLint — a deliberate deviation from the
   original `docs/architecture.md`, already logged there.
 

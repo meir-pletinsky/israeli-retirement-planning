@@ -25,6 +25,15 @@
     "privacyNote": "\u05d4\u05e0\u05ea\u05d5\u05e0\u05d9\u05dd \u05d4\u05e4\u05d9\u05e0\u05e0\u05e1\u05d9\u05d9\u05dd \u05e9\u05dc\u05da \u05e0\u05e9\u05de\u05e8\u05d9\u05dd \u05e8\u05e7 \u05d1\u05de\u05db\u05e9\u05d9\u05e8 \u05d6\u05d4."
   },
   "dashboard": {
+    "feasibility": {
+      "title": "הגיל המוקדם ביותר לפרישה",
+      "earliestAge": "גיל {{age}}",
+      "yearsFromNow": "שנים מהיום: {{years}}",
+      "feasibleNow": "הנכסים הנוכחיים שלך כבר מכסים את ההוצאות הרצויות בפרישה.",
+      "notFeasible": "עם החיסכון וההפקדות הנוכחיים, ההוצאות הרצויות בפרישה אינן ברות השגה עד גיל {{age}}. נסה להפחית הוצאות, לחסוך יותר או להתאים את ההנחות.",
+      "noTarget": "הזן את ההוצאות החודשיות הצפויות בפרישה כדי לראות מתי תוכל לפרוש.",
+      "noTargetCta": "הוסף הוצאות"
+    },
     "kpi": {
       "monthlyIncome": "\u05d4\u05db\u05e0\u05e1\u05d4 \u05d7\u05d5\u05d3\u05e9\u05d9\u05ea \u05de\u05e9\u05d5\u05e2\u05e8\u05ea \u05d1\u05e4\u05e8\u05d9\u05e9\u05d4",
       "netWorth": "\u05e9\u05d5\u05d5\u05d9 \u05e0\u05e7\u05d9 \u05e0\u05d5\u05db\u05d7\u05d9",
@@ -58,6 +67,8 @@
         "maritalStatusDivorced": "גרוש/ה",
         "maritalStatusWidowed": "אלמן/ה",
         "retirementAge": "\u05d2\u05d9\u05dc \u05e4\u05e8\u05d9\u05e9\u05d4 \u05e8\u05e6\u05d5\u05d9",
+        "monthlyGrossSalary": "שכר ברוטו חודשי",
+        "monthlyGrossSalaryHelper": "משמש לתחזית ההפקדות השוטפות לפנסיה ולחיסכון עד הפרישה. השאר ריק כדי להניח שלא יהיו הפקדות נוספות.",
         "creditPoints": "נקודות זיכוי מס",
         "taxExemptionSection": "סל הפטור ממס (קיבוע זכויות)",
         "form161DSubmitted": "טופס 161D (קיבוע זכויות) הוגש",
@@ -89,6 +100,11 @@
           "joinDate": "תאריך הצטרפות",
           "liquidityDate": "תאריך נזילות",
           "totalAccumulatedBalance": "יתרה צבורה כוללת",
+          "sectionContributions": "הפקדות שוטפות",
+          "contributionsHelper": "אחוז מהשכר החודשי ברוטו המופקד מדי חודש. נספר רק כשסטטוס החשבון הוא \"פעיל — מופקדים כספים\". פנסיה טיפוסית: 6% עובד, 6.5% מעסיק, 6% פיצויים.",
+          "employeeRatePercent": "שיעור הפקדת עובד",
+          "employerRatePercent": "שיעור הפקדת מעסיק",
+          "severanceRatePercent": "שיעור הפקדה לפיצויים",
           "sectionBalanceBreakdown": "פירוט יתרות",
           "pre2008CapitalBalance": "יתרת הון לפני 2008",
           "post2008AnnuityBalance": "יתרת קצבה אחרי 2008",
