@@ -19,6 +19,22 @@ describe("normalizeProfile", () => {
     expect(result.spouse.bituachLeumi).toEqual({ ...EMPTY_BITUACH_LEUMI, insuredYearsToDate: 12 });
   });
 
+  it("defaults a saved spouse's credit points to null so the gender default applies", () => {
+    const { creditPoints: _creditPoints, ...withoutPoints } = EMPTY_SPOUSE;
+    const result = normalizeProfile({
+      spouse: { ...withoutPoints, age: 52 },
+    } as unknown as Parameters<typeof normalizeProfile>[0]);
+    expect(result.spouse.creditPoints).toBeNull();
+    expect(EMPTY_SPOUSE.creditPoints).toBeNull();
+  });
+
+  it("keeps a spouse's saved credit points", () => {
+    const result = normalizeProfile({
+      spouse: { age: 52, creditPoints: 2.5 },
+    } as Parameters<typeof normalizeProfile>[0]);
+    expect(result.spouse.creditPoints).toBe(2.5);
+  });
+
   it("owns accounts without an owner by the primary user and keeps spouse ownership", () => {
     const profile = buildTestProfile({ pensionBalances: [1, 2, 3] });
     const accounts = profile.pensionSavings.accounts.map((account, index) => {

@@ -40,6 +40,36 @@ describe("Projections", () => {
     expect(screen.queryByText(/plan covers your whole household/i)).not.toBeInTheDocument();
   });
 
+  it("charts the income after tax for each retirement year", async () => {
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 62,
+        retirementAge: 62,
+        pensionBalances: [6_000_000],
+        investmentReturnPct: 4,
+        inflationPct: 4,
+      }),
+    );
+    await saveOnboardedToDb(true);
+
+    renderWithProviders(<Projections />);
+
+    expect(await screen.findByRole("heading", { name: "Income After Tax" })).toBeInTheDocument();
+    expect(
+      screen.getByText(/split into what you keep and the income tax paid/i),
+    ).toBeInTheDocument();
+  });
+
+  it("leaves out the after-tax chart when there is no retirement income", async () => {
+    await saveProfileToDb(buildTestProfile({ age: 62, retirementAge: 62 }));
+    await saveOnboardedToDb(true);
+
+    renderWithProviders(<Projections />);
+
+    expect(await screen.findByText("Income by Source")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Income After Tax" })).not.toBeInTheDocument();
+  });
+
   it("shows the spouse's age beside each stage of a couple's retirement", async () => {
     await saveProfileToDb(
       buildTestProfile({

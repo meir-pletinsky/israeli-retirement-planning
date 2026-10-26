@@ -71,15 +71,29 @@ btl.gov.il before Phase H.
    "15-year self-employed track" mentioned earlier could **not** be
    confirmed and are not planned. Modeling the deposit ceiling is an
    optional refinement.
-3. **Tax brackets/credits — sourced but unconfirmed (medium confidence).**
-   gov.il / taxes.gov.il blocked automated access. 2026 monthly brackets
-   found: 10% to 7,010; 14% to 10,060; 20% to 19,000; 31% to 25,100;
-   35% to 53,970; 47% above (the 5th/6th boundary differs between sources);
-   credit point ₪242 (2025 is ambiguous: ₪235 vs ₪242); pension exemption
-   (kitzva mezuka) 57.5% with a ₪9,430/month ceiling; surtax 3% above
-   ₪721,560/year plus 2% on capital income; capital gains 25%.
-   **Verify against the Tax Authority's published circulars in a browser
-   before hard-coding any tax constant in Phase 3.**
+3. **Tax brackets/credits — cross-checked against secondary sources
+   (medium confidence; implemented in `domain/tax.ts` and
+   `domain/taxRates.ts`).** gov.il / taxes.gov.il blocked automated access,
+   so the figures come from MSL, Ovdimly, ig-tax, israeltax.org and Efraty.
+   The Dashboard shows the rates' effective date and a link to the Tax
+   Authority.
+   - 2026 monthly brackets (widened by legislation published in March 2026,
+     retroactive to 1 January): 10% to 7,010; 14% to 10,060; 20% to 19,000;
+     31% to 25,100; 35% to **46,690**; 47% above. The 53,970 limit seen in
+     older material is the 2022-23 value and was dropped.
+   - Credit point ₪242/month; a resident man gets 2.25 points, a woman 2.75.
+   - Qualifying annuity (kitzva mezuka, Section 9A): from the statutory
+     retirement age, 57.5% in 2026 (22.5% fixed + 35% conditional) of a
+     pension up to ₪9,430/month is exempt. The rate rises to 62.5% in 2027
+     and 67% in 2028; that schedule is not modeled. Each tax-free severance
+     shekel already withdrawn cuts the conditional part by 1.35/180 a month
+     (medium confidence).
+   - Surtax 3% above ₪721,560/year, plus 2% on the part of capital income
+     above it; capital gains 25% on the real gain.
+   - **Re-check against the Tax Authority's published circulars in a browser
+     before relying on the edge cases.** Every figure, its confidence and
+     what to search for is listed in
+     [`docs/constants-to-verify.md`](constants-to-verify.md).
 4. **Managers Insurance — resolved (medium confidence).** Policies with a
    guaranteed annuity factor have not been sold since 1 Jan 2013
    (Circular 2012-1-5), so it is a legacy-policy input, which matches the
@@ -107,7 +121,7 @@ btl.gov.il before Phase H.
    - **Not modeled** (unverified or out of scope): the minimum-pension rule
      (32.5% of the average wage) that restricts early lump sums; the
      study-fund "3 years" exception for retirement; official conversion
-     factor tables; the early-withdrawal penalty (Phase 3, tax); the
+     factor tables; the early-withdrawal penalty; the
      severance (*pitzuim*) split.
 6. **Couples — validated against btl.gov.il (2026-10-26; implemented in
    `domain/household.ts`).**
@@ -122,8 +136,8 @@ btl.gov.il before Phase H.
      assumes it is then paid in full.
    - The couple income-supplement guarantee (₪6,912) is used for the hint
      when the household is a couple. The child supplement is out of scope.
-   - Tax treatment of a couple (the spouse's credit points, separate
-     assessment) is Phase 3.
+   - Each spouse is taxed separately, with their own credit points (see
+     Open Item 3 and Phase 3).
 
 ## Phase 1 — MVP (functional spec Section 14)
 
@@ -184,8 +198,8 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
   by when each pot opens, so retiring before 60 only spends accessible
   savings. The Dashboard explains locked capital, annuities and uncategorized
   accounts; Projections shows a six-band income chart and a retirement
-  timeline by source and age. Tax, early-withdrawal penalties and
-  withdrawal-order optimization remain Phase 3.
+  timeline by source and age. Early-withdrawal penalties and
+  withdrawal-order optimization remain later work; tax came in Phase 3.
 - **Couples / household — done** (Phase H in
   [`docs/implementation-progress.md`](implementation-progress.md);
   rules in Open Item 6). Marital status "married" reveals a spouse section
@@ -197,14 +211,26 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
   age, plus the ₪924 spouse supplement where it applies. "Earliest feasible"
   is the earliest year both can retire together. A spouse only joins the
   plan once their age is entered, and single-person results are unchanged.
-  Not modeled: survivor analysis (Phase 3), tax, the working spouse's salary
+  Not modeled: survivor analysis (Phase 3), the working spouse's salary
   after the first spouse retires, payments that start before the household
   retires (they count from retirement and are not drawn earlier), the child
   supplement.
 
 ## Phase 3 — Risk, Tax & Life Events
 
-- Tax module (gross → net retirement income, tax credits/residency)
+- **Tax module — done** (Phase I in
+  [`docs/implementation-progress.md`](implementation-progress.md); rates in
+  Open Item 3). Retirement income is now shown after tax: each spouse is
+  taxed separately, year by year, on their own pension income (brackets,
+  credit points and the Section 9A exemption from the statutory retirement
+  age) and on the real gain of investment provident funds and other
+  investments (25%); Bituach Leumi pensions and study-fund withdrawals are
+  tax-free. The Dashboard headline, funding gap and feasibility use the
+  lowest after-tax year; a tax card shows the split and what is and is not
+  included, and Projections charts the after-tax income per year. Credit
+  points are editable for both spouses. Not modeled: health tax and Bituach
+  Leumi contributions, other credit points (children), tax planning between
+  spouses, the 2027-28 exemption schedule, the gemel-to-annuity exemption.
 - Survivor analysis (simulate death of either spouse)
 - Real estate module (equity, rental income, appreciation)
 - Early/standard/delayed retirement scenario comparison

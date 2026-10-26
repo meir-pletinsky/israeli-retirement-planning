@@ -48,9 +48,45 @@ the canonical repo/branch combo configured in GitHub's Pages settings.
 Full authoritative checklist: [`docs/implementation-progress.md`](implementation-progress.md).
 Snapshot as of this handoff: **Phases A–E are done** (Phase 1 MVP and its
 two logged gaps), **Phase F (Bituach Leumi module) is done**, **Phase G
-(per-source access rules, annuities and timeline) is done**, and **Phase H
-(couples/household) is done**. Phases A–H are all committed and pushed to
-`main`.
+(per-source access rules, annuities and timeline) is done**, **Phase H
+(couples/household) is done**, and **Phase I (Phase 3 tax module) is
+done**. Phases A–H are committed and pushed to `main`; Phase I is
+committed and pushed only if `git log` shows it.
+
+- **Phase I (Phase 3 — tax module): ALL DONE.** Tax constants were
+  cross-checked against secondary sources (gov.il returned 403) and are in
+  `docs/plan.md` → "Open Items" item 3 (the 35% bracket ceiling is 46,690).
+  The full list of unconfirmed figures, with confidence and what to look up
+  officially, is in `docs/constants-to-verify.md`; log each check there.
+  - Design: a post-hoc tax on the level-gross plan, per person per year;
+    net = gross − tax, and net drives the funding gap and feasibility.
+    The headline is the lowest after-tax year.
+  - `domain/taxRates.ts` (2026 `TAX_RATES`, `ratesAsOf`, source link),
+    `domain/tax.ts` (brackets, credit points, Section 9A exemption from the
+    statutory age, 3%/2% surtax, 25% real-gain rate),
+    `domain/netIncome.ts` (`estimateNetIncome`: drawdown with holdings and
+    cost basis, tax per member per year). `sources.ts` tags tax treatment,
+    `drawdown.ts` tracks holdings and basis, `household.ts` supplies the
+    per-member credit points.
+  - Treatment: pension, regular and IRA provident funds = pension income;
+    investment provident fund and other investments = 25% on the real gain
+    only; study fund and the Bituach Leumi pension = tax-free.
+  - Data: `SpouseData.creditPoints` (backfilled `null` = default 2.25 man /
+    2.75 woman); `personal.creditPoints` already existed.
+  - UI: `components/TaxCard.tsx` on the Dashboard (the income KPI is now
+    after tax), `components/charts/NetIncomeChart.tsx` on Projections,
+    credit-point fields in `PersonalStep` and `SpouseSection`
+    (`NumberField` gained a `step` prop); i18n en/ru/he.
+  - Limitations: 2026 rates used for all years (the 2027-28 exemption steps
+    are not modeled); pro rata draws taxed per owner with no spouse tax
+    coordination; investment basis = today's balance + deposits (existing
+    gains are understated); the severance basket applies to the primary
+    only; no health tax or Bituach Leumi contributions, other credit points
+    (children), gemel-to-annuity exemption or old gemel lump-sum rules;
+    `annuityTaxType` is unused. Medium confidence on the severance offset
+    (1.35/180) and the conditional-exemption treatment.
+  - Behavior change: the headline income, funding gap and feasibility are
+    now after tax, so existing profiles show lower income than before.
 
 - **Phase H (Phase 2 — couples/household): ALL DONE.** Pre-phase validation
   of the spouse-supplement rules is in `docs/plan.md` → "Open Items" item 6
@@ -81,7 +117,7 @@ two logged gaps), **Phase F (Bituach Leumi module) is done**, **Phase G
     Projections; i18n en/ru/he.
   - To plan a spouse with no pension: 0 insured years and a retirement age
     equal to their current age.
-  - Not modeled: survivor analysis, tax, the working spouse's salary after
+  - Not modeled: survivor analysis, the working spouse's salary after
     the first spouse retires, payments that start before the household
     retires (counted from retirement), the child supplement.
 
@@ -109,7 +145,7 @@ two logged gaps), **Phase F (Bituach Leumi module) is done**, **Phase G
     i18n en/ru/he.
   - Behavior change: income can no longer borrow against a future BL
     pension/annuity (no savings → 0 before it starts).
-  - Not modeled: tax, early-withdrawal penalty, withdrawal ordering,
+  - Not modeled: early-withdrawal penalty, withdrawal ordering,
     study-fund 3-year exception, severance split, minimum-pension rule,
     official conversion-factor tables.
 - **Phase F (Phase 2 — Bituach Leumi): ALL DONE** (pre-phase validation of
@@ -127,7 +163,8 @@ two logged gaps), **Phase F (Bituach Leumi module) is done**, **Phase G
   - UI: Personal step section, Dashboard `BituachLeumiCard`, third chart
     band on Projections; i18n en/ru/he.
   - Not modeled: child supplement, earning test, means-tested
-    income supplement (hint only). Tax constants are still unverified.
+    income supplement (hint only). Tax constants were cross-checked later,
+    in Phase I.
 - **Phase E (close Phase 1 gaps): ALL DONE.**
   - E1: `domain/feasibility.ts` → `findEarliestFeasibleRetirementAge()`
     (linear scan to age 80) + Dashboard `FeasibilityCard`.
@@ -169,21 +206,25 @@ two logged gaps), **Phase F (Bituach Leumi module) is done**, **Phase G
     reflect implemented status (the two gaps it logged were closed in
     Phase E).
   - D3: live deploy verified (done as a side effect of A7).
-- 192 tests total, all green; lint/typecheck/build all green.
+- 251 tests total, all green; lint/typecheck/build all green.
 
 ## Where to go next
 
-Phase 1 and the Phase 2 modules (Bituach Leumi, per-source model,
-couples/household) are complete. Remaining, not yet started:
+Phase 1, the Phase 2 modules (Bituach Leumi, per-source model,
+couples/household) and the Phase 3 tax module are complete. Remaining, not
+yet started:
 
-- **Phase 3 tax module:** manually verify the tax constants listed in
-  `docs/plan.md` → "Open Items" (item 3) against Tax Authority circulars
-  first. Couple tax effects (the spouse's credit points) belong here too.
 - **Survivor analysis** (simulate the death of either spouse), Phase 3.
+- **Real estate module** (equity, rental income, appreciation), Phase 3.
+- **Early / standard / delayed retirement scenario comparison**, Phase 3.
+- Tax refinements: the 2027-28 exemption steps, health tax and Bituach
+  Leumi contributions, other credit points, spouse tax coordination, and
+  re-checking the constants against the Tax Authority's circulars.
 - Possible refinements to the contribution model: real wage growth, a
   per-account salary override, the study-fund **annual deposit** ceiling
   (₪15,712/month salary), and showing the feasibility result on the
   Projections page.
+- Chart polish: "₪1500k" tick labels and the RTL y-axis label overlap.
 
 ## Key technical decisions to know before continuing
 
@@ -216,7 +257,9 @@ couples/household) are complete. Remaining, not yet started:
 
 ## Session-tracking mechanics (for the agent resuming this)
 
-- `docs/implementation-progress.md` is the **git-committed source of
+- `docs/constants-to-verify.md` lists every hard-coded tax, Bituach Leumi
+  and access-rule figure with its confidence and what to look up
+  officially; use its log table when you confirm one.
   truth** — always trust it over any local session/SQL state, since SQL
   todos don't transfer across machines/accounts.
 - Each phase/task is committed+pushed in a fully working state (build +

@@ -12,10 +12,10 @@ Scope note: Phase 1 here targets `docs/plan.md`'s "Phase 1 — MVP", but with
 the richer pension-account / equity-holding input model already built in the
 prototype (see `docs/ui-concept.md` + the schema-driven data model). The
 calculation engine starts simple (aggregate balances, deterministic growth)
-and does **not** yet model tax — that remains Phase 3 per `docs/plan.md`.
-Bituach Leumi was added as the first Phase 2 module (Phase F below), and the
-per-source access/annuity model as the second (Phase G) and couples/household
-planning as the third (Phase H).
+and originally did not model tax. Bituach Leumi was added as the first
+Phase 2 module (Phase F below), the per-source access/annuity model as the
+second (Phase G), couples/household planning as the third (Phase H), and the
+Phase 3 tax module (gross → net income) as Phase I.
 
 ## Phase A — Project setup & infra
 
@@ -295,7 +295,78 @@ stops contributing and claims their own Bituach Leumi at their own ages;
       Pension & savings step, Dashboard and Projections tests). Checked in
       the browser in English and Hebrew (RTL).
 
+## Phase I — Phase 3: tax module (gross → net retirement income)
+
+Tax constants were cross-checked first against secondary sources (gov.il
+returned 403; see `docs/plan.md` → "Open Items" item 3). Design decision:
+tax is applied **after** the level-gross plan is solved, per person per
+year; net income = gross − tax, and the net figure drives the funding gap
+and feasibility.
+
+- [x] I1. Rates. `domain/taxRates.ts` holds the 2026 `TAX_RATES` (monthly
+      brackets, credit point ₪242, default 2.25 / 2.75 credit points,
+      surtax, 25% capital-gains rate, Section 9A exemption and severance
+      offset) with an `ratesAsOf` date and source link for the UI.
+- [x] I2. Tax engine. `domain/tax.ts` computes a person's annual tax from
+      pension income, capital gains and credit points: progressive
+      brackets, credit points, the Section 9A exemption from the statutory
+      age, the 3% surtax (plus 2% on capital income) and the 25% real-gain
+      rate. All amounts are in today's money.
+- [x] I3. Net income. `domain/netIncome.ts` (`estimateNetIncome`) runs the
+      drawdown simulation with per-account holdings and cost basis, taxes
+      each household member separately per year, and returns the yearly
+      gross / tax / net plus the headline (the lowest after-tax year).
+      `sources.ts` tags each source with its tax treatment; `drawdown.ts`
+      tracks holdings and basis; `household.ts` supplies each member's
+      credit points; `fundingGap.ts` compares net income with expenses.
+- [x] I4. Profile. `SpouseData.creditPoints` (backfilled to `null` by
+      `normalizeProfile()` — no Dexie bump). `null` means the default for
+      the person's gender.
+- [x] I5. UI + i18n (en/ru/he). Dashboard income KPI is now after tax and a
+      new tax card shows gross, tax, net, the effective rate, what is and
+      is not included, and the rates' date and source link. Projections has
+      an after-tax income chart (net plus tax, stacked). Credit-point fields
+      for you and your spouse (step 0.25) with helper text.
+- [x] I6. Tests: 251 total, all green (new `tax.test.ts`,
+      `netIncome.test.ts`, `drawdown.test.ts`; updated `sources`,
+      `fundingGap`, Dashboard, Projections, Personal step and
+      `normalizeProfile` tests). Checked in the browser in English and
+      Hebrew (RTL).
+
 ## Deviations from original docs (log as they happen)
+
+- **Tax modeling assumptions (Phase I).**
+  - Tax is a post-hoc layer on the level-gross plan, so the plan is
+    conservative: it does not re-solve for a higher gross to reach a net
+    target. The headline is the lowest after-tax year, which is why it can
+    be lower than the later years (the 9A exemption starts at 67 and the
+    Bituach Leumi pension at its own age).
+  - Withdrawals are pro rata across unlocked sources and taxed per owner;
+    there is no tax coordination between spouses and no withdrawal-order
+    optimization.
+  - The 2026 rates (57.5% exemption, brackets, credit point) are used for
+    all years, fixed in today's money. The 2027 (62.5%) and 2028 (67%)
+    exemption steps are not modeled.
+  - Regular and IRA provident funds are treated as pension income.
+    Investment provident funds and other investments pay 25% on the real
+    gain only; the cost basis is today's balance plus future deposits, so
+    gains already accrued today are understated. Declared equity gains
+    reduce the other-investments basis.
+  - Study-fund and Bituach Leumi pension income are tax-free.
+    `annuityTaxType` is not used yet.
+  - The severance basket (past tax-free severance, which cuts the
+    conditional exemption) applies to the primary user only.
+  - Not modeled: health tax and Bituach Leumi contributions, other credit
+    points (children, olim, etc.), the gemel-to-annuity exemption, old
+    gemel lump-sum rules.
+  - Medium confidence: the severance-offset formula (1.35/180) and the
+    conditional-exemption treatment. Constants come from secondary sources.
+  - **Behavior change:** the headline monthly income, the funding gap and
+    the feasibility result are now after tax, so existing profiles show
+    lower income than before. The gross figure is still used for the
+    Bituach Leumi hint.
+  - `docs/plan.md` listed the 35% bracket ceiling as 53,970; the correct
+    2026 value is 46,690.
 
 - **Household modeling assumptions (Phase H).**
   - Household spending starts when the later spouse retires. Until then

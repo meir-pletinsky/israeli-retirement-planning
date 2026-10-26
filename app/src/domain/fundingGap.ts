@@ -1,28 +1,33 @@
 import type { ProfileData } from "../types";
 import { resolveRetirementTiming, retirementTimingAtAge, type RetirementTiming } from "./household";
-import { estimateRetirementIncomeForTiming } from "./retirementIncome";
+import { estimateNetIncomeForTiming } from "./netIncome";
 import type { FundingGapResult, RetirementScenario } from "./types";
 
 /**
- * Compares the estimated sustainable retirement income, if retiring at the
- * given ages, against the household's desired retirement monthly expenses.
- * A non-negative gap means the projected balance can cover (or exceed) the
- * desired spending; negative means a shortfall. This is deterministic/
- * Phase 1-level — no probability of success (that's the Phase 4 Monte
- * Carlo scope per docs/plan.md).
+ * Compares the estimated sustainable retirement income after tax, if retiring
+ * at the given ages, against the household's desired retirement monthly
+ * expenses. A non-negative gap means the projected balance can cover (or
+ * exceed) the desired spending; negative means a shortfall. This is
+ * deterministic — no probability of success (that's the Phase 4 Monte Carlo
+ * scope per docs/plan.md).
  */
 export function calculateFundingGapForTiming(
   profile: ProfileData,
   timing: RetirementTiming,
 ): FundingGapResult {
-  const { monthlyIncomeTodayMoney } = estimateRetirementIncomeForTiming(profile, timing);
+  const { netMonthlyIncome, grossMonthlyIncome, taxMonthly } = estimateNetIncomeForTiming(
+    profile,
+    timing,
+  );
   const desiredMonthlyExpenses = profile.expenses.retirementMonthly ?? 0;
-  const monthlyGap = Math.round(monthlyIncomeTodayMoney - desiredMonthlyExpenses);
+  const monthlyGap = Math.round(netMonthlyIncome - desiredMonthlyExpenses);
 
   return {
     monthlyGap,
     status: monthlyGap >= 0 ? "onTrack" : "shortfall",
-    estimatedMonthlyIncome: monthlyIncomeTodayMoney,
+    estimatedMonthlyIncome: netMonthlyIncome,
+    grossMonthlyIncome,
+    estimatedMonthlyTax: taxMonthly,
     desiredMonthlyExpenses,
   };
 }

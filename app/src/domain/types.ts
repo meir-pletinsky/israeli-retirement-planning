@@ -98,7 +98,12 @@ export interface FundingGapResult {
   /** estimatedMonthlyIncome - desiredMonthlyExpenses. Positive = surplus, negative = shortfall. */
   monthlyGap: number;
   status: ReadinessStatus;
+  /** Net (after-tax) monthly income: the lowest of any retirement year. */
   estimatedMonthlyIncome: number;
+  /** The gross monthly income of that year. */
+  grossMonthlyIncome: number;
+  /** The tax paid out of the gross income in that year. */
+  estimatedMonthlyTax: number;
   desiredMonthlyExpenses: number;
 }
 

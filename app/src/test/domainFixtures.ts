@@ -5,6 +5,7 @@ import type {
   PensionAccount,
   ProfileData,
   SpouseData,
+  TaxExemptionBasket,
 } from "../types";
 import { EMPTY_ACCOUNT_CONTRIBUTIONS, EMPTY_PROFILE, EMPTY_SPOUSE } from "../types";
 
@@ -20,6 +21,8 @@ export function buildTestProfile(overrides: {
   retirementAge?: number;
   monthlyGrossSalary?: number;
   maritalStatus?: MaritalStatus;
+  creditPoints?: number;
+  taxExemptionBasket?: Partial<TaxExemptionBasket>;
   /** Spouse basics; the household is active once `maritalStatus` is "married" and `spouse.age` is set. */
   spouse?: Partial<Omit<SpouseData, "bituachLeumi">> & {
     /** Excluded from projections by default, like the primary user's. */
@@ -33,7 +36,12 @@ export function buildTestProfile(overrides: {
   /** Index-aligned with `pensionBalances`; merged onto each generated account. */
   pensionAccountOverrides?: Partial<PensionAccount>[];
   otherAssets?: number;
-  equity?: { quantity: number; priceUSD: number }[];
+  equity?: {
+    quantity: number;
+    priceUSD: number;
+    unrealizedCapitalGainUSD?: number;
+    capitalGainsTaxRatePercent?: number;
+  }[];
   currentMonthlyExpenses?: number;
   retirementMonthlyExpenses?: number;
 }): ProfileData {
@@ -43,6 +51,8 @@ export function buildTestProfile(overrides: {
     retirementAge,
     monthlyGrossSalary,
     maritalStatus,
+    creditPoints,
+    taxExemptionBasket,
     spouse,
     bituachLeumi,
     investmentReturnPct,
@@ -64,7 +74,9 @@ export function buildTestProfile(overrides: {
       retirementAge: retirementAge ?? null,
       monthlyGrossSalary: monthlyGrossSalary ?? null,
       maritalStatus: maritalStatus ?? null,
+      creditPoints: creditPoints ?? null,
     },
+    taxExemptionBasket: { ...EMPTY_PROFILE.taxExemptionBasket, ...taxExemptionBasket },
     spouse: {
       ...EMPTY_SPOUSE,
       ...spouse,
@@ -145,8 +157,8 @@ export function buildTestProfile(overrides: {
         personalPurchaseDetails: {
           purchaseDate: null,
           averageCostBasisUSD: null,
-          unrealizedCapitalGainUSD: null,
-          capitalGainsTaxRatePercent: null,
+          unrealizedCapitalGainUSD: holding.unrealizedCapitalGainUSD ?? null,
+          capitalGainsTaxRatePercent: holding.capitalGainsTaxRatePercent ?? null,
         },
       })),
     },

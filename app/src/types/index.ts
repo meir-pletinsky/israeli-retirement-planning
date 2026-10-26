@@ -24,13 +24,17 @@ export interface PersonalData {
   gender: Gender | null;
   retirementAge: number | null;
   maritalStatus: MaritalStatus | null;
-  /** Total personal tax credit points (Nekudot Zikui). */
+  /** Total personal tax credit points (Nekudot Zikui); null = the default for the user's gender. */
   creditPoints: number | null;
   /** Gross monthly salary in today's money; basis for ongoing pension/savings contributions. */
   monthlyGrossSalary: number | null;
 }
 
-/** Tax exemption tracking under Kibua Zchuyot (Form 161D). Optional — most users won't know these yet. */
+/**
+ * Tax exemption tracking under Kibua Zchuyot (Form 161D). Optional — most
+ * users won't know these yet. They shape the primary user's retirement tax;
+ * the spouse uses the statutory exemption.
+ */
 export interface TaxExemptionBasket {
   form161DSubmitted: boolean;
   pastTaxFreeSeveranceWithdrawn: number | null;
@@ -303,6 +307,8 @@ export interface SpouseData {
   retirementAge: number | null;
   /** Gross monthly salary in today's money; basis for the spouse's own account contributions. */
   monthlyGrossSalary: number | null;
+  /** The spouse's own tax credit points; null = the default for their gender. */
+  creditPoints: number | null;
   bituachLeumi: BituachLeumiData;
 }
 
@@ -311,6 +317,7 @@ export const EMPTY_SPOUSE: SpouseData = {
   gender: null,
   retirementAge: null,
   monthlyGrossSalary: null,
+  creditPoints: null,
   bituachLeumi: { ...EMPTY_BITUACH_LEUMI },
 };
 

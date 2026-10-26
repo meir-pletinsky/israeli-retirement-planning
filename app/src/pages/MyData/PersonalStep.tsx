@@ -118,12 +118,14 @@ export function PersonalStep() {
       />
       <NumberField
         label={t("myData.steps.personal.creditPoints")}
+        helperText={t("myData.steps.personal.creditPointsHelper")}
         value={personal.creditPoints}
         onChange={(creditPoints) =>
           updateProfile({ personal: { ...personal, creditPoints } })
         }
         min={0}
         max={10}
+        step={0.25}
       />
 
       {isMarried && <SpouseSection error={showErrors ? spouseError : null} />}

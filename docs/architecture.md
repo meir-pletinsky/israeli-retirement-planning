@@ -79,7 +79,8 @@ src/
                     # retirementIncome.ts, drawdown.ts, netWorth.ts,
                     # incomeBreakdown.ts, timeline.ts, fundingGap.ts,
                     # contributions.ts, feasibility.ts, bituachLeumi.ts,
-                    # bituachLeumiRates.ts, household.ts, index.ts) rather
+                    # bituachLeumiRates.ts, household.ts, taxRates.ts,
+                    # tax.ts, netIncome.ts, index.ts) rather
                     # than split into
                     # per-product folders — products differ by rule data
                     # (accessRules.ts, sources.ts), not by calculation.
@@ -87,6 +88,12 @@ src/
                     # timing, own sources and Bituach Leumi, the spouse
                     # supplement) that the engine uses for couples; a
                     # single person is a household of one.
+                    # netIncome.ts is a post-hoc tax layer: it takes the
+                    # level-gross plan, simulates the drawdown with
+                    # per-account holdings and cost basis, and taxes each
+                    # member per year with tax.ts (rates in taxRates.ts);
+                    # the Dashboard headline, funding gap and feasibility
+                    # use the resulting after-tax income.
   data/             # static fallback datasets (rates, tables), external data clients
   storage/          # Dexie schema, repositories, export/import
   i18n/             # translation resources (en, ru, he) + setup

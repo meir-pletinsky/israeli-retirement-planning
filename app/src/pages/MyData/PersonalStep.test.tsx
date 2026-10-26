@@ -130,6 +130,55 @@ describe("PersonalStep — monthly gross salary", () => {
   });
 });
 
+describe("PersonalStep — tax credit points", () => {
+  it("explains the default and persists a typed value", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+
+    const points = await screen.findByLabelText(/^Tax credit points/);
+    expect(points).toHaveValue(null);
+    expect(screen.getByText(/Leave empty to use the default: 2\.25 for a man, 2\.75 for a woman/)).toBeInTheDocument();
+
+    await user.type(points, "2.75");
+
+    await waitFor(async () => {
+      expect((await loadProfileFromDb())?.personal.creditPoints).toBe(2.75);
+    });
+  });
+
+  it("accepts quarter points", async () => {
+    renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+
+    expect(await screen.findByLabelText(/^Tax credit points/)).toHaveAttribute("step", "0.25");
+  });
+
+  it("saves the spouse's credit points once their age is entered", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(
+      buildTestProfile({ age: 50, retirementAge: 65, maritalStatus: "married", spouse: { age: 48 } }),
+    );
+    renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+
+    const points = await screen.findByLabelText(/^Spouse's tax credit points/);
+    expect(points).toHaveValue(null);
+    await user.type(points, "2.5");
+
+    await waitFor(async () => {
+      expect((await loadProfileFromDb())?.spouse.creditPoints).toBe(2.5);
+    });
+  });
+
+  it("hides the spouse's credit points until their age is entered", async () => {
+    await saveProfileToDb(
+      buildTestProfile({ age: 50, retirementAge: 65, maritalStatus: "married" }),
+    );
+    renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+
+    await screen.findByLabelText(/^Spouse's age/);
+    expect(screen.queryByLabelText(/^Spouse's tax credit points/)).not.toBeInTheDocument();
+  });
+});
+
 describe("PersonalStep — Bituach Leumi", () => {
   async function openSection(user: ReturnType<typeof userEvent.setup>) {
     renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });

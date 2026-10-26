@@ -1,9 +1,10 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   aggregateCurrentNetWorth,
   calculateFundingGap,
+  estimateNetIncome,
   estimateRetirementIncome,
   yearsToRetirement,
 } from "../domain";
@@ -42,10 +43,7 @@ describe("Dashboard", () => {
     // hardcoding numbers, so this test tracks the domain engine's actual
     // behavior instead of a snapshot that could silently drift.
     const netWorthToday = Math.round(aggregateCurrentNetWorth(profile));
-    const { monthlyIncomeTodayMoney } = estimateRetirementIncome(
-      profile,
-      "standard",
-    );
+    const { netMonthlyIncome } = estimateNetIncome(profile, "standard");
     const fundingGap = calculateFundingGap(profile, "standard");
     const years = yearsToRetirement(profile, "standard");
 
@@ -54,8 +52,9 @@ describe("Dashboard", () => {
     expect(
       await screen.findByText(`\u20aa${netWorthToday.toLocaleString()}`),
     ).toBeInTheDocument();
+    const incomeKpi = screen.getByText("Projected Monthly Income After Tax").parentElement;
     expect(
-      screen.getByText(`\u20aa${monthlyIncomeTodayMoney.toLocaleString()}`),
+      within(incomeKpi as HTMLElement).getByText(`\u20aa${netMonthlyIncome.toLocaleString()}`),
     ).toBeInTheDocument();
     expect(
       screen.getByText(`\u20aa${fundingGap.monthlyGap.toLocaleString()}`),
@@ -333,6 +332,134 @@ describe("Dashboard", () => {
       renderWithProviders(<Dashboard />);
 
       expect(await screen.findByText(/may be entitled to an income supplement/i)).toBeInTheDocument();
+    });
+  });
+
+  describe("tax card", () => {
+    // 0% real return keeps the incomes exact (see netIncome.test.ts).
+    const zeroRealReturn = { investmentReturnPct: 4, inflationPct: 4 };
+
+    async function seed(profile: ReturnType<typeof buildTestProfile>) {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+    }
+
+    async function findTaxCard() {
+      return within(await screen.findByRole("region", { name: "Income tax in retirement" }));
+    }
+
+    it("splits the income into gross, tax and net, and shows the KPI after tax", async () => {
+      await seed(
+        buildTestProfile({
+          age: 62,
+          retirementAge: 62,
+          ...zeroRealReturn,
+          pensionBalances: [6_000_000],
+        }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      const card = await findTaxCard();
+      expect(card.getByText("Income before tax").nextElementSibling).toHaveTextContent("\u20aa17,857");
+      expect(card.getByText("Estimated tax").nextElementSibling).toHaveTextContent("\u20aa2,143");
+      expect(card.getByText("Income after tax").nextElementSibling).toHaveTextContent("\u20aa15,714");
+      expect(card.getByText("Effective tax rate: 12.0%")).toBeInTheDocument();
+      expect(
+        card.getByText(
+          "These figures are for the year with the lowest income after tax (age 62); other years are higher.",
+        ),
+      ).toBeInTheDocument();
+      expect(card.getByText(/Tax rates as of 01\.01\.2026\./)).toBeInTheDocument();
+      expect(card.getByRole("link", { name: "Source: Israel Tax Authority" })).toHaveAttribute(
+        "href",
+        expect.stringContaining("gov.il"),
+      );
+
+      const incomeKpi = screen.getByText("Projected Monthly Income After Tax").parentElement;
+      expect(within(incomeKpi as HTMLElement).getByText("\u20aa15,714")).toBeInTheDocument();
+    });
+
+    it("lists what the estimate includes and leaves out", async () => {
+      await seed(
+        buildTestProfile({
+          age: 62,
+          retirementAge: 62,
+          ...zeroRealReturn,
+          pensionBalances: [6_000_000],
+        }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      const card = await findTaxCard();
+      expect(card.getByText(/2026 income tax brackets/)).toBeInTheDocument();
+      expect(card.getByText(/57\.5% of a pension of up to \u20aa9,430 per month is exempt/)).toBeInTheDocument();
+      expect(card.getByText(/taxed at 25% on the real gain only/)).toBeInTheDocument();
+      expect(card.getByText(/^Not included: health tax/)).toBeInTheDocument();
+    });
+
+    it("says no tax is expected when the exemption and credit points cover the income", async () => {
+      await seed(
+        buildTestProfile({
+          age: 67,
+          retirementAge: 67,
+          ...zeroRealReturn,
+          pensionBalances: [2_400_000],
+        }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      const card = await findTaxCard();
+      expect(card.getByText("No income tax is expected on this income.")).toBeInTheDocument();
+      expect(card.queryByText(/Effective tax rate/)).not.toBeInTheDocument();
+    });
+
+    it("is hidden when there is no retirement income", async () => {
+      await seed(buildTestProfile({ age: 67, retirementAge: 67 }));
+
+      renderWithProviders(<Dashboard />);
+
+      expect(await screen.findByText("Net Worth Today")).toBeInTheDocument();
+      expect(screen.queryByRole("region", { name: "Income tax in retirement" })).not.toBeInTheDocument();
+    });
+
+    it("notes that spouses are taxed separately, and only for a couple", async () => {
+      await seed(
+        buildTestProfile({
+          age: 62,
+          gender: "male",
+          retirementAge: 62,
+          maritalStatus: "married",
+          spouse: { age: 62, gender: "male", retirementAge: 62 },
+          ...zeroRealReturn,
+          pensionBalances: [3_000_000, 3_000_000],
+          pensionAccountOverrides: [{ owner: "self" }, { owner: "spouse" }],
+        }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      const card = await findTaxCard();
+      expect(card.getByText("Each spouse is taxed on their own income.")).toBeInTheDocument();
+      expect(card.getByText("Estimated tax").nextElementSibling).toHaveTextContent("\u20aa850");
+    });
+
+    it("does not mention spouses for a single person", async () => {
+      await seed(
+        buildTestProfile({
+          age: 62,
+          retirementAge: 62,
+          ...zeroRealReturn,
+          pensionBalances: [6_000_000],
+        }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      const card = await findTaxCard();
+      expect(card.queryByText(/Each spouse is taxed/)).not.toBeInTheDocument();
     });
   });
 

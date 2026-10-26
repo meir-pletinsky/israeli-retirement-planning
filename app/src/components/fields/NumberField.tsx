@@ -8,6 +8,7 @@ interface NumberFieldProps {
   suffix?: ReactNode;
   min?: number;
   max?: number;
+  step?: number;
   error?: string;
 }
 
@@ -19,6 +20,7 @@ export function NumberField({
   suffix,
   min,
   max,
+  step,
   error,
 }: NumberFieldProps) {
   return (
@@ -34,6 +36,7 @@ export function NumberField({
           inputMode="decimal"
           min={min}
           max={max}
+          step={step}
           value={value ?? ""}
           onChange={(e) =>
             onChange(e.target.value === "" ? null : Number(e.target.value))

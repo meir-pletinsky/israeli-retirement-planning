@@ -75,6 +75,15 @@ export function SpouseSection({ error }: SpouseSectionProps) {
             min={0}
             suffix={currency}
           />
+          <NumberField
+            label={t(`${prefix}.spouseCreditPoints`)}
+            helperText={t(`${prefix}.spouseCreditPointsHelper`)}
+            value={spouse.creditPoints}
+            onChange={(creditPoints) => updateSpouse({ creditPoints })}
+            min={0}
+            max={10}
+            step={0.25}
+          />
           <CollapsibleSection title={t(`${prefix}.spouseBituachLeumiSection`)}>
             <p className="text-sm text-slate-600">{t(`${prefix}.spouseBituachLeumiIntro`)}</p>
             <CheckboxField

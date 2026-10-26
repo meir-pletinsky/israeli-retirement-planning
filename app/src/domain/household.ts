@@ -1,5 +1,5 @@
 import type { Gender, ProfileData } from "../types";
-import { EMPTY_SPOUSE } from "../types";
+import { EMPTY_PROFILE, EMPTY_SPOUSE } from "../types";
 import { estimateBituachLeumiPension } from "./bituachLeumi";
 import { BITUACH_LEUMI_RATES as RATES } from "./bituachLeumiRates";
 import { MAX_PLANNING_AGE } from "./constants";
@@ -96,8 +96,10 @@ export function spouseProfileView(profile: ProfileData): ProfileData {
       gender: spouse.gender,
       retirementAge: spouse.retirementAge,
       monthlyGrossSalary: spouse.monthlyGrossSalary,
+      creditPoints: spouse.creditPoints,
     },
     spouse: EMPTY_SPOUSE,
+    taxExemptionBasket: EMPTY_PROFILE.taxExemptionBasket,
     bituachLeumi: spouse.bituachLeumi,
     pensionSavings: {
       otherAssets: null,

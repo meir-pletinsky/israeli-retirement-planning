@@ -10,11 +10,13 @@ funds, Bituach Leumi, investments, and more.
 current build status).
 
 **Status:** Phase 1 (MVP) implemented, including salary/contribution
-modeling and an earliest-feasible-retirement-age solver, plus three Phase 2
+modeling and an earliest-feasible-retirement-age solver, three Phase 2
 modules: the Bituach Leumi state pension, a per-source model (access
 ages, annuity conversion, per-source retirement timeline) and
 couples/household planning (a spouse, per-account owners, staggered
-retirement, the Bituach Leumi spouse supplement) — see
+retirement, the Bituach Leumi spouse supplement), and the Phase 3 tax
+module (retirement income shown after Israeli income tax, per spouse,
+with editable credit points) — see
 [`docs/implementation-progress.md`](docs/implementation-progress.md) for
 the detailed checklist and [`docs/plan.md`](docs/plan.md)'s Status section
 for how it compares to the original spec.
@@ -48,6 +50,9 @@ fuller cross-machine setup/resume guide.
 - [`docs/implementation-progress.md`](docs/implementation-progress.md) —
   live implementation checklist; read this to see what's built and resume
   work across sessions.
+- [`docs/constants-to-verify.md`](docs/constants-to-verify.md) — every tax,
+  Bituach Leumi and savings-access figure the app hard-codes, how
+  confident we are, and what to look up on official sites to confirm it.
 - [`app/`](app) — the application (evolved from the original click-through
   prototype; same stack, now with real persistence and calculations).
 

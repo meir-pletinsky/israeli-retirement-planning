@@ -220,6 +220,97 @@ describe("buildSources", () => {
       expect(source.annuity).toBeNull();
     });
   });
+
+  describe("tax treatment", () => {
+    const treatmentOf = (productCategory: PensionAccount["productCategory"]) =>
+      buildSources(
+        buildTestProfile({
+          age: 50,
+          pensionBalances: [100_000],
+          pensionAccountOverrides: [{ productCategory }],
+          ...zeroReal,
+        }),
+        60,
+      )[0].taxTreatment;
+
+    it("taxes an investment provident fund on its gain and a study fund not at all", () => {
+      expect(treatmentOf("investmentProvidentFund")).toBe("capitalGains");
+      expect(treatmentOf("studyFund")).toBe("exempt");
+    });
+
+    it("taxes every other account, and an uncategorized one, as a pension", () => {
+      for (const category of [
+        "comprehensivePension",
+        "generalPension",
+        "managersInsurance",
+        "providentFund",
+        "iraProvidentFund",
+        null,
+      ] as const) {
+        expect(treatmentOf(category)).toBe("pension");
+      }
+    });
+
+    it("starts an account's cost basis at its balance, at the statutory capital gains rate", () => {
+      const [source] = buildSources(
+        buildTestProfile({
+          age: 50,
+          pensionBalances: [100_000],
+          pensionAccountOverrides: [{ productCategory: "investmentProvidentFund" }],
+          ...zeroReal,
+        }),
+        60,
+      );
+      expect(source.costBasis).toBe(100_000);
+      expect(source.capitalGainsTaxRate).toBe(0.25);
+    });
+
+    it("gives other investments a cost basis below their value by the declared gains", () => {
+      const sources = buildSources(
+        buildTestProfile({
+          age: 50,
+          otherAssets: 100_000,
+          equity: [{ quantity: 100, priceUSD: 100, unrealizedCapitalGainUSD: 4_000 }],
+          ...zeroReal,
+        }),
+        60,
+      );
+      const other = sources[0];
+      expect(other.kind).toBe("otherInvestments");
+      expect(other.taxTreatment).toBe("capitalGains");
+      // 100,000 + 100 * $100 * 3.7 = 137,000, of which $4,000 * 3.7 = 14,800 is gain.
+      expect(other.balance).toBeCloseTo(137_000, 6);
+      expect(other.costBasis).toBeCloseTo(122_200, 6);
+    });
+
+    it("never lets a declared gain exceed the holding's value", () => {
+      const [other] = buildSources(
+        buildTestProfile({
+          age: 50,
+          equity: [{ quantity: 10, priceUSD: 100, unrealizedCapitalGainUSD: 50_000 }],
+          ...zeroReal,
+        }),
+        60,
+      );
+      expect(other.costBasis).toBe(0);
+    });
+
+    it("blends the tax rate of each holding by its value", () => {
+      const [other] = buildSources(
+        buildTestProfile({
+          age: 50,
+          equity: [
+            { quantity: 10, priceUSD: 100, capitalGainsTaxRatePercent: 15 },
+            { quantity: 10, priceUSD: 100 },
+          ],
+          ...zeroReal,
+        }),
+        60,
+      );
+      // Equal values at 15% and the statutory 25%.
+      expect(other.capitalGainsTaxRate).toBeCloseTo(0.2, 6);
+    });
+  });
 });
 
 describe("countUncategorizedAccounts", () => {

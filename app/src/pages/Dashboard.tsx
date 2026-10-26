@@ -9,10 +9,12 @@ import { FeasibilityCard } from "../components/FeasibilityCard";
 import { KpiCard } from "../components/KpiCard";
 import { SourceAccessCard } from "../components/SourceAccessCard";
 import { StatusBanner } from "../components/StatusBanner";
+import { TaxCard } from "../components/TaxCard";
 import {
   MAX_RETIREMENT_SEARCH_AGE,
   aggregateCurrentNetWorth,
   calculateFundingGap,
+  estimateNetIncome,
   estimateRetirementIncome,
   findEarliestFeasibleRetirementAge,
   projectNetWorth,
@@ -46,6 +48,7 @@ export function Dashboard() {
   const { monthlyIncomeTodayMoney, members, access, householdRetirementAge } =
     estimateRetirementIncome(profile, "standard");
   const isCouple = members.length > 1;
+  const netIncome = estimateNetIncome(profile, "standard");
   const fundingGap = calculateFundingGap(profile, "standard");
   const isShortfall = fundingGap.status === "shortfall";
   const feasibility = findEarliestFeasibleRetirementAge(profile);
@@ -55,7 +58,7 @@ export function Dashboard() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           label={t("dashboard.kpi.monthlyIncome")}
-          value={`${currencySymbol}${monthlyIncomeTodayMoney.toLocaleString()}`}
+          value={`${currencySymbol}${netIncome.netMonthlyIncome.toLocaleString()}`}
         />
         <KpiCard
           label={t("dashboard.kpi.netWorth")}
@@ -92,6 +95,8 @@ export function Dashboard() {
         members={members}
         monthlyIncomeTodayMoney={monthlyIncomeTodayMoney}
       />
+
+      <TaxCard net={netIncome} isCouple={isCouple} />
 
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-2 flex items-center justify-between">

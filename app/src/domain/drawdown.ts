@@ -6,7 +6,7 @@ import {
   type RetirementTiming,
 } from "./household";
 import { futureValueOfMonthlyContributions } from "./contributions";
-import { SOURCE_KINDS, type SourceKind } from "./sources";
+import { SOURCE_KINDS, type SourceKind, type TaxTreatment } from "./sources";
 import type { ProfileData } from "../types";
 import type { RetirementScenario } from "./types";
 
@@ -14,6 +14,24 @@ import type { RetirementScenario } from "./types";
 export type PaymentSource = SourceKind | "bituachLeumi";
 
 export const PAYMENT_SOURCES: readonly PaymentSource[] = [...SOURCE_KINDS, "bituachLeumi"];
+
+/**
+ * One source's position in a year, kept per owner so taxes can be worked out
+ * for each spouse (see `netIncome.ts`).
+ */
+export interface DrawdownHolding {
+  /** Index into `household.members` of the person who owns the source. */
+  memberIndex: number;
+  treatment: TaxTreatment;
+  /** Tax rate on the realised gain (`capitalGains` sources only). */
+  capitalGainsTaxRate: number;
+  /** Fixed monthly annuity the source pays at this age, in today's money; 0 when none. */
+  annuityMonthly: number;
+  /** This source's share of the spendable capital before this year's withdrawal. */
+  capitalShare: number;
+  /** Fraction of a withdrawal that is real gain (`capitalGains` sources only). */
+  gainFraction: number;
+}
 
 export interface DrawdownYear {
   /** The primary user's age. For a couple, the spouse is `age` minus the age gap. */
@@ -30,6 +48,8 @@ export interface DrawdownYear {
    * accessible at this age.
    */
   capitalShare: Record<SourceKind, number>;
+  /** The same position per source and owner, in the order of the household's members and sources. */
+  holdings: DrawdownHolding[];
 }
 
 const emptyByKind = (): Record<SourceKind, number> => ({
@@ -53,6 +73,8 @@ const emptyByKind = (): Record<SourceKind, number> => ({
  * - An account that pays an annuity leaves the spendable pool; its capital
  *   stops counting toward net worth once the annuity starts.
  * - Balances never go negative.
+ * - Capital-gains sources also track their cost basis (in today's money), so
+ *   each year's `holdings` say how much of a withdrawal is taxable gain.
  *
  * The first row is today (no growth or withdrawal), so it equals today's net
  * worth. Row ages are the primary user's.
@@ -65,11 +87,13 @@ export function simulateHouseholdDrawdown(
   const annualSpending = monthlySpending * 12;
   const primary = members[0];
 
-  const state = members.flatMap((member) =>
+  const state = members.flatMap((member, memberIndex) =>
     member.sources.map((source) => ({
       member,
+      memberIndex,
       source,
       balance: source.balance,
+      basis: Math.min(source.costBasis, source.balance),
       annualContribution: futureValueOfMonthlyContributions(source.monthlyContribution, rate, 1),
     })),
   );
@@ -82,9 +106,11 @@ export function simulateHouseholdDrawdown(
         entry.balance *= 1 + rate;
         if (age <= entry.member.retirementAge) {
           entry.balance += entry.annualContribution;
+          entry.basis += entry.source.monthlyContribution * 12;
         }
         if (entry.source.annuity && age >= entry.source.annuity.startAge) {
           entry.balance = 0;
+          entry.basis = 0;
         }
       }
     }
@@ -121,12 +147,32 @@ export function simulateHouseholdDrawdown(
         capitalShare[entry.source.kind] += entry.balance / unlockedTotal;
       }
     }
+    const unlockedSet = new Set(unlocked);
+    const holdings: DrawdownHolding[] = state.map((entry) => {
+      const { annuity } = entry.source;
+      return {
+        memberIndex: entry.memberIndex,
+        treatment: entry.source.taxTreatment,
+        capitalGainsTaxRate: entry.source.capitalGainsTaxRate,
+        annuityMonthly:
+          annuity && entry.member.currentAge + years >= annuity.startAge ? annuity.monthly : 0,
+        capitalShare:
+          unlockedTotal > 0 && unlockedSet.has(entry) ? entry.balance / unlockedTotal : 0,
+        gainFraction:
+          entry.source.taxTreatment === "capitalGains" && entry.balance > 0
+            ? Math.max(1 - entry.basis / entry.balance, 0)
+            : 0,
+      };
+    });
 
     if (years > 0 && years >= retirementYears && unlockedTotal > 0) {
       const streamsAnnual = PAYMENT_SOURCES.reduce((sum, band) => sum + streams[band], 0) * 12;
       const draw = Math.min(Math.max(annualSpending - streamsAnnual, 0), unlockedTotal);
       for (const entry of unlocked) {
-        entry.balance -= (draw * entry.balance) / unlockedTotal;
+        if (entry.balance <= 0) continue;
+        const taken = (draw * entry.balance) / unlockedTotal;
+        entry.basis -= (entry.basis * taken) / entry.balance;
+        entry.balance -= taken;
       }
     }
 
@@ -136,6 +182,7 @@ export function simulateHouseholdDrawdown(
       netWorth: state.reduce((sum, entry) => sum + entry.balance, 0),
       streams,
       capitalShare,
+      holdings,
     });
   }
 

@@ -42,4 +42,36 @@ describe("calculateFundingGap", () => {
     expect(result.desiredMonthlyExpenses).toBe(0);
     expect(result.status).toBe("onTrack");
   });
+
+  it("compares net income, after tax, with the desired expenses", () => {
+    // About 17,857 gross a month at 62, taxed at 2,143 before the exemption starts at 67.
+    const profile = buildTestProfile({
+      age: 62,
+      retirementAge: 62,
+      investmentReturnPct: 4,
+      inflationPct: 4,
+      pensionBalances: [6_000_000],
+      retirementMonthlyExpenses: 17_000,
+    });
+    const result = calculateFundingGap(profile);
+    expect(result.grossMonthlyIncome).toBe(17_857);
+    expect(result.estimatedMonthlyTax).toBe(2_143);
+    expect(result.estimatedMonthlyIncome).toBe(15_714);
+    expect(result.monthlyGap).toBe(15_714 - 17_000);
+    expect(result.status).toBe("shortfall");
+  });
+
+  it("reports gross equal to net when no tax is due", () => {
+    const profile = buildTestProfile({
+      age: 67,
+      retirementAge: 67,
+      investmentReturnPct: 4,
+      inflationPct: 4,
+      pensionBalances: [120_000],
+      retirementMonthlyExpenses: 400,
+    });
+    const result = calculateFundingGap(profile);
+    expect(result.estimatedMonthlyTax).toBe(0);
+    expect(result.grossMonthlyIncome).toBe(result.estimatedMonthlyIncome);
+  });
 });

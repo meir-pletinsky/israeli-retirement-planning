@@ -4,12 +4,14 @@ import { useTranslation } from "react-i18next";
 
 import { useProfile } from "../app/ProfileContext";
 import { IncomeBreakdownChart } from "../components/charts/IncomeBreakdownChart";
+import { NetIncomeChart } from "../components/charts/NetIncomeChart";
 import { NetWorthChart } from "../components/charts/NetWorthChart";
 import { RetirementTimeline } from "../components/RetirementTimeline";
 import {
   type IncomeBandKey,
   buildRetirementTimeline,
   estimateIncomeBreakdown,
+  estimateNetIncome,
   isHouseholdActive,
   projectNetWorth,
   spouseAgeAt,
@@ -31,6 +33,8 @@ export function Projections() {
 
   const netWorthData = projectNetWorth(profile, scenario);
   const incomeData = estimateIncomeBreakdown(profile, scenario);
+  const netIncomeYears = estimateNetIncome(profile, scenario).years;
+  const hasNetIncome = netIncomeYears.some((year) => year.grossMonthly > 0);
   const timeline = buildRetirementTimeline(incomeData);
   const isCouple = isHouseholdActive(profile);
   const bandLabels: Record<IncomeBandKey, string> = {
@@ -131,6 +135,21 @@ export function Projections() {
           labels={bandLabels}
         />
       </div>
+
+      {hasNetIncome && (
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <h2 className="text-sm font-semibold text-slate-700">
+            {t("projections.netIncomeChart")}
+          </h2>
+          <p className="mb-2 mt-1 text-xs text-slate-500">{t("projections.netIncomeNote")}</p>
+          <NetIncomeChart
+            data={netIncomeYears}
+            currencySymbol={currencySymbol}
+            netLabel={t("projections.netIncomeKept")}
+            taxLabel={t("projections.netIncomeTax")}
+          />
+        </div>
+      )}
 
       <RetirementTimeline
         segments={timeline}

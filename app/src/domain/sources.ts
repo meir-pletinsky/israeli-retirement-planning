@@ -1,5 +1,6 @@
 import type { PensionAccount, ProductCategory, ProfileData } from "../types";
 import { ACCESS_RULES } from "./accessRules";
+import { FALLBACK_USD_TO_ILS_RATE } from "./constants";
 import { futureValueOfMonthlyContributions, monthlyContributionForAccount } from "./contributions";
 import {
   accountsInPlan,
@@ -8,6 +9,7 @@ import {
   realAnnualReturnRate,
   resolveCurrentAge,
 } from "./profileBasics";
+import { TAX_RATES } from "./taxRates";
 
 /** The kinds of savings a retirement income can be drawn from. */
 export type SourceKind =
@@ -34,6 +36,15 @@ export interface SourceAnnuity {
   origin: "override" | "factor";
 }
 
+/**
+ * How money taken out of a source is taxed in retirement:
+ * - `pension`: pension-like income at the brackets, partly exempt from the
+ *   statutory retirement age (Section 9A).
+ * - `capitalGains`: only the real gain is taxed, at a flat rate.
+ * - `exempt`: tax-free (study fund within the deposit ceilings).
+ */
+export type TaxTreatment = "pension" | "capitalGains" | "exempt";
+
 export interface RetirementSource {
   id: string;
   kind: SourceKind;
@@ -47,6 +58,11 @@ export interface RetirementSource {
   valueAtRetirement: number;
   /** Set when the account pays a fixed annuity instead of being drawn down as capital. */
   annuity: SourceAnnuity | null;
+  taxTreatment: TaxTreatment;
+  /** Part of today's balance that is not taxable gain (`capitalGains` sources only), in today's money. */
+  costBasis: number;
+  /** Tax rate on a realised gain (`capitalGains` sources only). */
+  capitalGainsTaxRate: number;
 }
 
 export function sourceKindForCategory(category: ProductCategory | null): SourceKind {
@@ -65,6 +81,55 @@ export function sourceKindForCategory(category: ProductCategory | null): SourceK
       // Uncategorized accounts keep the pre-categorization behaviour: pension-like.
       return "pensionFund";
   }
+}
+
+/**
+ * Only the investment provident fund (gemel lehashkaa) and non-pension
+ * investments are taxed as capital gains. Every other provident fund can be
+ * drawn only as a pension, and uncategorized accounts are pension-like.
+ */
+function taxTreatmentForCategory(category: ProductCategory | null): TaxTreatment {
+  switch (category) {
+    case "investmentProvidentFund":
+      return "capitalGains";
+    case "studyFund":
+      return "exempt";
+    default:
+      return "pension";
+  }
+}
+
+/**
+ * Cost basis and tax rate of the non-pension investments bucket. Without
+ * declared unrealized gains the whole balance counts as basis, so no gain is
+ * taxed; entered equity gains are carved out of it, and each holding's own
+ * tax rate is blended in by market value.
+ */
+function otherInvestmentsTaxProfile(profile: ProfileData): { costBasis: number; rate: number } {
+  const defaultRate = TAX_RATES.capitalGainsRate;
+  const otherAssets = profile.pensionSavings.otherAssets ?? 0;
+  let value = otherAssets;
+  let gains = 0;
+  let weightedRate = otherAssets * defaultRate;
+  for (const holding of profile.equity.holdings) {
+    const holdingValue =
+      (holding.quantity ?? 0) * (holding.currentMarketPriceUSD ?? 0) * FALLBACK_USD_TO_ILS_RATE;
+    const details = holding.personalPurchaseDetails;
+    gains += Math.min(
+      Math.max(details.unrealizedCapitalGainUSD ?? 0, 0) * FALLBACK_USD_TO_ILS_RATE,
+      holdingValue,
+    );
+    value += holdingValue;
+    weightedRate +=
+      holdingValue *
+      (typeof details.capitalGainsTaxRatePercent === "number"
+        ? details.capitalGainsTaxRatePercent / 100
+        : defaultRate);
+  }
+  return {
+    costBasis: Math.max(value - gains, 0),
+    rate: value > 0 ? weightedRate / value : defaultRate,
+  };
 }
 
 const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
@@ -169,10 +234,14 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
       unlockAge,
       valueAtRetirement,
       annuity: buildAnnuity(account, kind, unlockAge, retirementAge, valueAtRetirement, rate),
+      taxTreatment: taxTreatmentForCategory(account.productCategory),
+      costBasis: balance,
+      capitalGainsTaxRate: TAX_RATES.capitalGainsRate,
     };
   });
 
   const otherBalance = aggregateOtherBalance(profile);
+  const otherTax = otherInvestmentsTaxProfile(profile);
   sources.push({
     id: "other-investments",
     kind: "otherInvestments",
@@ -181,6 +250,9 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
     unlockAge: ACCESS_RULES.alwaysAccessibleAge,
     valueAtRetirement: otherBalance * growth,
     annuity: null,
+    taxTreatment: "capitalGains",
+    costBasis: otherTax.costBasis,
+    capitalGainsTaxRate: otherTax.rate,
   });
 
   return sources;
