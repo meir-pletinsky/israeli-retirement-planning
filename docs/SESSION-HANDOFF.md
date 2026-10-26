@@ -49,8 +49,8 @@ Full authoritative checklist: [`docs/implementation-progress.md`](implementation
 Snapshot as of this handoff: **Phases A–E are done** (Phase 1 MVP and its
 two logged gaps), **Phase F (Bituach Leumi module) is done**, **Phase G
 (per-source access rules, annuities and timeline) is done**, and **Phase H
-(couples/household) is done**. Phases A–G are committed and pushed to
-`main`; check `git log` to see whether Phase H has been committed yet.
+(couples/household) is done**. Phases A–H are all committed and pushed to
+`main`.
 
 - **Phase H (Phase 2 — couples/household): ALL DONE.** Pre-phase validation
   of the spouse-supplement rules is in `docs/plan.md` → "Open Items" item 6
