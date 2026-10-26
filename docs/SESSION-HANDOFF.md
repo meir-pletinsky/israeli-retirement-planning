@@ -48,8 +48,8 @@ the canonical repo/branch combo configured in GitHub's Pages settings.
 Full authoritative checklist: [`docs/implementation-progress.md`](implementation-progress.md).
 Snapshot as of this handoff: **Phases A–E are done** (Phase 1 MVP and its
 two logged gaps), **Phase F (Bituach Leumi module) is done**, and **Phase G
-(per-source access rules, annuities and timeline) is done but not yet
-committed** — check `git status` / `git log` before assuming it is on `main`.
+(per-source access rules, annuities and timeline) is done**, committed and
+pushed to `main`.
 
 - **Phase G (Phase 2 — per-source model): ALL DONE.** Pre-phase validation of
   the access rules is in `docs/plan.md` → "Open Items" item 5 (secondary
