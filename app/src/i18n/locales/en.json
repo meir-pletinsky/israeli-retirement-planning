@@ -50,6 +50,18 @@
       "ratesAsOf": "Rates as of {{date}}.",
       "source": "Source: Bituach Leumi"
     },
+    "sourceAccess": {
+      "title": "Access to your savings",
+      "ageYears": "{{years}}",
+      "ageYearsMonths": "{{years}} years {{months}} months",
+      "accessible": "Available at retirement: {{amount}}",
+      "locked": "Locked until age {{age}}: {{amount}}",
+      "annuities": "Accounts paying a monthly annuity: {{amount}} (included in your income)",
+      "bridgeLimited": "Until age {{age}} only part of your savings is accessible, which limits your sustainable income. If all your savings were available it would be {{income}} per month.",
+      "uncategorized": "Accounts without a product type: {{count}}. They are treated as fully accessible; set the type to apply access rules.",
+      "editAccounts": "Edit accounts",
+      "rulesAsOf": "Access rules as of {{date}}. Early-withdrawal penalties and taxes are not modeled."
+    },
     "kpi": {
       "monthlyIncome": "Projected Monthly Retirement Income",
       "netWorth": "Net Worth Today",
@@ -134,6 +146,7 @@
           "tikun190CapitalBalance": "Tikun 190 capital balance",
           "severanceBalance": "Severance balance",
           "sectionAnnuityParameters": "Annuity parameters",
+          "annuityParametersHelper": "Used for pension funds and managers insurance. Enter the monthly annuity from your statement (today's money), or tick the guaranteed factor and enter the conversion factor (typically 140–215) to compute it from the balance. The annuity starts at age 60, or right away if the account is already paying an annuity.",
           "hasGuaranteedFactor": "Has guaranteed conversion factor",
           "conversionFactor": "Conversion factor",
           "estimatedMonthlyAnnuity": "Estimated monthly annuity",
@@ -263,8 +276,19 @@
     "viewTable": "Show as table",
     "viewChart": "Show as chart",
     "sourcePension": "Pension Fund",
+    "sourceProvidentFund": "Provident Fund",
+    "sourceManagersInsurance": "Managers Insurance",
+    "sourceStudyFund": "Study Fund",
     "sourceInvestments": "Other Investments",
-    "sourceBituachLeumi": "Bituach Leumi"
+    "sourceBituachLeumi": "Bituach Leumi",
+    "timeline": {
+      "title": "Retirement timeline",
+      "intro": "Which sources pay for each stage of retirement, in today's money.",
+      "ages": "Ages",
+      "sources": "Paying sources",
+      "income": "Monthly income",
+      "range": "{{from}}–{{to}}"
+    }
   },
   "settings": {
     "title": "Settings",

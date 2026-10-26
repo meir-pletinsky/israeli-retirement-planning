@@ -7,6 +7,7 @@ import { NetWorthChart } from "../components/charts/NetWorthChart";
 import { EmptyState } from "../components/EmptyState";
 import { FeasibilityCard } from "../components/FeasibilityCard";
 import { KpiCard } from "../components/KpiCard";
+import { SourceAccessCard } from "../components/SourceAccessCard";
 import { StatusBanner } from "../components/StatusBanner";
 import {
   MAX_RETIREMENT_SEARCH_AGE,
@@ -43,7 +44,7 @@ export function Dashboard() {
 
   const data = projectNetWorth(profile, "standard");
   const netWorthToday = aggregateCurrentNetWorth(profile);
-  const { monthlyIncomeTodayMoney, bituachLeumi } = estimateRetirementIncome(profile, "standard");
+  const { monthlyIncomeTodayMoney, bituachLeumi, access } = estimateRetirementIncome(profile, "standard");
   const fundingGap = calculateFundingGap(profile, "standard");
   const isShortfall = fundingGap.status === "shortfall";
   const feasibility = findEarliestFeasibleRetirementAge(profile);
@@ -83,6 +84,8 @@ export function Dashboard() {
         feasibility={feasibility}
         maxSearchAge={MAX_RETIREMENT_SEARCH_AGE}
       />
+
+      <SourceAccessCard access={access} />
 
       <BituachLeumiCard
         estimate={bituachLeumi}

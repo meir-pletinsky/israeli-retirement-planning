@@ -15,12 +15,33 @@ export type ReadinessStatus = "onTrack" | "shortfall";
 export interface RetirementIncomeEstimate {
   /**
    * Sustainable monthly income in today's money, from retirement through the planning horizon.
-   * Includes the Bituach Leumi pension from its claim age onward when it is included.
+   * Includes the Bituach Leumi pension and any account annuities from their start age onward.
    */
   monthlyIncomeTodayMoney: number;
   retirementAge: number;
   netWorthAtRetirement: number;
   bituachLeumi: BituachLeumiEstimate;
+  access: RetirementAccessSummary;
+}
+
+/** How much of the savings can actually be spent when retiring, given each product's access rules. */
+export interface RetirementAccessSummary {
+  /** Spendable capital (today's money) already unlocked at the retirement age. */
+  accessibleAtRetirement: number;
+  /** Spendable capital still locked at the retirement age (unlocks later). */
+  lockedAtRetirement: number;
+  /** Earliest age after retirement at which locked capital unlocks; null when none is locked. */
+  nextUnlockAge: number | null;
+  /** True when the timing of access, not the total, is what limits the income. */
+  bridgeLimited: boolean;
+  /** Income if every saving were available from retirement; equals the estimate unless `bridgeLimited`. */
+  unconstrainedMonthlyIncome: number;
+  /** Age whose funding need is the binding limit; null unless `bridgeLimited`. */
+  limitingAge: number | null;
+  /** Total monthly payment from accounts converted to an annuity (today's money). */
+  accountAnnuityMonthly: number;
+  /** Accounts with a balance but no product type, treated as fully accessible. */
+  uncategorizedAccounts: number;
 }
 
 export interface BituachLeumiEstimate {

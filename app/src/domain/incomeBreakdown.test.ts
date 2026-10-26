@@ -1,8 +1,19 @@
 import { describe, expect, it } from "vitest";
 
 import { buildTestProfile } from "../test/domainFixtures";
-import { estimateIncomeBreakdown } from "./incomeBreakdown";
+import { estimateIncomeBreakdown, type IncomeBreakdownPoint } from "./incomeBreakdown";
 import { MAX_PLANNING_AGE } from "./constants";
+
+const point = (age: number, bands: Partial<IncomeBreakdownPoint>): IncomeBreakdownPoint => ({
+  age,
+  pensionFund: 0,
+  providentFund: 0,
+  managersInsurance: 0,
+  studyFund: 0,
+  investments: 0,
+  bituachLeumi: 0,
+  ...bands,
+});
 
 describe("estimateIncomeBreakdown", () => {
   it("splits income proportionally to pension vs other balances", () => {
@@ -17,14 +28,14 @@ describe("estimateIncomeBreakdown", () => {
     const points = estimateIncomeBreakdown(profile);
     // Total balance 120,000 -> sustainable income 435/mo (see retirementIncome.test.ts).
     // Pension share = 90,000 / 120,000 = 75%.
-    expect(points[0]).toEqual({ age: 67, pensionFund: 326, investments: 109, bituachLeumi: 0 });
+    expect(points[0]).toEqual(point(67, { pensionFund: 326, investments: 109 }));
     expect(points).toHaveLength(MAX_PLANNING_AGE - 67 + 1);
   });
 
   it("is all zero for a profile with no balances", () => {
     const profile = buildTestProfile({ age: 67, retirementAge: 67 });
     const points = estimateIncomeBreakdown(profile);
-    expect(points[0]).toEqual({ age: 67, pensionFund: 0, investments: 0, bituachLeumi: 0 });
+    expect(points[0]).toEqual(point(67, {}));
   });
 
   describe("with the Bituach Leumi pension", () => {
@@ -42,8 +53,8 @@ describe("estimateIncomeBreakdown", () => {
       const points = estimateIncomeBreakdown(profile);
       const at = (age: number) => points.find((p) => p.age === age)!;
       // Level spending is (600,000 + 2,000 * 276) / 360 = 3,200 throughout.
-      expect(at(66)).toEqual({ age: 66, pensionFund: 3200, investments: 0, bituachLeumi: 0 });
-      expect(at(67)).toEqual({ age: 67, pensionFund: 1200, investments: 0, bituachLeumi: 2000 });
+      expect(at(66)).toEqual(point(66, { pensionFund: 3200 }));
+      expect(at(67)).toEqual(point(67, { pensionFund: 1200, bituachLeumi: 2000 }));
       expect(at(90).bituachLeumi).toBe(2000);
     });
 

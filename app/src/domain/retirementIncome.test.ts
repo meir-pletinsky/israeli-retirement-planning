@@ -128,12 +128,29 @@ describe("estimateRetirementIncomeAtAge with the Bituach Leumi pension", () => {
     const profile = buildTestProfile({
       age: 40,
       gender: "female",
+      pensionBalances: [300_000],
       bituachLeumi: { includeInProjection: true, monthlyPensionOverride: 3000 },
       ...zeroReal,
     });
     const result = estimateRetirementIncomeAtAge(profile, 60);
     expect(result.bituachLeumi.claimAge).toBe(65);
-    expect(result.monthlyIncomeTodayMoney).toBe(2500);
+    // (300,000 + 3,000 * 300 months of pension) / 360 months.
+    expect(result.monthlyIncomeTodayMoney).toBe(3333);
+  });
+
+  it("cannot spend a future pension before it starts", () => {
+    // No savings at all: nothing can be spent between 60 and the claim age at 65.
+    const profile = buildTestProfile({
+      age: 40,
+      gender: "female",
+      bituachLeumi: { includeInProjection: true, monthlyPensionOverride: 3000 },
+      ...zeroReal,
+    });
+    const result = estimateRetirementIncomeAtAge(profile, 60);
+    expect(result.monthlyIncomeTodayMoney).toBe(0);
+    expect(result.access.bridgeLimited).toBe(true);
+    expect(result.access.limitingAge).toBe(65);
+    expect(result.access.unconstrainedMonthlyIncome).toBe(2500);
   });
 
   it("gives a retiree with no savings the calculated pension", () => {

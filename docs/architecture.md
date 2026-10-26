@@ -73,13 +73,15 @@ src/
   app/              # app shell, routing, providers
   pages/            # one folder per route/screen
   components/       # shared/reusable UI components
-  domain/           # pure calculation engine (no React/DOM deps)
-    bituach-leumi/  # Phase 2 — not yet created; domain/ is currently flat
-    pension-fund/   # (constants.ts, types.ts, netWorth.ts, retirementIncome.ts,
-    provident-fund/ # fundingGap.ts, incomeBreakdown.ts, contributions.ts,
-    ...             # feasibility.ts, bituachLeumi.ts, bituachLeumiRates.ts,
-                    # index.ts), since Phase 1 doesn't need per-source
-                    # modeling yet.
+  domain/           # pure calculation engine (no React/DOM deps); kept flat
+                    # (one file per concern, e.g. constants.ts, types.ts,
+                    # profileBasics.ts, sources.ts, accessRules.ts,
+                    # retirementIncome.ts, drawdown.ts, netWorth.ts,
+                    # incomeBreakdown.ts, timeline.ts, fundingGap.ts,
+                    # contributions.ts, feasibility.ts, bituachLeumi.ts,
+                    # bituachLeumiRates.ts, index.ts) rather than split into
+                    # per-product folders — products differ by rule data
+                    # (accessRules.ts, sources.ts), not by calculation.
   data/             # static fallback datasets (rates, tables), external data clients
   storage/          # Dexie schema, repositories, export/import
   i18n/             # translation resources (en, ru, he) + setup

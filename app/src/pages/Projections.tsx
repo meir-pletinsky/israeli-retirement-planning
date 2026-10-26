@@ -5,7 +5,13 @@ import { useTranslation } from "react-i18next";
 import { useProfile } from "../app/ProfileContext";
 import { IncomeBreakdownChart } from "../components/charts/IncomeBreakdownChart";
 import { NetWorthChart } from "../components/charts/NetWorthChart";
-import { estimateIncomeBreakdown, projectNetWorth } from "../domain";
+import { RetirementTimeline } from "../components/RetirementTimeline";
+import {
+  type IncomeBandKey,
+  buildRetirementTimeline,
+  estimateIncomeBreakdown,
+  projectNetWorth,
+} from "../domain";
 import type { RetirementScenario } from "../types";
 
 const SCENARIOS: RetirementScenario[] = ["early", "standard", "delayed"];
@@ -23,6 +29,15 @@ export function Projections() {
 
   const netWorthData = projectNetWorth(profile, scenario);
   const incomeData = estimateIncomeBreakdown(profile, scenario);
+  const timeline = buildRetirementTimeline(incomeData);
+  const bandLabels: Record<IncomeBandKey, string> = {
+    pensionFund: t("projections.sourcePension"),
+    providentFund: t("projections.sourceProvidentFund"),
+    managersInsurance: t("projections.sourceManagersInsurance"),
+    studyFund: t("projections.sourceStudyFund"),
+    investments: t("projections.sourceInvestments"),
+    bituachLeumi: t("projections.sourceBituachLeumi"),
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -106,11 +121,15 @@ export function Projections() {
         <IncomeBreakdownChart
           data={incomeData}
           currencySymbol={currencySymbol}
-          pensionLabel={t("projections.sourcePension")}
-          investmentsLabel={t("projections.sourceInvestments")}
-          bituachLeumiLabel={t("projections.sourceBituachLeumi")}
+          labels={bandLabels}
         />
       </div>
+
+      <RetirementTimeline
+        segments={timeline}
+        labels={bandLabels}
+        currencySymbol={currencySymbol}
+      />
     </div>
   );
 }

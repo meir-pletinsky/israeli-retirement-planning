@@ -47,18 +47,46 @@ the canonical repo/branch combo configured in GitHub's Pages settings.
 
 Full authoritative checklist: [`docs/implementation-progress.md`](implementation-progress.md).
 Snapshot as of this handoff: **Phases A–E are done** (Phase 1 MVP and its
-two logged gaps) and **Phase F (Phase 2: Bituach Leumi module) is done**.
+two logged gaps), **Phase F (Bituach Leumi module) is done**, and **Phase G
+(per-source access rules, annuities and timeline) is done but not yet
+committed** — check `git status` / `git log` before assuming it is on `main`.
 
+- **Phase G (Phase 2 — per-source model): ALL DONE.** Pre-phase validation of
+  the access rules is in `docs/plan.md` → "Open Items" item 5 (secondary
+  sources only — re-check edge cases against the Capital Market Authority).
+  - `domain/accessRules.ts` (sourced constants), `domain/sources.ts`
+    (`buildSources`: each account → kind, unlock age, annuity),
+    `domain/profileBasics.ts` (age/return/balance helpers),
+    `domain/drawdown.ts` (`simulateDrawdown`), `domain/timeline.ts`
+    (`buildRetirementTimeline`).
+  - `estimateRetirementIncomeAtAge` is a closed form with checkpoints at
+    each unlock/annuity start, so income never exceeds what is accessible by
+    then; its result has an `access` summary. `projectNetWorth` and
+    `estimateIncomeBreakdown` both run on `simulateDrawdown`.
+  - Access: pension, managers insurance, provident (kitzba) and IRA
+    provident from age 60; investment provident any time; study fund 6
+    years after the first deposit (`liquidityDate`, else join date). No
+    product type = pension fund, fully accessible (back-compat; flagged on
+    the Dashboard).
+  - Annuities (pension/managers insurance only): `estimatedMonthlyAnnuity`,
+    else balance ÷ `conversionFactor` when `hasGuaranteedFactor`.
+  - UI: Dashboard `SourceAccessCard`, six-band `IncomeBreakdownChart`,
+    Projections `RetirementTimeline`, helper text on the annuity section;
+    i18n en/ru/he.
+  - Behavior change: income can no longer borrow against a future BL
+    pension/annuity (no savings → 0 before it starts).
+  - Not modeled: tax, early-withdrawal penalty, withdrawal ordering,
+    study-fund 3-year exception, severance split, minimum-pension rule,
+    official conversion-factor tables.
 - **Phase F (Phase 2 — Bituach Leumi): ALL DONE** (pre-phase validation of
   the plan's open items is in `docs/plan.md` → "Open Items").
   - `domain/bituachLeumiRates.ts` (sourced constants + effective date +
     `womenRetirementAge`) and `domain/bituachLeumi.ts`
     (`statutoryRetirementAge`, `estimateBituachLeumiPension`,
     `mayQualifyForIncomeSupplement`).
-  - Flows into `estimateRetirementIncomeAtAge` (bridge formula),
-    `projectNetWorth` (withdrawal offset from the claim age),
-    `estimateIncomeBreakdown` (third band), funding gap and the feasibility
-    solver.
+  - Flows into `estimateRetirementIncomeAtAge`, `projectNetWorth`,
+    `estimateIncomeBreakdown`, funding gap and the feasibility solver
+    (since Phase G through the per-source engine).
   - `profile.bituachLeumi` (`includeInProjection` default **true**,
     `insuredYearsToDate`, `monthlyPensionOverride`), backfilled in
     `normalizeProfile()`.
@@ -107,16 +135,15 @@ two logged gaps) and **Phase F (Phase 2: Bituach Leumi module) is done**.
     reflect implemented status (the two gaps it logged were closed in
     Phase E).
   - D3: live deploy verified (done as a side effect of A7).
-- 108 tests total, all green; lint/typecheck/build all green.
+- 152 tests total, all green; lint/typecheck/build all green.
 
 ## Where to go next
 
-Phase 1 and the Bituach Leumi module are complete. Remaining, not yet
-started:
+Phase 1, the Bituach Leumi module and the per-source model are complete.
+Remaining, not yet started:
 
-- **Rest of Phase 2** per `docs/plan.md`: Provident Fund/Managers Insurance
-  nuance, couples/household modeling (incl. BL spouse supplement ₪924),
-  per-source retirement timeline.
+- **Rest of Phase 2** per `docs/plan.md`: couples/household modeling
+  (per-spouse profiles, combined view, BL spouse supplement ₪924).
 - **Phase 3 tax module:** manually verify the tax constants listed in
   `docs/plan.md` → "Open Items" (item 3) against Tax Authority circulars
   first.

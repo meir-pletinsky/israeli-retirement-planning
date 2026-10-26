@@ -9,23 +9,20 @@ import {
   YAxis,
 } from "recharts";
 
-import type { IncomeBreakdownPoint } from "../../domain";
+import {
+  INCOME_BAND_KEYS,
+  type IncomeBandKey,
+  type IncomeBreakdownPoint,
+} from "../../domain";
+import { INCOME_BAND_COLORS } from "./incomeBandColors";
 
 interface IncomeBreakdownChartProps {
   data: IncomeBreakdownPoint[];
   currencySymbol: string;
-  pensionLabel: string;
-  investmentsLabel: string;
-  bituachLeumiLabel: string;
+  labels: Record<IncomeBandKey, string>;
 }
 
-export function IncomeBreakdownChart({
-  data,
-  currencySymbol,
-  pensionLabel,
-  investmentsLabel,
-  bituachLeumiLabel,
-}: IncomeBreakdownChartProps) {
+export function IncomeBreakdownChart({ data, currencySymbol, labels }: IncomeBreakdownChartProps) {
   return (
     <ResponsiveContainer width="100%" height={280}>
       <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
@@ -42,27 +39,16 @@ export function IncomeBreakdownChart({
           }
         />
         <Legend wrapperStyle={{ fontSize: 12 }} />
-        <Bar
-          dataKey="pensionFund"
-          name={pensionLabel}
-          stackId="income"
-          fill="#0d9488"
-          radius={[0, 0, 0, 0]}
-        />
-        <Bar
-          dataKey="investments"
-          name={investmentsLabel}
-          stackId="income"
-          fill="#94a3b8"
-          radius={[0, 0, 0, 0]}
-        />
-        <Bar
-          dataKey="bituachLeumi"
-          name={bituachLeumiLabel}
-          stackId="income"
-          fill="#f59e0b"
-          radius={[4, 4, 0, 0]}
-        />
+        {INCOME_BAND_KEYS.map((band, index) => (
+          <Bar
+            key={band}
+            dataKey={band}
+            name={labels[band]}
+            stackId="income"
+            fill={INCOME_BAND_COLORS[band]}
+            radius={index === INCOME_BAND_KEYS.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+          />
+        ))}
       </BarChart>
     </ResponsiveContainer>
   );

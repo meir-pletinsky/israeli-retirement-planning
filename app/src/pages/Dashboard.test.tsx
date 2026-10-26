@@ -130,6 +130,102 @@ describe("Dashboard", () => {
     });
   });
 
+  describe("source access card", () => {
+    const zeroRealReturn = { investmentReturnPct: 4, inflationPct: 4 };
+
+    async function seed(profile: ReturnType<typeof buildTestProfile>) {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+    }
+
+    it("stays hidden when every saving is accessible", async () => {
+      await seed(
+        buildTestProfile({ age: 40, retirementAge: 67, otherAssets: 500_000, ...zeroRealReturn }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      expect(await screen.findByText("Net Worth Today")).toBeInTheDocument();
+      expect(screen.queryByText("Access to your savings")).not.toBeInTheDocument();
+    });
+
+    it("explains the locked pension and the income it limits", async () => {
+      const profile = buildTestProfile({
+        age: 55,
+        retirementAge: 55,
+        otherAssets: 60_000,
+        pensionBalances: [600_000],
+        pensionAccountOverrides: [{ productCategory: "comprehensivePension" }],
+        ...zeroRealReturn,
+      });
+      await seed(profile);
+      const { unconstrainedMonthlyIncome } = estimateRetirementIncome(profile, "standard").access;
+
+      renderWithProviders(<Dashboard />);
+
+      expect(await screen.findByText("Access to your savings")).toBeInTheDocument();
+      expect(screen.getByText("Available at retirement: \u20aa60,000")).toBeInTheDocument();
+      expect(screen.getByText("Locked until age 60: \u20aa600,000")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          `Until age 60 only part of your savings is accessible, which limits your sustainable income. If all your savings were available it would be \u20aa${unconstrainedMonthlyIncome.toLocaleString()} per month.`,
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it("lists accounts that pay an annuity", async () => {
+      const profile = buildTestProfile({
+        age: 60,
+        retirementAge: 65,
+        pensionBalances: [500_000],
+        pensionAccountOverrides: [
+          {
+            productCategory: "comprehensivePension",
+            accountStatus: "payingAnnuity",
+            annuityParameters: {
+              hasGuaranteedFactor: false,
+              conversionFactor: null,
+              estimatedMonthlyAnnuity: 3000,
+              annuityTaxType: null,
+              guaranteedPaymentMonths: null,
+            },
+          },
+        ],
+        ...zeroRealReturn,
+      });
+      await seed(profile);
+      const { accountAnnuityMonthly } = estimateRetirementIncome(profile, "standard").access;
+
+      renderWithProviders(<Dashboard />);
+
+      expect(accountAnnuityMonthly).toBe(3000);
+      expect(
+        await screen.findByText(
+          "Accounts paying a monthly annuity: \u20aa3,000 (included in your income)",
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it("flags accounts with no product type and links to My Data", async () => {
+      await seed(
+        buildTestProfile({
+          age: 40,
+          retirementAge: 67,
+          pensionBalances: [100_000],
+          ...zeroRealReturn,
+        }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      expect(await screen.findByText(/Accounts without a product type: 1\./)).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "Edit accounts" })).toHaveAttribute(
+        "href",
+        "/my-data/pension-savings",
+      );
+    });
+  });
+
   describe("Bituach Leumi card", () => {
     async function seed(profile: ReturnType<typeof buildTestProfile>) {
       await saveProfileToDb(profile);

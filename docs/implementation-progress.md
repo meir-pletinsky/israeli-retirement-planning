@@ -12,9 +12,9 @@ Scope note: Phase 1 here targets `docs/plan.md`'s "Phase 1 — MVP", but with
 the richer pension-account / equity-holding input model already built in the
 prototype (see `docs/ui-concept.md` + the schema-driven data model). The
 calculation engine starts simple (aggregate balances, deterministic growth)
-and does **not** yet model annuity conversion nuance or tax — those remain
-Phase 2/3 per `docs/plan.md`. Bituach Leumi was added as the first Phase 2
-module (Phase F below).
+and does **not** yet model tax — that remains Phase 3 per `docs/plan.md`.
+Bituach Leumi was added as the first Phase 2 module (Phase F below), and the
+per-source access/annuity model as the second (Phase G).
 
 ## Phase A — Project setup & infra
 
@@ -194,11 +194,78 @@ Pre-phase validation of the four `docs/plan.md` open items was done first
 - [x] F5. Tests: 108 total, all green (new `bituachLeumi.test.ts`, BL cases
       in the income / net-worth / breakdown / feasibility tests, profile
       backfill, Dashboard card states, Personal step form).
-- [ ] F6. Remaining Phase 2: Provident Fund and Managers Insurance nuance,
-      couples/household (spouse supplement ₪924), per-source retirement
-      timeline. Not started.
+- [x] F6. Remaining Phase 2 items were split: Provident Fund / Managers
+      Insurance nuance and the per-source timeline are done in Phase G;
+      couples/household (spouse supplement ₪924) is still not started.
+
+## Phase G — Phase 2: per-source access rules, annuities and timeline
+
+Pre-phase rule validation was done first (2026-10-26; secondary sources
+only, see `docs/plan.md` → "Open Items" item 5).
+
+- [x] G1. Sourced rules. `domain/accessRules.ts` (`ACCESS_RULES`: as-of
+      date, earliest annuity age 60, study-fund liquidity 6 years) with the
+      list of what is deliberately not modeled.
+- [x] G2. Sources. `domain/sources.ts` turns each account into a
+      `RetirementSource` (kind, balance, contribution, unlock age, value at
+      retirement, optional annuity); `otherAssets` and equity form one
+      always-accessible `otherInvestments` source. Category → kind and
+      unlock age: pension/managers insurance/provident/IRA provident → 60,
+      investment provident → 0, study fund → `liquidityDate`, else join date
+      + 6 years. `domain/profileBasics.ts` holds the age/return/balance
+      helpers extracted from `netWorth.ts`.
+- [x] G3. Income engine. `estimateRetirementIncomeAtAge` is now a
+      closed form with checkpoints at each unlock and annuity start:
+      `S = min over t of (Σ unlocked value + Σ stream payments so far) /
+      A(t)`, so spending can never exceed what is accessible by then. It
+      reduces to the old formula when nothing is locked. The result carries
+      a `RetirementAccessSummary` (accessible vs. locked at retirement,
+      next unlock age, `bridgeLimited`, income if everything were
+      accessible, the limiting age, annuity total, uncategorized accounts).
+- [x] G4. Year-by-year simulation. `domain/drawdown.ts`
+      (`simulateDrawdown`) withdraws pro rata from unlocked, non-annuitized
+      sources and tracks each source's payment stream and share of capital;
+      `projectNetWorth` and `estimateIncomeBreakdown` both use it, so the
+      chart, the table and the timeline agree. The breakdown now has six
+      bands (pension fund, provident fund, managers insurance, study fund,
+      other investments, Bituach Leumi).
+- [x] G5. Timeline. `domain/timeline.ts` (`buildRetirementTimeline`) groups
+      consecutive ages with the same paying sources into segments.
+- [x] G6. UI + i18n (en/ru/he). Dashboard `SourceAccessCard` (accessible vs.
+      locked capital, account annuities, a bridge-limited warning, an
+      uncategorized-accounts notice with a link to My Data — hidden when
+      there is nothing to say); six-series `IncomeBreakdownChart`; Projections
+      `RetirementTimeline` table; helper text on the account form's annuity
+      section.
+- [x] G7. Tests: 152 total, all green (new `sources.test.ts` and
+      `sourceAccess.test.ts`; updated income/breakdown tests; Dashboard card
+      states; Projections timeline). Checked in the browser in English and
+      Hebrew (RTL).
 
 ## Deviations from original docs (log as they happen)
+
+- **Per-source modeling assumptions (Phase G).**
+  - An account with no product type is treated as a pension fund that is
+    fully accessible (unlock age 0), so old profiles keep their numbers; the
+    Dashboard flags these accounts. `iraProvidentFund` is treated as locked
+    until 60.
+  - Provident funds are modeled as capital drawn down from 60 (the
+    annuity-only rule for post-2008 deposits is not applied).
+  - Annuities apply only to pension funds and managers insurance, are
+    treated as inflation-linked real streams through age 90, and take the
+    annuitized capital out of the simulation, which shows as a drop in net
+    worth at the start age. `estimatedMonthlyAnnuity` wins over a guaranteed
+    factor; with neither set the account is drawn down as capital.
+  - No early-withdrawal penalty or tax, no withdrawal-order optimization
+    (pro rata across unlocked sources), no study-fund "3 years" retirement
+    exception, no severance split, no minimum-pension rule.
+  - **Behavior change:** the income can no longer borrow against a future
+    Bituach Leumi pension or annuity — a person with no savings now gets 0
+    before the pension starts (previously a positive figure). Feasibility
+    results with ordinary savings are unchanged.
+  - The simulation draws in rows N..90 (91−N draws) while the closed form
+    spends over 90−N years; this one-row quirk predates Phase G and is kept.
+  - Access rules were validated against secondary sources only.
 
 - **Bituach Leumi modeling assumptions (Phase F).** Single-person rate
   only; spouse/child supplements, the earnings test between the statutory

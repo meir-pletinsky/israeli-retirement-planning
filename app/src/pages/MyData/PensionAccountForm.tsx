@@ -200,6 +200,7 @@ export function PensionAccountForm({
       </CollapsibleSection>
 
       <CollapsibleSection title={f("sectionAnnuityParameters")}>
+        <p className="text-xs text-slate-500">{f("annuityParametersHelper")}</p>
         <CheckboxField
           label={f("hasGuaranteedFactor")}
           checked={annuityParameters.hasGuaranteedFactor}

@@ -17,7 +17,9 @@ Phase 1 (MVP) is implemented — app shell, i18n/RTL, Dexie persistence +
 export/import, domain calculation engine, dashboard/projections wiring,
 wizard validation, CI + GitHub Pages deploy, and initial component tests
 are all done. The first Phase 2 module, **Bituach Leumi**, is also done
-(Phase F). See [`docs/implementation-progress.md`](implementation-progress.md)
+(Phase F), followed by the **per-source model** (Phase G): per-product
+access/liquidity rules, account annuitization and a per-source retirement
+timeline. See [`docs/implementation-progress.md`](implementation-progress.md)
 for the authoritative, task-by-task checklist and logged deviations.
 
 Known gaps vs. this document's original Phase 1 output list: **both are now
@@ -39,7 +41,8 @@ closed** (see Phase E in
 Pre-Phase-2 check, **2026-10-26**. Items 1–2 were validated against
 authoritative sources and drove the implementation; items 3–4 are
 partially resolved and flagged for manual verification before their
-modules ship.
+modules ship; item 5 (per-product access rules) was checked against
+secondary sources before Phase G.
 
 1. **Bituach Leumi old-age pension — validated** (btl.gov.il; implemented
    in `domain/bituachLeumi*.ts`, every amount tied to an effective date and
@@ -79,6 +82,31 @@ modules ship.
    guaranteed annuity factor have not been sold since 1 Jan 2013
    (Circular 2012-1-5), so it is a legacy-policy input, which matches the
    existing `LegacyPolicyModel` field.
+5. **Access / liquidity rules per product — validated against secondary
+   sources only (2026-10-26; medium-to-high confidence).** Bizportal,
+   btl.gov.il and nevo.co.il were readable; gov.il and Kol-Zchut were
+   blocked, so re-check against the Capital Market Authority before
+   relying on the edge cases. Implemented in `domain/accessRules.ts` and
+   `domain/sources.ts`.
+   - Pension funds, managers insurance and provident funds (kupat gemel):
+     money can be taken from **age 60**, men and women alike (high
+     confidence for pension and gemel; medium for managers insurance).
+   - Investment provident fund (*gemel le-hashkaa*): accessible at any
+     time (high confidence).
+   - Study fund: liquid **6 years after the first deposit** (high
+     confidence).
+   - Managers insurance: monthly annuity = balance ÷ conversion factor
+     (*mekadem*). Guaranteed factors by cohort are about 144, 167 and 200;
+     policies since 2013 use a market factor of about 214. Only a
+     user-entered factor or annuity is used — no official factor table.
+   - Provident fund deposits from 2008 onward must be taken as an annuity;
+     earlier deposits can be taken as a lump sum. The model simplifies this
+     to capital drawn down from 60.
+   - **Not modeled** (unverified or out of scope): the minimum-pension rule
+     (32.5% of the average wage) that restricts early lump sums; the
+     study-fund "3 years" exception for retirement; official conversion
+     factor tables; the early-withdrawal penalty (Phase 3, tax); the
+     severance (*pitzuim*) split.
 
 ## Phase 1 — MVP (functional spec Section 14)
 
@@ -128,9 +156,19 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
   the Dashboard. Single-rate only; spouse/child supplements, the earnings
   test and the means-tested income supplement itself are not modeled. The
   "earliest claim age" idea was dropped because BTL has no early claim.
-- Provident Fund (Kupat Gemel) and Managers Insurance modules
+- **Per-source model — done** (Phase G in
+  [`docs/implementation-progress.md`](implementation-progress.md)):
+  each account is a source with its own unlock age (pension, managers
+  insurance, provident fund from 60; study fund 6 years after the first
+  deposit; investment provident fund and other assets always accessible),
+  and pension/managers-insurance accounts can be converted to a monthly
+  annuity from a user-entered amount or guaranteed factor. Income is limited
+  by when each pot opens, so retiring before 60 only spends accessible
+  savings. The Dashboard explains locked capital, annuities and uncategorized
+  accounts; Projections shows a six-band income chart and a retirement
+  timeline by source and age. Tax, early-withdrawal penalties and
+  withdrawal-order optimization remain Phase 3.
 - Couple user type: per-spouse data + combined household view
-- Retirement timeline model (income by source, age-banded)
 
 ## Phase 3 — Risk, Tax & Life Events
 

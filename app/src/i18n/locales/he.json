@@ -50,6 +50,18 @@
       "ratesAsOf": "שיעורים נכון ל-{{date}}",
       "source": "מקור: ביטוח לאומי"
     },
+    "sourceAccess": {
+      "title": "נגישות לחיסכון שלך",
+      "ageYears": "{{years}}",
+      "ageYearsMonths": "{{years}} ו-{{months}} חודשים",
+      "accessible": "זמין בפרישה: {{amount}}",
+      "locked": "נעול עד גיל {{age}}: {{amount}}",
+      "annuities": "חשבונות שמשלמים קצבה חודשית: {{amount}} (כלולים בהכנסה שלך)",
+      "bridgeLimited": "עד גיל {{age}} רק חלק מהחיסכון נגיש, מה שמגביל את ההכנסה הקבועה שלך. אילו כל החיסכון היה זמין, ההכנסה הייתה {{income}} לחודש",
+      "uncategorized": "חשבונות ללא סוג מוצר: {{count}}. הם מטופלים כנגישים לחלוטין; הגדרת הסוג תחיל את כללי הנגישות",
+      "editAccounts": "עריכת חשבונות",
+      "rulesAsOf": "כללי הנגישות נכונים ל-{{date}}. קנסות משיכה מוקדמת ומסים אינם מחושבים"
+    },
     "kpi": {
       "monthlyIncome": "\u05d4\u05db\u05e0\u05e1\u05d4 \u05d7\u05d5\u05d3\u05e9\u05d9\u05ea \u05de\u05e9\u05d5\u05e2\u05e8\u05ea \u05d1\u05e4\u05e8\u05d9\u05e9\u05d4",
       "netWorth": "\u05e9\u05d5\u05d5\u05d9 \u05e0\u05e7\u05d9 \u05e0\u05d5\u05db\u05d7\u05d9",
@@ -134,6 +146,7 @@
           "tikun190CapitalBalance": "יתרת הון (תיקון 190)",
           "severanceBalance": "יתרת פיצויים",
           "sectionAnnuityParameters": "פרמטרי קצבה",
+          "annuityParametersHelper": "משמש לקרנות פנסיה וביטוח מנהלים. הזן את הקצבה החודשית מהדוח שלך (בכסף של היום), או סמן מקדם מובטח והזן את מקדם ההמרה (בדרך כלל 140–215) כדי לחשב אותה מהיתרה. הקצבה מתחילה בגיל 60, או מיד אם החשבון כבר משלם קצבה.",
           "hasGuaranteedFactor": "קיים מקדם המרה מובטח",
           "conversionFactor": "מקדם המרה",
           "estimatedMonthlyAnnuity": "קצבה חודשית משוערת",
@@ -264,7 +277,18 @@
     "viewChart": "\u05d4\u05e6\u05d2 \u05db\u05d2\u05e8\u05e3",
     "sourcePension": "\u05e7\u05e8\u05df \u05e4\u05e0\u05e1\u05d9\u05d4",
     "sourceInvestments": "\u05e0\u05db\u05e1\u05d9\u05dd \u05d0\u05d7\u05e8\u05d9\u05dd",
-    "sourceBituachLeumi": "ביטוח לאומי"
+    "sourceBituachLeumi": "ביטוח לאומי",
+    "sourceProvidentFund": "קופת גמל",
+    "sourceManagersInsurance": "ביטוח מנהלים",
+    "sourceStudyFund": "קרן השתלמות",
+    "timeline": {
+      "title": "ציר זמן הפרישה",
+      "intro": "אילו מקורות משלמים בכל שלב של הפרישה, בכסף של היום.",
+      "ages": "גילאים",
+      "sources": "מקורות משלמים",
+      "income": "הכנסה חודשית",
+      "range": "{{from}}–{{to}}"
+    }
   },
   "settings": {
     "title": "\u05d4\u05d2\u05d3\u05e8\u05d5\u05ea",
