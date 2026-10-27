@@ -107,8 +107,10 @@ export function EquityHoldingForm({
           importance="reference"
           defaultOpen
         >
+          <p className="text-xs text-slate-500">{f("employerGrantIntro")}</p>
           <DateField
             label={f("grantDate")}
+            importance="recommended"
             value={employerGrantDetails.grantDate}
             onChange={(grantDate) =>
               onChange({
@@ -118,6 +120,7 @@ export function EquityHoldingForm({
           />
           <SelectField
             label={f("taxTrack")}
+            importance="recommended"
             value={employerGrantDetails.taxTrack}
             onChange={(v) =>
               onChange({
@@ -174,6 +177,8 @@ export function EquityHoldingForm({
           />
           <NumberField
             label={f("costBasisAtGrantUSD")}
+            importance="recommended"
+            helperText={f("costBasisAtGrantHelper")}
             value={employerGrantDetails.costBasisAtGrantUSD}
             onChange={(v) =>
               onChange({

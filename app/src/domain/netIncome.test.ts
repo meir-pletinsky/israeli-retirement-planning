@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { buildTestProfile } from "../test/domainFixtures";
-import { estimateNetIncome, estimateNetIncomeAtAge } from "./netIncome";
+import { buildHousehold } from "./household";
+import {
+  estimateNetIncome,
+  estimateNetIncomeAtAge,
+  estimateNetIncomeForHousehold,
+} from "./netIncome";
 
 const zeroReal = { investmentReturnPct: 4, inflationPct: 4 };
 
@@ -34,18 +39,60 @@ describe("estimateNetIncome", () => {
       buildTestProfile({ age: 62, retirementAge: 62, ...zeroReal, pensionBalances: [6_000_000] }),
     );
     expect(net.grossMonthlyIncome).toBe(17_857);
-    // Brackets 1,128 + (17,857 - 10,060) x 20% = 2,687, less 2.25 credit points (544.5).
-    expect(net.taxMonthly).toBe(2_143);
-    expect(net.netMonthlyIncome).toBe(15_714);
+    // Brackets 1,128 + (17,857 - 10,060) x 20% = 2,687, less 2.25 credit points (544.5) = 2,143,
+    // plus health tax of 3.23% on 7,703 and 5.17% on the rest (774).
+    expect(net.taxMonthly).toBe(2_917);
+    expect(net.netMonthlyIncome).toBe(14_940);
     expect(net.lowestNetAge).toBe(62);
-    expect(net.effectiveTaxRate).toBeCloseTo(2_143 / 17_857, 6);
+    expect(net.effectiveTaxRate).toBeCloseTo(2_917 / 17_857, 6);
 
     const before = net.years.find((year) => year.age === 66);
     const after = net.years.find((year) => year.age === 67);
-    expect(before?.taxMonthly).toBe(2_143);
-    // From 67 the exemption removes 5,422 of the pension: brackets 1,603, less credit points.
-    expect(after?.taxMonthly).toBe(1_058);
-    expect(after?.netMonthly).toBe(16_799);
+    expect(before?.taxMonthly).toBe(2_917);
+    // From 67 (2031) the exemption removes 9,430 x 67% = 6,318 of the pension: brackets 1,424,
+    // less credit points, and no health tax.
+    expect(after?.taxMonthly).toBe(879);
+    expect(after?.netMonthly).toBe(16_978);
+  });
+
+  it("charges health tax on an early pension until the statutory age, then none", () => {
+    // 1,836,000 over the 30 years from 60 to 90 is 5,100 a month: income tax is covered by credit points.
+    const net = estimateNetIncome(
+      buildTestProfile({ age: 60, retirementAge: 60, ...zeroReal, pensionBalances: [1_836_000] }),
+    );
+    expect(net.grossMonthlyIncome).toBe(5_100);
+    // 5,100 x 3.23% = 164.73.
+    expect(net.years.find((year) => year.age === 60)?.taxMonthly).toBe(165);
+    expect(net.years.find((year) => year.age === 66)?.taxMonthly).toBe(165);
+    expect(net.years.find((year) => year.age === 67)?.taxMonthly).toBe(0);
+  });
+
+  it("exempts more of the pension in later calendar years", () => {
+    // 3,312,000 over the 23 years from 67 to 90 is 12,000 a month.
+    const net = estimateNetIncome(
+      buildTestProfile({ age: 67, retirementAge: 67, ...zeroReal, pensionBalances: [3_312_000] }),
+    );
+    const taxAt = (age: number) => net.years.find((year) => year.age === age)?.taxMonthly;
+    // 2026: 57.5% of 9,430 exempt, taxable 6,578: 658 less 544.5.
+    expect(taxAt(67)).toBe(113);
+    // 2027: 62.5% exempt; 2028 on: 67% exempt.
+    expect(taxAt(68)).toBe(66);
+    expect(taxAt(69)).toBe(24);
+    expect(taxAt(80)).toBe(24);
+  });
+
+  it("uses the calendar year of the household it is given", () => {
+    const profile = buildTestProfile({
+      age: 67,
+      retirementAge: 67,
+      ...zeroReal,
+      pensionBalances: [3_312_000],
+    });
+    const timing = { selfAge: 67, spouseAge: null };
+    const from2026 = estimateNetIncomeForHousehold(buildHousehold(profile, timing, 2026));
+    const from2030 = estimateNetIncomeForHousehold(buildHousehold(profile, timing, 2030));
+    expect(from2026.taxMonthly).toBe(113);
+    expect(from2030.taxMonthly).toBe(24);
   });
 
   it("covers every year from retirement to the planning horizon", () => {
@@ -76,8 +123,8 @@ describe("estimateNetIncome", () => {
       }),
     );
     expect(couple.grossMonthlyIncome).toBe(single.grossMonthlyIncome);
-    // Two people at 8,929 each: brackets 970 less 544.5 of credit points, twice.
-    expect(couple.taxMonthly).toBe(850);
+    // Two people at 8,929 each: brackets 970 less 544.5 of credit points, plus 312 of health tax, twice.
+    expect(couple.taxMonthly).toBe(1_475);
     expect(couple.taxMonthly).toBeLessThan(single.taxMonthly);
     expect(couple.netMonthlyIncome).toBe(couple.grossMonthlyIncome - couple.taxMonthly);
   });
@@ -205,6 +252,60 @@ describe("estimateNetIncome", () => {
       expect(growing.taxMonthly).toBeGreaterThan(0);
       expect(growing.effectiveTaxRate).toBeGreaterThan(0);
       expect(growing.effectiveTaxRate).toBeLessThan(0.25);
+    });
+  });
+
+  describe("employer stock under Section 102", () => {
+    // 1,000 shares at $2,000 are worth 7,400,000 and give 26,812 a month over the 23 years from 67.
+    // Half of that value was already there at the grant ($1,000 a share).
+    const employerStock = (
+      employerGrant: NonNullable<Parameters<typeof buildTestProfile>[0]["equity"]>[number]["employerGrant"],
+    ) =>
+      estimateNetIncome(
+        buildTestProfile({
+          age: 67,
+          retirementAge: 67,
+          ...zeroReal,
+          equity: [{ quantity: 1_000, priceUSD: 2_000, employerGrant }],
+        }),
+      );
+
+    it("taxes the grant-date value at the brackets and the rest at the capital gains rate", () => {
+      const net = employerStock({
+        taxTrack: "section102CapitalGainsTrustee",
+        grantPriceUSD: 1_000,
+      });
+      expect(net.grossMonthlyIncome).toBe(26_812);
+      // Ordinary half 13,406: brackets 1,128 + (13,406 - 10,060) x 20% = 1,797, less credit points 544.5 = 1,253.
+      // Capital gain half 13,406 x 25% = 3,351.
+      expect(net.taxMonthly).toBe(4_604);
+      expect(net.netMonthlyIncome).toBe(22_208);
+    });
+
+    it("taxes all of it as ordinary income on the ordinary-income track", () => {
+      const net = employerStock({ taxTrack: "section102OrdinaryIncomeTrustee", grantPriceUSD: 1_000 });
+      // Brackets 1,128 + 8,940 x 20% + 6,100 x 31% + (26,812 - 25,100) x 35% = 5,406, less 544.5 = 4,862.
+      expect(net.taxMonthly).toBe(4_862);
+      expect(net.netMonthlyIncome).toBe(21_950);
+    });
+
+    it("taxes a sale before the 24 months are up like ordinary income", () => {
+      const sixMonthsAgo = new Date(Date.now() - 0.5 * 365.25 * 24 * 3600 * 1000)
+        .toISOString()
+        .slice(0, 10);
+      const net = employerStock({
+        taxTrack: "section102CapitalGainsTrustee",
+        grantDate: sixMonthsAgo,
+        grantPriceUSD: 1_000,
+      });
+      expect(net.taxMonthly).toBe(4_862);
+    });
+
+    it("taxes only the growth above the grant value for shares outside a trustee", () => {
+      const net = employerStock({ taxTrack: "section3iNonTrustee", grantPriceUSD: 1_000 });
+      // Half is gain: 13,406 x 25%.
+      // 26,812 a month is drawn, which is what the estimate rounds to: 13,406 x 25%, half rounded up.
+      expect(net.taxMonthly).toBe(3_352);
     });
   });
 });

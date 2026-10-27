@@ -104,7 +104,13 @@ export function Dashboard() {
         monthlyIncomeTodayMoney={monthlyIncomeTodayMoney}
       />
 
-      <TaxCard net={netIncome} isCouple={isCouple} />
+      <TaxCard
+        net={netIncome}
+        isCouple={isCouple}
+        hasEmployerStock={profile.equity.holdings.some(
+          (holding) => holding.investmentCategory === "employerGrantedStock",
+        )}
+      />
 
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-2 flex items-center justify-between">

@@ -93,7 +93,14 @@ src/
                     # netIncome.ts is a post-hoc tax layer: it takes the
                     # level-gross plan, simulates the drawdown with
                     # per-account holdings and cost basis, and taxes each
-                    # member per year with tax.ts (rates in taxRates.ts);
+                    # member per year with tax.ts (rates in taxRates.ts;
+                    # the pension exemption follows a calendar-year
+                    # schedule, and a pension taken before the statutory
+                    # age bears health tax; employer shares under Section
+                    # 102 are routed in sources.ts into an ordinary-income
+                    # layer and a capital-gains remainder). The clock is read only in
+                    # buildHousehold (Household.baseYear), so tests can pin
+                    # the year;
                     # the Dashboard headline, funding gap and feasibility
                     # use the resulting after-tax income.
                     # scenarioComparison.ts evaluates the household at any

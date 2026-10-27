@@ -5,29 +5,44 @@ import { TAX_RATES as RATES } from "./taxRates";
  * One person's income tax in retirement, for one year at a steady monthly
  * rhythm (everything is a monthly amount in today's money).
  *
- * What is modelled (see docs/implementation-progress.md, Phase I):
+ * What is modelled (see docs/implementation-progress.md, Phases I and L):
  * - Pension income is taxed at the progressive brackets, less credit points.
  *   From the statutory retirement age part of it is exempt (Section 9A
- *   qualifying annuity).
+ *   qualifying annuity); the exempt share depends on the tax year.
+ * - Before the statutory retirement age, a pension also bears health tax.
  * - Real capital gains are taxed at a flat rate, outside the brackets.
+ * - Employer shares sold under Section 102 are split: the grant-date value is
+ *   ordinary income, stacked on top of the pension at the brackets (no
+ *   pension exemption, no health tax); the rest is a capital gain.
  * - Surtax applies to income above the threshold, with an extra rate on the
  *   capital-income part.
  * - Bituach Leumi pensions and study-fund withdrawals are exempt and never
  *   reach this function.
  *
- * Not modelled: health insurance and Bituach Leumi contributions, other
- * credit points (children, new immigrants, ...), tax spreading and
- * coordination between spouses.
+ * Not modelled: Bituach Leumi contributions (also on the Section 102 ordinary
+ * part), health tax on income other than pension, other credit points
+ * (children, new immigrants, ...), tax spreading and coordination between
+ * spouses.
  */
 export interface PersonTaxInput {
   /** Monthly income taxed as a pension: annuity payments and withdrawals from pension-like accounts. */
   pensionMonthly: number;
   /** True from the statutory retirement age, when the qualifying-annuity exemption applies. */
   exemptionApplies: boolean;
+  /** True before the statutory retirement age, when a pension bears health tax. */
+  healthTaxApplies: boolean;
+  /** The calendar year the income falls in; selects the exemption share. */
+  taxYear: number;
   /** Real gain realised each month on securities and investment provident funds. */
   capitalGainMonthly: number;
   /** Tax rate on that gain; the statutory rate unless the user entered another for a holding. */
   capitalGainsRate: number;
+  /**
+   * Monthly proceeds of employer shares that are ordinary income (Section
+   * 102 grant-date value, or all of an ordinary-income sale). Taxed at the
+   * brackets on top of the pension, with no pension exemption.
+   */
+  ordinaryInvestmentMonthly: number;
   creditPoints: number;
   /** Tax-free severance already withdrawn, which shrinks the conditional exemption. */
   pastTaxFreeSeverance: number;
@@ -42,6 +57,8 @@ export interface PersonTax {
   incomeTaxMonthly: number;
   capitalGainsTaxMonthly: number;
   surtaxMonthly: number;
+  /** Health tax on a pension paid before the statutory retirement age. */
+  healthTaxMonthly: number;
   totalMonthly: number;
 }
 
@@ -62,41 +79,84 @@ export function progressiveTax(monthlyIncome: number): number {
   return tax;
 }
 
+/** The first and last year of the exemption schedule, for the notes shown to the user. */
+export const FIRST_EXEMPTION_YEAR = RATES.qualifyingAnnuityFixedExemptionSchedule[0].fromYear;
+export const FINAL_EXEMPTION_YEAR =
+  RATES.qualifyingAnnuityFixedExemptionSchedule[
+    RATES.qualifyingAnnuityFixedExemptionSchedule.length - 1
+  ].fromYear;
+
+/** The fixed share of the qualifying-annuity exemption in `taxYear`. */
+export function fixedExemptionRate(taxYear: number): number {
+  const schedule = RATES.qualifyingAnnuityFixedExemptionSchedule;
+  let rate: number = schedule[0].rate;
+  for (const step of schedule) {
+    if (taxYear >= step.fromYear) rate = step.rate;
+  }
+  return rate;
+}
+
+/** Fixed plus conditional share: the exempt part of a pension up to the ceiling, before any severance offset. */
+export function totalExemptionRate(taxYear: number): number {
+  return fixedExemptionRate(taxYear) + RATES.qualifyingAnnuityConditionalExemptionRate;
+}
+
 /**
  * The exempt part of a monthly qualifying annuity: the fixed share and the
  * conditional share (less the severance offset) of the pension up to the
  * ceiling, limited by the user's remaining allowance when they entered one.
+ * The allowance is used as entered in every year, even though the shares
+ * grow after 2026.
  */
 export function qualifyingAnnuityExemption(
   pensionMonthly: number,
   pastTaxFreeSeverance: number,
   monthlyExemptionCap: number | null,
+  taxYear: number,
 ): number {
   const covered = Math.min(Math.max(pensionMonthly, 0), RATES.qualifyingAnnuityMonthlyCeiling);
   const severanceOffset =
     (Math.max(pastTaxFreeSeverance, 0) * RATES.severanceExemptionFactor) /
     RATES.severanceExemptionMonths;
   const exempt =
-    covered * RATES.qualifyingAnnuityFixedExemptionRate +
+    covered * fixedExemptionRate(taxYear) +
     Math.max(covered * RATES.qualifyingAnnuityConditionalExemptionRate - severanceOffset, 0);
   return monthlyExemptionCap === null ? exempt : Math.min(exempt, Math.max(monthlyExemptionCap, 0));
+}
+
+/** Health tax on a monthly pension paid before the statutory retirement age. */
+export function earlyPensionHealthTax(pensionMonthly: number): number {
+  const pension = Math.max(pensionMonthly, 0);
+  const reduced = Math.min(pension, RATES.healthTaxReducedBracketMonthly);
+  const full = pension - reduced;
+  return reduced * RATES.healthTaxReducedRate + full * RATES.healthTaxFullRate;
 }
 
 export function calculatePersonTax(input: PersonTaxInput): PersonTax {
   const pension = Math.max(input.pensionMonthly, 0);
   const capitalGain = Math.max(input.capitalGainMonthly, 0);
+  const ordinaryInvestment = Math.max(input.ordinaryInvestmentMonthly, 0);
 
   const exemptPensionMonthly = input.exemptionApplies
-    ? qualifyingAnnuityExemption(pension, input.pastTaxFreeSeverance, input.monthlyExemptionCap)
+    ? qualifyingAnnuityExemption(
+        pension,
+        input.pastTaxFreeSeverance,
+        input.monthlyExemptionCap,
+        input.taxYear,
+      )
     : 0;
   const taxablePension = pension - exemptPensionMonthly;
 
   const credits = Math.max(input.creditPoints, 0) * RATES.creditPointMonthlyValue;
-  const incomeTaxMonthly = Math.max(progressiveTax(taxablePension) - credits, 0);
+  const incomeTaxMonthly = Math.max(
+    progressiveTax(taxablePension + ordinaryInvestment) - credits,
+    0,
+  );
   const capitalGainsTaxMonthly = capitalGain * Math.max(input.capitalGainsRate, 0);
+  const healthTaxMonthly = input.healthTaxApplies ? earlyPensionHealthTax(pension) : 0;
 
   const surtaxExcess = Math.max(
-    taxablePension + capitalGain - RATES.surtaxAnnualThreshold / 12,
+    taxablePension + ordinaryInvestment + capitalGain - RATES.surtaxAnnualThreshold / 12,
     0,
   );
   const surtaxMonthly =
@@ -108,6 +168,7 @@ export function calculatePersonTax(input: PersonTaxInput): PersonTax {
     incomeTaxMonthly,
     capitalGainsTaxMonthly,
     surtaxMonthly,
-    totalMonthly: incomeTaxMonthly + capitalGainsTaxMonthly + surtaxMonthly,
+    healthTaxMonthly,
+    totalMonthly: incomeTaxMonthly + capitalGainsTaxMonthly + surtaxMonthly + healthTaxMonthly,
   };
 }

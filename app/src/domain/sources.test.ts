@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import type { PensionAccount } from "../types";
+import type { PensionAccount, TaxTrack } from "../types";
 import { buildTestProfile } from "../test/domainFixtures";
 import {
   accountUnlockAge,
   buildSources,
   countUncategorizedAccounts,
+  employerStockRoute,
   sourceKindForCategory,
 } from "./sources";
 import { projectBalanceAtAge } from "./netWorth";
@@ -310,6 +311,129 @@ describe("buildSources", () => {
       // Equal values at 15% and the statutory 25%.
       expect(other.capitalGainsTaxRate).toBeCloseTo(0.2, 6);
     });
+  });
+
+  describe("employer-granted shares", () => {
+    const capitalRoute: TaxTrack = "section102CapitalGainsTrustee";
+    const sourcesFor = (
+      employerGrant: NonNullable<Parameters<typeof buildTestProfile>[0]["equity"]>[number]["employerGrant"],
+      extra: { otherAssets?: number; age?: number } = {},
+    ) =>
+      buildSources(
+        buildTestProfile({
+          age: extra.age ?? 50,
+          otherAssets: extra.otherAssets,
+          equity: [{ quantity: 100, priceUSD: 50, employerGrant }],
+          ...zeroReal,
+        }),
+        60,
+      );
+
+    it("puts Section 102 capital-route shares in their own source with the grant value as ordinary layer", () => {
+      const sources = sourcesFor({ taxTrack: capitalRoute, grantPriceUSD: 20 }, { otherAssets: 10_000 });
+      expect(sources.map((source) => source.id)).toEqual([
+        "other-investments",
+        "employer-stock-section-102",
+      ]);
+      const [other, shares] = sources;
+      expect(other.balance).toBe(10_000);
+      // 100 shares * $50 * 3.7 now, of which 100 * $20 * 3.7 was worth that at the grant.
+      expect(shares.balance).toBeCloseTo(18_500, 6);
+      expect(shares.ordinaryLayer).toBeCloseTo(7_400, 6);
+      expect(shares.costBasis).toBe(0);
+      expect(shares.taxTreatment).toBe("capitalGains");
+      expect(shares.capitalGainsTaxRate).toBe(0.25);
+      expect(shares.unlockAge).toBe(0);
+    });
+
+    it("takes a missing tax track as the Section 102 capital route", () => {
+      const sources = sourcesFor({ grantPriceUSD: 20 });
+      expect(sources.map((source) => source.id)).toContain("employer-stock-section-102");
+    });
+
+    it("never lets the grant value exceed the current value", () => {
+      const shares = sourcesFor({ taxTrack: capitalRoute, grantPriceUSD: 80 })[1];
+      expect(shares.ordinaryLayer).toBeCloseTo(shares.balance, 6);
+    });
+
+    it("counts a missing grant price as zero, so the whole value is a capital gain", () => {
+      const shares = sourcesFor({ taxTrack: capitalRoute })[1];
+      expect(shares.ordinaryLayer).toBe(0);
+      expect(shares.costBasis).toBe(0);
+    });
+
+    it("taxes the ordinary-income route entirely as ordinary income", () => {
+      const sources = sourcesFor({ taxTrack: "section102OrdinaryIncomeTrustee", grantPriceUSD: 20 });
+      const shares = sources.find((source) => source.id === "employer-stock-ordinary-income");
+      expect(shares?.taxTreatment).toBe("ordinaryIncome");
+      expect(shares?.balance).toBeCloseTo(18_500, 6);
+    });
+
+    it("keeps Section 3(i) shares in the investments bucket with the grant value as cost basis", () => {
+      const sources = sourcesFor({ taxTrack: "section3iNonTrustee", grantPriceUSD: 20 });
+      expect(sources.map((source) => source.id)).toEqual(["other-investments"]);
+      expect(sources[0].balance).toBeCloseTo(18_500, 6);
+      expect(sources[0].costBasis).toBeCloseTo(7_400, 6);
+    });
+
+    it("leaves the total balance unchanged by how the shares are taxed", () => {
+      const total = (employerGrant: Parameters<typeof sourcesFor>[0]) =>
+        sourcesFor(employerGrant, { otherAssets: 10_000 }).reduce(
+          (sum, source) => sum + source.valueAtRetirement,
+          0,
+        );
+      const expected = 10_000 + 18_500;
+      expect(total({ taxTrack: capitalRoute, grantPriceUSD: 20 })).toBeCloseTo(expected, 6);
+      expect(total({ taxTrack: "section102OrdinaryIncomeTrustee" })).toBeCloseTo(expected, 6);
+      expect(total({ taxTrack: "section3iNonTrustee" })).toBeCloseTo(expected, 6);
+    });
+  });
+});
+
+describe("employerStockRoute", () => {
+  const holdingWith = (employerGrant: { grantDate?: string; holdingPeriodMet?: boolean; taxTrack?: TaxTrack }) =>
+    buildTestProfile({ equity: [{ quantity: 1, priceUSD: 1, employerGrant }] }).equity.holdings[0];
+
+  it("is the capital route once the 24 months have passed by retirement", () => {
+    expect(employerStockRoute(holdingWith({ grantDate: isoDateInYears(-3) }), 1)).toBe(
+      "section102Capital",
+    );
+    // Granted six months ago, sold in 1.5 years: held two years.
+    expect(employerStockRoute(holdingWith({ grantDate: isoDateInYears(-0.5) }), 1.5)).toBe(
+      "section102Capital",
+    );
+  });
+
+  it("is a disqualifying disposal, taxed as ordinary income, when the grant is too recent", () => {
+    expect(employerStockRoute(holdingWith({ grantDate: isoDateInYears(-0.5) }), 1)).toBe(
+      "ordinaryIncome",
+    );
+    expect(employerStockRoute(holdingWith({ grantDate: isoDateInYears(0.5) }), 1)).toBe(
+      "ordinaryIncome",
+    );
+  });
+
+  it("trusts the holding-period confirmation over the grant date", () => {
+    expect(
+      employerStockRoute(holdingWith({ grantDate: isoDateInYears(-0.5), holdingPeriodMet: true }), 1),
+    ).toBe("section102Capital");
+  });
+
+  it("assumes the period is met when there is no grant date", () => {
+    expect(employerStockRoute(holdingWith({}), 1)).toBe("section102Capital");
+  });
+
+  it("follows the other tax tracks regardless of dates", () => {
+    const recent = isoDateInYears(-0.1);
+    expect(
+      employerStockRoute(
+        holdingWith({ taxTrack: "section102OrdinaryIncomeTrustee", grantDate: recent }),
+        10,
+      ),
+    ).toBe("ordinaryIncome");
+    expect(
+      employerStockRoute(holdingWith({ taxTrack: "section3iNonTrustee", grantDate: recent }), 10),
+    ).toBe("nonTrustee");
   });
 });
 

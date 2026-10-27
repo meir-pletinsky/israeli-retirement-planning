@@ -311,9 +311,10 @@ describe("findEarliestFeasibleRetirementAge with locked savings", () => {
       ...zeroReal,
     });
 
-  it("retires at 54 when everything counts as spendable", () => {
-    // 2.2M / (5,000 * 12) = 36.7 years => retire by 53.3.
-    expect(findEarliestFeasibleRetirementAge(accounts(false)).earliestAge).toBe(54);
+  it("retires at 55 when everything counts as spendable", () => {
+    // Net 5,000 needs about 5,167 gross (3.23% health tax on the early pension):
+    // 2.2M / (5,167 * 12) = 35.5 years => retire by 54.5.
+    expect(findEarliestFeasibleRetirementAge(accounts(false)).earliestAge).toBe(55);
   });
 
   it("waits until the accessible savings can bridge to 60", () => {

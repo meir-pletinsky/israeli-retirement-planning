@@ -44,7 +44,7 @@ describe("calculateFundingGap", () => {
   });
 
   it("compares net income, after tax, with the desired expenses", () => {
-    // About 17,857 gross a month at 62, taxed at 2,143 before the exemption starts at 67.
+    // About 17,857 gross a month at 62, taxed at 2,917 (income tax and health tax) before the exemption starts at 67.
     const profile = buildTestProfile({
       age: 62,
       retirementAge: 62,
@@ -55,9 +55,9 @@ describe("calculateFundingGap", () => {
     });
     const result = calculateFundingGap(profile);
     expect(result.grossMonthlyIncome).toBe(17_857);
-    expect(result.estimatedMonthlyTax).toBe(2_143);
-    expect(result.estimatedMonthlyIncome).toBe(15_714);
-    expect(result.monthlyGap).toBe(15_714 - 17_000);
+    expect(result.estimatedMonthlyTax).toBe(2_917);
+    expect(result.estimatedMonthlyIncome).toBe(14_940);
+    expect(result.monthlyGap).toBe(14_940 - 17_000);
     expect(result.status).toBe("shortfall");
   });
 

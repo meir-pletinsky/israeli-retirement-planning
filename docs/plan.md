@@ -83,11 +83,14 @@ btl.gov.il before Phase H.
      older material is the 2022-23 value and was dropped.
    - Credit point ₪242/month; a resident man gets 2.25 points, a woman 2.75.
    - Qualifying annuity (kitzva mezuka, Section 9A): from the statutory
-     retirement age, 57.5% in 2026 (22.5% fixed + 35% conditional) of a
-     pension up to ₪9,430/month is exempt. The rate rises to 62.5% in 2027
-     and 67% in 2028; that schedule is not modeled. Each tax-free severance
-     shekel already withdrawn cuts the conditional part by 1.35/180 a month
-     (medium confidence).
+     retirement age, a share of a pension up to ₪9,430/month is exempt: 35%
+     conditional plus a fixed share that rises by calendar year (22% in 2025,
+     22.5% in 2026, 27.5% in 2027, 32% from 2028), so 57.5% in 2026, 62.5%
+     in 2027 and 67% from 2028. The engine uses each year's share. Each
+     tax-free severance shekel already withdrawn cuts the conditional part
+     by 1.35/180 a month (medium confidence).
+   - Health tax on an early pension (before the statutory retirement age):
+     3.23% up to ₪7,703/month and 5.17% above (verified on btl.gov.il).
    - Surtax 3% above ₪721,560/year, plus 2% on the part of capital income
      above it; capital gains 25% on the real gain.
    - **Re-check against the Tax Authority's published circulars in a browser
@@ -228,9 +231,18 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
   tax-free. The Dashboard headline, funding gap and feasibility use the
   lowest after-tax year; a tax card shows the split and what is and is not
   included, and Projections charts the after-tax income per year. Credit
-  points are editable for both spouses. Not modeled: health tax and Bituach
-  Leumi contributions, other credit points (children), tax planning between
-  spouses, the 2027-28 exemption schedule, the gemel-to-annuity exemption.
+  points are editable for both spouses. Phase L refined it: the exemption
+  share follows the calendar-year schedule (57.5% in 2026, 62.5% in 2027,
+  67% from 2028) and a pension taken before the statutory retirement age
+  bears health tax (3.23% / 5.17%). Phase M added employer stock under
+  Section 102: the grant-date value of shares sold in retirement is taxed as
+  ordinary income at the marginal rate and the growth above it at 25% (a
+  sale within 24 months of the grant, or the ordinary-income track, is taxed
+  entirely as ordinary income). Not modeled: Bituach Leumi
+  contributions, health tax on non-pension income, other credit points
+  (children), tax planning between spouses (for example shifting
+  withdrawals to the spouse with the lower rate), the gemel-to-annuity
+  exemption.
 - Survivor analysis (simulate death of either spouse)
 - Real estate module (equity, rental income, appreciation)
 - **Retirement scenario comparison — done** (Phase J in

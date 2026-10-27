@@ -16,8 +16,10 @@ and originally did not model tax. Bituach Leumi was added as the first
 Phase 2 module (Phase F below), the per-source access/annuity model as the
 second (Phase G), couples/household planning as the third (Phase H), and the
 Phase 3 tax module (gross → net income) as Phase I, the retirement-age
-scenario comparison as Phase J, and input guidance, single-person checks and
-UI polish as Phase K.
+scenario comparison as Phase J, input guidance, single-person checks and
+UI polish as Phase K, tax refinements (exemption schedule by year,
+early-retirement health tax) as Phase L, and Section 102 employer stock tax
+as Phase M.
 
 ## Phase A — Project setup & infra
 
@@ -446,6 +448,116 @@ Field tiers (what the badge on each label means):
 Not done: an empty-plan net-worth chart still shows a 0–4 axis (Recharts'
 default for all-zero data); harmless, left as is.
 
+## Phase L — Tax refinements: exemption schedule and early-retirement health tax
+
+Scope chosen with the user: only the two refinements whose numbers could be
+confirmed. Left out on purpose: a credit-points breakdown helper (the total
+is already editable), tax-aware withdrawal splitting between spouses (needs a
+drawdown-engine rework), the gemel-to-annuity exemption, and Bituach Leumi
+contributions.
+
+- [x] L1. **Exemption by calendar year.** `taxRates.ts` replaces the single
+      fixed share with `qualifyingAnnuityFixedExemptionSchedule`: 22% (2025),
+      22.5% (2026), 27.5% (2027), 32% (2028 onward), plus the 35%
+      conditional share, so the total is 57% / 57.5% / 62.5% / 67%.
+      `tax.ts` gains `fixedExemptionRate(year)`, `totalExemptionRate(year)`
+      and a `taxYear` input; `qualifyingAnnuityExemption` takes the year.
+      A year after the schedule keeps the last rate. The ceiling (₪9,430) and
+      a user-entered exemption allowance stay flat in every year.
+- [x] L2. **One clock source.** `Household.baseYear` (and
+      `NetIncomeEstimate.baseYear`) is the calendar year the plan counts
+      from. `buildHousehold(profile, timing, baseYear = new Date().getFullYear())`
+      is the only place the clock is read for the plan, and it also feeds
+      `estimateBituachLeumiPension`. `netIncome.ts` taxes each row in
+      `baseYear + yearsFromNow`. `src/test/setup.ts` pins `Date` to
+      2026-06-15 (only `Date` is faked, so timers and `waitFor` still run),
+      so tests do not change when the year does.
+- [x] L3. **Health tax on an early pension.** Before the statutory retirement
+      age, pension-taxed income bears health tax: 3.23% up to ₪7,703 a month
+      and 5.17% above (verified on btl.gov.il, 2026-10-27). New
+      `PersonTaxInput.healthTaxApplies`, `PersonTax.healthTaxMonthly`
+      (included in `totalMonthly`, not in the surtax base) and
+      `earlyPensionHealthTax()`. From the statutory age no health tax is
+      charged (secondary source). A man retiring at 62 with a ₪17,857
+      pension now pays ₪2,917 a month instead of ₪2,143 until 67.
+- [x] L4. **UI.** `TaxCard` shows the exemption of the plan's base year and
+      the rise to 67% from 2028 (from 2028 on it shows the plain text), a
+      health-tax line, and a shorter "not included" list. Strings in
+      English, Hebrew and Russian (`includedExemptionRising`,
+      `includedHealthTax`, `notIncluded`).
+- [x] L5. **Tests:** 351 total, all green (new schedule, health-tax and
+      calendar-year tests in `tax.test.ts` and `netIncome.test.ts`; figures
+      moved in `fundingGap`, `sourceAccess` and Dashboard tests because early
+      retirees now pay health tax).
+- [x] L6. **Docs:** `docs/constants-to-verify.md` has rows 15-16 (schedule)
+      and 18-20 (health tax), rules I-M, and two log lines. The 2026 step of
+      only +0.5 points (22% to 22.5%) looks odd and is the first thing to
+      check.
+
+Not modeled (documented as conservative): the health-tax exceptions
+(survivors' allowance, disability of 75% or more, a non-working married
+woman with an insured husband), the health-tax income cap, health tax on
+non-pension income before the statutory age, and Bituach Leumi contributions
+of early retirees. Behavior change: profiles that retire before the
+statutory age now show lower after-tax income.
+
+## Phase M — Section 102 employer stock tax
+
+Triggered by the user's employer plan supplement (Israeli equity awards under
+the Section 102 capital-gains route). Before this phase the engine ignored
+`employerGrantDetails`: every holding sat in one `other-investments` source
+taxed at a flat 25% on the declared gain, so employer shares defaulted to no
+tax at all.
+
+- [x] M1. **Routing (`sources.ts`).** Holdings with
+      `investmentCategory === "employerGrantedStock"` leave the
+      `other-investments` bucket by tax route (`employerStockRoute`):
+      `section102Capital` (a missing track counts as this), `ordinaryIncome`
+      (the ordinary-income track, or a capital-route grant that is too
+      recent: a disqualifying disposal), or `nonTrustee` (Section 3(i)).
+      The 24 months are met when the user ticks the trustee box, the grant
+      date is missing, or retirement is at least 24 months after it
+      (`taxRates.ts`: `section102HoldingPeriodYears`).
+- [x] M2. **Sources.** New `employer-stock-section-102` source
+      (`capitalGains`, cost basis 0, new `ordinaryLayer` = Σ min(grant-date
+      value, current value)) and `employer-stock-ordinary-income` source
+      (new `ordinaryIncome` tax treatment). Both are emitted only when their
+      value is above zero and keep `kind: "otherInvestments"`, so the income
+      breakdown, timeline and access card are unchanged. Section 3(i) shares
+      stay in `other-investments` with the grant value as cost basis.
+      `profileBasics.ts` gains `holdingValueIls`.
+- [x] M3. **Drawdown.** `DrawdownHolding.ordinaryFraction`: 1 for ordinary
+      income, `layer / balance` for a Section 102 source, else 0. The layer
+      stays fixed while the balance grows (growth above it is a capital gain),
+      shrinks pro rata with withdrawals, and is zeroed if an annuity starts.
+      `gainFraction = 1 - basis / balance - ordinaryFraction`.
+- [x] M4. **Tax.** `PersonTaxInput.ordinaryInvestmentMonthly`. It is stacked
+      on the taxable pension for the brackets (credit points applied once),
+      with no pension exemption and no health tax. It counts toward the 3%
+      surtax; the extra 2% stays on the capital-gain part.
+      `netIncome.ts` sums it per member and passes it in.
+- [x] M5. **UI.** The grant section of the equity form explains how the data
+      is used, marks the grant date, tax track and share price as
+      "recommended", and relabels `costBasisAtGrantUSD` to "Share price at
+      grant" (per share, with a helper text). `TaxCard` takes
+      `hasEmployerStock` and then adds a Section 102 line and a "not
+      included" line. Strings in English, Hebrew and Russian.
+- [x] M6. **Tests:** 377 total, all green (12 in `sources.test.ts` for routing
+      and the holding period, 5 in `drawdown.test.ts`, 4 in
+      `netIncome.test.ts` with hand-computed figures, 5 in `tax.test.ts`).
+      `buildTestProfile`'s `equity` entries take an `employerGrant` option.
+- [x] M7. **Docs:** `docs/constants-to-verify.md` rows 21-25, rules N-Q and a
+      "not modeled" paragraph. The rules come from the employer's supplement,
+      not the Tax Authority, so they are marked Medium.
+
+Not modeled (conservative or by design): Bituach Leumi and health
+contributions on the Section 102 ordinary part, the 30% rate for a holder of
+10% or more, separate vesting tranches, unvested shares, options with a
+strike price (acquisition cost is taken as 0), ESPP (still taxed as any other
+investment), and inflation or currency adjustment of the grant value.
+Behavior change: profiles with employer shares now show tax on them, so
+their after-tax income is lower than before.
+
 ## Deviations from original docs (log as they happen)
 
 - **Tax modeling assumptions (Phase I).**
@@ -457,9 +569,10 @@ default for all-zero data); harmless, left as is.
   - Withdrawals are pro rata across unlocked sources and taxed per owner;
     there is no tax coordination between spouses and no withdrawal-order
     optimization.
-  - The 2026 rates (57.5% exemption, brackets, credit point) are used for
-    all years, fixed in today's money. The 2027 (62.5%) and 2028 (67%)
-    exemption steps are not modeled.
+  - The 2026 brackets and credit point are used for all years, fixed in
+    today's money. The exemption share is the exception: since Phase L it
+    follows the calendar-year schedule (57.5% in 2026, 62.5% in 2027, 67%
+    from 2028).
   - Regular and IRA provident funds are treated as pension income.
     Investment provident funds and other investments pay 25% on the real
     gain only; the cost basis is today's balance plus future deposits, so
@@ -469,9 +582,10 @@ default for all-zero data); harmless, left as is.
     `annuityTaxType` is not used yet.
   - The severance basket (past tax-free severance, which cuts the
     conditional exemption) applies to the primary user only.
-  - Not modeled: health tax and Bituach Leumi contributions, other credit
-    points (children, olim, etc.), the gemel-to-annuity exemption, old
-    gemel lump-sum rules.
+  - Not modeled: Bituach Leumi contributions, health tax on non-pension
+    income, other credit points (children, olim, etc.), the
+    gemel-to-annuity exemption, old gemel lump-sum rules. Health tax on an
+    early pension was added in Phase L.
   - Medium confidence: the severance-offset formula (1.35/180) and the
     conditional-exemption treatment. Constants come from secondary sources.
   - **Behavior change:** the headline monthly income, the funding gap and

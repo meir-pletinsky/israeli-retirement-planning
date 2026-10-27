@@ -31,6 +31,12 @@ export interface DrawdownHolding {
   capitalShare: number;
   /** Fraction of a withdrawal that is real gain (`capitalGains` sources only). */
   gainFraction: number;
+  /**
+   * Fraction of a withdrawal that is ordinary income taxed at the brackets:
+   * the Section 102 grant-date layer of a `capitalGains` source, or all of an
+   * `ordinaryIncome` source.
+   */
+  ordinaryFraction: number;
 }
 
 export interface DrawdownYear {
@@ -74,7 +80,9 @@ const emptyByKind = (): Record<SourceKind, number> => ({
  *   stops counting toward net worth once the annuity starts.
  * - Balances never go negative.
  * - Capital-gains sources also track their cost basis (in today's money), so
- *   each year's `holdings` say how much of a withdrawal is taxable gain.
+ *   each year's `holdings` say how much of a withdrawal is taxable gain; a
+ *   source with an ordinary-income layer (Section 102 shares) tracks that
+ *   layer the same way and reports its share as `ordinaryFraction`.
  *
  * The first row is today (no growth or withdrawal), so it equals today's net
  * worth. Row ages are the primary user's.
@@ -94,6 +102,7 @@ export function simulateHouseholdDrawdown(
       source,
       balance: source.balance,
       basis: Math.min(source.costBasis, source.balance),
+      ordinaryLayer: Math.min(source.ordinaryLayer, Math.max(source.balance - source.costBasis, 0)),
       annualContribution: futureValueOfMonthlyContributions(source.monthlyContribution, rate, 1),
     })),
   );
@@ -111,6 +120,7 @@ export function simulateHouseholdDrawdown(
         if (entry.source.annuity && age >= entry.source.annuity.startAge) {
           entry.balance = 0;
           entry.basis = 0;
+          entry.ordinaryLayer = 0;
         }
       }
     }
@@ -149,19 +159,26 @@ export function simulateHouseholdDrawdown(
     }
     const unlockedSet = new Set(unlocked);
     const holdings: DrawdownHolding[] = state.map((entry) => {
-      const { annuity } = entry.source;
+      const { annuity, taxTreatment } = entry.source;
+      const capitalGains = taxTreatment === "capitalGains" && entry.balance > 0;
+      const ordinaryFraction =
+        taxTreatment === "ordinaryIncome"
+          ? 1
+          : capitalGains
+            ? Math.min(entry.ordinaryLayer / entry.balance, 1)
+            : 0;
       return {
         memberIndex: entry.memberIndex,
-        treatment: entry.source.taxTreatment,
+        treatment: taxTreatment,
         capitalGainsTaxRate: entry.source.capitalGainsTaxRate,
         annuityMonthly:
           annuity && entry.member.currentAge + years >= annuity.startAge ? annuity.monthly : 0,
         capitalShare:
           unlockedTotal > 0 && unlockedSet.has(entry) ? entry.balance / unlockedTotal : 0,
-        gainFraction:
-          entry.source.taxTreatment === "capitalGains" && entry.balance > 0
-            ? Math.max(1 - entry.basis / entry.balance, 0)
-            : 0,
+        gainFraction: capitalGains
+          ? Math.max(1 - entry.basis / entry.balance - ordinaryFraction, 0)
+          : 0,
+        ordinaryFraction,
       };
     });
 
@@ -172,6 +189,7 @@ export function simulateHouseholdDrawdown(
         if (entry.balance <= 0) continue;
         const taken = (draw * entry.balance) / unlockedTotal;
         entry.basis -= (entry.basis * taken) / entry.balance;
+        entry.ordinaryLayer -= (entry.ordinaryLayer * taken) / entry.balance;
         entry.balance -= taken;
       }
     }

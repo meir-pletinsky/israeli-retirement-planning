@@ -1,29 +1,36 @@
 import { useTranslation } from "react-i18next";
 
-import { type NetIncomeEstimate, TAX_RATES } from "../domain";
+import {
+  FINAL_EXEMPTION_YEAR,
+  type NetIncomeEstimate,
+  TAX_RATES,
+  totalExemptionRate,
+} from "../domain";
 
 interface TaxCardProps {
   net: NetIncomeEstimate;
   /** True when the plan covers two people, who are taxed separately. */
   isCouple: boolean;
+  /** True when the profile holds employer-granted shares (Section 102). */
+  hasEmployerStock: boolean;
 }
 
 /** ISO date (2026-01-01) to the day-first format used in Israel (01.01.2026). */
 const formatEffectiveDate = (iso: string) => iso.split("-").reverse().join(".");
 
-const exemptionPercent = Math.round(
-  (TAX_RATES.qualifyingAnnuityFixedExemptionRate +
-    TAX_RATES.qualifyingAnnuityConditionalExemptionRate) *
-    1000,
-) / 10;
+/** A share as a percentage with at most two decimals (0.575 becomes 57.5, 0.0323 becomes 3.23). */
+const toPercent = (share: number) => Math.round(share * 10000) / 100;
 
-export function TaxCard({ net, isCouple }: TaxCardProps) {
+export function TaxCard({ net, isCouple, hasEmployerStock }: TaxCardProps) {
   const { t } = useTranslation();
   const currencySymbol = t("common.currencySymbol");
   const money = (amount: number) => `${currencySymbol}${amount.toLocaleString()}`;
 
   if (net.grossMonthlyIncome <= 0) return null;
 
+  const currentYear = net.baseYear;
+  const exemptionRising = currentYear < FINAL_EXEMPTION_YEAR;
+  const ceiling = money(TAX_RATES.qualifyingAnnuityMonthlyCeiling);
   const rows: { label: string; value: string; emphasis?: boolean }[] = [
     { label: t("dashboard.tax.gross"), value: money(net.grossMonthlyIncome) },
     { label: t("dashboard.tax.tax"), value: money(net.taxMonthly) },
@@ -83,9 +90,24 @@ export function TaxCard({ net, isCouple }: TaxCardProps) {
         <ul className="mt-2 list-disc space-y-1 ps-5 text-xs text-slate-600">
           <li>{t("dashboard.tax.includedBrackets", { year: TAX_RATES.effectiveDate.slice(0, 4) })}</li>
           <li>
-            {t("dashboard.tax.includedExemption", {
-              percent: exemptionPercent,
-              ceiling: money(TAX_RATES.qualifyingAnnuityMonthlyCeiling),
+            {exemptionRising
+              ? t("dashboard.tax.includedExemptionRising", {
+                  percent: toPercent(totalExemptionRate(currentYear)),
+                  ceiling,
+                  year: currentYear,
+                  finalPercent: toPercent(totalExemptionRate(FINAL_EXEMPTION_YEAR)),
+                  finalYear: FINAL_EXEMPTION_YEAR,
+                })
+              : t("dashboard.tax.includedExemption", {
+                  percent: toPercent(totalExemptionRate(currentYear)),
+                  ceiling,
+                })}
+          </li>
+          <li>
+            {t("dashboard.tax.includedHealthTax", {
+              reducedRate: toPercent(TAX_RATES.healthTaxReducedRate),
+              fullRate: toPercent(TAX_RATES.healthTaxFullRate),
+              bracket: money(TAX_RATES.healthTaxReducedBracketMonthly),
             })}
           </li>
           <li>
@@ -94,8 +116,18 @@ export function TaxCard({ net, isCouple }: TaxCardProps) {
             })}
           </li>
           <li>{t("dashboard.tax.includedExempt")}</li>
+          {hasEmployerStock && (
+            <li>
+              {t("dashboard.tax.includedSection102", {
+                rate: Math.round(TAX_RATES.capitalGainsRate * 100),
+              })}
+            </li>
+          )}
         </ul>
         <p className="mt-2 text-xs text-slate-500">{t("dashboard.tax.notIncluded")}</p>
+        {hasEmployerStock && (
+          <p className="mt-1 text-xs text-slate-500">{t("dashboard.tax.notIncludedSection102")}</p>
+        )}
       </details>
 
       <p className="mt-3 text-xs text-slate-500">

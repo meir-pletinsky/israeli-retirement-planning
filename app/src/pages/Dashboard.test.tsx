@@ -509,9 +509,9 @@ describe("Dashboard", () => {
 
       const card = await findTaxCard();
       expect(card.getByText("Income before tax").nextElementSibling).toHaveTextContent("\u20aa17,857");
-      expect(card.getByText("Estimated tax").nextElementSibling).toHaveTextContent("\u20aa2,143");
-      expect(card.getByText("Income after tax").nextElementSibling).toHaveTextContent("\u20aa15,714");
-      expect(card.getByText("Effective tax rate: 12.0%")).toBeInTheDocument();
+      expect(card.getByText("Estimated tax").nextElementSibling).toHaveTextContent("\u20aa2,917");
+      expect(card.getByText("Income after tax").nextElementSibling).toHaveTextContent("\u20aa14,940");
+      expect(card.getByText("Effective tax rate: 16.3%")).toBeInTheDocument();
       expect(
         card.getByText(
           "These figures are for the year with the lowest income after tax (age 62); other years are higher.",
@@ -524,7 +524,7 @@ describe("Dashboard", () => {
       );
 
       const incomeKpi = screen.getByText("Projected Monthly Income After Tax").parentElement;
-      expect(within(incomeKpi as HTMLElement).getByText("\u20aa15,714")).toBeInTheDocument();
+      expect(within(incomeKpi as HTMLElement).getByText("\u20aa14,940")).toBeInTheDocument();
     });
 
     it("lists what the estimate includes and leaves out", async () => {
@@ -541,9 +541,13 @@ describe("Dashboard", () => {
 
       const card = await findTaxCard();
       expect(card.getByText(/2026 income tax brackets/)).toBeInTheDocument();
-      expect(card.getByText(/57\.5% of a pension of up to \u20aa9,430 per month is exempt/)).toBeInTheDocument();
+      expect(card.getByText(/57\.5% of a pension of up to \u20aa9,430 per month is exempt in 2026/)).toBeInTheDocument();
+      expect(card.getByText(/rises to 67% from 2028/)).toBeInTheDocument();
+      expect(
+        card.getByText(/health tax: 3\.23% up to \u20aa7,703 per month and 5\.17% above it/),
+      ).toBeInTheDocument();
       expect(card.getByText(/taxed at 25% on the real gain only/)).toBeInTheDocument();
-      expect(card.getByText(/^Not included: health tax/)).toBeInTheDocument();
+      expect(card.getByText(/^Not included: Bituach Leumi contributions/)).toBeInTheDocument();
     });
 
     it("says no tax is expected when the exemption and credit points cover the income", async () => {
@@ -590,7 +594,7 @@ describe("Dashboard", () => {
 
       const card = await findTaxCard();
       expect(card.getByText("Each spouse is taxed on their own income.")).toBeInTheDocument();
-      expect(card.getByText("Estimated tax").nextElementSibling).toHaveTextContent("\u20aa850");
+      expect(card.getByText("Estimated tax").nextElementSibling).toHaveTextContent("\u20aa1,475");
     });
 
     it("does not mention spouses for a single person", async () => {

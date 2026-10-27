@@ -1,4 +1,4 @@
-import type { Assumptions, PensionAccount, ProfileData } from "../types";
+import type { Assumptions, PensionAccount, ProfileData, StockHolding } from "../types";
 import {
   DEFAULT_CURRENT_AGE,
   DEFAULT_RETIREMENT_AGE,
@@ -127,11 +127,16 @@ export function aggregatePensionBalance(profile: ProfileData): number {
  */
 export function aggregateOtherBalance(profile: ProfileData): number {
   const otherAssets = profile.pensionSavings.otherAssets ?? 0;
-  const equityTotal = profile.equity.holdings.reduce((sum, holding) => {
-    const marketValueUSD = (holding.quantity ?? 0) * (holding.currentMarketPriceUSD ?? 0);
-    return sum + marketValueUSD * FALLBACK_USD_TO_ILS_RATE;
-  }, 0);
+  const equityTotal = profile.equity.holdings.reduce(
+    (sum, holding) => sum + holdingValueIls(holding),
+    0,
+  );
   return otherAssets + equityTotal;
+}
+
+/** Market value of one equity holding in ILS (`quantity * currentMarketPriceUSD` at the fallback rate). */
+export function holdingValueIls(holding: StockHolding): number {
+  return (holding.quantity ?? 0) * (holding.currentMarketPriceUSD ?? 0) * FALLBACK_USD_TO_ILS_RATE;
 }
 
 /** Sums all balances currently known for the profile into a single "today" net worth figure, in ILS. */

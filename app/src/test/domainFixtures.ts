@@ -6,6 +6,7 @@ import type {
   ProfileData,
   SpouseData,
   TaxExemptionBasket,
+  TaxTrack,
 } from "../types";
 import { EMPTY_ACCOUNT_CONTRIBUTIONS, EMPTY_PROFILE, EMPTY_SPOUSE } from "../types";
 
@@ -41,6 +42,14 @@ export function buildTestProfile(overrides: {
     priceUSD: number;
     unrealizedCapitalGainUSD?: number;
     capitalGainsTaxRatePercent?: number;
+    /** Makes the holding an employer grant, with these details. */
+    employerGrant?: {
+      taxTrack?: TaxTrack;
+      /** Share price at the grant date. */
+      grantPriceUSD?: number;
+      grantDate?: string;
+      holdingPeriodMet?: boolean;
+    };
   }[];
   currentMonthlyExpenses?: number;
   retirementMonthlyExpenses?: number;
@@ -136,19 +145,19 @@ export function buildTestProfile(overrides: {
     equity: {
       holdings: equity.map((holding, index) => ({
         id: `test-holding-${index}`,
-        investmentCategory: null,
+        investmentCategory: holding.employerGrant ? "employerGrantedStock" : null,
         tickerSymbol: "TEST",
         companyName: "Test Co",
         custodianOrBroker: "",
         quantity: holding.quantity,
         currentMarketPriceUSD: holding.priceUSD,
         employerGrantDetails: {
-          grantDate: null,
-          taxTrack: null,
+          grantDate: holding.employerGrant?.grantDate ?? null,
+          taxTrack: holding.employerGrant?.taxTrack ?? null,
           vestedQuantity: null,
           unvestedQuantity: null,
-          trusteeHoldingPeriodMet: false,
-          costBasisAtGrantUSD: null,
+          trusteeHoldingPeriodMet: holding.employerGrant?.holdingPeriodMet ?? false,
+          costBasisAtGrantUSD: holding.employerGrant?.grantPriceUSD ?? null,
           estimatedMarginalTaxOnVesting: null,
         },
         esppDetails: {

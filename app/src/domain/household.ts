@@ -70,6 +70,8 @@ export interface Household {
   drawdownStartAge: number;
   /** Counted accounts with a balance but no product type. */
   uncategorizedAccounts: number;
+  /** The calendar year "now" falls in; the year the plan counts from, for year-dependent tax rules. */
+  baseYear: number;
 }
 
 /** The primary user as a single-person profile: only their own accounts, no spouse. */
@@ -203,8 +205,15 @@ function spouseSupplementFor(
  * Combines the primary user (and the spouse, when `timing.spouseAge` is set
  * and the plan covers one) into a household. A single person yields a
  * household of one and behaves exactly like the single-person engine.
+ *
+ * `baseYear` is the only place the clock is read for the plan, and is
+ * injectable so tests do not depend on it.
  */
-export function buildHousehold(profile: ProfileData, timing: RetirementTiming): Household {
+export function buildHousehold(
+  profile: ProfileData,
+  timing: RetirementTiming,
+  baseYear: number = new Date().getFullYear(),
+): Household {
   const views: { role: MemberRole; view: ProfileData; retirementAge: number }[] = [
     { role: "self", view: selfProfileView(profile), retirementAge: timing.selfAge },
   ];
@@ -222,7 +231,7 @@ export function buildHousehold(profile: ProfileData, timing: RetirementTiming): 
     currentAge: resolveCurrentAge(view),
     retirementAge,
     sources: buildSources(view, retirementAge),
-    bituachLeumi: estimateBituachLeumiPension(view, retirementAge),
+    bituachLeumi: estimateBituachLeumiPension(view, retirementAge, baseYear),
   }));
 
   if (members.length === 2) {
@@ -255,6 +264,7 @@ export function buildHousehold(profile: ProfileData, timing: RetirementTiming): 
       (sum, member) => sum + countUncategorizedAccounts(member.profile),
       0,
     ),
+    baseYear,
   };
 }
 

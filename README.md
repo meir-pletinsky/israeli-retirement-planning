@@ -16,7 +16,8 @@ ages, annuity conversion, per-source retirement timeline) and
 couples/household planning (a spouse, per-account owners, staggered
 retirement, the Bituach Leumi spouse supplement), and the Phase 3 tax
 module (retirement income shown after Israeli income tax, per spouse,
-with editable credit points) and a retirement-age comparison (any three
+with editable credit points, the pension exemption by calendar year,
+health tax on an early pension and Section 102 employer stock) and a retirement-age comparison (any three
 ages side by side, with a chart), and input guidance: only the current age
 and the desired retirement age are required, every other field is badged
 "Recommended" or "Reference only" (for example the policy number and fund

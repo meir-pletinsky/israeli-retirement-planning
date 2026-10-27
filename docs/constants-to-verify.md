@@ -54,9 +54,17 @@ yearly; **Low** = formula or interpretation we could not confirm.
 | 12 | Extra surtax on capital income (`surtaxCapitalIncomeExtraRate`) | +2% on the capital-income part above the threshold (from 2025) | Medium | מס יסף הכנסה הונית 2% | |
 | 13 | Capital-gains rate (`capitalGainsRate`) | 25% on the **real** (inflation-adjusted) gain | High | מס רווח הון 25% רווח ריאלי; קופת גמל להשקעה | |
 | 14 | Qualifying-annuity ceiling (`qualifyingAnnuityMonthlyCeiling`) | ₪9,430 / month | Medium | תקרת קצבה מזכה 2026; סעיף 9א לפקודת מס הכנסה | |
-| 15 | Fixed exemption share (`qualifyingAnnuityFixedExemptionRate`) | 22.5% | Medium | אחוז פטור קצבה מזכה 2026 | |
-| 16 | Conditional exemption share (`qualifyingAnnuityConditionalExemptionRate`) | 35% (so 57.5% in total in 2026) | Medium | same. Check the total for 2026 and the planned steps for 2027 (reported 62.5%) and 2028 (reported 67%). We do **not** model the steps | |
+| 15 | Fixed exemption share by year (`qualifyingAnnuityFixedExemptionSchedule`) | 22% (2025), **22.5% (2026)**, **27.5% (2027)**, **32% (2028 onward)**; the last rate is kept for later years | Medium | תיקון 190; "שיעור הפטור הנוסף" 2027 27.5%; הנחיה למשלמי קצבאות פטור 9א 2025 (Tax Authority letter of 20.1.25). The step from 2025 to 2026 is only +0.5 points, which looks odd: confirm it first | |
+| 16 | Conditional exemption share (`qualifyingAnnuityConditionalExemptionRate`) | 35% (so the total is 57% in 2025, 57.5% in 2026, 62.5% in 2027 and 67% from 2028) | Medium | same. Check each year's total, and that the 35% base is unchanged. The engine uses the share of each calendar year (the year comes from the computer's clock, `baseYear` in `household.ts`) | |
 | 17 | Severance offset (`severanceExemptionFactor` / `severanceExemptionMonths`) | Each tax-free severance shekel withdrawn cuts the conditional exemption by 1.35 / 180 per month | **Low** | קיזוז הון פטור קצבה מזכה; קיבוע זכויות (rights fixation, טופס 161ד); "הון פטור × 1.35 / 180" | |
+| 18 | Health tax on an early pension, reduced rate (`healthTaxReducedRate`) | 3.23% on the part up to the bracket below | **Verified** on btl.gov.il, 2026-10-27 | דמי ביטוח בריאות מקצבה לפני גיל פרישה (the BTL page "שיעורי דמי ביטוח בריאות": https://www.btl.gov.il/Insurance/Health_Insurance/Pages/שיעורי%20דמי%20ביטוח%20בריאות.aspx). Rates change from 1 January; the page lists 3.23% from 01.01.2025 | |
+| 19 | Health tax, full rate (`healthTaxFullRate`) | 5.17% above the bracket | **Verified** on btl.gov.il, 2026-10-27 | same page (the 5.17% applies from 01.02.2025) | |
+| 20 | Health tax bracket (`healthTaxReducedBracketMonthly`) | ₪7,703 / month (2026) | **Verified** on btl.gov.il, 2026-10-27 | same page. The bracket is indexed each January, so refresh it yearly. The app keeps it fixed in today's money | |
+| 21 | Section 102 holding period (`section102HoldingPeriodYears`) | 2 years (24 months) after the grant, in a trustee, for the capital-gains route | Medium. The source is an employer's plan supplement, not the Tax Authority | סעיף 102 מסלול רווח הוני תקופת החסימה 24 חודשים; סעיף 102(ב)(2) | |
+| 22 | Section 102 split of a qualifying sale (`sources.ts`, `employerStockRoute`, `splitEquityByTaxRoute`) | **Ordinary income** = the lower of (grant-date value) and (sale proceeds), less acquisition cost; taxed at the marginal rate. **Capital gain** = proceeds above that, taxed at the capital-gains rate | Medium. Same employer supplement | סעיף 102 "הכנסת עבודה" לעומת "רווח הון"; שווי המניה במועד ההענקה (ממוצע 30 ימי המסחר שלפני ההענקה) | |
+| 23 | Disqualifying disposal (`ordinaryIncome` treatment) | A sale or transfer before the 24 months ends is taxed in full as ordinary income (no capital-gains part) | Medium. Same supplement | סעיף 102 "הפרת תנאי" / "מכירה לפני תום תקופת החסימה" | |
+| 24 | Capital-gains rate for Section 102 shares | 25% (the same `capitalGainsRate` as row 13). A holder of 10% or more of the company pays 30% | Medium. The 30% is **not modeled** | מס רווח הון בעל מניות מהותי 30% | |
+| 25 | Surtax on these shares | The ordinary part counts towards the 3% surtax above ₪721,560 a year. The extra 2% applies to the capital-gain part only. Both match rows 10-12; the employer supplement quotes the same threshold and the extra 2% on capital income from 2025 | Medium | מס יסף הכנסה הונית 2025; ראו שורות 10-12 | |
 
 ### Rules and interpretations in the tax engine (not single numbers)
 
@@ -71,15 +79,33 @@ what to change.
 | D | Study fund (קרן השתלמות) withdrawals are tax-free | `sources.ts` | Medium | Conditions for the exemption (6-year liquidity, deposit ceilings, withdrawal ceilings) |
 | E | The Bituach Leumi old-age pension is tax-free | `sources.ts` | High | Taxation of the old-age pension (קצבת זקנה פטורה ממס) |
 | F | Each spouse is taxed separately, with their own credit points; no joint assessment or spreading | `household.ts`, `netIncome.ts` | Medium | Whether a couple can benefit from joint filing |
-| G | Today's rates and brackets apply to every future year, in today's money | `taxRates.ts` | Medium | Brackets and credit points are CPI-indexed each January; the surtax threshold is frozen through 2027 |
+| G | Today's rates and brackets apply to every future year, in today's money. The one exception is the exemption share, which follows the year-by-year schedule in row 15 | `taxRates.ts` | Medium | Brackets, credit points, the exemption ceiling and the health-tax bracket are CPI-indexed each January; the surtax threshold is frozen through 2027 |
 | H | Capital-gains cost basis = today's balance plus future deposits, so gains that already exist are understated | `drawdown.ts` | By design | Not a law question; enter an investment's own rate or basis if you know it |
+| I | Health tax (rows 18-20) is charged on **all pension-taxed income** (annuities and withdrawals from pension-like accounts) while a person is younger than the statutory retirement age. The BTL page describes an early *pension*; we apply the same rates to pension-like withdrawals | `netIncome.ts` (`healthTaxApplies`), `tax.ts` | Medium | Health tax on kupat-gemel withdrawals and on pension taken before the statutory age; whether the rate on the part above the bracket applies to the whole income |
+| J | **No** health tax on a pension from the statutory retirement age | `netIncome.ts` | Medium (secondary source, e.g. ig-tax; the BTL page does not say) | Health tax on a pension received at or after the statutory age (דמי ביטוח בריאות מקצבה אחרי גיל פרישה) |
+| K | The calendar year of each retirement year is the current year (from the computer's clock) plus the years from now. Tests pin the clock to 2026-06-15 | `household.ts` (`baseYear`), `test/setup.ts` | By design | Not a law question |
+| L | The remaining monthly exemption the user enters (from the rights fixation) is used as entered in every year, even though the exemption shares grow after 2026 | `tax.ts` | By design (conservative) | Whether a rights-fixation allowance grows with the exemption shares |
+| M | Early-retirement health tax ignores its exceptions: widows with a survivors' allowance, people with a disability allowance of 75% or more, and a non-working married woman whose husband is insured (she may file a declaration). It also ignores the upper income cap and health tax on non-pension income (such as capital gains) before the statutory age | `tax.ts` | Medium | The "פטור" paragraphs on the BTL health insurance page; if one applies to you, the app overstates your tax |
+| N | Employer-granted stock is split out of the investments bucket by its tax track. A missing track counts as the Section 102 capital-gains route. Section 102 ordinary-income track shares, and capital-route shares that do not meet the 24 months, are taxed entirely as ordinary income. Section 3(i) shares stay in the investments bucket with the grant value as cost basis (25% on the growth above it) | `sources.ts` (`employerStockRoute`) | Medium | Rows 21-25 |
+| O | The grant-date value is quantity × the per-share price at grant (the field "Share price at grant", stored as `costBasisAtGrantUSD`) × the fallback USD/ILS rate. Acquisition cost is taken as 0 (stock awards), so options with a strike price are overstated. The value is fixed in today's money (not adjusted for inflation or currency), so a rising share price shifts the gain, not the ordinary part. A missing price counts as 0, so the whole value is taxed as a capital gain (the lowest tax) | `sources.ts` (`grantValueIls`) | By design | Enter the real per-share price at grant; check the Tax Authority's grant-date value rule if the plan uses a 30-day average |
+| P | The 24 months are met if the user ticks "24-month trustee holding period met", the grant date is missing or unreadable, or retirement (taken as the sale date) is at least 24 months after the grant date. All shares are treated as one grant: each vesting tranche has its own 24 months | `sources.ts` (`employerStockRoute`) | By design | Whether your plan counts the period from grant or from vesting |
+| Q | Ordinary income from shares is added to the person's pension income for the brackets, with credit points applied once. It gets **no** pension exemption and **no** health tax. As the shares are sold in retirement, the grant-date part is a fixed layer that shrinks pro rata with withdrawals, and growth above it is a capital gain | `tax.ts`, `netIncome.ts`, `drawdown.ts` | Medium | Whether Bituach Leumi and health contributions apply (see "Not modeled") |
 
 ### Not modeled (so nothing to verify yet)
 
-Health tax and Bituach Leumi contributions on retirement income, other
-credit points (children, new immigrants, disability), the gemel-to-annuity
-exemption, old lump-sum gemel rules, early-withdrawal penalty tax, tax
-planning between spouses, the 2027-28 exemption steps.
+Bituach Leumi contributions (including those of people who retire before the
+statutory age), health tax on income other than a pension, other credit
+points (children, new immigrants, disability), a credit-points breakdown
+helper, the gemel-to-annuity exemption, old lump-sum gemel rules,
+early-withdrawal penalty tax, tax planning between spouses (for example
+shifting withdrawals to the spouse with the lower rate).
+
+For employer stock: Bituach Leumi and health contributions on the Section 102
+ordinary-income part (up to the contribution ceiling), the 30% capital-gains
+rate for a holder of 10% or more, separate vesting dates (each tranche has its
+own 24 months), unvested shares, options with a strike price, ESPP discounts
+(ESPP is taxed like any other investment), and inflation or currency
+adjustment of the grant value.
 
 ## 2. Bituach Leumi constants (`app/src/domain/bituachLeumiRates.ts`, as of 2026-01-01)
 
@@ -127,4 +153,7 @@ settled.
 
 | Date | Item # | Source URL | Result (confirmed / changed to ...) |
 |---|---|---|---|
+| 2026-10-27 | 18-20 | btl.gov.il, health insurance rates page (URL in row 18) | Confirmed by the assistant: 3.23% up to ₪7,703 and 5.17% above, for early-pension recipients. No statement about pension after the statutory age (see rule J) |
+| 2026-10-27 | 15-16 | Secondary sources (Tax Authority guidance to payers of 20.1.25 as quoted by payroll sites; yuvalim-ins table) | Schedule 22% / 22.5% / 27.5% / 32% additional exemption, 57% / 57.5% / 62.5% / 67% in total. Not yet confirmed on gov.il or kolzchut (both refuse automated requests) |
+| 2026-10-27 | 21-25 | The user's employer plan supplement for Israeli equity awards (Section 102, capital-gains route) | Rules taken from that text as given: 24 months in trust, ordinary part = the lower of grant value and proceeds, the rest is a capital gain, early sale is all ordinary income, 3% surtax plus 2% on capital income above ₪721,560. Not yet checked against the Tax Authority |
 | | | | |

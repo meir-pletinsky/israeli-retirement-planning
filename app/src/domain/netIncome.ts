@@ -24,7 +24,7 @@ export interface NetIncomeYear {
 export interface NetIncomeEstimate {
   /** Gross income in the year with the lowest net income. */
   grossMonthlyIncome: number;
-  /** Tax in that year (income tax, capital gains tax and surtax, summed over both spouses). */
+  /** Tax in that year (income tax, health tax, capital gains tax and surtax, summed over both spouses). */
   taxMonthly: number;
   /**
    * The lowest net monthly income of any retirement year: what the household
@@ -37,6 +37,8 @@ export interface NetIncomeEstimate {
   lowestNetAge: number | null;
   /** Every year from the household's retirement to the planning horizon. */
   years: NetIncomeYear[];
+  /** The calendar year the plan counts from; the tax rules of that year apply to year zero. */
+  baseYear: number;
 }
 
 /** The income tax a household member pays in one year, from the holdings that year's income comes out of. */
@@ -51,6 +53,7 @@ function memberTaxMonthly(
   const { personal, taxExemptionBasket } = member.profile;
 
   let pensionMonthly = 0;
+  let ordinaryInvestmentMonthly = 0;
   let capitalGainMonthly = 0;
   let capitalGainsTax = 0;
   for (const holding of annuities) {
@@ -62,17 +65,25 @@ function memberTaxMonthly(
     if (holding.memberIndex !== memberIndex) continue;
     if (holding.treatment === "pension") {
       pensionMonthly += amount;
+    } else if (holding.treatment === "ordinaryIncome") {
+      ordinaryInvestmentMonthly += amount;
     } else if (holding.treatment === "capitalGains") {
+      ordinaryInvestmentMonthly += amount * holding.ordinaryFraction;
       const gain = amount * holding.gainFraction;
       capitalGainMonthly += gain;
       capitalGainsTax += gain * holding.capitalGainsTaxRate;
     }
   }
 
+  const pastStatutoryAge =
+    member.currentAge + yearsFromNow >= member.bituachLeumi.statutoryRetirementAge;
+
   return calculatePersonTax({
     pensionMonthly,
-    exemptionApplies:
-      member.currentAge + yearsFromNow >= member.bituachLeumi.statutoryRetirementAge,
+    exemptionApplies: pastStatutoryAge,
+    healthTaxApplies: !pastStatutoryAge,
+    taxYear: household.baseYear + yearsFromNow,
+    ordinaryInvestmentMonthly,
     capitalGainMonthly,
     capitalGainsRate:
       capitalGainMonthly > 0 ? capitalGainsTax / capitalGainMonthly : TAX_RATES.capitalGainsRate,
@@ -93,10 +104,17 @@ function memberTaxMonthly(
  * the income breakdown. Per owner:
  * - Bituach Leumi pensions and study-fund money are tax-free.
  * - Account annuities and withdrawals from pension-like accounts are pension
- *   income: brackets, credit points and, from the statutory retirement age,
- *   the Section 9A exemption.
+ *   income: brackets and credit points. From the statutory retirement age the
+ *   Section 9A exemption applies, at the share set for that calendar year
+ *   (`household.baseYear` plus the years from now); before it, the pension
+ *   bears health tax instead.
  * - Withdrawals from investment provident funds and other investments are
  *   taxed only on their real gain, at a flat rate.
+ * - Employer shares follow their tax route (see `employerStockRoute`): under
+ *   Section 102 the grant-date value of the shares sold is ordinary income
+ *   at the brackets, stacked on the pension, and the growth above it is a
+ *   flat-rate gain; an ordinary-income route is taxed at the brackets in
+ *   full.
  *
  * Spouses are taxed on their own income; the draw is not shifted between
  * them to save tax. When the last capital is used up, the previous year's mix
@@ -149,6 +167,7 @@ export function estimateNetIncomeForHousehold(household: Household): NetIncomeEs
       effectiveTaxRate: 0,
       lowestNetAge: null,
       years,
+      baseYear: household.baseYear,
     };
   }
   return {
@@ -158,6 +177,7 @@ export function estimateNetIncomeForHousehold(household: Household): NetIncomeEs
     effectiveTaxRate: lowest.taxMonthly / lowest.grossMonthly,
     lowestNetAge: lowest.age,
     years,
+    baseYear: household.baseYear,
   };
 }
 

@@ -1,10 +1,10 @@
-import type { PensionAccount, ProductCategory, ProfileData } from "../types";
+import type { PensionAccount, ProductCategory, ProfileData, StockHolding } from "../types";
 import { ACCESS_RULES } from "./accessRules";
 import { FALLBACK_USD_TO_ILS_RATE } from "./constants";
 import { futureValueOfMonthlyContributions, monthlyContributionForAccount } from "./contributions";
 import {
   accountsInPlan,
-  aggregateOtherBalance,
+  holdingValueIls,
   ownAccounts,
   realAnnualReturnRate,
   resolveCurrentAge,
@@ -40,10 +40,14 @@ export interface SourceAnnuity {
  * How money taken out of a source is taxed in retirement:
  * - `pension`: pension-like income at the brackets, partly exempt from the
  *   statutory retirement age (Section 9A).
- * - `capitalGains`: only the real gain is taxed, at a flat rate.
+ * - `capitalGains`: only the real gain is taxed, at a flat rate; a source
+ *   can also carry an `ordinaryLayer` taxed at the brackets (Section 102).
+ * - `ordinaryIncome`: the whole withdrawal is ordinary income at the
+ *   brackets, with no pension exemption (employer stock that is taxed as
+ *   salary on sale).
  * - `exempt`: tax-free (study fund within the deposit ceilings).
  */
-export type TaxTreatment = "pension" | "capitalGains" | "exempt";
+export type TaxTreatment = "pension" | "capitalGains" | "ordinaryIncome" | "exempt";
 
 export interface RetirementSource {
   id: string;
@@ -61,6 +65,13 @@ export interface RetirementSource {
   taxTreatment: TaxTreatment;
   /** Part of today's balance that is not taxable gain (`capitalGains` sources only), in today's money. */
   costBasis: number;
+  /**
+   * Part of today's balance that is taxed as ordinary income when sold
+   * instead of as a gain (`capitalGains` sources only): the grant-date value
+   * of Section 102 shares. It stays fixed while the balance grows, so growth
+   * above it is a capital gain.
+   */
+  ordinaryLayer: number;
   /** Tax rate on a realised gain (`capitalGains` sources only). */
   capitalGainsTaxRate: number;
 }
@@ -103,28 +114,37 @@ function taxTreatmentForCategory(category: ProductCategory | null): TaxTreatment
  * Cost basis and tax rate of the non-pension investments bucket. Without
  * declared unrealized gains the whole balance counts as basis, so no gain is
  * taxed; entered equity gains are carved out of it, and each holding's own
- * tax rate is blended in by market value.
+ * tax rate is blended in by market value. A Section 3(i) employer holding
+ * has the value at grant as its basis (that part was already taxed as
+ * income) and is taxed at the statutory rate.
  */
-function otherInvestmentsTaxProfile(profile: ProfileData): { costBasis: number; rate: number } {
+function otherInvestmentsTaxProfile(
+  profile: ProfileData,
+  holdings: StockHolding[],
+): { costBasis: number; rate: number } {
   const defaultRate = TAX_RATES.capitalGainsRate;
   const otherAssets = profile.pensionSavings.otherAssets ?? 0;
   let value = otherAssets;
   let gains = 0;
   let weightedRate = otherAssets * defaultRate;
-  for (const holding of profile.equity.holdings) {
-    const holdingValue =
-      (holding.quantity ?? 0) * (holding.currentMarketPriceUSD ?? 0) * FALLBACK_USD_TO_ILS_RATE;
+  for (const holding of holdings) {
+    const holdingValue = holdingValueIls(holding);
     const details = holding.personalPurchaseDetails;
-    gains += Math.min(
-      Math.max(details.unrealizedCapitalGainUSD ?? 0, 0) * FALLBACK_USD_TO_ILS_RATE,
-      holdingValue,
-    );
+    if (holding.investmentCategory === "employerGrantedStock") {
+      gains += holdingValue - grantValueIls(holding, holdingValue);
+      weightedRate += holdingValue * defaultRate;
+    } else {
+      gains += Math.min(
+        Math.max(details.unrealizedCapitalGainUSD ?? 0, 0) * FALLBACK_USD_TO_ILS_RATE,
+        holdingValue,
+      );
+      weightedRate +=
+        holdingValue *
+        (typeof details.capitalGainsTaxRatePercent === "number"
+          ? details.capitalGainsTaxRatePercent / 100
+          : defaultRate);
+    }
     value += holdingValue;
-    weightedRate +=
-      holdingValue *
-      (typeof details.capitalGainsTaxRatePercent === "number"
-        ? details.capitalGainsTaxRatePercent / 100
-        : defaultRate);
   }
   return {
     costBasis: Math.max(value - gains, 0),
@@ -139,6 +159,97 @@ function yearsUntilDate(isoDate: string | null): number | null {
   if (!isoDate) return null;
   const time = Date.parse(isoDate);
   return Number.isNaN(time) ? null : (time - Date.now()) / MS_PER_YEAR;
+}
+
+/**
+ * How an employer-granted holding is taxed when sold in retirement:
+ * - `section102Capital`: Section 102 capital-gains route with the holding
+ *   period met. The lower of the value at grant and the proceeds is ordinary
+ *   income at the brackets; anything above it is a flat-rate capital gain.
+ * - `ordinaryIncome`: the whole proceeds are ordinary income (Section 102
+ *   ordinary-income route, or a disqualifying disposal on the capital route).
+ * - `nonTrustee`: Section 3(i); the value at grant was taxed as income, so
+ *   only the growth above it is a flat-rate capital gain.
+ */
+export type EmployerStockRoute = "section102Capital" | "ordinaryIncome" | "nonTrustee";
+
+/**
+ * The route of an employer-granted holding. A missing tax track is taken as
+ * the Section 102 capital-gains route, the usual one. The plan sells in
+ * retirement, so the 24-month holding period is met unless a known grant
+ * date falls too close to retirement; with no date and no confirmation the
+ * period is assumed to be met.
+ */
+export function employerStockRoute(
+  holding: StockHolding,
+  yearsToRetirement: number,
+): EmployerStockRoute {
+  const { taxTrack, trusteeHoldingPeriodMet, grantDate } = holding.employerGrantDetails;
+  switch (taxTrack ?? "section102CapitalGainsTrustee") {
+    case "section102OrdinaryIncomeTrustee":
+      return "ordinaryIncome";
+    case "section3iNonTrustee":
+      return "nonTrustee";
+    default: {
+      const untilGrant = yearsUntilDate(grantDate);
+      const heldAtRetirement = untilGrant === null ? null : yearsToRetirement - untilGrant;
+      const periodMet =
+        trusteeHoldingPeriodMet ||
+        heldAtRetirement === null ||
+        heldAtRetirement >= TAX_RATES.section102HoldingPeriodYears;
+      return periodMet ? "section102Capital" : "ordinaryIncome";
+    }
+  }
+}
+
+/**
+ * Value of a holding's shares at the grant date, in ILS, never above its
+ * current value. Awards cost the employee nothing, so this is the part of the
+ * proceeds that is ordinary income (Section 102) or already-taxed income
+ * (Section 3(i)); a missing grant price counts as zero.
+ */
+function grantValueIls(holding: StockHolding, currentValue: number): number {
+  const atGrant =
+    (holding.quantity ?? 0) *
+    Math.max(holding.employerGrantDetails.costBasisAtGrantUSD ?? 0, 0) *
+    FALLBACK_USD_TO_ILS_RATE;
+  return Math.min(atGrant, currentValue);
+}
+
+interface EquitySplit {
+  /** Section 102 capital-route holdings: value and the part taxed as ordinary income. */
+  capitalRoute: { value: number; ordinaryLayer: number };
+  /** Employer holdings taxed entirely as ordinary income, by value. */
+  ordinaryValue: number;
+  /** Everything else, which stays in the generic investments bucket. */
+  rest: StockHolding[];
+}
+
+function splitEquityByTaxRoute(profile: ProfileData, yearsToRetirement: number): EquitySplit {
+  const split: EquitySplit = {
+    capitalRoute: { value: 0, ordinaryLayer: 0 },
+    ordinaryValue: 0,
+    rest: [],
+  };
+  for (const holding of profile.equity.holdings) {
+    if (holding.investmentCategory !== "employerGrantedStock") {
+      split.rest.push(holding);
+      continue;
+    }
+    const value = holdingValueIls(holding);
+    switch (employerStockRoute(holding, yearsToRetirement)) {
+      case "section102Capital":
+        split.capitalRoute.value += value;
+        split.capitalRoute.ordinaryLayer += grantValueIls(holding, value);
+        break;
+      case "ordinaryIncome":
+        split.ordinaryValue += value;
+        break;
+      default:
+        split.rest.push(holding);
+    }
+  }
+  return split;
 }
 
 /**
@@ -206,11 +317,14 @@ function buildAnnuity(
 
 /**
  * Breaks one person's finances into the individual sources retirement income
- * is drawn from: one per pension/savings account they own plus a single
- * bucket for non-pension investments. Values are in today's money (real
- * terms), as everywhere in the engine. The sum of `valueAtRetirement` equals
- * `projectBalanceAtAge`. For a couple this describes the primary user only;
- * `household.ts` builds one set of sources per spouse.
+ * is drawn from: one per pension/savings account they own plus a bucket for
+ * non-pension investments. Employer-granted shares taxed as Section 102
+ * (capital-gains route) or as ordinary income are separate sources of the
+ * same kind, because they are taxed differently from other investments.
+ * Values are in today's money (real terms), as everywhere in the engine. The
+ * sum of `valueAtRetirement` equals `projectBalanceAtAge`. For a couple this
+ * describes the primary user only; `household.ts` builds one set of sources
+ * per spouse.
  */
 export function buildSources(profile: ProfileData, retirementAge: number): RetirementSource[] {
   const currentAge = resolveCurrentAge(profile);
@@ -236,24 +350,58 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
       annuity: buildAnnuity(account, kind, unlockAge, retirementAge, valueAtRetirement, rate),
       taxTreatment: taxTreatmentForCategory(account.productCategory),
       costBasis: balance,
+      ordinaryLayer: 0,
       capitalGainsTaxRate: TAX_RATES.capitalGainsRate,
     };
   });
 
-  const otherBalance = aggregateOtherBalance(profile);
-  const otherTax = otherInvestmentsTaxProfile(profile);
-  sources.push({
-    id: "other-investments",
+  const equity = splitEquityByTaxRoute(profile, years);
+  const otherBalance =
+    (profile.pensionSavings.otherAssets ?? 0) +
+    equity.rest.reduce((sum, holding) => sum + holdingValueIls(holding), 0);
+  const otherTax = otherInvestmentsTaxProfile(profile, equity.rest);
+  const investment = (
+    id: string,
+    balance: number,
+    tax: Pick<RetirementSource, "taxTreatment" | "costBasis" | "ordinaryLayer" | "capitalGainsTaxRate">,
+  ): RetirementSource => ({
+    id,
     kind: "otherInvestments",
-    balance: otherBalance,
+    balance,
     monthlyContribution: 0,
     unlockAge: ACCESS_RULES.alwaysAccessibleAge,
-    valueAtRetirement: otherBalance * growth,
+    valueAtRetirement: balance * growth,
     annuity: null,
-    taxTreatment: "capitalGains",
-    costBasis: otherTax.costBasis,
-    capitalGainsTaxRate: otherTax.rate,
+    ...tax,
   });
+  sources.push(
+    investment("other-investments", otherBalance, {
+      taxTreatment: "capitalGains",
+      costBasis: otherTax.costBasis,
+      ordinaryLayer: 0,
+      capitalGainsTaxRate: otherTax.rate,
+    }),
+  );
+  if (equity.capitalRoute.value > 0) {
+    sources.push(
+      investment("employer-stock-section-102", equity.capitalRoute.value, {
+        taxTreatment: "capitalGains",
+        costBasis: 0,
+        ordinaryLayer: equity.capitalRoute.ordinaryLayer,
+        capitalGainsTaxRate: TAX_RATES.capitalGainsRate,
+      }),
+    );
+  }
+  if (equity.ordinaryValue > 0) {
+    sources.push(
+      investment("employer-stock-ordinary-income", equity.ordinaryValue, {
+        taxTreatment: "ordinaryIncome",
+        costBasis: 0,
+        ordinaryLayer: 0,
+        capitalGainsTaxRate: TAX_RATES.capitalGainsRate,
+      }),
+    );
+  }
 
   return sources;
 }
