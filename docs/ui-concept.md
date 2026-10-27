@@ -118,8 +118,11 @@ per entry.
 
 ### 4. Projections
 
-- Scenario selector: Standard / Early / Delayed retirement age (slider or
-  segmented control), updates charts live.
+- Scenario selector: Standard / Early / Delayed retirement age (segmented
+  control), updates the charts live.
+- Retirement age comparison card: three freely chosen retirement ages side
+  by side (years from now, savings, income before and after tax, gap to the
+  desired spending), with the user's own age marked.
 - Net worth projection (line) and income-by-source breakdown (stacked bar,
   even though Phase 1 has few sources — sets up Phase 2 growth).
 - Table view toggle for users who prefer numbers over charts.

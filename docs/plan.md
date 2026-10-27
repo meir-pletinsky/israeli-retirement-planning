@@ -34,8 +34,8 @@ closed** (see Phase E in
 - **Earliest feasible retirement age — done.**
   `findEarliestFeasibleRetirementAge()` scans upward from the user's
   current age and returns the first age whose funding gap is non-negative;
-  the Dashboard shows it alongside the 3-way early/standard/delayed
-  scenario comparison.
+  the Dashboard shows it, and Projections offers a free 3-age comparison
+  (see the retirement scenario comparison item below).
 
 ## Open Items to Validate (flagged from initial docs)
 
@@ -233,7 +233,15 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
   spouses, the 2027-28 exemption schedule, the gemel-to-annuity exemption.
 - Survivor analysis (simulate death of either spouse)
 - Real estate module (equity, rental income, appreciation)
-- Early/standard/delayed retirement scenario comparison
+- **Retirement scenario comparison — done** (Phase J in
+  [`docs/implementation-progress.md`](implementation-progress.md)).
+  Projections has a "Compare retirement ages" card: pick any three
+  retirement ages for the primary user and see, side by side, the years
+  from now, the savings when the household starts drawing, the income
+  before and after tax, and the gap to the desired spending. A spouse's
+  retirement moves by the same number of years from the age they entered, so
+  the user's own entered age reproduces the Dashboard exactly. Not
+  persisted; the columns start at the Early / Standard / Delayed ages.
 
 ## Phase 4 — Advanced Projection & External Data
 

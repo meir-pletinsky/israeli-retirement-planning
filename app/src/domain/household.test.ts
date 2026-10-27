@@ -7,6 +7,7 @@ import {
   buildHousehold,
   resolveRetirementTiming,
   retirementTimingAtAge,
+  retirementTimingShiftedTo,
   spouseAgeAt,
 } from "./household";
 import { estimateIncomeBreakdownForTiming } from "./incomeBreakdown";
@@ -96,6 +97,21 @@ describe("retirement timing", () => {
   it("links the spouse's age to the primary user's through the age gap", () => {
     expect(spouseAgeAt(profile, 60)).toBe(58);
     expect(retirementTimingAtAge(profile, 60)).toEqual({ selfAge: 60, spouseAge: 58 });
+  });
+
+  it("moves the spouse's retirement by the same number of years as the user's", () => {
+    expect(retirementTimingShiftedTo(profile, 65)).toEqual(resolveRetirementTiming(profile, "standard"));
+    expect(retirementTimingShiftedTo(profile, 60)).toEqual({ selfAge: 60, spouseAge: 55 });
+    expect(retirementTimingShiftedTo(profile, 70)).toEqual({ selfAge: 70, spouseAge: 65 });
+    // 52 would put the spouse at 47, before their current age of 48.
+    expect(retirementTimingShiftedTo(profile, 52)).toEqual({ selfAge: 52, spouseAge: 48 });
+  });
+
+  it("starts from the default age for a spouse without a retirement age, and has no spouse when single", () => {
+    const noAge = buildTestProfile({ age: 50, retirementAge: 65, ...MARRIED, spouse: { age: 48 } });
+    expect(retirementTimingShiftedTo(noAge, 63)).toEqual({ selfAge: 63, spouseAge: 65 });
+    const single = buildTestProfile({ age: 50, retirementAge: 65 });
+    expect(retirementTimingShiftedTo(single, 70)).toEqual({ selfAge: 70, spouseAge: null });
   });
 
   it("counts years to retirement until the later spouse stops", () => {

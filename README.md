@@ -16,7 +16,8 @@ ages, annuity conversion, per-source retirement timeline) and
 couples/household planning (a spouse, per-account owners, staggered
 retirement, the Bituach Leumi spouse supplement), and the Phase 3 tax
 module (retirement income shown after Israeli income tax, per spouse,
-with editable credit points) — see
+with editable credit points) and a retirement-age comparison (any three
+ages side by side) — see
 [`docs/implementation-progress.md`](docs/implementation-progress.md) for
 the detailed checklist and [`docs/plan.md`](docs/plan.md)'s Status section
 for how it compares to the original spec.

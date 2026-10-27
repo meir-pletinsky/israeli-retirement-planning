@@ -49,9 +49,31 @@ Full authoritative checklist: [`docs/implementation-progress.md`](implementation
 Snapshot as of this handoff: **Phases A–E are done** (Phase 1 MVP and its
 two logged gaps), **Phase F (Bituach Leumi module) is done**, **Phase G
 (per-source access rules, annuities and timeline) is done**, **Phase H
-(couples/household) is done**, and **Phase I (Phase 3 tax module) is
-done**. Phases A–H are committed and pushed to `main`; Phase I is
-committed and pushed only if `git log` shows it.
+(couples/household) is done**, **Phase I (Phase 3 tax module) is
+done**, and **Phase J (retirement scenario comparison) is done**. Phases
+A–I are committed and pushed to `main`; Phase J is committed and pushed only
+if `git log` shows it.
+
+- **Phase J (Phase 3 — retirement scenario comparison): ALL DONE.**
+  Projections has a "Compare retirement ages" card: any three retirement
+  ages for the primary user, side by side.
+  - Design: a spouse's retirement moves by the same number of years from
+    the age they entered (never before their current age), so the user's own
+    entered age equals the Dashboard and the standard scenario. This is
+    `retirementTimingShiftedTo` in `domain/household.ts`, not
+    `retirementTimingAtAge` (both retire at the same moment; used by the
+    feasibility solver).
+  - `domain/scenarioComparison.ts`: `compareRetirementAge(s)`,
+    `defaultComparisonAges` (Early / Standard / Delayed ages),
+    `isValidComparisonAge` (from today, 50–80). Rows use the same
+    after-tax headline (the lowest after-tax year) as the Dashboard.
+  - UI: `components/ScenarioComparison.tsx` (state is local, not
+    persisted; the Early / Standard / Delayed toggle still drives the charts
+    and is independent of the card); i18n `projections.compare.*` en/ru/he.
+  - Not done: a comparison chart; saving the chosen ages.
+  - Known quirk (not mine): with a standard age under 65 the Early scenario
+    is floored at 60 and can exceed the standard age; the card's default
+    early age is capped at the standard age.
 
 - **Phase I (Phase 3 — tax module): ALL DONE.** Tax constants were
   cross-checked against secondary sources (gov.il returned 403) and are in
@@ -206,17 +228,16 @@ committed and pushed only if `git log` shows it.
     reflect implemented status (the two gaps it logged were closed in
     Phase E).
   - D3: live deploy verified (done as a side effect of A7).
-- 251 tests total, all green; lint/typecheck/build all green.
+- 275 tests total, all green; lint/typecheck/build all green.
 
 ## Where to go next
 
 Phase 1, the Phase 2 modules (Bituach Leumi, per-source model,
-couples/household) and the Phase 3 tax module are complete. Remaining, not
-yet started:
+couples/household) and the Phase 3 tax module and scenario comparison are
+complete. Remaining, not yet started:
 
 - **Survivor analysis** (simulate the death of either spouse), Phase 3.
 - **Real estate module** (equity, rental income, appreciation), Phase 3.
-- **Early / standard / delayed retirement scenario comparison**, Phase 3.
 - Tax refinements: the 2027-28 exemption steps, health tax and Bituach
   Leumi contributions, other credit points, spouse tax coordination, and
   re-checking the constants against the Tax Authority's circulars.

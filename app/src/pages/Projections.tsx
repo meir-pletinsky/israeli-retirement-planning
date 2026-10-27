@@ -7,6 +7,7 @@ import { IncomeBreakdownChart } from "../components/charts/IncomeBreakdownChart"
 import { NetIncomeChart } from "../components/charts/NetIncomeChart";
 import { NetWorthChart } from "../components/charts/NetWorthChart";
 import { RetirementTimeline } from "../components/RetirementTimeline";
+import { ScenarioComparison } from "../components/ScenarioComparison";
 import {
   type IncomeBandKey,
   buildRetirementTimeline,
@@ -51,6 +52,8 @@ export function Projections() {
       <h1 className="text-xl font-semibold text-slate-900">
         {t("projections.title")}
       </h1>
+
+      <ScenarioComparison profile={profile} />
 
       <div>
         <span className="text-sm font-medium text-slate-700">

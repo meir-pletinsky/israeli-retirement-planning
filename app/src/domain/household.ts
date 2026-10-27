@@ -137,6 +137,24 @@ export function retirementTimingAtAge(profile: ProfileData, selfAge: number): Re
   };
 }
 
+/**
+ * The primary user retiring at `selfAge`, with a spouse's retirement moved by
+ * the same number of years from the age they entered (never before their
+ * current age). At the user's own entered age this equals the standard
+ * timing, so a comparison lines up with the Dashboard.
+ */
+export function retirementTimingShiftedTo(profile: ProfileData, selfAge: number): RetirementTiming {
+  if (!isHouseholdActive(profile)) return { selfAge, spouseAge: null };
+  const shift = selfAge - resolveRetirementAge(profile, "standard");
+  return {
+    selfAge,
+    spouseAge: Math.max(
+      resolveSpouseRetirementAge(profile, "standard") + shift,
+      resolveSpouseCurrentAge(profile),
+    ),
+  };
+}
+
 function incomeTestExemptAge(gender: Gender | null): number {
   return gender === "female"
     ? RATES.spouseIncomeTestExemptAgeWoman

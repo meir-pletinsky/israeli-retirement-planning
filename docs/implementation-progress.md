@@ -15,7 +15,8 @@ calculation engine starts simple (aggregate balances, deterministic growth)
 and originally did not model tax. Bituach Leumi was added as the first
 Phase 2 module (Phase F below), the per-source access/annuity model as the
 second (Phase G), couples/household planning as the third (Phase H), and the
-Phase 3 tax module (gross → net income) as Phase I.
+Phase 3 tax module (gross → net income) as Phase I, and the retirement-age
+scenario comparison as Phase J.
 
 ## Phase A — Project setup & infra
 
@@ -332,6 +333,40 @@ and feasibility.
       `fundingGap`, Dashboard, Projections, Personal step and
       `normalizeProfile` tests). Checked in the browser in English and
       Hebrew (RTL).
+
+## Phase J — Phase 3: retirement scenario comparison
+
+Design decisions: the user picks any three retirement ages freely (not fixed
+or editable offsets); the comparison is independent of the Early / Standard /
+Delayed toggle, which keeps driving the charts. A spouse's retirement moves by
+the same number of years from the age they entered (`resolveRetirementTiming`
+semantics), not to the same moment (`retirementTimingAtAge`, used by the
+feasibility solver), so the user's own entered age equals the Dashboard.
+
+- [x] J1. `retirementTimingShiftedTo(profile, selfAge)` in
+      `domain/household.ts`: the spouse's retirement age is their entered age
+      (default 67) plus `selfAge` minus the user's entered age, never before
+      their current age; no spouse for a single person.
+- [x] J2. `domain/scenarioComparison.ts`: `compareRetirementAge(s)` returns
+      per age the years from now, savings when the household starts drawing,
+      gross / tax / net income (the lowest after-tax year, as on the
+      Dashboard), the gap to desired spending and a status (`onTrack`,
+      `shortfall`, `noTarget`); `defaultComparisonAges` (the Early, Standard
+      and Delayed ages) and `isValidComparisonAge` (from today, 50–80).
+- [x] J3. UI + i18n (en/ru/he). `components/ScenarioComparison.tsx` on the
+      Projections page: three `NumberField`s and a table (scrolls
+      horizontally on mobile) with the user's entered age marked "Your
+      plan", the spouse's age for a couple and an inline error and empty
+      column for an invalid age. State is local, not persisted. Without
+      desired expenses the gap rows are replaced by a prompt to enter them.
+- [x] J4. Tests: 275 total, all green (new `scenarioComparison.test.ts`;
+      `household.test.ts` timing cases; five comparison cases in
+      `Projections.test.tsx`). Checked in the browser in English and Hebrew
+      (RTL), single and couple; the "Your plan" column equals the
+      Dashboard's net income and gap.
+
+Not done: a chart of the comparison, and saving the chosen ages in the
+profile.
 
 ## Deviations from original docs (log as they happen)
 

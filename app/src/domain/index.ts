@@ -11,6 +11,7 @@ export * from "./incomeBreakdown";
 export * from "./netIncome";
 export * from "./netWorth";
 export * from "./retirementIncome";
+export * from "./scenarioComparison";
 export * from "./sources";
 export * from "./tax";
 export * from "./taxRates";

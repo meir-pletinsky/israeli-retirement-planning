@@ -80,7 +80,8 @@ src/
                     # incomeBreakdown.ts, timeline.ts, fundingGap.ts,
                     # contributions.ts, feasibility.ts, bituachLeumi.ts,
                     # bituachLeumiRates.ts, household.ts, taxRates.ts,
-                    # tax.ts, netIncome.ts, index.ts) rather
+                    # tax.ts, netIncome.ts, scenarioComparison.ts,
+                    # index.ts) rather
                     # than split into
                     # per-product folders — products differ by rule data
                     # (accessRules.ts, sources.ts), not by calculation.
@@ -94,6 +95,10 @@ src/
                     # member per year with tax.ts (rates in taxRates.ts);
                     # the Dashboard headline, funding gap and feasibility
                     # use the resulting after-tax income.
+                    # scenarioComparison.ts evaluates the household at any
+                    # retirement age (a spouse's retirement moves by the
+                    # same number of years, via retirementTimingShiftedTo
+                    # in household.ts) for the Projections comparison card.
   data/             # static fallback datasets (rates, tables), external data clients
   storage/          # Dexie schema, repositories, export/import
   i18n/             # translation resources (en, ru, he) + setup
