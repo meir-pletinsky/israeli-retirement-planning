@@ -68,6 +68,8 @@ export function PensionAccountForm({
   const providerSuggestions = t("myData.steps.pensionSavings.providerSuggestions", {
     returnObjects: true,
   }) as string[];
+  // The dates only decide when a study fund unlocks.
+  const datesImportance = account.productCategory === "studyFund" ? "recommended" : "reference";
 
   return (
     <div className="flex flex-col gap-4">
@@ -84,13 +86,31 @@ export function PensionAccountForm({
       )}
       <TextField
         label={f("providerName")}
+        importance="reference"
         value={account.providerName}
         onChange={(providerName) => onChange({ providerName })}
         suggestions={providerSuggestions}
         suggestionsId="pension-provider-suggestions"
       />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <TextField
+          label={f("policyNumber")}
+          importance="reference"
+          helperText={f("policyNumberHelper")}
+          value={account.policyNumber}
+          onChange={(policyNumber) => onChange({ policyNumber })}
+        />
+        <TextField
+          label={f("fundId")}
+          importance="reference"
+          helperText={f("fundIdHelper")}
+          value={account.fundId}
+          onChange={(fundId) => onChange({ fundId })}
+        />
+      </div>
       <SelectField
         label={f("productCategory")}
+        importance="recommended"
         value={account.productCategory}
         onChange={(v) => onChange({ productCategory: v as ProductCategory })}
         options={PRODUCT_CATEGORIES.map((v) => ({
@@ -100,6 +120,7 @@ export function PensionAccountForm({
       />
       <SelectField
         label={f("accountStatus")}
+        importance="recommended"
         value={account.accountStatus}
         onChange={(v) => onChange({ accountStatus: v as AccountStatus })}
         options={ACCOUNT_STATUSES.map((v) => ({
@@ -109,6 +130,7 @@ export function PensionAccountForm({
       />
       <SelectField
         label={f("legacyPolicyModel")}
+        importance="reference"
         value={account.legacyPolicyModel}
         onChange={(v) =>
           onChange({ legacyPolicyModel: v as LegacyPolicyModel })
@@ -121,17 +143,20 @@ export function PensionAccountForm({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <DateField
           label={f("joinDate")}
+          importance={datesImportance}
           value={account.joinDate}
           onChange={(joinDate) => onChange({ joinDate })}
         />
         <DateField
           label={f("liquidityDate")}
+          importance={datesImportance}
           value={account.liquidityDate}
           onChange={(liquidityDate) => onChange({ liquidityDate })}
         />
       </div>
       <NumberField
         label={f("totalAccumulatedBalance")}
+        importance="recommended"
         value={account.totalAccumulatedBalance}
         onChange={(totalAccumulatedBalance) =>
           onChange({ totalAccumulatedBalance })
@@ -139,7 +164,7 @@ export function PensionAccountForm({
         suffix={currency}
       />
 
-      <CollapsibleSection title={f("sectionBalanceBreakdown")}>
+      <CollapsibleSection title={f("sectionBalanceBreakdown")} importance="reference">
         <NumberField
           label={f("pre2008CapitalBalance")}
           value={balanceBreakdown.pre2008CapitalBalance}
@@ -188,6 +213,7 @@ export function PensionAccountForm({
         </p>
         <NumberField
           label={f("employeeRatePercent")}
+          importance="recommended"
           value={contributions.employeeRatePercent}
           onChange={(v) =>
             onChange({ contributions: { ...contributions, employeeRatePercent: v } })
@@ -198,6 +224,7 @@ export function PensionAccountForm({
         />
         <NumberField
           label={f("employerRatePercent")}
+          importance="recommended"
           value={contributions.employerRatePercent}
           onChange={(v) =>
             onChange({ contributions: { ...contributions, employerRatePercent: v } })
@@ -208,6 +235,7 @@ export function PensionAccountForm({
         />
         <NumberField
           label={f("severanceRatePercent")}
+          importance="recommended"
           value={contributions.severanceRatePercent}
           onChange={(v) =>
             onChange({ contributions: { ...contributions, severanceRatePercent: v } })
@@ -255,6 +283,7 @@ export function PensionAccountForm({
         />
         <SelectField
           label={f("annuityTaxType")}
+          importance="reference"
           value={annuityParameters.annuityTaxType}
           onChange={(v) =>
             onChange({
@@ -271,6 +300,7 @@ export function PensionAccountForm({
         />
         <SelectField
           label={f("guaranteedPaymentMonths")}
+          importance="reference"
           value={annuityParameters.guaranteedPaymentMonths?.toString() ?? null}
           onChange={(v) =>
             onChange({
@@ -287,7 +317,7 @@ export function PensionAccountForm({
         />
       </CollapsibleSection>
 
-      <CollapsibleSection title={f("sectionInsuranceCoverages")}>
+      <CollapsibleSection title={f("sectionInsuranceCoverages")} importance="reference">
         <NumberField
           label={f("deathCoverageAmount")}
           value={insuranceCoverages.deathCoverageAmount}
@@ -326,7 +356,7 @@ export function PensionAccountForm({
         />
       </CollapsibleSection>
 
-      <CollapsibleSection title={f("sectionInvestmentAndFees")}>
+      <CollapsibleSection title={f("sectionInvestmentAndFees")} importance="reference">
         <TextField
           label={f("investmentTrackName")}
           value={investmentAndFees.investmentTrackName}

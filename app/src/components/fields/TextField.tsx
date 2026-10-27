@@ -1,8 +1,13 @@
+import { FieldLabel, type FieldImportance } from "./FieldLabel";
+
 interface TextFieldProps {
   label: string;
+  importance?: FieldImportance;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  /** Short hint shown under the input. */
+  helperText?: string;
   /** Optional list of suggestions shown via a native datalist; the field stays free text. */
   suggestions?: string[];
   /** Required (and must be unique on the page) when `suggestions` is provided. */
@@ -11,15 +16,17 @@ interface TextFieldProps {
 
 export function TextField({
   label,
+  importance,
   value,
   onChange,
   placeholder,
+  helperText,
   suggestions,
   suggestionsId,
 }: TextFieldProps) {
   return (
     <label className="block">
-      <span className="text-sm font-medium text-slate-700">{label}</span>
+      <FieldLabel label={label} importance={importance} />
       <input
         type="text"
         value={value}
@@ -28,6 +35,9 @@ export function TextField({
         list={suggestions ? suggestionsId : undefined}
         className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-teal-500 focus:outline-none"
       />
+      {helperText && (
+        <span className="mt-1 block text-xs text-slate-400">{helperText}</span>
+      )}
       {suggestions && suggestionsId && (
         <datalist id={suggestionsId}>
           {suggestions.map((option) => (

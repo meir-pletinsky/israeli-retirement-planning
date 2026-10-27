@@ -1,7 +1,10 @@
 import type { ReactNode } from "react";
 
+import { FieldLabel, type FieldImportance } from "./FieldLabel";
+
 interface NumberFieldProps {
   label: string;
+  importance?: FieldImportance;
   helperText?: string;
   value: number | null;
   onChange: (value: number | null) => void;
@@ -14,6 +17,7 @@ interface NumberFieldProps {
 
 export function NumberField({
   label,
+  importance,
   helperText,
   value,
   onChange,
@@ -25,7 +29,7 @@ export function NumberField({
 }: NumberFieldProps) {
   return (
     <label className="block">
-      <span className="text-sm font-medium text-slate-700">{label}</span>
+      <FieldLabel label={label} importance={importance} />
       <div
         className={`mt-1 flex items-center rounded-md border bg-white focus-within:border-teal-500 ${
           error ? "border-red-400" : "border-slate-300"
@@ -38,6 +42,7 @@ export function NumberField({
           max={max}
           step={step}
           value={value ?? ""}
+          aria-required={importance === "required" || undefined}
           onChange={(e) =>
             onChange(e.target.value === "" ? null : Number(e.target.value))
           }

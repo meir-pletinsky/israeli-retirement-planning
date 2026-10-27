@@ -205,7 +205,7 @@ describe("Dashboard", () => {
       ).toBeInTheDocument();
     });
 
-    it("flags accounts with no product type and links to My Data", async () => {
+    it("no longer repeats the uncategorized-accounts note here (it is in the estimate card)", async () => {
       await seed(
         buildTestProfile({
           age: 40,
@@ -217,11 +217,158 @@ describe("Dashboard", () => {
 
       renderWithProviders(<Dashboard />);
 
-      expect(await screen.findByText(/Accounts without a product type: 1\./)).toBeInTheDocument();
-      expect(screen.getByRole("link", { name: "Edit accounts" })).toHaveAttribute(
+      await screen.findByText("Improve your estimate");
+      expect(screen.queryByRole("heading", { name: "Access to your savings" })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("improve-your-estimate card", () => {
+    const zeroRealReturn = { investmentReturnPct: 4, inflationPct: 4 };
+
+    async function seed(profile: ReturnType<typeof buildTestProfile>) {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+    }
+
+    it("lists the missing optional inputs with a link to each step", async () => {
+      await seed(
+        buildTestProfile({
+          age: 40,
+          retirementAge: 67,
+          pensionBalances: [100_000],
+          ...zeroRealReturn,
+        }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      const card = (await screen.findByRole("heading", { name: "Improve your estimate" })).closest("section")!;
+      expect(within(card).getByText(/Accounts without a product type: 1\./)).toBeInTheDocument();
+      expect(within(card).getByText(/Accounts without a status: 1\./)).toBeInTheDocument();
+      expect(within(card).getByText(/No expected retirement spending/)).toBeInTheDocument();
+      expect(within(card).getByText(/Gender is not set/)).toBeInTheDocument();
+      expect(within(card).getAllByRole("link", { name: "Open Pension & Savings" })[0]).toHaveAttribute(
         "href",
         "/my-data/pension-savings",
       );
+      expect(within(card).getByRole("link", { name: "Open Expenses" })).toHaveAttribute(
+        "href",
+        "/my-data/expenses",
+      );
+      expect(within(card).getAllByRole("link", { name: "Open Personal" })[0]).toHaveAttribute(
+        "href",
+        "/my-data/personal",
+      );
+    });
+
+    it("is hidden when nothing optional is missing", async () => {
+      await seed(
+        buildTestProfile({
+          age: 40,
+          gender: "female",
+          retirementAge: 67,
+          retirementMonthlyExpenses: 6000,
+          maritalStatus: "single",
+          pensionBalances: [100_000],
+          pensionAccountOverrides: [{ productCategory: "pensionFund", accountStatus: "inactive" }],
+          ...zeroRealReturn,
+        }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      expect(screen.queryByRole("heading", { name: "Improve your estimate" })).not.toBeInTheDocument();
+    });
+
+    it("shows no funding gap or status message until retirement spending is entered", async () => {
+      await seed(buildTestProfile({ age: 40, retirementAge: 67, pensionBalances: [100_000], ...zeroRealReturn }));
+
+      renderWithProviders(<Dashboard />);
+
+      const gapKpi = (await screen.findByText("Funding Gap")).parentElement as HTMLElement;
+      expect(within(gapKpi).getByText("—")).toBeInTheDocument();
+      expect(screen.queryByText("You're on track to meet your retirement goal.")).not.toBeInTheDocument();
+      expect(screen.queryByText("You may need additional savings to meet your retirement goal.")).not.toBeInTheDocument();
+    });
+
+    it("shows the funding gap and status once spending is entered", async () => {
+      await seed(
+        buildTestProfile({
+          age: 40,
+          retirementAge: 67,
+          retirementMonthlyExpenses: 1_000_000,
+          pensionBalances: [100_000],
+          ...zeroRealReturn,
+        }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      expect(
+        await screen.findByText("You may need additional savings to meet your retirement goal."),
+      ).toBeInTheDocument();
+      const gapKpi = screen.getByText("Funding Gap").parentElement as HTMLElement;
+      expect(within(gapKpi).queryByText("—")).not.toBeInTheDocument();
+    });
+
+    it("asks about the spouse only when the household has one", async () => {
+      await seed(
+        buildTestProfile({ age: 40, retirementAge: 67, maritalStatus: "married", ...zeroRealReturn }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      expect(
+        await screen.findByText(/marked as married but your spouse's age is empty/),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/Your spouse's gender is not set/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe("a person without a partner", () => {
+    const zeroRealReturn = { investmentReturnPct: 4, inflationPct: 4 };
+
+    it.each([null, "single", "divorced", "widowed"] as const)(
+      "gets a complete plan from only the two ages (marital status: %s)",
+      async (maritalStatus) => {
+        await saveProfileToDb(
+          buildTestProfile({
+            age: 45,
+            retirementAge: 62,
+            ...(maritalStatus ? { maritalStatus } : {}),
+            ...zeroRealReturn,
+          }),
+        );
+        await saveOnboardedToDb(true);
+
+        renderWithProviders(<Dashboard />);
+
+        expect(await screen.findByText("Projected Monthly Income After Tax")).toBeInTheDocument();
+        expect(screen.getByText("Years to Retirement")).toBeInTheDocument();
+        expect(screen.queryByText(/Your spouse/)).not.toBeInTheDocument();
+        expect(screen.queryByText(/Each spouse is taxed/)).not.toBeInTheDocument();
+        expect(screen.queryByText(/whole household/)).not.toBeInTheDocument();
+      },
+    );
+
+    it("ignores a leftover spouse account when the person has no partner", async () => {
+      const profile = buildTestProfile({
+        age: 45,
+        retirementAge: 62,
+        maritalStatus: "single",
+        pensionBalances: [100_000, 400_000],
+        pensionAccountOverrides: [{}, { owner: "spouse" }],
+        ...zeroRealReturn,
+      });
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+
+      renderWithProviders(<Dashboard />);
+
+      const netWorthToday = Math.round(aggregateCurrentNetWorth(profile));
+      expect(netWorthToday).toBe(100_000);
+      expect(await screen.findByText(`\u20aa${netWorthToday.toLocaleString()}`)).toBeInTheDocument();
     });
   });
 

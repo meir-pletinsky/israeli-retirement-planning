@@ -125,6 +125,10 @@ export interface PensionAccount {
   /** Defaults to "self"; "spouse" accounts count only while the plan covers a spouse. */
   owner: AccountOwner;
   providerName: string;
+  /** Policy or account number as printed on the statement. Reference only: not used in any calculation. */
+  policyNumber: string;
+  /** Fund / program identifier ("mispar kupa"), for matching the account to published fund data later. Reference only. */
+  fundId: string;
   productCategory: ProductCategory | null;
   legacyPolicyModel: LegacyPolicyModel | null;
   accountStatus: AccountStatus | null;
@@ -143,6 +147,8 @@ export function createEmptyPensionAccount(): PensionAccount {
     id: createId(),
     owner: "self",
     providerName: "",
+    policyNumber: "",
+    fundId: "",
     productCategory: null,
     legacyPolicyModel: null,
     accountStatus: null,
@@ -330,6 +336,8 @@ export interface ProfileData {
   equity: EquityData;
   expenses: ExpensesData;
   assumptions: Assumptions;
+  /** The three retirement ages last compared on Projections; null until the user changes them. */
+  comparisonAges: [number, number, number] | null;
 }
 
 export const EMPTY_PROFILE: ProfileData = {
@@ -352,7 +360,16 @@ export const EMPTY_PROFILE: ProfileData = {
   equity: { holdings: [] },
   expenses: { currentMonthly: null, retirementMonthly: null },
   assumptions: { preset: "base", ...ASSUMPTION_PRESETS.base },
+  comparisonAges: null,
 };
+
+function isComparisonAges(value: unknown): value is [number, number, number] {
+  return (
+    Array.isArray(value) &&
+    value.length === 3 &&
+    value.every((age) => typeof age === "number" && Number.isFinite(age))
+  );
+}
 
 /**
  * Defensively merges a possibly-partial/stale profile object (from an older
@@ -377,6 +394,7 @@ export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined
     bituachLeumi: { ...EMPTY_PROFILE.bituachLeumi, ...parsed?.bituachLeumi },
     expenses: { ...EMPTY_PROFILE.expenses, ...parsed?.expenses },
     assumptions: { ...EMPTY_PROFILE.assumptions, ...parsed?.assumptions },
+    comparisonAges: isComparisonAges(parsed?.comparisonAges) ? parsed.comparisonAges : null,
   };
   // Guard against the pre-schema-expansion shape (plain numeric fields
   // instead of an accounts/holdings array).
@@ -384,12 +402,15 @@ export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined
     merged.pensionSavings = EMPTY_PROFILE.pensionSavings;
   } else {
     // Accounts saved before contribution rates existed lack `contributions`,
-    // and ones saved before couples were supported lack `owner`.
+    // ones saved before couples were supported lack `owner`, and older ones
+    // lack the reference IDs.
     merged.pensionSavings = {
       ...merged.pensionSavings,
       accounts: merged.pensionSavings.accounts.map((account) => ({
         ...account,
         owner: account.owner === "spouse" ? "spouse" : "self",
+        policyNumber: account.policyNumber ?? "",
+        fundId: account.fundId ?? "",
         contributions: {
           ...EMPTY_ACCOUNT_CONTRIBUTIONS,
           ...account.contributions,

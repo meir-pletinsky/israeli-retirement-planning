@@ -63,7 +63,12 @@ Primary sections:
 - Net worth projection chart (line, today → life expectancy), with a
   vertical marker at target retirement age.
 - "Retirement readiness" status banner (on-track / shortfall), plain-language
-  summary sentence, not just a number.
+  summary sentence, not just a number. Hidden, and the Funding Gap KPI shows
+  "—", until the user has entered a desired retirement spending.
+- "Improve your estimate" card: the optional details that would change the
+  result (desired spending, savings, a spouse's age, account type / status /
+  contribution rates, salary, gender), each linking to the My Data step that
+  fixes it. Shown only while there is something to improve.
 - Empty state (no data yet): prompts user into the My Data wizard.
 - CTA to adjust assumptions (jumps to My Data → Assumptions tab).
 
@@ -107,6 +112,24 @@ inline validation, Next/Back, progress indicator. Completing all steps
 routes to Dashboard; after first completion, My Data becomes editable via
 tabs instead of a forced wizard.
 
+**Which fields matter.** Only the current age and the desired retirement
+age (and a spouse's retirement age once a spouse age is entered) block the
+plan. Every other label carries a badge, and a "Which fields matter?" legend
+heads each step:
+
+- **Required** — the plan cannot be computed without it.
+- **Recommended** — optional, but the result changes noticeably (salary,
+  gender, account type / status / balance / contribution rates, desired
+  retirement spending, equity quantity and price).
+- **Reference only** — saved and exported, but used by no calculation:
+  provider, policy number, fund ID ("mispar kupa"), fees, insurance
+  coverages, balance breakdown, Form 161D, and similar cross-reference
+  details.
+- No badge — an optional refinement with a sensible default.
+
+A person without a partner needs only the two ages; the spouse section is
+a single optional block and nothing else on any screen assumes a partner.
+
 The repeater steps (Pension & Savings, Equity & Investments) share one
 UX pattern: a card list with "Add" button, each card showing a compact
 summary (name + key figure) with Edit/Remove actions, Edit/Add opening a
@@ -120,9 +143,12 @@ per entry.
 
 - Scenario selector: Standard / Early / Delayed retirement age (segmented
   control), updates the charts live.
+- Earliest feasible retirement age card (or a link to add expenses when
+  there is no desired spending yet).
 - Retirement age comparison card: three freely chosen retirement ages side
   by side (years from now, savings, income before and after tax, gap to the
-  desired spending), with the user's own age marked.
+  desired spending), with the user's own age marked, a chart of the three
+  against the desired spending, and the chosen ages saved in the profile.
 - Net worth projection (line) and income-by-source breakdown (stacked bar,
   even though Phase 1 has few sources — sets up Phase 2 growth).
 - Table view toggle for users who prefer numbers over charts.
@@ -146,6 +172,10 @@ per entry.
   `TextField`, `DateField`, `CheckboxField`
 - `CollapsibleSection` — expand/collapse wrapper for advanced/optional
   field groups (used heavily in the Pension/Equity account forms)
+- `FieldLabel` / `FieldLegend` — the Required / Recommended / Reference
+  only badge on every field label and section title, and the legend that
+  explains them
+- `DataGapsCard` — the Dashboard's "Improve your estimate" card
 - `FormModal` — large scrollable modal shell (header, body, footer) used
   to add/edit a single repeater entry (pension account, equity holding)
 - `ProjectionLineChart`, `IncomeStackedBarChart`

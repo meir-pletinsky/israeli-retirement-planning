@@ -51,4 +51,36 @@ describe("normalizeProfile", () => {
       "self",
     ]);
   });
+
+  it("adds empty reference IDs to accounts saved before they existed and keeps saved ones", () => {
+    const profile = buildTestProfile({
+      pensionBalances: [1, 2],
+      pensionAccountOverrides: [{}, { policyNumber: "P-1", fundId: "F-2" }],
+    });
+    const accounts = profile.pensionSavings.accounts.map((account, index) => {
+      const { policyNumber: _policyNumber, fundId: _fundId, ...rest } = account;
+      return index === 1 ? account : rest;
+    });
+    const result = normalizeProfile({
+      ...profile,
+      pensionSavings: { ...profile.pensionSavings, accounts },
+    } as Parameters<typeof normalizeProfile>[0]);
+    expect(result.pensionSavings.accounts.map(({ policyNumber, fundId }) => [policyNumber, fundId])).toEqual([
+      ["", ""],
+      ["P-1", "F-2"],
+    ]);
+  });
+
+  it("keeps saved comparison ages and drops malformed ones", () => {
+    const profile = buildTestProfile({ age: 40 });
+    expect(normalizeProfile({ ...profile, comparisonAges: [58, 62, 70] }).comparisonAges).toEqual([58, 62, 70]);
+    expect(normalizeProfile(profile).comparisonAges).toBeNull();
+
+    for (const bad of [[58, 62], [58, 62, 70, 72], [58, "62", 70], [58, null, 70], [58, Number.NaN, 70], "58,62,70"]) {
+      expect(
+        normalizeProfile({ ...profile, comparisonAges: bad } as unknown as Parameters<typeof normalizeProfile>[0])
+          .comparisonAges,
+      ).toBeNull();
+    }
+  });
 });

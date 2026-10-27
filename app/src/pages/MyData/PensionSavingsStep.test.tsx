@@ -25,7 +25,7 @@ describe("PensionSavingsStep — accounts repeater", () => {
 
     // Add an account.
     await user.click(screen.getByRole("button", { name: "Add account" }));
-    await user.type(screen.getByLabelText("Provider name"), "Menora Mivtachim");
+    await user.type(screen.getByLabelText(/^Provider name/), "Menora Mivtachim");
     // NumberField's label wraps a currency-suffix span alongside the input,
     // so its computed label text is "Total accumulated balance₪" — match by
     // substring rather than exact string.
@@ -65,7 +65,7 @@ describe("PensionSavingsStep — accounts repeater", () => {
     });
 
     await user.click(await screen.findByRole("button", { name: "Add account" }));
-    await user.type(screen.getByLabelText("Provider name"), "Clal");
+    await user.type(screen.getByLabelText(/^Provider name/), "Clal");
     await user.click(screen.getByRole("button", { name: /ongoing contributions/i }));
     await user.type(screen.getByLabelText(/Employee contribution rate/), "6");
     await user.type(screen.getByLabelText(/Employer contribution rate/), "6.5");
@@ -81,6 +81,46 @@ describe("PensionSavingsStep — accounts repeater", () => {
         severanceRatePercent: 6,
       });
     });
+  });
+  it("saves the policy number and fund ID and shows them on the account card", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<PensionSavingsStep />, {
+      route: "/my-data/pension-savings",
+    });
+
+    await user.click(await screen.findByRole("button", { name: "Add account" }));
+    await user.type(screen.getByLabelText(/^Provider name/), "Clal");
+    await user.type(screen.getByLabelText(/^Policy \/ account number/), "CLAL-9255621");
+    await user.type(screen.getByLabelText(/^Fund \/ program ID/), "12345");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(await screen.findByText("Policy CLAL-9255621 · Fund 12345")).toBeInTheDocument();
+    await waitFor(async () => {
+      const [account] = (await loadProfileFromDb())!.pensionSavings.accounts;
+      expect(account).toMatchObject({ policyNumber: "CLAL-9255621", fundId: "12345" });
+    });
+  });
+
+  it("tags what the calculation uses and what is for reference only", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<PensionSavingsStep />, {
+      route: "/my-data/pension-savings",
+    });
+
+    await user.click(await screen.findByRole("button", { name: "Add account" }));
+
+    const labelOf = (name: RegExp) => screen.getByLabelText(name).closest("label");
+    expect(labelOf(/^Product category/)).toHaveTextContent("Recommended");
+    expect(labelOf(/^Account status/)).toHaveTextContent("Recommended");
+    expect(labelOf(/^Total accumulated balance/)).toHaveTextContent("Recommended");
+    expect(labelOf(/^Policy \/ account number/)).toHaveTextContent("Reference only");
+    expect(labelOf(/^Fund \/ program ID/)).toHaveTextContent("Reference only");
+    expect(labelOf(/^Provider name/)).toHaveTextContent("Reference only");
+    // The dates only matter for a study fund.
+    expect(labelOf(/^Join date/)).toHaveTextContent("Reference only");
+    await user.selectOptions(screen.getByLabelText(/^Product category/), "studyFund");
+    expect(labelOf(/^Join date/)).toHaveTextContent("Recommended");
+    expect(labelOf(/^Liquidity date/)).toHaveTextContent("Recommended");
   });
 });
 

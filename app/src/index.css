@@ -15,3 +15,8 @@ body {
     Roboto,
     sans-serif;
 }
+
+/* Chart axes are numeric and SVG text-anchor flips under RTL, so keep the plot itself left-to-right. */
+.recharts-surface {
+  direction: ltr;
+}

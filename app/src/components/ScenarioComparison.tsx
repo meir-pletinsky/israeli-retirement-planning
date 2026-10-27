@@ -2,18 +2,20 @@ import clsx from "clsx";
 import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { useProfile } from "../app/ProfileContext";
 import {
   COMPARISON_MAX_AGE,
   COMPARISON_MIN_AGE,
   type RetirementAgeOutcome,
   compareRetirementAge,
-  defaultComparisonAges,
+  initialComparisonAges,
   isHouseholdActive,
   isValidComparisonAge,
   resolveCurrentAge,
   resolveRetirementAge,
 } from "../domain";
 import type { ProfileData } from "../types";
+import { ComparisonChart } from "./charts/ComparisonChart";
 import { NumberField } from "./fields/NumberField";
 
 interface ScenarioComparisonProps {
@@ -23,11 +25,21 @@ interface ScenarioComparisonProps {
 /** Side-by-side outcomes for three freely chosen retirement ages. */
 export function ScenarioComparison({ profile }: ScenarioComparisonProps) {
   const { t } = useTranslation();
-  const [ages, setAges] = useState<(number | null)[]>(() => defaultComparisonAges(profile));
+  const { updateProfile } = useProfile();
+  const [ages, setAges] = useState<(number | null)[]>(() => initialComparisonAges(profile));
   const currencySymbol = t("common.currencySymbol");
   const isCouple = isHouseholdActive(profile);
   const planAge = resolveRetirementAge(profile, "standard");
   const minAge = Math.max(COMPARISON_MIN_AGE, Math.ceil(resolveCurrentAge(profile)));
+
+  const changeAge = (index: number, next: number | null) => {
+    const nextAges = ages.map((current, i) => (i === index ? next : current));
+    setAges(nextAges);
+    // Keep the choice only while every column is usable, so a half-typed age is never saved.
+    if (nextAges.every((age) => isValidComparisonAge(profile, age))) {
+      updateProfile({ comparisonAges: nextAges as [number, number, number] });
+    }
+  };
 
   const money = (amount: number) =>
     `${amount < 0 ? "-" : ""}${currencySymbol}${Math.abs(amount).toLocaleString()}`;
@@ -37,6 +49,11 @@ export function ScenarioComparison({ profile }: ScenarioComparisonProps) {
     outcome: isValidComparisonAge(profile, age) ? compareRetirementAge(profile, age) : null,
   }));
   const noTarget = (profile.expenses.retirementMonthly ?? 0) <= 0;
+  const chartData = columns.flatMap(({ outcome }, index) =>
+    outcome && columns.findIndex((column) => column.age === outcome.retirementAge) === index
+      ? [{ age: outcome.retirementAge, netMonthly: outcome.netMonthlyIncome }]
+      : [],
+  );
 
   type Row = {
     key: string;
@@ -127,7 +144,7 @@ export function ScenarioComparison({ profile }: ScenarioComparisonProps) {
             value={age}
             min={minAge}
             max={COMPARISON_MAX_AGE}
-            onChange={(next) => setAges(ages.map((current, i) => (i === index ? next : current)))}
+            onChange={(next) => changeAge(index, next)}
             error={
               isValidComparisonAge(profile, age)
                 ? undefined
@@ -181,6 +198,19 @@ export function ScenarioComparison({ profile }: ScenarioComparisonProps) {
           </tbody>
         </table>
       </div>
+
+      {chartData.length > 0 && (
+        <div className="mt-4">
+          <ComparisonChart
+            data={chartData}
+            target={noTarget ? null : (profile.expenses.retirementMonthly ?? null)}
+            planAge={planAge}
+            currencySymbol={currencySymbol}
+            netLabel={t("projections.compare.net")}
+            targetLabel={t("projections.compare.expenses")}
+          />
+        </div>
+      )}
 
       {noTarget && <p className="mt-3 text-xs text-slate-500">{t("projections.compare.noTarget")}</p>}
       <p className="mt-3 text-xs text-slate-500">{t("projections.compare.footnote")}</p>

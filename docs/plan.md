@@ -240,8 +240,19 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
   from now, the savings when the household starts drawing, the income
   before and after tax, and the gap to the desired spending. A spouse's
   retirement moves by the same number of years from the age they entered, so
-  the user's own entered age reproduces the Dashboard exactly. Not
-  persisted; the columns start at the Early / Standard / Delayed ages.
+  the user's own entered age reproduces the Dashboard exactly. The three
+  ages are saved in the profile (`comparisonAges`, once all three are valid)
+  and start at the Early / Standard / Delayed ages; a chart plots them
+  against the desired spending.
+- **Input guidance and single-person support — done** (Phase K in
+  [`docs/implementation-progress.md`](implementation-progress.md)). Only the
+  current age and the desired retirement age block the plan; every other
+  field is badged "Recommended" (changes the result) or "Reference only"
+  (saved, not used in any calculation, e.g. policy number and fund ID), and
+  the Dashboard's "Improve your estimate" card lists the optional details
+  that would change the result. A person without a partner needs nothing
+  more than the two ages; spouse fields and results appear only once a
+  spouse age is entered.
 
 ## Phase 4 — Advanced Projection & External Data
 

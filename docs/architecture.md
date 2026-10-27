@@ -81,6 +81,7 @@ src/
                     # contributions.ts, feasibility.ts, bituachLeumi.ts,
                     # bituachLeumiRates.ts, household.ts, taxRates.ts,
                     # tax.ts, netIncome.ts, scenarioComparison.ts,
+                    # inputGuidance.ts,
                     # index.ts) rather
                     # than split into
                     # per-product folders — products differ by rule data
@@ -98,7 +99,14 @@ src/
                     # scenarioComparison.ts evaluates the household at any
                     # retirement age (a spouse's retirement moves by the
                     # same number of years, via retirementTimingShiftedTo
-                    # in household.ts) for the Projections comparison card.
+                    # in household.ts) for the Projections comparison card;
+                    # the three compared ages are saved in the profile
+                    # (comparisonAges).
+                    # inputGuidance.ts (findDataGaps) lists the optional
+                    # details that would change the result, for the
+                    # Dashboard's "Improve your estimate" card. Policy
+                    # number, fund ID and the other reference-only fields
+                    # are saved and exported but no domain code reads them.
   data/             # static fallback datasets (rates, tables), external data clients
   storage/          # Dexie schema, repositories, export/import
   i18n/             # translation resources (en, ru, he) + setup

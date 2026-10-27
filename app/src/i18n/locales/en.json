@@ -66,8 +66,6 @@
       "locked": "Locked until age {{age}}: {{amount}}",
       "annuities": "Accounts paying a monthly annuity: {{amount}} (included in your income)",
       "bridgeLimited": "Until age {{age}} only part of your savings is accessible, which limits your sustainable income. If all your savings were available it would be {{income}} per month.",
-      "uncategorized": "Accounts without a product type: {{count}}. They are treated as fully accessible; set the type to apply access rules.",
-      "editAccounts": "Edit accounts",
       "rulesAsOf": "Access rules as of {{date}}. Early-withdrawal penalties are not modeled."
     },
     "tax": {
@@ -100,12 +98,41 @@
     "chartTitle": "Net Worth Projection",
     "householdChartNote": "The projection covers your whole household. The age axis shows your age.",
     "adjustAssumptions": "Adjust assumptions",
+    "gaps": {
+      "title": "Improve your estimate",
+      "intro": "Optional details that would change your result. Your estimate already works without them.",
+      "goTo": "Open {{step}}",
+      "items": {
+        "retirementSpending": "No expected retirement spending: the funding gap, plan status and earliest retirement age can't be worked out.",
+        "noSavings": "No savings entered yet, so the projection starts from zero.",
+        "spouseMissing": "You are marked as married but your spouse's age is empty, so the plan covers only you.",
+        "accountType": "Accounts without a product type: {{count}}. They are treated as a fully accessible pension fund; set the type to apply access rules.",
+        "accountStatus": "Accounts without a status: {{count}}. They are assumed to receive no further deposits.",
+        "salary": "No monthly gross salary: deposits to your actively contributing accounts ({{count}}) are not projected.",
+        "spouseSalary": "No monthly gross salary for your spouse: deposits to their actively contributing accounts ({{count}}) are not projected.",
+        "contributionRates": "Actively contributing accounts with no contribution rates: {{count}}. No further deposits are projected for them.",
+        "gender": "Gender is not set, so the defaults for a man apply (state pension age 67, 2.25 tax credit points).",
+        "spouseGender": "Your spouse's gender is not set, so the defaults for a man apply (state pension age 67, 2.25 tax credit points)."
+      }
+    },
     "emptyTitle": "No data yet",
     "emptyBody": "Complete your profile to see your personalized retirement projection.",
     "emptyCta": "Start My Data"
   },
   "myData": {
     "title": "My Data",
+    "importance": {
+      "required": "Required",
+      "recommended": "Recommended",
+      "reference": "Reference only",
+      "legendTitle": "Which fields matter?",
+      "legend": {
+        "required": "Needed to build your plan. You can't continue without it.",
+        "recommended": "Not blocking, but your result changes. A default is assumed when it is empty.",
+        "reference": "Saved and exported with your data, but not used in any calculation yet."
+      },
+      "legendOptional": "Fields with no tag are optional refinements; a sensible default applies when they are empty."
+    },
     "validation": {
       "required": "This field is required.",
       "retirementAfterAge": "Retirement age must be greater than your current age.",
@@ -164,6 +191,8 @@
         "noAccounts": "No accounts added yet. Add your pension funds, provident funds, managers insurance policies, or study funds.",
         "untitledAccount": "Untitled account",
         "ownerNotCounted": "Not counted \u2014 add your spouse's age",
+        "policyNumberShort": "Policy {{value}}",
+        "fundIdShort": "Fund {{value}}",
         "accountFormTitle": "Pension / savings account",
         "removeConfirmTitle": "Remove this account?",
         "removeConfirmBody": "This permanently removes the account and its details from your profile.",
@@ -178,6 +207,10 @@
         "fields": {
           "owner": "Account owner",
           "providerName": "Provider name",
+          "policyNumber": "Policy / account number",
+          "policyNumberHelper": "As printed on your annual statement. For your own reference and cross-checking; not used in calculations.",
+          "fundId": "Fund / program ID",
+          "fundIdHelper": "The fund's identifier on your statement, for cross-referencing it with published fund data; not used in calculations.",
           "productCategory": "Product category",
           "accountStatus": "Account status",
           "legacyPolicyModel": "Legacy policy model",
@@ -305,7 +338,8 @@
       "expenses": {
         "label": "Expenses",
         "currentMonthly": "Current monthly expenses",
-        "retirementMonthly": "Expected monthly expenses in retirement"
+        "retirementMonthly": "Expected monthly expenses in retirement",
+        "retirementMonthlyHelper": "Without this the plan shows your retirement income but can't tell whether it is enough."
       },
       "assumptions": {
         "label": "Assumptions",

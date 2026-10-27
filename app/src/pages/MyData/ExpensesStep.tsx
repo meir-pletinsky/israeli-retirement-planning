@@ -14,6 +14,7 @@ export function ExpensesStep() {
     <div className="flex max-w-lg flex-col gap-4">
       <NumberField
         label={t("myData.steps.expenses.currentMonthly")}
+        importance="reference"
         value={expenses.currentMonthly}
         onChange={(currentMonthly) =>
           updateProfile({ expenses: { ...expenses, currentMonthly } })
@@ -22,6 +23,8 @@ export function ExpensesStep() {
       />
       <NumberField
         label={t("myData.steps.expenses.retirementMonthly")}
+        importance="recommended"
+        helperText={t("myData.steps.expenses.retirementMonthlyHelper")}
         value={expenses.retirementMonthly}
         onChange={(retirementMonthly) =>
           updateProfile({ expenses: { ...expenses, retirementMonthly } })

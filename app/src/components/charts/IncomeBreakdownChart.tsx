@@ -14,6 +14,7 @@ import {
   type IncomeBandKey,
   type IncomeBreakdownPoint,
 } from "../../domain";
+import { formatAxisMoney } from "./formatAxisMoney";
 import { INCOME_BAND_COLORS } from "./incomeBandColors";
 
 interface IncomeBreakdownChartProps {
@@ -31,7 +32,7 @@ export function IncomeBreakdownChart({ data, currencySymbol, labels }: IncomeBre
         <YAxis
           tick={{ fontSize: 12 }}
           stroke="#94a3b8"
-          tickFormatter={(v: number) => `${currencySymbol}${v}`}
+          tickFormatter={(v: number) => formatAxisMoney(v, currencySymbol)}
         />
         <Tooltip
           formatter={(value) =>

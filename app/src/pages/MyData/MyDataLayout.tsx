@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate, Outlet } from "react-router-dom";
 
 import { Stepper } from "../../components/Stepper";
+import { FieldLegend } from "./FieldLegend";
 import { STEP_ORDER, type StepKey } from "./stepOrder";
 
 function toCamelCase(key: string): string {
@@ -31,6 +32,7 @@ export function MyDataLayout() {
         currentKey={currentKey}
         onStepClick={(key) => navigate(`/my-data/${key}`)}
       />
+      <FieldLegend />
       <Outlet />
     </div>
   );

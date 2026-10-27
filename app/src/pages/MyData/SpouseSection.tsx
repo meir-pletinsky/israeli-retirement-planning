@@ -35,6 +35,7 @@ export function SpouseSection({ error }: SpouseSectionProps) {
       </div>
       <NumberField
         label={t(`${prefix}.spouseAge`)}
+        importance="recommended"
         helperText={t(`${prefix}.spouseAgeHelper`)}
         value={spouse.age}
         onChange={(age) => updateSpouse({ age })}
@@ -45,6 +46,7 @@ export function SpouseSection({ error }: SpouseSectionProps) {
         <>
           <SelectField
             label={t(`${prefix}.spouseGender`)}
+            importance="recommended"
             value={spouse.gender}
             onChange={(gender) => updateSpouse({ gender: gender as Gender })}
             options={[
@@ -54,6 +56,7 @@ export function SpouseSection({ error }: SpouseSectionProps) {
           />
           <NumberField
             label={t(`${prefix}.spouseRetirementAge`)}
+            importance="required"
             helperText={t(`${prefix}.spouseRetirementAgeHelper`)}
             value={spouse.retirementAge}
             onChange={(retirementAge) => updateSpouse({ retirementAge })}
@@ -69,6 +72,7 @@ export function SpouseSection({ error }: SpouseSectionProps) {
           />
           <NumberField
             label={t(`${prefix}.spouseMonthlyGrossSalary`)}
+            importance="recommended"
             helperText={t(`${prefix}.spouseMonthlyGrossSalaryHelper`)}
             value={spouse.monthlyGrossSalary}
             onChange={(monthlyGrossSalary) => updateSpouse({ monthlyGrossSalary })}

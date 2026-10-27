@@ -7,6 +7,7 @@ import {
   compareRetirementAge,
   compareRetirementAges,
   defaultComparisonAges,
+  initialComparisonAges,
   isValidComparisonAge,
 } from "./scenarioComparison";
 
@@ -148,6 +149,24 @@ describe("defaultComparisonAges", () => {
   it("never offers an early age before today or after the standard age", () => {
     expect(defaultComparisonAges(buildTestProfile({ age: 62, retirementAge: 62 }))).toEqual([62, 62, 65]);
     expect(defaultComparisonAges(buildTestProfile({ age: 52, retirementAge: 55 }))).toEqual([55, 55, 58]);
+  });
+});
+
+describe("initialComparisonAges", () => {
+  it("falls back to the scenario ages when none were saved", () => {
+    expect(initialComparisonAges(single)).toEqual([60, 65, 68]);
+  });
+
+  it("reopens with the ages the user last chose", () => {
+    expect(initialComparisonAges({ ...single, comparisonAges: [58, 62, 70] })).toEqual([58, 62, 70]);
+  });
+
+  it("drops saved ages once one of them is no longer usable", () => {
+    // 54 is now in the past for a 55-year-old.
+    expect(initialComparisonAges({ ...single, comparisonAges: [54, 62, 70] })).toEqual([60, 65, 68]);
+    expect(initialComparisonAges({ ...single, comparisonAges: [58, 62, COMPARISON_MAX_AGE + 1] })).toEqual([
+      60, 65, 68,
+    ]);
   });
 });
 

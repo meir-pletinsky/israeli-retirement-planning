@@ -47,6 +47,7 @@ export function EquityHoldingForm({
     <div className="flex flex-col gap-4">
       <SelectField
         label={f("investmentCategory")}
+        importance="reference"
         value={holding.investmentCategory}
         onChange={(v) =>
           onChange({ investmentCategory: v as InvestmentCategory })
@@ -59,29 +60,34 @@ export function EquityHoldingForm({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <TextField
           label={f("tickerSymbol")}
+          importance="reference"
           value={holding.tickerSymbol}
           onChange={(v) => onChange({ tickerSymbol: v.toUpperCase() })}
         />
         <TextField
           label={f("companyName")}
+          importance="reference"
           value={holding.companyName}
           onChange={(companyName) => onChange({ companyName })}
         />
       </div>
       <TextField
         label={f("custodianOrBroker")}
+        importance="reference"
         value={holding.custodianOrBroker}
         onChange={(custodianOrBroker) => onChange({ custodianOrBroker })}
       />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <NumberField
           label={f("quantity")}
+          importance="recommended"
           value={holding.quantity}
           onChange={(v) => onChange({ quantity: v })}
           min={0}
         />
         <NumberField
           label={f("currentMarketPriceUSD")}
+          importance="recommended"
           value={holding.currentMarketPriceUSD}
           onChange={(v) => onChange({ currentMarketPriceUSD: v })}
           suffix="$"
@@ -96,7 +102,11 @@ export function EquityHoldingForm({
       </p>
 
       {holding.investmentCategory === "employerGrantedStock" && (
-        <CollapsibleSection title={f("sectionEmployerGrantDetails")} defaultOpen>
+        <CollapsibleSection
+          title={f("sectionEmployerGrantDetails")}
+          importance="reference"
+          defaultOpen
+        >
           <DateField
             label={f("grantDate")}
             value={employerGrantDetails.grantDate}
@@ -194,7 +204,11 @@ export function EquityHoldingForm({
       )}
 
       {holding.investmentCategory === "employerEsppDiscount" && (
-        <CollapsibleSection title={f("sectionEsppDetails")} defaultOpen>
+        <CollapsibleSection
+          title={f("sectionEsppDetails")}
+          importance="reference"
+          defaultOpen
+        >
           <DateField
             label={f("purchaseDate")}
             value={esppDetails.purchaseDate}
@@ -273,6 +287,7 @@ export function EquityHoldingForm({
         >
           <DateField
             label={f("purchaseDate")}
+            importance="reference"
             value={personalPurchaseDetails.purchaseDate}
             onChange={(purchaseDate) =>
               onChange({
@@ -285,6 +300,7 @@ export function EquityHoldingForm({
           />
           <NumberField
             label={f("averageCostBasisUSD")}
+            importance="reference"
             value={personalPurchaseDetails.averageCostBasisUSD}
             onChange={(v) =>
               onChange({

@@ -60,6 +60,18 @@ export function defaultComparisonAges(profile: ProfileData): [number, number, nu
 }
 
 /**
+ * The ages to show when the comparison opens: the ones the user last chose,
+ * unless one of them is no longer usable (for example, it is now in the past),
+ * in which case the scenario defaults apply.
+ */
+export function initialComparisonAges(profile: ProfileData): (number | null)[] {
+  const saved = profile.comparisonAges;
+  return saved && saved.every((age) => isValidComparisonAge(profile, age))
+    ? saved
+    : defaultComparisonAges(profile);
+}
+
+/**
  * Income after tax, savings and the gap to the desired expenses for the
  * primary user retiring at `age`. A spouse's retirement moves by the same
  * number of years from the age they entered, so the user's own entered age

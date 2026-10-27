@@ -27,6 +27,13 @@ export function PensionAccountCard({
         `myData.steps.pensionSavings.options.productCategory.${account.productCategory}`,
       )
     : t("myData.steps.pensionSavings.untitledAccount");
+  const references = [
+    account.policyNumber &&
+      t("myData.steps.pensionSavings.policyNumberShort", { value: account.policyNumber }),
+    account.fundId && t("myData.steps.pensionSavings.fundIdShort", { value: account.fundId }),
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
@@ -35,6 +42,7 @@ export function PensionAccountCard({
           {account.providerName || categoryLabel}
         </p>
         <p className="truncate text-xs text-slate-500">{categoryLabel}</p>
+        {references && <p className="truncate text-xs text-slate-400">{references}</p>}
         {showOwner && (
           <p
             className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${

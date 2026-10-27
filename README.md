@@ -17,7 +17,11 @@ couples/household planning (a spouse, per-account owners, staggered
 retirement, the Bituach Leumi spouse supplement), and the Phase 3 tax
 module (retirement income shown after Israeli income tax, per spouse,
 with editable credit points) and a retirement-age comparison (any three
-ages side by side) — see
+ages side by side, with a chart), and input guidance: only the current age
+and the desired retirement age are required, every other field is badged
+"Recommended" or "Reference only" (for example the policy number and fund
+ID, which are saved for cross-reference but not used in any calculation),
+and the app works the same for a person without a partner — see
 [`docs/implementation-progress.md`](docs/implementation-progress.md) for
 the detailed checklist and [`docs/plan.md`](docs/plan.md)'s Status section
 for how it compares to the original spec.

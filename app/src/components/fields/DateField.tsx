@@ -1,13 +1,16 @@
+import { FieldLabel, type FieldImportance } from "./FieldLabel";
+
 interface DateFieldProps {
   label: string;
+  importance?: FieldImportance;
   value: string | null;
   onChange: (value: string | null) => void;
 }
 
-export function DateField({ label, value, onChange }: DateFieldProps) {
+export function DateField({ label, importance, value, onChange }: DateFieldProps) {
   return (
     <label className="block">
-      <span className="text-sm font-medium text-slate-700">{label}</span>
+      <FieldLabel label={label} importance={importance} />
       <input
         type="date"
         value={value ?? ""}

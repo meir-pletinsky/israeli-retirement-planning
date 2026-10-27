@@ -10,6 +10,7 @@ import {
 } from "recharts";
 
 import type { NetWorthPoint } from "../../domain";
+import { formatAxisMoney } from "./formatAxisMoney";
 
 interface NetWorthChartProps {
   data: NetWorthPoint[];
@@ -30,7 +31,7 @@ export function NetWorthChart({
         <YAxis
           tick={{ fontSize: 12 }}
           stroke="#94a3b8"
-          tickFormatter={(v: number) => `${currencySymbol}${Math.round(v / 1000)}k`}
+          tickFormatter={(v: number) => formatAxisMoney(v, currencySymbol)}
         />
         <Tooltip
           formatter={(value) =>

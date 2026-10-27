@@ -44,6 +44,8 @@ export function buildTestProfile(overrides: {
   }[];
   currentMonthlyExpenses?: number;
   retirementMonthlyExpenses?: number;
+  /** The retirement ages saved from the Projections comparison. */
+  comparisonAges?: [number, number, number];
 }): ProfileData {
   const {
     age,
@@ -63,6 +65,7 @@ export function buildTestProfile(overrides: {
     equity = [],
     currentMonthlyExpenses,
     retirementMonthlyExpenses,
+    comparisonAges,
   } = overrides;
 
   return {
@@ -92,6 +95,8 @@ export function buildTestProfile(overrides: {
         id: `test-account-${index}`,
         owner: "self" as const,
         providerName: "Test Provider",
+        policyNumber: "",
+        fundId: "",
         productCategory: null,
         legacyPolicyModel: null,
         accountStatus: null,
@@ -171,5 +176,6 @@ export function buildTestProfile(overrides: {
       investmentReturnPct: investmentReturnPct ?? EMPTY_PROFILE.assumptions.investmentReturnPct,
       inflationPct: inflationPct ?? EMPTY_PROFILE.assumptions.inflationPct,
     },
+    comparisonAges: comparisonAges ?? null,
   };
 }

@@ -10,6 +10,7 @@ import {
 } from "recharts";
 
 import type { NetIncomeYear } from "../../domain";
+import { formatAxisMoney } from "./formatAxisMoney";
 
 interface NetIncomeChartProps {
   data: NetIncomeYear[];
@@ -28,7 +29,7 @@ export function NetIncomeChart({ data, currencySymbol, netLabel, taxLabel }: Net
         <YAxis
           tick={{ fontSize: 12 }}
           stroke="#94a3b8"
-          tickFormatter={(v: number) => `${currencySymbol}${v}`}
+          tickFormatter={(v: number) => formatAxisMoney(v, currencySymbol)}
         />
         <Tooltip
           formatter={(value) => `${currencySymbol}${Number(value).toLocaleString()}`}

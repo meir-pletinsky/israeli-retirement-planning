@@ -50,9 +50,43 @@ Snapshot as of this handoff: **Phases A–E are done** (Phase 1 MVP and its
 two logged gaps), **Phase F (Bituach Leumi module) is done**, **Phase G
 (per-source access rules, annuities and timeline) is done**, **Phase H
 (couples/household) is done**, **Phase I (Phase 3 tax module) is
-done**, and **Phase J (retirement scenario comparison) is done**. Phases
-A–I are committed and pushed to `main`; Phase J is committed and pushed only
-if `git log` shows it.
+done**, **Phase J (retirement scenario comparison) is done**, and **Phase K
+(input guidance, single-person checks, UI polish) is done**. Phases A–J are
+committed and pushed to `main`; Phase K is committed and pushed only if
+`git log` shows it.
+
+- **Phase K (input guidance, single-person support, UI polish): ALL DONE.**
+  The user asked which inputs are essential, which are only for
+  cross-reference (policy / fund ID), how to make mandatory values obvious,
+  and whether the app works for a person without a partner. Scope: UI only;
+  "mandatory" stays strict (only age and desired retirement age block).
+  - Field tiers: each label carries a **Required**, **Recommended** or
+    **Reference only** badge (`components/fields/FieldLabel.tsx`; every
+    field component and `CollapsibleSection` take an `importance` prop); a
+    "Which fields matter?" legend (`pages/MyData/FieldLegend.tsx`) heads each
+    My Data step. Untagged fields are optional refinements with a default.
+    The full tier list is in `docs/implementation-progress.md` → Phase K.
+  - New data: `PensionAccount.policyNumber` and `fundId` (reference only,
+    backfilled `""` in `normalizeProfile()`), and `ProfileData.comparisonAges`
+    (the three compared retirement ages, `null` until the user changes them;
+    dropped by `normalizeProfile()` when malformed).
+  - `domain/inputGuidance.ts` `findDataGaps(profile)` feeds the Dashboard's
+    "Improve your estimate" card (`components/DataGapsCard.tsx`). Without
+    desired spending the Funding Gap KPI shows "—" and the status banner is
+    hidden.
+  - Single person: nothing beyond the two ages is needed. Married without a
+    spouse age is still a single-person plan (flagged by the `spouseMissing`
+    gap); spouse content appears only for an active household
+    (`isHouseholdActive`). Covered by tests on the Personal step, Dashboard
+    and Projections for no status, single, divorced, widowed and married
+    without a spouse age.
+  - Polish: `charts/formatAxisMoney.ts` (compact ₪1.5M / ₪2.5k axis labels);
+    `.recharts-surface { direction: ltr }` in `index.css` fixes the Hebrew
+    y-axis overlap (SVG `text-anchor` flips under RTL);
+    `charts/ComparisonChart.tsx`; `FeasibilityCard` on Projections;
+    `ScenarioComparison` saves its three ages.
+  - Reference-only fields are saved and exported but used by no calculation.
+  - Known and left alone: an all-zero plan shows a 0–4 chart axis.
 
 - **Phase J (Phase 3 — retirement scenario comparison): ALL DONE.**
   Projections has a "Compare retirement ages" card: any three retirement
@@ -65,12 +99,13 @@ if `git log` shows it.
     feasibility solver).
   - `domain/scenarioComparison.ts`: `compareRetirementAge(s)`,
     `defaultComparisonAges` (Early / Standard / Delayed ages),
+    `initialComparisonAges` (saved ages, else the defaults; Phase K),
     `isValidComparisonAge` (from today, 50–80). Rows use the same
     after-tax headline (the lowest after-tax year) as the Dashboard.
-  - UI: `components/ScenarioComparison.tsx` (state is local, not
-    persisted; the Early / Standard / Delayed toggle still drives the charts
-    and is independent of the card); i18n `projections.compare.*` en/ru/he.
-  - Not done: a comparison chart; saving the chosen ages.
+  - UI: `components/ScenarioComparison.tsx` (the Early / Standard / Delayed
+    toggle still drives the charts and is independent of the card); i18n
+    `projections.compare.*` en/ru/he. The comparison chart and saving the
+    chosen ages were added in Phase K.
   - Known quirk (not mine): with a standard age under 65 the Early scenario
     is floored at 60 and can exceed the standard age; the card's default
     early age is capped at the standard age.
@@ -228,24 +263,26 @@ if `git log` shows it.
     reflect implemented status (the two gaps it logged were closed in
     Phase E).
   - D3: live deploy verified (done as a side effect of A7).
-- 275 tests total, all green; lint/typecheck/build all green.
+- 336 tests total, all green; lint/typecheck/build all green.
 
 ## Where to go next
 
 Phase 1, the Phase 2 modules (Bituach Leumi, per-source model,
-couples/household) and the Phase 3 tax module and scenario comparison are
-complete. Remaining, not yet started:
+couples/household), the Phase 3 tax module and scenario comparison, and the
+Phase K input guidance are complete. Remaining, not yet started:
 
 - **Survivor analysis** (simulate the death of either spouse), Phase 3.
 - **Real estate module** (equity, rental income, appreciation), Phase 3.
 - Tax refinements: the 2027-28 exemption steps, health tax and Bituach
   Leumi contributions, other credit points, spouse tax coordination, and
   re-checking the constants against the Tax Authority's circulars.
-- Possible refinements to the contribution model: real wage growth, a
-  per-account salary override, the study-fund **annual deposit** ceiling
-  (₪15,712/month salary), and showing the feasibility result on the
-  Projections page.
-- Chart polish: "₪1500k" tick labels and the RTL y-axis label overlap.
+- Possible refinements to the contribution model (they change numbers, so
+  they were deliberately left out of Phase K): real wage growth, a
+  per-account salary override, and the study-fund **annual deposit** ceiling
+  (₪15,712/month salary).
+- Using the reference-only fields (policy number, fund ID, fees, annuity tax
+  type, ...) in calculations, or matching `fundId` to published fund data
+  (Phase 4, external data).
 
 ## Key technical decisions to know before continuing
 

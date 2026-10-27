@@ -6,13 +6,16 @@ import { useProfile } from "../app/ProfileContext";
 import { IncomeBreakdownChart } from "../components/charts/IncomeBreakdownChart";
 import { NetIncomeChart } from "../components/charts/NetIncomeChart";
 import { NetWorthChart } from "../components/charts/NetWorthChart";
+import { FeasibilityCard } from "../components/FeasibilityCard";
 import { RetirementTimeline } from "../components/RetirementTimeline";
 import { ScenarioComparison } from "../components/ScenarioComparison";
 import {
+  MAX_RETIREMENT_SEARCH_AGE,
   type IncomeBandKey,
   buildRetirementTimeline,
   estimateIncomeBreakdown,
   estimateNetIncome,
+  findEarliestFeasibleRetirementAge,
   isHouseholdActive,
   projectNetWorth,
   spouseAgeAt,
@@ -37,6 +40,7 @@ export function Projections() {
   const netIncomeYears = estimateNetIncome(profile, scenario).years;
   const hasNetIncome = netIncomeYears.some((year) => year.grossMonthly > 0);
   const timeline = buildRetirementTimeline(incomeData);
+  const feasibility = findEarliestFeasibleRetirementAge(profile);
   const isCouple = isHouseholdActive(profile);
   const bandLabels: Record<IncomeBandKey, string> = {
     pensionFund: t("projections.sourcePension"),
@@ -52,6 +56,8 @@ export function Projections() {
       <h1 className="text-xl font-semibold text-slate-900">
         {t("projections.title")}
       </h1>
+
+      <FeasibilityCard feasibility={feasibility} maxSearchAge={MAX_RETIREMENT_SEARCH_AGE} />
 
       <ScenarioComparison profile={profile} />
 

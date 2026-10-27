@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useProfile } from "../app/ProfileContext";
 import { BituachLeumiCard } from "../components/BituachLeumiCard";
 import { NetWorthChart } from "../components/charts/NetWorthChart";
+import { DataGapsCard } from "../components/DataGapsCard";
 import { EmptyState } from "../components/EmptyState";
 import { FeasibilityCard } from "../components/FeasibilityCard";
 import { KpiCard } from "../components/KpiCard";
@@ -16,6 +17,7 @@ import {
   calculateFundingGap,
   estimateNetIncome,
   estimateRetirementIncome,
+  findDataGaps,
   findEarliestFeasibleRetirementAge,
   projectNetWorth,
   yearsToRetirement,
@@ -52,6 +54,8 @@ export function Dashboard() {
   const fundingGap = calculateFundingGap(profile, "standard");
   const isShortfall = fundingGap.status === "shortfall";
   const feasibility = findEarliestFeasibleRetirementAge(profile);
+  const hasTarget = feasibility.status !== "noTarget";
+  const gaps = findDataGaps(profile);
 
   return (
     <div className="flex flex-col gap-6">
@@ -66,8 +70,8 @@ export function Dashboard() {
         />
         <KpiCard
           label={t("dashboard.kpi.fundingGap")}
-          value={`${currencySymbol}${fundingGap.monthlyGap.toLocaleString()}`}
-          status={isShortfall ? "negative" : "positive"}
+          value={hasTarget ? `${currencySymbol}${fundingGap.monthlyGap.toLocaleString()}` : "—"}
+          status={hasTarget ? (isShortfall ? "negative" : "positive") : "neutral"}
         />
         <KpiCard
           label={t("dashboard.kpi.yearsToRetirement")}
@@ -75,14 +79,18 @@ export function Dashboard() {
         />
       </div>
 
-      <StatusBanner
-        status={isShortfall ? "shortfall" : "onTrack"}
-        message={
-          isShortfall
-            ? t("dashboard.statusShortfall")
-            : t("dashboard.statusOnTrack")
-        }
-      />
+      {hasTarget && (
+        <StatusBanner
+          status={isShortfall ? "shortfall" : "onTrack"}
+          message={
+            isShortfall
+              ? t("dashboard.statusShortfall")
+              : t("dashboard.statusOnTrack")
+          }
+        />
+      )}
+
+      <DataGapsCard gaps={gaps} />
 
       <FeasibilityCard
         feasibility={feasibility}

@@ -54,6 +54,7 @@ export function PersonalStep() {
     <div className="flex max-w-lg flex-col gap-4">
       <NumberField
         label={t("myData.steps.personal.age")}
+        importance="required"
         value={personal.age}
         onChange={(age) => updateProfile({ personal: { ...personal, age } })}
         min={18}
@@ -66,6 +67,7 @@ export function PersonalStep() {
       />
       <SelectField
         label={t("myData.steps.personal.gender")}
+        importance="recommended"
         value={personal.gender}
         onChange={(gender) =>
           updateProfile({ personal: { ...personal, gender: gender as Gender } })
@@ -77,6 +79,7 @@ export function PersonalStep() {
       />
       <SelectField
         label={t("myData.steps.personal.maritalStatus")}
+        importance="recommended"
         value={personal.maritalStatus}
         onChange={(maritalStatus) =>
           updateProfile({
@@ -92,6 +95,7 @@ export function PersonalStep() {
       />
       <NumberField
         label={t("myData.steps.personal.retirementAge")}
+        importance="required"
         value={personal.retirementAge}
         onChange={(retirementAge) =>
           updateProfile({ personal: { ...personal, retirementAge } })
@@ -108,6 +112,7 @@ export function PersonalStep() {
       />
       <NumberField
         label={t("myData.steps.personal.monthlyGrossSalary")}
+        importance="recommended"
         helperText={t("myData.steps.personal.monthlyGrossSalaryHelper")}
         value={personal.monthlyGrossSalary}
         onChange={(monthlyGrossSalary) =>
@@ -133,6 +138,7 @@ export function PersonalStep() {
       <CollapsibleSection title={t("myData.steps.personal.taxExemptionSection")}>
         <CheckboxField
           label={t("myData.steps.personal.form161DSubmitted")}
+          importance="reference"
           checked={taxExemptionBasket.form161DSubmitted}
           onChange={(form161DSubmitted) =>
             updateProfile({

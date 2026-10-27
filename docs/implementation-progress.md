@@ -15,8 +15,9 @@ calculation engine starts simple (aggregate balances, deterministic growth)
 and originally did not model tax. Bituach Leumi was added as the first
 Phase 2 module (Phase F below), the per-source access/annuity model as the
 second (Phase G), couples/household planning as the third (Phase H), and the
-Phase 3 tax module (gross → net income) as Phase I, and the retirement-age
-scenario comparison as Phase J.
+Phase 3 tax module (gross → net income) as Phase I, the retirement-age
+scenario comparison as Phase J, and input guidance, single-person checks and
+UI polish as Phase K.
 
 ## Phase A — Project setup & infra
 
@@ -365,8 +366,85 @@ feasibility solver), so the user's own entered age equals the Dashboard.
       (RTL), single and couple; the "Your plan" column equals the
       Dashboard's net income and gap.
 
-Not done: a chart of the comparison, and saving the chosen ages in the
-profile.
+Not done in Phase J: a chart of the comparison, and saving the chosen ages in
+the profile. Both were added in Phase K (K6).
+
+## Phase K — Input guidance, single-person support and UI polish
+
+Scope decisions (agreed with the user): the polish is **UI only**, so
+number-changing modelling (real wage growth, a per-account salary override,
+the study-fund deposit ceiling) stays out. "Mandatory" stays strict: only the
+age and the desired retirement age block the user; every other field is
+tagged "Recommended" or "Reference only", and untagged fields are optional
+refinements with a default.
+
+Field tiers (what the badge on each label means):
+
+- **Required**: age, desired retirement age, and the spouse's retirement age
+  once a spouse age is entered.
+- **Recommended** (not blocking, but the result changes): gender, marital
+  status, gross salary, the spouse's age / gender / salary, account product
+  category / status / balance / contribution rates, expected retirement
+  spending, equity quantity and price, and the study-fund dates (only for
+  the study-fund category).
+- **Reference only** (saved and exported, not used in any calculation yet):
+  provider name, policy number, fund ID, legacy policy model, balance
+  breakdown, insurance coverages, investment track and fees, annuity tax
+  type, guaranteed payment months, Form 161D, current monthly expenses,
+  equity category / ticker / company / custodian, the employer grant and
+  ESPP sections, purchase date and cost basis, and the dates of non-study
+  funds.
+- **Untagged**: credit points, Bituach Leumi fields, other assets, the
+  annuity override and factor, tax-exemption numbers, and the equity
+  unrealized gain and tax rate.
+
+- [x] K1. Audit of every input against the engine: what blocks, what has a
+      default, what is only stored. Findings: nothing but the two ages was
+      ever blocking; a missing gender silently applies the male defaults
+      (state pension age 67, 2.25 credit points); a null account status
+      gives no deposits; a married user without a spouse age silently gets a
+      single-person plan; no desired spending gives no funding gap.
+- [x] K2. `domain/inputGuidance.ts`: `findDataGaps(profile)` lists the
+      optional details that would change the result (`retirementSpending`,
+      `noSavings`, `spouseMissing`, `accountType`, `accountStatus`, `salary`,
+      `spouseSalary`, `contributionRates`, `gender`, `spouseGender`), each
+      with the My Data step that fixes it.
+- [x] K3. Importance badges: `components/fields/FieldLabel.tsx`
+      (`importance` prop on every field component and on `CollapsibleSection`)
+      and `pages/MyData/FieldLegend.tsx` (a "Which fields matter?" legend on
+      each step). Required fields also carry `aria-required`.
+- [x] K4. Cross-reference IDs: `PensionAccount.policyNumber` (as printed on
+      the annual statement) and `PensionAccount.fundId` (the fund / program
+      ID, "mispar kupa"), both reference only, backfilled `""` in
+      `normalizeProfile()`. The account card shows "Policy … · Fund …".
+      The in-app help makes no claims about any government system.
+- [x] K5. Dashboard: a "Improve your estimate" card
+      (`components/DataGapsCard.tsx`) links each gap to its My Data step. With
+      no desired spending the Funding Gap KPI shows "—" and the status
+      banner is hidden instead of a misleading gap. The "accounts with no
+      product type" note moved from the Access card into the gaps card.
+- [x] K6. Charts and Projections: `charts/formatAxisMoney.ts` gives compact
+      axis labels (₪950, ₪2.5k, ₪1.5M) on all charts; the chart SVG is
+      forced left-to-right in `index.css` so Hebrew y-axis labels no longer
+      overlap the axis; `charts/ComparisonChart.tsx` plots the compared ages
+      against the desired spending; `FeasibilityCard` now also shows on
+      Projections; the three compared ages are saved in
+      `ProfileData.comparisonAges` (only once all three are valid, dropped
+      by `normalizeProfile()` when malformed; `initialComparisonAges`).
+- [x] K7. Single person: tests that a person with no partner (no marital
+      status, single, divorced, widowed, or married without a spouse age)
+      can finish with only the two ages and sees no spouse content on the
+      Personal step, Dashboard or Projections, and that a leftover
+      spouse-owned account is not counted.
+- [x] K8. Tests: 336 total, all green (new `inputGuidance.test.ts`,
+      `formatAxisMoney.test.ts`; additions to `scenarioComparison`,
+      `normalizeProfile`, Dashboard, Projections, Personal and Pension step
+      tests). Checked in the browser in English and Hebrew (RTL): badges,
+      legend, ID fields, gaps card, all four charts, and a minimal
+      ages-only profile.
+
+Not done: an empty-plan net-worth chart still shows a 0–4 axis (Recharts'
+default for all-zero data); harmless, left as is.
 
 ## Deviations from original docs (log as they happen)
 

@@ -1,5 +1,4 @@
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
 
 import { ACCESS_RULES, type RetirementAccessSummary } from "../domain";
 
@@ -15,8 +14,7 @@ function hasAccessNotes(access: RetirementAccessSummary): boolean {
   return (
     access.bridgeLimited ||
     access.lockedAtRetirement > 0 ||
-    access.accountAnnuityMonthly > 0 ||
-    access.uncategorizedAccounts > 0
+    access.accountAnnuityMonthly > 0
   );
 }
 
@@ -78,15 +76,6 @@ export function SourceAccessCard({ access }: SourceAccessCardProps) {
             age: formatAge(access.limitingAge),
             income: money(access.unconstrainedMonthlyIncome),
           })}
-        </p>
-      )}
-
-      {access.uncategorizedAccounts > 0 && (
-        <p className="mt-3 text-sm text-slate-600">
-          {t("dashboard.sourceAccess.uncategorized", { count: access.uncategorizedAccounts })}{" "}
-          <Link to="/my-data/pension-savings" className="font-medium text-teal-700 hover:underline">
-            {t("dashboard.sourceAccess.editAccounts")}
-          </Link>
         </p>
       )}
 

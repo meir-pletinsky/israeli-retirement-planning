@@ -21,7 +21,7 @@ describe("PersonalStep — spouse", () => {
     await screen.findByLabelText(/Monthly gross salary/);
     expect(screen.queryByLabelText(/^Spouse's age/)).not.toBeInTheDocument();
 
-    await user.selectOptions(screen.getByLabelText("Marital status"), "married");
+    await user.selectOptions(screen.getByLabelText(/^Marital status/), "married");
 
     expect(screen.getByLabelText(/^Spouse's age/)).toBeInTheDocument();
     // Everything else waits for the spouse's age.
@@ -94,12 +94,62 @@ describe("PersonalStep — spouse", () => {
     await saveProfileToDb(buildTestProfile({ ...married, spouse: { age: 48 } }));
     renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
 
-    await user.selectOptions(await screen.findByLabelText("Marital status"), "divorced");
+    await user.selectOptions(await screen.findByLabelText(/^Marital status/), "divorced");
 
     expect(screen.queryByLabelText(/^Spouse's age/)).not.toBeInTheDocument();
     // The details are kept, so switching back does not lose them.
-    await user.selectOptions(screen.getByLabelText("Marital status"), "married");
+    await user.selectOptions(screen.getByLabelText(/^Marital status/), "married");
     expect(screen.getByLabelText(/^Spouse's age/)).toHaveValue(48);
+  });
+});
+
+describe("PersonalStep — what is required", () => {
+  it("tags the two ages as required and the rest as recommended or optional", async () => {
+    renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+
+    const age = await screen.findByLabelText(/^Age/);
+    expect(age).toHaveAttribute("aria-required", "true");
+    expect(screen.getByLabelText(/^Desired retirement age/)).toHaveAttribute("aria-required", "true");
+
+    expect(screen.getByLabelText(/^Gender/)).not.toHaveAttribute("aria-required");
+    expect(screen.getByLabelText(/^Gender/).closest("label")).toHaveTextContent("Recommended");
+    expect(screen.getByLabelText(/^Monthly gross salary/).closest("label")).toHaveTextContent("Recommended");
+    expect(screen.getByLabelText(/^Age/).closest("label")).toHaveTextContent("Required");
+    // Tax credit points have a default, so they carry no tag.
+    const points = screen.getByLabelText(/^Tax credit points/).closest("label");
+    expect(points).not.toHaveTextContent(/Required|Recommended|Reference only/);
+  });
+
+  it("lets a person with no partner continue with only the two ages", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(buildTestProfile({ age: 45, retirementAge: 62 }));
+    renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+
+    await user.click(await screen.findByRole("button", { name: "Next" }));
+
+    expect(screen.queryByText("This field is required.")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/^Spouse's age/)).not.toBeInTheDocument();
+  });
+
+  it.each(["single", "divorced", "widowed"] as const)(
+    "shows no spouse section for a %s user",
+    async (maritalStatus) => {
+      await saveProfileToDb(buildTestProfile({ age: 45, retirementAge: 62, maritalStatus }));
+      renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+
+      await screen.findByLabelText(/^Marital status/);
+      expect(screen.queryByLabelText(/^Spouse's age/)).not.toBeInTheDocument();
+      expect(screen.queryByRole("region", { name: /Spouse or partner/ })).not.toBeInTheDocument();
+    },
+  );
+
+  it("blocks Next and names the missing age when it is empty", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+
+    await user.click(await screen.findByRole("button", { name: "Next" }));
+
+    expect(await screen.findAllByText("This field is required.")).toHaveLength(2);
   });
 });
 

@@ -1,8 +1,8 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { clearAllData, saveOnboardedToDb, saveProfileToDb } from "../storage/db";
+import { clearAllData, loadProfileFromDb, saveOnboardedToDb, saveProfileToDb } from "../storage/db";
 import { buildTestProfile } from "../test/domainFixtures";
 import { renderWithProviders } from "../test/renderWithProviders";
 import { Projections } from "./Projections";
@@ -101,6 +101,31 @@ describe("Projections", () => {
     ).toBeInTheDocument();
   });
 
+  describe("a person without a partner", () => {
+    it.each([null, "single", "divorced", "widowed", "married"] as const)(
+      "projects and compares from only the two ages, with no spouse content (marital status: %s)",
+      async (maritalStatus) => {
+        await saveProfileToDb(
+          buildTestProfile({
+            age: 45,
+            retirementAge: 62,
+            ...(maritalStatus ? { maritalStatus } : {}),
+          }),
+        );
+        await saveOnboardedToDb(true);
+
+        renderWithProviders(<Projections />);
+
+        const comparison = within(await screen.findByRole("region", { name: "Compare retirement ages" }));
+        expect(comparison.getAllByRole("columnheader")).toHaveLength(3);
+        expect(comparison.queryByRole("rowheader", { name: "Your spouse retires at" })).not.toBeInTheDocument();
+        expect(screen.queryByText(/whole household/i)).not.toBeInTheDocument();
+        const timeline = screen.getByRole("region", { name: "Retirement timeline" });
+        expect(within(timeline).queryByText("Spouse:")).not.toBeInTheDocument();
+      },
+    );
+  });
+
   describe("retirement age comparison", () => {
     const planned = {
       age: 55,
@@ -184,6 +209,73 @@ describe("Projections", () => {
       expect(comparison.getByText(/Enter your expected monthly retirement expenses/)).toBeInTheDocument();
       expect(comparison.queryByRole("rowheader", { name: "Gap vs. desired spending" })).not.toBeInTheDocument();
       expect(comparison.getByRole("rowheader", { name: "Income after tax" })).toBeInTheDocument();
+    });
+
+    describe("remembering the chosen ages", () => {
+      it("saves the three ages once they are all valid", async () => {
+        const user = userEvent.setup();
+        const comparison = await renderComparison();
+        expect((await loadProfileFromDb())?.comparisonAges).toBeNull();
+
+        const third = comparison.getByLabelText(/^Retirement age, option 3/);
+        await user.clear(third);
+        await user.type(third, "72");
+
+        await waitFor(async () => expect((await loadProfileFromDb())?.comparisonAges).toEqual([60, 65, 72]));
+      });
+
+      it("does not save while an age is invalid", async () => {
+        const user = userEvent.setup();
+        const comparison = await renderComparison();
+
+        const first = comparison.getByLabelText(/^Retirement age, option 1/);
+        await user.clear(first);
+        await user.type(first, "40");
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        expect((await loadProfileFromDb())?.comparisonAges).toBeNull();
+      });
+
+      it("reopens with the ages that were saved", async () => {
+        const comparison = await renderComparison(
+          buildTestProfile({ ...planned, comparisonAges: [58, 63, 70] }),
+        );
+
+        expect(comparison.getAllByRole("columnheader").map((header) => header.textContent)).toEqual([
+          "Age 58",
+          "Age 63",
+          "Age 70",
+        ]);
+      });
+    });
+  });
+
+  describe("earliest feasible retirement", () => {
+    it("shows the feasibility card above the comparison", async () => {
+      await saveProfileToDb(
+        buildTestProfile({
+          age: 55,
+          retirementAge: 65,
+          monthlyGrossSalary: 20_000,
+          pensionBalances: [1_500_000],
+          retirementMonthlyExpenses: 9_000,
+        }),
+      );
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      expect(await screen.findByRole("heading", { name: "Earliest Feasible Retirement" })).toBeInTheDocument();
+    });
+
+    it("links to Expenses when there is no target", async () => {
+      await saveProfileToDb(buildTestProfile({ age: 55, retirementAge: 65 }));
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      expect(await screen.findByRole("link", { name: "Add expenses" })).toHaveAttribute(
+        "href",
+        "/my-data/expenses",
+      );
     });
   });
 });
