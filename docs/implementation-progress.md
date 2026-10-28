@@ -18,8 +18,9 @@ second (Phase G), couples/household planning as the third (Phase H), and the
 Phase 3 tax module (gross → net income) as Phase I, the retirement-age
 scenario comparison as Phase J, input guidance, single-person checks and
 UI polish as Phase K, tax refinements (exemption schedule by year,
-early-retirement health tax) as Phase L, and Section 102 employer stock tax
-as Phase M.
+early-retirement health tax) as Phase L, Section 102 employer stock tax
+as Phase M, and its follow-ups (contributions on the ordinary part, vesting
+batches, a constants check) as Phase N.
 
 ## Phase A — Project setup & infra
 
@@ -475,7 +476,8 @@ contributions.
 - [x] L3. **Health tax on an early pension.** Before the statutory retirement
       age, pension-taxed income bears health tax: 3.23% up to ₪7,703 a month
       and 5.17% above (verified on btl.gov.il, 2026-10-27). New
-      `PersonTaxInput.healthTaxApplies`, `PersonTax.healthTaxMonthly`
+      `PersonTaxInput.beforeStatutoryAge` (named `healthTaxApplies` in this
+      phase), `PersonTax.healthTaxMonthly`
       (included in `totalMonthly`, not in the surtax base) and
       `earlyPensionHealthTax()`. From the statutory age no health tax is
       charged (secondary source). A man retiring at 62 with a ₪17,857
@@ -550,13 +552,70 @@ tax at all.
       "not modeled" paragraph. The rules come from the employer's supplement,
       not the Tax Authority, so they are marked Medium.
 
-Not modeled (conservative or by design): Bituach Leumi and health
-contributions on the Section 102 ordinary part, the 30% rate for a holder of
-10% or more, separate vesting tranches, unvested shares, options with a
-strike price (acquisition cost is taken as 0), ESPP (still taxed as any other
+Not modeled (conservative or by design): the 30% rate for a holder of
+10% or more, unvested shares, options with a strike
+price (acquisition cost is taken as 0), ESPP (still taxed as any other
 investment), and inflation or currency adjustment of the grant value.
+Bituach Leumi and health contributions on the ordinary part and separate
+vesting dates were added in Phase N below.
 Behavior change: profiles with employer shares now show tax on them, so
 their after-tax income is lower than before.
+
+## Phase N — Section 102 follow-ups: contributions, vesting batches, constants check
+
+The user asked to continue with Bituach Leumi on the Section 102 ordinary
+part, ESPP and strike-price options, vesting tranches and a check of the
+constants, then narrowed the scope to **only what applies to RSUs**. ESPP and
+strike-price options stay out of scope.
+
+- [x] N1. **Contributions on the ordinary part.** `taxRates.ts` gains
+      `nationalInsuranceReducedRate` (1.04%), `nationalInsuranceFullRate`
+      (7%) and `contributionCeilingMonthly` (₪51,910), read on btl.gov.il on
+      2026-10-27. `tax.ts` gains `employerShareContributions`: the ordinary
+      slice is stacked on the early pension, only the part below the ceiling
+      pays, and the reduced rates apply up to ₪7,703. Health tax is due at
+      any age, Bituach Leumi before the statutory retirement age (the label of
+      the retirement-age row was lost in extraction, so this is interpreted).
+      `PersonTax.nationalInsuranceMonthly` is new, `healthTaxApplies` became
+      `beforeStatutoryAge`, and the TaxCard lists the new line (en/he/ru).
+- [x] N2. **Vesting batches.** `VestingTranche` (`vestDate`, `quantity`,
+      `grantPriceUSD`) and `EmployerGrantDetails.vestingTranches`;
+      `normalizeProfile` fills the list. `sources.ts` routes by lot:
+      `stockRoute` (shared by `employerStockRoute`) and `employerLots` give
+      each batch its own acquisition date, 24-month test and price at grant,
+      and the shares not covered by a batch follow the holding's own grant
+      date. Batches only split the tax route, so net worth and the drawdown
+      are unchanged. A batch total above the holding's quantity is scaled
+      down; an undated batch counts as met; a batch vesting after retirement
+      is ordinary income. `EquitySplit.nonTrustee` carries Section 3(i) value
+      and grant value, and `grantValueIls` was removed. The vest date as the
+      start of the 24 months is **interpreted** from the supplement.
+- [x] N3. **UI.** `pages/MyData/VestingTranchesEditor.tsx` (add/remove rows,
+      date, quantity, optional price, a warning when the batches exceed the
+      quantity) replaces the unused vested/unvested quantity fields in
+      `EquityHoldingForm.tsx`. Strings in en/he/ru under
+      `myData.steps.equity.tranches`.
+- [x] N4. **Tests:** 396 total, all green (9 batch tests in
+      `sources.test.ts`, 1 in `normalizeProfile.test.ts`, 2 in the new
+      `EquityStep.test.tsx`, contribution tests in `tax.test.ts` and
+      `netIncome.test.ts`).
+- [x] N5. **Constants check.** Rows 14-16 (9A exemption) confirmed from the
+      Tax Authority's guideline letter of 2 Feb 2026 (read at a payroll
+      company's mirror). Rows 1-6, 10-13 match PwC's Israel tax summary (last
+      reviewed 29 Jun 2026); rows 7-9 agree across secondary sources; rows
+      26-28 (contributions) are new and verified on btl.gov.il. Gov.il,
+      taxes.gov.il and kolzchut still refuse automated requests, so the Tax
+      Authority's own tables were not read, and row 17 (severance offset) is
+      still unchecked. No code value changed.
+- [x] N6. **Docs:** `docs/constants-to-verify.md` (rows, rules I, J, N-Q, the
+      "not modeled" lists and the log), `docs/SESSION-HANDOFF.md`, `docs/plan.md`.
+
+Still not modeled: the 30% rate for a holder of 10% or more, options with a
+strike price, ESPP, unvested shares, deducting employee contributions from
+taxable income, and inflation or currency adjustment of the grant value.
+Behavior change: profiles with Section 102 shares now show health tax (and
+Bituach Leumi before the statutory age) on the ordinary part, so their
+after-tax income is a little lower.
 
 ## Deviations from original docs (log as they happen)
 

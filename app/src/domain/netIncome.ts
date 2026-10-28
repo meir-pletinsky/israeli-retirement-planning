@@ -81,7 +81,7 @@ function memberTaxMonthly(
   return calculatePersonTax({
     pensionMonthly,
     exemptionApplies: pastStatutoryAge,
-    healthTaxApplies: !pastStatutoryAge,
+    beforeStatutoryAge: !pastStatutoryAge,
     taxYear: household.baseYear + yearsFromNow,
     ordinaryInvestmentMonthly,
     capitalGainMonthly,
@@ -114,7 +114,8 @@ function memberTaxMonthly(
  *   Section 102 the grant-date value of the shares sold is ordinary income
  *   at the brackets, stacked on the pension, and the growth above it is a
  *   flat-rate gain; an ordinary-income route is taxed at the brackets in
- *   full.
+ *   full. The ordinary part also bears health tax and, before the statutory
+ *   age, Bituach Leumi contributions.
  *
  * Spouses are taxed on their own income; the draw is not shifted between
  * them to save tax. When the last capital is used up, the previous year's mix

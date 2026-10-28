@@ -7,6 +7,7 @@ import {
   estimateNetIncomeAtAge,
   estimateNetIncomeForHousehold,
 } from "./netIncome";
+import { progressiveTax } from "./tax";
 
 const zeroReal = { investmentReturnPct: 4, inflationPct: 4 };
 
@@ -277,16 +278,18 @@ describe("estimateNetIncome", () => {
       });
       expect(net.grossMonthlyIncome).toBe(26_812);
       // Ordinary half 13,406: brackets 1,128 + (13,406 - 10,060) x 20% = 1,797, less credit points 544.5 = 1,253.
+      // Health tax on it, past the statutory age: 7,703 x 3.23% + 5,703 x 5.17% = 544.
       // Capital gain half 13,406 x 25% = 3,351.
-      expect(net.taxMonthly).toBe(4_604);
-      expect(net.netMonthlyIncome).toBe(22_208);
+      expect(net.taxMonthly).toBe(5_148);
+      expect(net.netMonthlyIncome).toBe(21_664);
     });
 
     it("taxes all of it as ordinary income on the ordinary-income track", () => {
       const net = employerStock({ taxTrack: "section102OrdinaryIncomeTrustee", grantPriceUSD: 1_000 });
       // Brackets 1,128 + 8,940 x 20% + 6,100 x 31% + (26,812 - 25,100) x 35% = 5,406, less 544.5 = 4,862.
-      expect(net.taxMonthly).toBe(4_862);
-      expect(net.netMonthlyIncome).toBe(21_950);
+      // Health tax: 7,703 x 3.23% + 19,109 x 5.17% = 1,237.
+      expect(net.taxMonthly).toBe(6_098);
+      expect(net.netMonthlyIncome).toBe(20_714);
     });
 
     it("taxes a sale before the 24 months are up like ordinary income", () => {
@@ -298,7 +301,31 @@ describe("estimateNetIncome", () => {
         grantDate: sixMonthsAgo,
         grantPriceUSD: 1_000,
       });
-      expect(net.taxMonthly).toBe(4_862);
+      expect(net.taxMonthly).toBe(6_098);
+    });
+
+    it("adds Bituach Leumi contributions on the ordinary part before the statutory age", () => {
+      const net = estimateNetIncome(
+        buildTestProfile({
+          age: 60,
+          retirementAge: 60,
+          ...zeroReal,
+          equity: [
+            {
+              quantity: 1_000,
+              priceUSD: 2_000,
+              employerGrant: { taxTrack: "section102CapitalGainsTrustee", grantPriceUSD: 1_000 },
+            },
+          ],
+        }),
+      );
+      const gross = net.grossMonthlyIncome;
+      const ordinary = gross / 2;
+      const brackets = progressiveTax(ordinary) - 2.25 * 242;
+      const capitalGains = (gross / 2) * 0.25;
+      const health = 7_703 * 0.0323 + (ordinary - 7_703) * 0.0517;
+      const nationalInsurance = 7_703 * 0.0104 + (ordinary - 7_703) * 0.07;
+      expect(Math.abs(net.taxMonthly - (brackets + capitalGains + health + nationalInsurance))).toBeLessThan(2);
     });
 
     it("taxes only the growth above the grant value for shares outside a trustee", () => {

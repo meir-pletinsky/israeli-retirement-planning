@@ -238,11 +238,14 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
   Section 102: the grant-date value of shares sold in retirement is taxed as
   ordinary income at the marginal rate and the growth above it at 25% (a
   sale within 24 months of the grant, or the ordinary-income track, is taxed
-  entirely as ordinary income). Not modeled: Bituach Leumi
-  contributions, health tax on non-pension income, other credit points
-  (children), tax planning between spouses (for example shifting
+  entirely as ordinary income). Phase N added health tax (and, before the
+  statutory age, Bituach Leumi) on that ordinary part, and vesting batches
+  with their own 24-month periods. Not modeled: Bituach Leumi
+  contributions on other income, health tax on non-pension income, other credit
+  points (children), tax planning between spouses (for example shifting
   withdrawals to the spouse with the lower rate), the gemel-to-annuity
-  exemption.
+  exemption, the 30% rate for a 10% shareholder, options with a strike price
+  and ESPP.
 - Survivor analysis (simulate death of either spouse)
 - Real estate module (equity, rental income, appreciation)
 - **Retirement scenario comparison — done** (Phase J in
@@ -273,6 +276,11 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
 - Live external data integrations per the fetch-then-fallback strategy
   (CPI, FX, fund performance, mortality tables, risk-free rate)
 - Household dashboard KPIs from functional spec Section 13 in full
+- Statement import (AI-assisted, bring-your-own key, and a structured
+  Pension Clearing House file): proposal only. The Clearing House XML route
+  is verified feasible and should go first; see
+  `docs/clearing-house-import-analysis.md` and
+  `docs/ai-statement-import-design.md`
 
 ## Non-Functional Requirements (all phases)
 

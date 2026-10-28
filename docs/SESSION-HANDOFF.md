@@ -52,9 +52,53 @@ two logged gaps), **Phase F (Bituach Leumi module) is done**, **Phase G
 (couples/household) is done**, **Phase I (Phase 3 tax module) is
 done**, **Phase J (retirement scenario comparison) is done**, **Phase K
 (input guidance, single-person checks, UI polish) is done**, **Phase L
-(tax refinements) is done**, and **Phase M (Section 102 employer stock tax)
-is done**. Phases A–K are committed and pushed to `main`; Phases L and M are
-committed and pushed only if `git log` shows them.
+(tax refinements) is done**, **Phase M (Section 102 employer stock tax)
+is done**, and **Phase N (Section 102 follow-ups: contributions, vesting
+batches, constants check) is done**. Phases A–K are committed and pushed to
+`main`; Phases L, M and N are committed and pushed only if `git log` shows
+them.
+
+- **Phase N (Section 102 follow-ups): ALL DONE.** The user asked for "only
+  what applies to RSUs", so ESPP and option strike prices stayed out.
+  - **Bituach Leumi and health on the ordinary part**
+    (`domain/tax.ts`, `employerShareContributions`; constants in
+    `taxRates.ts`). Section 102 ordinary income now pays health tax at any age
+    and Bituach Leumi before the statutory retirement age: reduced rates
+    (1.04% + 3.23%) up to ₪7,703 a month, full rates (7% + 5.17%) above it, and
+    nothing above ₪51,910. The slice is stacked on the early pension.
+    `PersonTax.nationalInsuranceMonthly` is new; `healthTaxApplies` was
+    renamed `beforeStatutoryAge`. The retirement-age row of the BTL table lost
+    its label in extraction, so "health only from the statutory age" is
+    **interpreted** (rule Q). Contributions are not deducted from taxable
+    income.
+  - **Vesting batches** (`types`: `VestingTranche`,
+    `EmployerGrantDetails.vestingTranches`; `domain/sources.ts`: `stockRoute`,
+    `employerLots`). Each batch has a vest date, a quantity and an optional
+    price at grant. A batch's vest date starts its own 24 months
+    (**interpreted** from the supplement's "acquisition", rule P); the shares
+    not covered by batches follow the holding's grant date and trustee box.
+    Batches only split the tax route (net worth and drawdown are unchanged);
+    they are scaled down if they exceed the quantity. A batch with no date
+    counts as met; one that vests after retirement is ordinary income.
+    `EquitySplit.nonTrustee` now carries Section 3(i) value and grant value, and
+    `grantValueIls` is gone. UI: `pages/MyData/VestingTranchesEditor.tsx`
+    replaces the unused vested/unvested quantity fields (the type fields are kept
+    for stored data); strings in en/he/ru under
+    `myData.steps.equity.tranches`.
+  - **Constants check** (`docs/constants-to-verify.md`): rows 14-16 are
+    **confirmed** from the Tax Authority's guideline letter of 2 Feb 2026
+    (read at a payroll company's mirror). Brackets, surtax, the 2% capital
+    surtax and 25%/30% are matched by PwC's Israel tax summary (last reviewed
+    29 Jun 2026); the credit point and 2.25/2.75 points agree across secondary
+    sources. Gov.il, taxes.gov.il and kolzchut still refuse automated requests,
+    so the Tax Authority's own tables were not read. Row 17 (severance offset)
+    is still Low and unchecked. No code value had to change.
+  - Tests: 396 total (9 new in `sources.test.ts`, 1 in `normalizeProfile.test.ts`,
+    2 in the new `EquityStep.test.tsx`, plus the contribution tests in
+    `tax.test.ts` and `netIncome.test.ts`).
+  - Still not modeled: the 30% rate for a 10%+ holder, options with a strike
+    price, ESPP, unvested shares, deducting employee contributions from taxable
+    income, inflation/currency adjustment of the grant value.
 
 - **Phase M (Section 102 employer stock tax): ALL DONE.** The user pasted
   their employer's Section 102 plan supplement (capital-gains route) and
@@ -81,16 +125,16 @@ committed and pushed only if `git log` shows them.
     fixed while the balance grows and shrinks pro rata with withdrawals.
   - **Tax:** `PersonTaxInput.ordinaryInvestmentMonthly` is stacked on the
     taxable pension for the brackets (credit points once), with no pension
-    exemption and no health tax; it counts toward the 3% surtax, the extra 2%
-    stays on the capital part.
+    exemption (Phase N later added health tax and Bituach Leumi). It counts
+    toward the 3% surtax; the extra 2% stays on the capital part.
   - UI: the grant section explains the use, marks grant date, tax track and
     share price "Recommended"; `TaxCard` takes `hasEmployerStock` and adds
     the Section 102 lines (en/he/ru).
-  - Not modeled (rules N-Q and the "not modeled" paragraph in
-    `docs/constants-to-verify.md`): Bituach Leumi and health contributions on
-    the ordinary part, the 30% rate for a 10%+ holder, separate vesting
-    tranches, unvested shares, options with a strike price, ESPP (unchanged),
-    inflation/currency adjustment of the grant value. The rules come from
+  - Not modeled in Phase M (rules N-Q and the "not modeled" paragraph in
+    `docs/constants-to-verify.md`): the 30% rate for a 10%+ holder, unvested
+    shares, options with a strike price, ESPP (unchanged), inflation/currency
+    adjustment of the grant value. Bituach Leumi/health on the ordinary part
+    and separate vesting batches were added in Phase N. The rules come from
     the employer's supplement, not the Tax Authority (rows 21-25, Medium).
   - Behavior change: profiles with employer shares now show tax on them.
 
@@ -113,7 +157,8 @@ committed and pushed only if `git log` shows them.
     year pass `baseYear` explicitly.
   - **Early-retirement health tax.** Before the statutory retirement age,
     pension-taxed income bears 3.23% up to ₪7,703/month and 5.17% above
-    (verified on btl.gov.il on 2026-10-27). `PersonTaxInput.healthTaxApplies`
+    (verified on btl.gov.il on 2026-10-27). `PersonTaxInput.beforeStatutoryAge`
+    (named `healthTaxApplies` in Phase L)
     / `taxYear`, `PersonTax.healthTaxMonthly`, `earlyPensionHealthTax()`.
     No health tax from the statutory age (secondary source, Medium). A man
     retiring at 62 with ₪17,857 now pays ₪2,917 a month instead of ₪2,143
@@ -336,27 +381,28 @@ committed and pushed only if `git log` shows them.
     reflect implemented status (the two gaps it logged were closed in
     Phase E).
   - D3: live deploy verified (done as a side effect of A7).
-- 377 tests total, all green; lint/typecheck/build all green.
+- 396 tests total, all green; lint/typecheck/build all green.
 
 ## Where to go next
 
 Phase 1, the Phase 2 modules (Bituach Leumi, per-source model,
 couples/household), the Phase 3 tax module and scenario comparison, the
-Phase K input guidance, the Phase L tax refinements and the Phase M
-Section 102 employer stock tax are complete.
+Phase K input guidance, the Phase L tax refinements, the Phase M
+Section 102 employer stock tax and its Phase N follow-ups are complete.
 Remaining, not yet started:
 
 - **Survivor analysis** (simulate the death of either spouse), Phase 3. The
   user said not now.
 - **Real estate module** (equity, rental income, appreciation), Phase 3.
   The user said not now.
-- Further tax work: Bituach Leumi contributions of early retirees (and on
-  the Section 102 ordinary part), health tax exceptions and non-pension
-  income, a credit-points breakdown helper, tax-aware withdrawal splitting
-  between spouses (needs a drawdown rework), the gemel-to-annuity exemption,
-  ESPP and option strike prices, separate vesting tranches. Also re-check
-  the constants against the Tax Authority's circulars
-  (`docs/constants-to-verify.md`).
+- Further tax work: Bituach Leumi contributions on income other than
+  Section 102 shares (for example early retirees' non-pension income), health tax
+  exceptions and non-pension income, a credit-points breakdown helper,
+  tax-aware withdrawal splitting between spouses (needs a drawdown rework),
+  the gemel-to-annuity exemption, the 30% rate for a 10%+ holder, ESPP and
+  option strike prices (the user kept both out of scope). Also finish the
+  constants check: read the Tax Authority's own tables for rows 1-9 and
+  check row 17 (`docs/constants-to-verify.md`).
 - Possible refinements to the contribution model (they change numbers, so
   they were deliberately left out of Phase K): real wage growth, a
   per-account salary override, and the study-fund **annual deposit** ceiling
@@ -364,6 +410,16 @@ Remaining, not yet started:
 - Using the reference-only fields (policy number, fund ID, fees, annuity tax
   type, ...) in calculations, or matching `fundId` to published fund data
   (Phase 4, external data).
+- **Statement import** (pre-fill pension accounts from the Pension Clearing
+  House XML files, or from provider PDFs via AI). Researched and written up as
+  a proposal; nothing is implemented. The **Clearing House XML route is
+  verified feasible** on 8 real files (one skeleton, official CMA schema and
+  code tables, numbers reconcile) and should be built first; the schema, the
+  field mapping and the test plan are in
+  `docs/clearing-house-import-analysis.md`. The AI/PDF route is in
+  `docs/ai-statement-import-design.md` and starts with a spike that needs a few
+  real statement PDFs (kept out of the repo). Real files are never committed;
+  tests use synthetic fixtures.
 
 ## Key technical decisions to know before continuing
 

@@ -14,7 +14,7 @@ import {
 const NO_INCOME: PersonTaxInput = {
   pensionMonthly: 0,
   exemptionApplies: false,
-  healthTaxApplies: false,
+  beforeStatutoryAge: false,
   taxYear: 2026,
   ordinaryInvestmentMonthly: 0,
   capitalGainMonthly: 0,
@@ -135,6 +135,7 @@ describe("calculatePersonTax", () => {
       capitalGainsTaxMonthly: 0,
       surtaxMonthly: 0,
       healthTaxMonthly: 0,
+      nationalInsuranceMonthly: 0,
       totalMonthly: 0,
     });
   });
@@ -143,7 +144,7 @@ describe("calculatePersonTax", () => {
     const tax = calculatePersonTax({
       ...NO_INCOME,
       pensionMonthly: 10_000,
-      healthTaxApplies: true,
+      beforeStatutoryAge: true,
     });
     const health = 7_703 * 0.0323 + 2_297 * 0.0517;
     expect(tax.healthTaxMonthly).toBeCloseTo(health, 6);
@@ -165,7 +166,7 @@ describe("calculatePersonTax", () => {
       ...NO_INCOME,
       pensionMonthly: 5_000,
       capitalGainMonthly: 4_000,
-      healthTaxApplies: true,
+      beforeStatutoryAge: true,
     });
     expect(tax.healthTaxMonthly).toBeCloseTo(5_000 * 0.0323, 6);
   });
@@ -269,16 +270,86 @@ describe("calculatePersonTax", () => {
       expect(withShares.incomeTaxMonthly - pensionOnly.incomeTaxMonthly).toBeCloseTo(5_000 * 0.31, 6);
     });
 
-    it("gets no pension exemption and bears no health tax", () => {
+    it("gets no pension exemption", () => {
       const tax = calculatePersonTax({
         ...NO_INCOME,
         ordinaryInvestmentMonthly: 10_000,
         exemptionApplies: true,
-        healthTaxApplies: true,
       });
       expect(tax.exemptPensionMonthly).toBe(0);
-      expect(tax.healthTaxMonthly).toBe(0);
       expect(tax.incomeTaxMonthly).toBeCloseTo(7_010 * 0.1 + 2_990 * 0.14 - 2.25 * 242, 6);
+    });
+
+    it("bears health tax only from the statutory age", () => {
+      const tax = calculatePersonTax({
+        ...NO_INCOME,
+        ordinaryInvestmentMonthly: 10_000,
+        exemptionApplies: true,
+      });
+      expect(tax.healthTaxMonthly).toBeCloseTo(7_703 * 0.0323 + 2_297 * 0.0517, 6);
+      expect(tax.nationalInsuranceMonthly).toBe(0);
+    });
+
+    it("bears Bituach Leumi and health contributions before the statutory age", () => {
+      const tax = calculatePersonTax({
+        ...NO_INCOME,
+        ordinaryInvestmentMonthly: 10_000,
+        beforeStatutoryAge: true,
+      });
+      expect(tax.nationalInsuranceMonthly).toBeCloseTo(7_703 * 0.0104 + 2_297 * 0.07, 6);
+      expect(tax.healthTaxMonthly).toBeCloseTo(7_703 * 0.0323 + 2_297 * 0.0517, 6);
+      expect(tax.totalMonthly).toBeCloseTo(
+        tax.incomeTaxMonthly + tax.healthTaxMonthly + tax.nationalInsuranceMonthly,
+        6,
+      );
+    });
+
+    it("pays no contributions on the part above the maximum insured income", () => {
+      const tax = calculatePersonTax({
+        ...NO_INCOME,
+        ordinaryInvestmentMonthly: 80_000,
+        beforeStatutoryAge: true,
+      });
+      const full = 51_910 - 7_703;
+      expect(tax.nationalInsuranceMonthly).toBeCloseTo(7_703 * 0.0104 + full * 0.07, 6);
+      expect(tax.healthTaxMonthly).toBeCloseTo(7_703 * 0.0323 + full * 0.0517, 6);
+    });
+
+    it("stacks above an early pension that already used the reduced bracket", () => {
+      const tax = calculatePersonTax({
+        ...NO_INCOME,
+        pensionMonthly: 9_000,
+        ordinaryInvestmentMonthly: 4_000,
+        beforeStatutoryAge: true,
+      });
+      // The pension fills the reduced bracket, so the shares pay the full rates.
+      expect(tax.nationalInsuranceMonthly).toBeCloseTo(4_000 * 0.07, 6);
+      expect(tax.healthTaxMonthly).toBeCloseTo(
+        earlyPensionHealthTax(9_000) + 4_000 * 0.0517,
+        6,
+      );
+    });
+
+    it("is not charged contributions on a pension already above the maximum insured income", () => {
+      const tax = calculatePersonTax({
+        ...NO_INCOME,
+        pensionMonthly: 60_000,
+        ordinaryInvestmentMonthly: 5_000,
+        beforeStatutoryAge: true,
+      });
+      expect(tax.nationalInsuranceMonthly).toBe(0);
+      expect(tax.healthTaxMonthly).toBeCloseTo(earlyPensionHealthTax(60_000), 6);
+    });
+
+    it("leaves a past-age pension out of the contribution stack", () => {
+      const tax = calculatePersonTax({
+        ...NO_INCOME,
+        pensionMonthly: 9_000,
+        ordinaryInvestmentMonthly: 4_000,
+        exemptionApplies: true,
+      });
+      // No health tax on the pension, so the shares start the stack from zero.
+      expect(tax.healthTaxMonthly).toBeCloseTo(4_000 * 0.0323, 6);
     });
 
     it("counts toward the 3% surtax but not the extra capital-income rate", () => {

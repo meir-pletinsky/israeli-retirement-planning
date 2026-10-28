@@ -202,16 +202,55 @@ export type TaxTrack =
   | "section102OrdinaryIncomeTrustee"
   | "section3iNonTrustee";
 
+/**
+ * A batch of an employer grant's shares that was (or will be) acquired on its
+ * own date, so it has its own 24-month holding period and, optionally, its
+ * own price at grant. Awards that vest in instalments are entered this way.
+ */
+export interface VestingTranche {
+  id: string;
+  /** Date the batch vests, i.e. the shares are acquired; the 24-month holding period counts from here. */
+  vestDate: string | null;
+  quantity: number | null;
+  /** Share price at the grant date; null = the holding's own price at grant. */
+  grantPriceUSD: number | null;
+}
+
+export function createEmptyVestingTranche(): VestingTranche {
+  return { id: createId(), vestDate: null, quantity: null, grantPriceUSD: null };
+}
+
 export interface EmployerGrantDetails {
+  /** Acquisition date of the shares not listed as a vesting tranche. */
   grantDate: string | null;
   taxTrack: TaxTrack | null;
+  /** Not used by the engine; superseded by `vestingTranches`. */
   vestedQuantity: number | null;
+  /** Not used by the engine; superseded by `vestingTranches`. */
   unvestedQuantity: number | null;
   /** True once the mandatory 24-month Section 102 trustee lockup period has passed. */
   trusteeHoldingPeriodMet: boolean;
+  /** Share price at the grant date, for the shares not listed as a vesting tranche. */
   costBasisAtGrantUSD: number | null;
   estimatedMarginalTaxOnVesting: number | null;
+  /**
+   * Batches of the holding's shares acquired on other dates. They are part of
+   * `StockHolding.quantity`; whatever is not covered by a batch follows
+   * `grantDate` and `trusteeHoldingPeriodMet`.
+   */
+  vestingTranches: VestingTranche[];
 }
+
+export const EMPTY_EMPLOYER_GRANT_DETAILS: EmployerGrantDetails = {
+  grantDate: null,
+  taxTrack: null,
+  vestedQuantity: null,
+  unvestedQuantity: null,
+  trusteeHoldingPeriodMet: false,
+  costBasisAtGrantUSD: null,
+  estimatedMarginalTaxOnVesting: null,
+  vestingTranches: [],
+};
 
 export interface EsppDetails {
   purchaseDate: string | null;
@@ -251,15 +290,7 @@ export function createEmptyStockHolding(): StockHolding {
     custodianOrBroker: "",
     quantity: null,
     currentMarketPriceUSD: null,
-    employerGrantDetails: {
-      grantDate: null,
-      taxTrack: null,
-      vestedQuantity: null,
-      unvestedQuantity: null,
-      trusteeHoldingPeriodMet: false,
-      costBasisAtGrantUSD: null,
-      estimatedMarginalTaxOnVesting: null,
-    },
+    employerGrantDetails: { ...EMPTY_EMPLOYER_GRANT_DETAILS, vestingTranches: [] },
     esppDetails: {
       purchaseDate: null,
       discountPercentage: null,
@@ -420,6 +451,24 @@ export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined
   }
   if (!Array.isArray(merged.equity?.holdings)) {
     merged.equity = EMPTY_PROFILE.equity;
+  } else {
+    // Holdings saved before vesting tranches existed lack `vestingTranches`.
+    merged.equity = {
+      ...merged.equity,
+      holdings: merged.equity.holdings.map((holding) => ({
+        ...holding,
+        employerGrantDetails: {
+          ...EMPTY_EMPLOYER_GRANT_DETAILS,
+          ...holding.employerGrantDetails,
+          vestingTranches: Array.isArray(holding.employerGrantDetails?.vestingTranches)
+            ? holding.employerGrantDetails.vestingTranches.map((tranche) => ({
+                ...createEmptyVestingTranche(),
+                ...tranche,
+              }))
+            : [],
+        },
+      })),
+    };
   }
   return merged;
 }

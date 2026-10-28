@@ -13,24 +13,28 @@ import { TAX_RATES as RATES } from "./taxRates";
  * - Real capital gains are taxed at a flat rate, outside the brackets.
  * - Employer shares sold under Section 102 are split: the grant-date value is
  *   ordinary income, stacked on top of the pension at the brackets (no
- *   pension exemption, no health tax); the rest is a capital gain.
+ *   pension exemption); the rest is a capital gain. The ordinary part also
+ *   bears health tax, and before the statutory retirement age Bituach Leumi
+ *   contributions, up to the maximum insured income.
  * - Surtax applies to income above the threshold, with an extra rate on the
  *   capital-income part.
  * - Bituach Leumi pensions and study-fund withdrawals are exempt and never
  *   reach this function.
  *
- * Not modelled: Bituach Leumi contributions (also on the Section 102 ordinary
- * part), health tax on income other than pension, other credit points
- * (children, new immigrants, ...), tax spreading and coordination between
- * spouses.
+ * Not modelled: health tax on income other than pension and Section 102
+ * shares, contributions being tax-deductible, other credit points (children,
+ * new immigrants, ...), tax spreading and coordination between spouses.
  */
 export interface PersonTaxInput {
   /** Monthly income taxed as a pension: annuity payments and withdrawals from pension-like accounts. */
   pensionMonthly: number;
   /** True from the statutory retirement age, when the qualifying-annuity exemption applies. */
   exemptionApplies: boolean;
-  /** True before the statutory retirement age, when a pension bears health tax. */
-  healthTaxApplies: boolean;
+  /**
+   * True before the statutory retirement age: a pension bears health tax, and
+   * the ordinary part of Section 102 shares bears Bituach Leumi contributions.
+   */
+  beforeStatutoryAge: boolean;
   /** The calendar year the income falls in; selects the exemption share. */
   taxYear: number;
   /** Real gain realised each month on securities and investment provident funds. */
@@ -40,7 +44,8 @@ export interface PersonTaxInput {
   /**
    * Monthly proceeds of employer shares that are ordinary income (Section
    * 102 grant-date value, or all of an ordinary-income sale). Taxed at the
-   * brackets on top of the pension, with no pension exemption.
+   * brackets on top of the pension, with no pension exemption, and bearing
+   * health tax and (before the statutory age) Bituach Leumi contributions.
    */
   ordinaryInvestmentMonthly: number;
   creditPoints: number;
@@ -57,8 +62,13 @@ export interface PersonTax {
   incomeTaxMonthly: number;
   capitalGainsTaxMonthly: number;
   surtaxMonthly: number;
-  /** Health tax on a pension paid before the statutory retirement age. */
+  /**
+   * Health tax on a pension paid before the statutory retirement age, and on
+   * the ordinary part of Section 102 shares at any age.
+   */
   healthTaxMonthly: number;
+  /** Bituach Leumi contributions on the ordinary part of Section 102 shares, before the statutory age. */
+  nationalInsuranceMonthly: number;
   totalMonthly: number;
 }
 
@@ -132,6 +142,33 @@ export function earlyPensionHealthTax(pensionMonthly: number): number {
   return reduced * RATES.healthTaxReducedRate + full * RATES.healthTaxFullRate;
 }
 
+/**
+ * Health tax and Bituach Leumi contributions on `ordinaryMonthly` of Section
+ * 102 income that sits above `startMonthly` of other contribution-bearing
+ * income. Only the slice below the maximum insured income pays, and the
+ * reduced rates apply to the part of the stack up to the reduced bracket.
+ * Health tax is due at any age; Bituach Leumi only before the statutory
+ * retirement age.
+ */
+export function employerShareContributions(
+  startMonthly: number,
+  ordinaryMonthly: number,
+  beforeStatutoryAge: boolean,
+): { nationalInsurance: number; health: number } {
+  const ceiling = RATES.contributionCeilingMonthly;
+  const bracket = RATES.healthTaxReducedBracketMonthly;
+  const lower = Math.min(Math.max(startMonthly, 0), ceiling);
+  const upper = Math.min(lower + Math.max(ordinaryMonthly, 0), ceiling);
+  const reduced = Math.max(Math.min(upper, bracket) - Math.min(lower, bracket), 0);
+  const full = upper - lower - reduced;
+  return {
+    nationalInsurance: beforeStatutoryAge
+      ? reduced * RATES.nationalInsuranceReducedRate + full * RATES.nationalInsuranceFullRate
+      : 0,
+    health: reduced * RATES.healthTaxReducedRate + full * RATES.healthTaxFullRate,
+  };
+}
+
 export function calculatePersonTax(input: PersonTaxInput): PersonTax {
   const pension = Math.max(input.pensionMonthly, 0);
   const capitalGain = Math.max(input.capitalGainMonthly, 0);
@@ -153,7 +190,14 @@ export function calculatePersonTax(input: PersonTaxInput): PersonTax {
     0,
   );
   const capitalGainsTaxMonthly = capitalGain * Math.max(input.capitalGainsRate, 0);
-  const healthTaxMonthly = input.healthTaxApplies ? earlyPensionHealthTax(pension) : 0;
+  const pensionHealthTax = input.beforeStatutoryAge ? earlyPensionHealthTax(pension) : 0;
+  const shareContributions = employerShareContributions(
+    input.beforeStatutoryAge ? pension : 0,
+    ordinaryInvestment,
+    input.beforeStatutoryAge,
+  );
+  const healthTaxMonthly = pensionHealthTax + shareContributions.health;
+  const nationalInsuranceMonthly = shareContributions.nationalInsurance;
 
   const surtaxExcess = Math.max(
     taxablePension + ordinaryInvestment + capitalGain - RATES.surtaxAnnualThreshold / 12,
@@ -169,6 +213,12 @@ export function calculatePersonTax(input: PersonTaxInput): PersonTax {
     capitalGainsTaxMonthly,
     surtaxMonthly,
     healthTaxMonthly,
-    totalMonthly: incomeTaxMonthly + capitalGainsTaxMonthly + surtaxMonthly + healthTaxMonthly,
+    nationalInsuranceMonthly,
+    totalMonthly:
+      incomeTaxMonthly +
+      capitalGainsTaxMonthly +
+      surtaxMonthly +
+      healthTaxMonthly +
+      nationalInsuranceMonthly,
   };
 }

@@ -49,6 +49,8 @@ export function buildTestProfile(overrides: {
       grantPriceUSD?: number;
       grantDate?: string;
       holdingPeriodMet?: boolean;
+      /** Batches of the quantity with their own vesting date and grant price. */
+      vestingTranches?: { vestDate?: string; quantity: number; grantPriceUSD?: number }[];
     };
   }[];
   currentMonthlyExpenses?: number;
@@ -159,6 +161,14 @@ export function buildTestProfile(overrides: {
           trusteeHoldingPeriodMet: holding.employerGrant?.holdingPeriodMet ?? false,
           costBasisAtGrantUSD: holding.employerGrant?.grantPriceUSD ?? null,
           estimatedMarginalTaxOnVesting: null,
+          vestingTranches: (holding.employerGrant?.vestingTranches ?? []).map(
+            (tranche, trancheIndex) => ({
+              id: `test-tranche-${index}-${trancheIndex}`,
+              vestDate: tranche.vestDate ?? null,
+              quantity: tranche.quantity,
+              grantPriceUSD: tranche.grantPriceUSD ?? null,
+            }),
+          ),
         },
         esppDetails: {
           purchaseDate: null,

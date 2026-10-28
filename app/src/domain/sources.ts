@@ -1,4 +1,10 @@
-import type { PensionAccount, ProductCategory, ProfileData, StockHolding } from "../types";
+import type {
+  PensionAccount,
+  ProductCategory,
+  ProfileData,
+  StockHolding,
+  TaxTrack,
+} from "../types";
 import { ACCESS_RULES } from "./accessRules";
 import { FALLBACK_USD_TO_ILS_RATE } from "./constants";
 import { futureValueOfMonthlyContributions, monthlyContributionForAccount } from "./contributions";
@@ -114,36 +120,32 @@ function taxTreatmentForCategory(category: ProductCategory | null): TaxTreatment
  * Cost basis and tax rate of the non-pension investments bucket. Without
  * declared unrealized gains the whole balance counts as basis, so no gain is
  * taxed; entered equity gains are carved out of it, and each holding's own
- * tax rate is blended in by market value. A Section 3(i) employer holding
- * has the value at grant as its basis (that part was already taxed as
- * income) and is taxed at the statutory rate.
+ * tax rate is blended in by market value. Section 3(i) employer shares have
+ * the value at grant as their basis (that part was already taxed as income)
+ * and are taxed at the statutory rate.
  */
 function otherInvestmentsTaxProfile(
   profile: ProfileData,
   holdings: StockHolding[],
+  nonTrustee: EquitySplit["nonTrustee"],
 ): { costBasis: number; rate: number } {
   const defaultRate = TAX_RATES.capitalGainsRate;
   const otherAssets = profile.pensionSavings.otherAssets ?? 0;
-  let value = otherAssets;
-  let gains = 0;
-  let weightedRate = otherAssets * defaultRate;
+  let value = otherAssets + nonTrustee.value;
+  let gains = nonTrustee.value - nonTrustee.grantValue;
+  let weightedRate = (otherAssets + nonTrustee.value) * defaultRate;
   for (const holding of holdings) {
     const holdingValue = holdingValueIls(holding);
     const details = holding.personalPurchaseDetails;
-    if (holding.investmentCategory === "employerGrantedStock") {
-      gains += holdingValue - grantValueIls(holding, holdingValue);
-      weightedRate += holdingValue * defaultRate;
-    } else {
-      gains += Math.min(
-        Math.max(details.unrealizedCapitalGainUSD ?? 0, 0) * FALLBACK_USD_TO_ILS_RATE,
-        holdingValue,
-      );
-      weightedRate +=
-        holdingValue *
-        (typeof details.capitalGainsTaxRatePercent === "number"
-          ? details.capitalGainsTaxRatePercent / 100
-          : defaultRate);
-    }
+    gains += Math.min(
+      Math.max(details.unrealizedCapitalGainUSD ?? 0, 0) * FALLBACK_USD_TO_ILS_RATE,
+      holdingValue,
+    );
+    weightedRate +=
+      holdingValue *
+      (typeof details.capitalGainsTaxRatePercent === "number"
+        ? details.capitalGainsTaxRatePercent / 100
+        : defaultRate);
     value += holdingValue;
   }
   return {
@@ -174,27 +176,28 @@ function yearsUntilDate(isoDate: string | null): number | null {
 export type EmployerStockRoute = "section102Capital" | "ordinaryIncome" | "nonTrustee";
 
 /**
- * The route of an employer-granted holding. A missing tax track is taken as
- * the Section 102 capital-gains route, the usual one. The plan sells in
- * retirement, so the 24-month holding period is met unless a known grant
- * date falls too close to retirement; with no date and no confirmation the
- * period is assumed to be met.
+ * The route of an employer-granted holding's shares. A missing tax track is
+ * taken as the Section 102 capital-gains route, the usual one. The plan sells
+ * in retirement, so the 24-month holding period is met unless a known
+ * acquisition date falls too close to retirement; with no date and no
+ * confirmation the period is assumed to be met.
  */
-export function employerStockRoute(
-  holding: StockHolding,
+function stockRoute(
+  taxTrack: TaxTrack | null,
+  acquiredOn: string | null,
+  holdingPeriodConfirmed: boolean,
   yearsToRetirement: number,
 ): EmployerStockRoute {
-  const { taxTrack, trusteeHoldingPeriodMet, grantDate } = holding.employerGrantDetails;
   switch (taxTrack ?? "section102CapitalGainsTrustee") {
     case "section102OrdinaryIncomeTrustee":
       return "ordinaryIncome";
     case "section3iNonTrustee":
       return "nonTrustee";
     default: {
-      const untilGrant = yearsUntilDate(grantDate);
-      const heldAtRetirement = untilGrant === null ? null : yearsToRetirement - untilGrant;
+      const untilAcquired = yearsUntilDate(acquiredOn);
+      const heldAtRetirement = untilAcquired === null ? null : yearsToRetirement - untilAcquired;
       const periodMet =
-        trusteeHoldingPeriodMet ||
+        holdingPeriodConfirmed ||
         heldAtRetirement === null ||
         heldAtRetirement >= TAX_RATES.section102HoldingPeriodYears;
       return periodMet ? "section102Capital" : "ordinaryIncome";
@@ -202,26 +205,71 @@ export function employerStockRoute(
   }
 }
 
+/** The route of the shares of an employer holding that follow its own grant date (not a vesting tranche). */
+export function employerStockRoute(
+  holding: StockHolding,
+  yearsToRetirement: number,
+): EmployerStockRoute {
+  const { taxTrack, trusteeHoldingPeriodMet, grantDate } = holding.employerGrantDetails;
+  return stockRoute(taxTrack, grantDate, trusteeHoldingPeriodMet, yearsToRetirement);
+}
+
+/** Shares of one employer holding that are taxed alike: their value, the part of it worth that at the grant, and the route. */
+interface EmployerLot {
+  value: number;
+  /** Value at the grant date, never above `value`; missing grant prices count as zero. */
+  grantValue: number;
+  route: EmployerStockRoute;
+}
+
 /**
- * Value of a holding's shares at the grant date, in ILS, never above its
- * current value. Awards cost the employee nothing, so this is the part of the
- * proceeds that is ordinary income (Section 102) or already-taxed income
- * (Section 3(i)); a missing grant price counts as zero.
+ * Splits an employer holding into lots: one per vesting tranche, each with
+ * its own acquisition date and price at grant, plus the remaining shares,
+ * which follow the holding's own grant date and price. Tranches that
+ * together exceed the quantity are scaled down to fit. Awards cost the
+ * employee nothing, so a lot's grant value is the part of its proceeds that
+ * is ordinary income (Section 102) or already-taxed income (Section 3(i)).
  */
-function grantValueIls(holding: StockHolding, currentValue: number): number {
-  const atGrant =
-    (holding.quantity ?? 0) *
-    Math.max(holding.employerGrantDetails.costBasisAtGrantUSD ?? 0, 0) *
-    FALLBACK_USD_TO_ILS_RATE;
-  return Math.min(atGrant, currentValue);
+function employerLots(holding: StockHolding, yearsToRetirement: number): EmployerLot[] {
+  const details = holding.employerGrantDetails;
+  const shareValue = (holding.currentMarketPriceUSD ?? 0) * FALLBACK_USD_TO_ILS_RATE;
+  const holdingGrantPrice = Math.max(details.costBasisAtGrantUSD ?? 0, 0);
+  const total = Math.max(holding.quantity ?? 0, 0);
+  const tranches = details.vestingTranches.filter((tranche) => (tranche.quantity ?? 0) > 0);
+  const trancheTotal = tranches.reduce((sum, tranche) => sum + (tranche.quantity ?? 0), 0);
+  const scale = trancheTotal > total ? total / trancheTotal : 1;
+
+  const lot = (quantity: number, grantPriceUSD: number, route: EmployerStockRoute): EmployerLot => {
+    const value = quantity * shareValue;
+    return {
+      value,
+      grantValue: Math.min(quantity * grantPriceUSD * FALLBACK_USD_TO_ILS_RATE, value),
+      route,
+    };
+  };
+
+  const lots = tranches.map((tranche) =>
+    lot(
+      (tranche.quantity ?? 0) * scale,
+      Math.max(tranche.grantPriceUSD ?? holdingGrantPrice, 0),
+      stockRoute(details.taxTrack, tranche.vestDate, false, yearsToRetirement),
+    ),
+  );
+  const rest = trancheTotal >= total ? 0 : total - trancheTotal;
+  if (rest > 0) {
+    lots.push(lot(rest, holdingGrantPrice, employerStockRoute(holding, yearsToRetirement)));
+  }
+  return lots;
 }
 
 interface EquitySplit {
-  /** Section 102 capital-route holdings: value and the part taxed as ordinary income. */
+  /** Section 102 capital-route shares: value and the part taxed as ordinary income. */
   capitalRoute: { value: number; ordinaryLayer: number };
-  /** Employer holdings taxed entirely as ordinary income, by value. */
+  /** Employer shares taxed entirely as ordinary income, by value. */
   ordinaryValue: number;
-  /** Everything else, which stays in the generic investments bucket. */
+  /** Section 3(i) shares: value and the part already taxed as income at the grant. */
+  nonTrustee: { value: number; grantValue: number };
+  /** Every other holding, which stays in the generic investments bucket. */
   rest: StockHolding[];
 }
 
@@ -229,6 +277,7 @@ function splitEquityByTaxRoute(profile: ProfileData, yearsToRetirement: number):
   const split: EquitySplit = {
     capitalRoute: { value: 0, ordinaryLayer: 0 },
     ordinaryValue: 0,
+    nonTrustee: { value: 0, grantValue: 0 },
     rest: [],
   };
   for (const holding of profile.equity.holdings) {
@@ -236,17 +285,19 @@ function splitEquityByTaxRoute(profile: ProfileData, yearsToRetirement: number):
       split.rest.push(holding);
       continue;
     }
-    const value = holdingValueIls(holding);
-    switch (employerStockRoute(holding, yearsToRetirement)) {
-      case "section102Capital":
-        split.capitalRoute.value += value;
-        split.capitalRoute.ordinaryLayer += grantValueIls(holding, value);
-        break;
-      case "ordinaryIncome":
-        split.ordinaryValue += value;
-        break;
-      default:
-        split.rest.push(holding);
+    for (const lot of employerLots(holding, yearsToRetirement)) {
+      switch (lot.route) {
+        case "section102Capital":
+          split.capitalRoute.value += lot.value;
+          split.capitalRoute.ordinaryLayer += lot.grantValue;
+          break;
+        case "ordinaryIncome":
+          split.ordinaryValue += lot.value;
+          break;
+        default:
+          split.nonTrustee.value += lot.value;
+          split.nonTrustee.grantValue += lot.grantValue;
+      }
     }
   }
   return split;
@@ -358,8 +409,9 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
   const equity = splitEquityByTaxRoute(profile, years);
   const otherBalance =
     (profile.pensionSavings.otherAssets ?? 0) +
+    equity.nonTrustee.value +
     equity.rest.reduce((sum, holding) => sum + holdingValueIls(holding), 0);
-  const otherTax = otherInvestmentsTaxProfile(profile, equity.rest);
+  const otherTax = otherInvestmentsTaxProfile(profile, equity.rest, equity.nonTrustee);
   const investment = (
     id: string,
     balance: number,

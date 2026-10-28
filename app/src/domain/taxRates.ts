@@ -29,6 +29,12 @@
  *   2026-10-27. From the statutory retirement age no health tax is charged
  *   on a pension (secondary sources; the BTL page only describes the early
  *   pension).
+ * - Contributions on an employee's income, read on btl.gov.il on 2026-10-27:
+ *   Bituach Leumi 1.04% up to 7,703 a month and 7% above, health tax 3.23% /
+ *   5.17%, and nothing above the maximum insured income of 51,910 a month.
+ *   From the statutory retirement age the employee pays health tax only (the
+ *   retirement-age row of the BTL table lost its label in extraction, so this
+ *   reading is interpreted).
  * - Section 102 (capital-gains route): the ordinary-income / capital-gain split,
  *   the 24-month holding period and the 25% rate come from an employer's plan
  *   supplement; the 30% rate for a substantial shareholder is not modelled.
@@ -104,4 +110,14 @@ export const TAX_RATES = {
   healthTaxReducedBracketMonthly: 7703,
   healthTaxReducedRate: 0.0323,
   healthTaxFullRate: 0.0517,
+
+  /**
+   * Bituach Leumi (national insurance) paid by an employee on the ordinary
+   * part of Section 102 shares: the reduced rate up to the same bracket as the
+   * health tax, the full rate above it, and nothing above the maximum insured
+   * income. The health tax rates above apply to this income too.
+   */
+  nationalInsuranceReducedRate: 0.0104,
+  nationalInsuranceFullRate: 0.07,
+  contributionCeilingMonthly: 51910,
 } as const;

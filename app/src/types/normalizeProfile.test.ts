@@ -71,6 +71,31 @@ describe("normalizeProfile", () => {
     ]);
   });
 
+  it("adds an empty tranche list to employer holdings saved before vesting tranches and keeps saved ones", () => {
+    const profile = buildTestProfile({
+      equity: [
+        { quantity: 10, priceUSD: 5, employerGrant: {} },
+        {
+          quantity: 20,
+          priceUSD: 5,
+          employerGrant: { vestingTranches: [{ vestDate: "2024-01-01", quantity: 7, grantPriceUSD: 3 }] },
+        },
+      ],
+    });
+    const holdings = profile.equity.holdings.map((holding, index) => {
+      const { vestingTranches: _vestingTranches, ...details } = holding.employerGrantDetails;
+      return index === 1 ? holding : { ...holding, employerGrantDetails: details };
+    });
+    const result = normalizeProfile({
+      ...profile,
+      equity: { holdings },
+    } as unknown as Parameters<typeof normalizeProfile>[0]);
+    expect(result.equity.holdings[0].employerGrantDetails.vestingTranches).toEqual([]);
+    expect(result.equity.holdings[1].employerGrantDetails.vestingTranches).toEqual([
+      { id: "test-tranche-1-0", vestDate: "2024-01-01", quantity: 7, grantPriceUSD: 3 },
+    ]);
+  });
+
   it("keeps saved comparison ages and drops malformed ones", () => {
     const profile = buildTestProfile({ age: 40 });
     expect(normalizeProfile({ ...profile, comparisonAges: [58, 62, 70] }).comparisonAges).toEqual([58, 62, 70]);

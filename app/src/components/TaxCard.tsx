@@ -123,6 +123,18 @@ export function TaxCard({ net, isCouple, hasEmployerStock }: TaxCardProps) {
               })}
             </li>
           )}
+          {hasEmployerStock && (
+            <li>
+              {t("dashboard.tax.includedSection102Contributions", {
+                healthReducedRate: toPercent(TAX_RATES.healthTaxReducedRate),
+                healthFullRate: toPercent(TAX_RATES.healthTaxFullRate),
+                niReducedRate: toPercent(TAX_RATES.nationalInsuranceReducedRate),
+                niFullRate: toPercent(TAX_RATES.nationalInsuranceFullRate),
+                bracket: money(TAX_RATES.healthTaxReducedBracketMonthly),
+                ceiling: money(TAX_RATES.contributionCeilingMonthly),
+              })}
+            </li>
+          )}
         </ul>
         <p className="mt-2 text-xs text-slate-500">{t("dashboard.tax.notIncluded")}</p>
         {hasEmployerStock && (

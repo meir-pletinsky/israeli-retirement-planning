@@ -97,8 +97,11 @@ src/
                     # the pension exemption follows a calendar-year
                     # schedule, and a pension taken before the statutory
                     # age bears health tax; employer shares under Section
-                    # 102 are routed in sources.ts into an ordinary-income
-                    # layer and a capital-gains remainder). The clock is read only in
+                    # 102 are routed in sources.ts, one lot per vesting
+                    # batch, into an ordinary-income layer (which also pays
+                    # health tax and, before the statutory age, Bituach
+                    # Leumi, see employerShareContributions in tax.ts) and
+                    # a capital-gains remainder). The clock is read only in
                     # buildHousehold (Household.baseYear), so tests can pin
                     # the year;
                     # the Dashboard headline, funding gap and feasibility

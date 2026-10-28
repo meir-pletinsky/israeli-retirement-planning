@@ -387,6 +387,117 @@ describe("buildSources", () => {
       expect(total({ taxTrack: "section102OrdinaryIncomeTrustee" })).toBeCloseTo(expected, 6);
       expect(total({ taxTrack: "section3iNonTrustee" })).toBeCloseTo(expected, 6);
     });
+
+    describe("vesting tranches", () => {
+      // Retirement is ten years out, so a batch vested later than eight years from now is held under two years.
+      const old = isoDateInYears(-3);
+      const recent = isoDateInYears(9);
+      const find = (sources: ReturnType<typeof sourcesFor>, id: string) =>
+        sources.find((source) => source.id === id);
+
+      it("routes each batch by its own vesting date", () => {
+        const sources = sourcesFor({
+          taxTrack: capitalRoute,
+          grantPriceUSD: 20,
+          vestingTranches: [
+            { vestDate: old, quantity: 30 },
+            { vestDate: recent, quantity: 40 },
+          ],
+        });
+        // 40 recent shares are a disqualifying disposal; 30 old plus the 30 undated ones keep the capital route.
+        expect(find(sources, "employer-stock-ordinary-income")?.balance).toBeCloseTo(7_400, 6);
+        const capital = find(sources, "employer-stock-section-102");
+        expect(capital?.balance).toBeCloseTo(11_100, 6);
+        expect(capital?.ordinaryLayer).toBeCloseTo(4_440, 6);
+      });
+
+      it("lets the remaining shares follow the holding's own grant date", () => {
+        const sources = sourcesFor({
+          taxTrack: capitalRoute,
+          grantDate: recent,
+          vestingTranches: [{ vestDate: old, quantity: 60 }],
+        });
+        expect(find(sources, "employer-stock-section-102")?.balance).toBeCloseTo(11_100, 6);
+        expect(find(sources, "employer-stock-ordinary-income")?.balance).toBeCloseTo(7_400, 6);
+      });
+
+      it("scales batches that together exceed the quantity so the total stays put", () => {
+        const sources = sourcesFor({
+          taxTrack: capitalRoute,
+          vestingTranches: [
+            { vestDate: old, quantity: 150 },
+            { vestDate: recent, quantity: 50 },
+          ],
+        });
+        expect(find(sources, "employer-stock-section-102")?.balance).toBeCloseTo(13_875, 6);
+        expect(find(sources, "employer-stock-ordinary-income")?.balance).toBeCloseTo(4_625, 6);
+      });
+
+      it("takes an undated batch as held long enough and ignores one without a quantity", () => {
+        const sources = sourcesFor({
+          taxTrack: capitalRoute,
+          vestingTranches: [{ quantity: 100 }, { vestDate: recent, quantity: 0 }],
+        });
+        expect(find(sources, "employer-stock-ordinary-income")).toBeUndefined();
+        expect(find(sources, "employer-stock-section-102")?.balance).toBeCloseTo(18_500, 6);
+      });
+
+      it("treats a batch that vests after retirement as ordinary income", () => {
+        const sources = sourcesFor({
+          taxTrack: capitalRoute,
+          vestingTranches: [{ vestDate: isoDateInYears(12), quantity: 100 }],
+        });
+        expect(find(sources, "employer-stock-ordinary-income")?.balance).toBeCloseTo(18_500, 6);
+        expect(find(sources, "employer-stock-section-102")).toBeUndefined();
+      });
+
+      it("uses each batch's own grant price for the ordinary layer, falling back to the holding's", () => {
+        const shares = find(
+          sourcesFor({
+            taxTrack: capitalRoute,
+            grantPriceUSD: 20,
+            vestingTranches: [{ vestDate: old, quantity: 50, grantPriceUSD: 30 }],
+          }),
+          "employer-stock-section-102",
+        );
+        // 50 * $30 * 3.7 plus the other 50 * $20 * 3.7.
+        expect(shares?.ordinaryLayer).toBeCloseTo(9_250, 6);
+      });
+
+      it("sums the grant values of Section 3(i) batches into the cost basis", () => {
+        const sources = sourcesFor({
+          taxTrack: "section3iNonTrustee",
+          grantPriceUSD: 20,
+          vestingTranches: [{ vestDate: recent, quantity: 40, grantPriceUSD: 10 }],
+        });
+        expect(sources.map((source) => source.id)).toEqual(["other-investments"]);
+        // 40 * $10 * 3.7 plus 60 * $20 * 3.7.
+        expect(sources[0].costBasis).toBeCloseTo(5_920, 6);
+      });
+
+      it("taxes every batch of the ordinary-income track as ordinary income, whatever its date", () => {
+        const sources = sourcesFor({
+          taxTrack: "section102OrdinaryIncomeTrustee",
+          vestingTranches: [{ vestDate: old, quantity: 100 }],
+        });
+        expect(find(sources, "employer-stock-ordinary-income")?.balance).toBeCloseTo(18_500, 6);
+      });
+
+      it("leaves the total balance unchanged by how the batches are taxed", () => {
+        const sources = sourcesFor(
+          {
+            taxTrack: capitalRoute,
+            vestingTranches: [
+              { vestDate: old, quantity: 30 },
+              { vestDate: recent, quantity: 40 },
+            ],
+          },
+          { otherAssets: 10_000 },
+        );
+        const total = sources.reduce((sum, source) => sum + source.valueAtRetirement, 0);
+        expect(total).toBeCloseTo(10_000 + 18_500, 6);
+      });
+    });
   });
 });
 

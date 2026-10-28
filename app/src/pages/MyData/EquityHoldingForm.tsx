@@ -11,6 +11,7 @@ import type {
   StockHolding,
   TaxTrack,
 } from "../../types";
+import { VestingTranchesEditor } from "./VestingTranchesEditor";
 
 const INVESTMENT_CATEGORIES: InvestmentCategory[] = [
   "employerGrantedStock",
@@ -135,34 +136,15 @@ export function EquityHoldingForm({
               label: opt("taxTrack", v),
             }))}
           />
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <NumberField
-              label={f("vestedQuantity")}
-              value={employerGrantDetails.vestedQuantity}
-              onChange={(v) =>
-                onChange({
-                  employerGrantDetails: {
-                    ...employerGrantDetails,
-                    vestedQuantity: v,
-                  },
-                })
-              }
-              min={0}
-            />
-            <NumberField
-              label={f("unvestedQuantity")}
-              value={employerGrantDetails.unvestedQuantity}
-              onChange={(v) =>
-                onChange({
-                  employerGrantDetails: {
-                    ...employerGrantDetails,
-                    unvestedQuantity: v,
-                  },
-                })
-              }
-              min={0}
-            />
-          </div>
+          <VestingTranchesEditor
+            tranches={employerGrantDetails.vestingTranches}
+            holdingQuantity={quantity}
+            onChange={(vestingTranches) =>
+              onChange({
+                employerGrantDetails: { ...employerGrantDetails, vestingTranches },
+              })
+            }
+          />
           <CheckboxField
             label={f("trusteeHoldingPeriodMet")}
             checked={employerGrantDetails.trusteeHoldingPeriodMet}
