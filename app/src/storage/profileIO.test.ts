@@ -71,7 +71,12 @@ describe("importProfileFromFile", () => {
   it("preserves contribution rates already present on an account", async () => {
     const account = {
       ...createEmptyPensionAccount(),
-      contributions: { employeeRatePercent: 6, employerRatePercent: 6.5, severanceRatePercent: null },
+      contributions: {
+        monthlySalaryBase: null,
+        employeeRatePercent: 6,
+        employerRatePercent: 6.5,
+        severanceRatePercent: null,
+      },
     };
     const file = makeJsonFile(
       JSON.stringify({ pensionSavings: { accounts: [account], otherAssets: null } }),

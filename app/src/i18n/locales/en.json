@@ -225,6 +225,8 @@
           "sectionContributions": "Ongoing contributions",
           "contributionsHelper": "Percent of your monthly gross salary deposited each month. Only counted while the account status is \"Active \u2014 contributing\". Typical pension: 6% employee, 6.5% employer, 6% severance.",
           "contributionsHelperOwner": "Percent of the account owner's monthly gross salary deposited each month. Only counted while the account status is \"Active \u2014 contributing\". Typical pension: 6% employee, 6.5% employer, 6% severance.",
+          "monthlySalaryBase": "Monthly gross salary these rates apply to",
+          "monthlySalaryBaseHelper": "Leave empty to use the monthly gross salary from the Personal step. Fill it when accounts are funded from different salaries, for example two employers or a study fund that covers both.",
           "employeeRatePercent": "Employee contribution rate",
           "employerRatePercent": "Employer contribution rate",
           "severanceRatePercent": "Severance contribution rate",

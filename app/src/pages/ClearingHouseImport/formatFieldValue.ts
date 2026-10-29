@@ -4,6 +4,7 @@ import type { AccountFieldKey, PersonalFieldKey } from "../../domain/clearingHou
 
 const MONEY_KEYS: ReadonlySet<AccountFieldKey> = new Set([
   "totalAccumulatedBalance",
+  "monthlySalaryBase",
   "severanceBalance",
   "deathCoverageAmount",
   "monthlyDisabilityAmount",

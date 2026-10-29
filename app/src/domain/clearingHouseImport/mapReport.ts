@@ -313,6 +313,7 @@ function mapContributions(
   const known = values.filter((entry): entry is Rate => typeof entry === "object" && entry !== null);
   if (!known.some((entry) => entry.value > 0)) return;
 
+  if (salary !== null) put(fields, "monthlySalaryBase", salary, "official", "SACHAR-POLISA");
   for (const [key, entry] of Object.entries(resolved) as [
     "employeeRatePercent" | "employerRatePercent" | "severanceRatePercent",
     Rate | "needsSalary" | null,

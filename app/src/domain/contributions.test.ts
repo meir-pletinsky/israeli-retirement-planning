@@ -14,6 +14,7 @@ function activeAccount(overrides: Partial<PensionAccount["contributions"]> = {})
     ...createEmptyPensionAccount(),
     accountStatus: "activeContributing",
     contributions: {
+      monthlySalaryBase: null,
       employeeRatePercent: 6,
       employerRatePercent: 6.5,
       severanceRatePercent: 6,
@@ -26,6 +27,26 @@ describe("monthlyContributionForAccount", () => {
   it("applies the summed rates to the gross monthly salary", () => {
     // 6% + 6.5% + 6% = 18.5% of 10,000.
     expect(monthlyContributionForAccount(activeAccount(), 10_000)).toBeCloseTo(1850, 6);
+  });
+
+  it("applies the rates to the account's own salary base instead of the personal salary", () => {
+    const account = activeAccount({ monthlySalaryBase: 4_000 });
+    expect(monthlyContributionForAccount(account, 10_000)).toBeCloseTo(740, 6);
+  });
+
+  it("still deposits from the account's salary base when no personal salary is entered", () => {
+    const account = activeAccount({ monthlySalaryBase: 4_000 });
+    expect(monthlyContributionForAccount(account, 0)).toBeCloseTo(740, 6);
+  });
+
+  it("falls back to the personal salary when the salary base is empty or not positive", () => {
+    expect(monthlyContributionForAccount(activeAccount({ monthlySalaryBase: 0 }), 10_000)).toBeCloseTo(1850, 6);
+    expect(monthlyContributionForAccount(activeAccount({ monthlySalaryBase: null }), 10_000)).toBeCloseTo(1850, 6);
+  });
+
+  it("is zero for a salary base on an account that is not actively contributing", () => {
+    const frozen = { ...activeAccount({ monthlySalaryBase: 4_000 }), accountStatus: "paidUpFrozen" as const };
+    expect(monthlyContributionForAccount(frozen, 10_000)).toBe(0);
   });
 
   it("is zero for accounts that are not actively contributing", () => {
@@ -67,6 +88,21 @@ describe("totalMonthlyContribution", () => {
       pensionAccountOverrides: [activeAccount()],
     });
     expect(totalMonthlyContribution(profile)).toBe(0);
+  });
+
+  it("does not apply one salary to accounts funded from different salaries", () => {
+    // Pension on 6,000, managers insurance on 4,000, study fund on the combined 10,000.
+    const profile = buildTestProfile({
+      monthlyGrossSalary: 10_000,
+      pensionBalances: [0, 0, 0],
+      pensionAccountOverrides: [
+        activeAccount({ monthlySalaryBase: 6_000, employeeRatePercent: 6, employerRatePercent: 6.5, severanceRatePercent: 8.33 }),
+        activeAccount({ monthlySalaryBase: 4_000, employeeRatePercent: 6, employerRatePercent: 5.7, severanceRatePercent: 8.33 }),
+        activeAccount({ monthlySalaryBase: 10_000, employeeRatePercent: 2.5, employerRatePercent: 7.5, severanceRatePercent: 0 }),
+      ],
+    });
+    // 1,249.80 + 801.20 + 1,000, not 10,000 × (20.83% + 20.03% + 10%).
+    expect(totalMonthlyContribution(profile)).toBeCloseTo(1249.8 + 801.2 + 1000, 6);
   });
 });
 

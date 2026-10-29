@@ -29,6 +29,8 @@ export function readField(account: PensionAccount, key: AccountFieldKey): FieldV
       return account.liquidityDate;
     case "totalAccumulatedBalance":
       return account.totalAccumulatedBalance;
+    case "monthlySalaryBase":
+      return account.contributions.monthlySalaryBase;
     case "employeeRatePercent":
       return account.contributions.employeeRatePercent;
     case "employerRatePercent":
@@ -75,6 +77,8 @@ export function writeField<K extends AccountFieldKey>(
       return { ...account, liquidityDate: v as string };
     case "totalAccumulatedBalance":
       return { ...account, totalAccumulatedBalance: v as number };
+    case "monthlySalaryBase":
+      return { ...account, contributions: { ...account.contributions, monthlySalaryBase: v as number } };
     case "employeeRatePercent":
       return { ...account, contributions: { ...account.contributions, employeeRatePercent: v as number } };
     case "employerRatePercent":

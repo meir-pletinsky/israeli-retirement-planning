@@ -9,7 +9,7 @@ const ids = (profile: Parameters<typeof findDataGaps>[0]): DataGapId[] =>
 const ACTIVE = {
   accountStatus: "activeContributing" as const,
   productCategory: "comprehensivePension" as const,
-  contributions: { employeeRatePercent: 6, employerRatePercent: 6.5, severanceRatePercent: 6 },
+  contributions: { monthlySalaryBase: null, employeeRatePercent: 6, employerRatePercent: 6.5, severanceRatePercent: 6 },
 };
 
 describe("findDataGaps", () => {
@@ -98,6 +98,36 @@ describe("findDataGaps", () => {
       retirementMonthlyExpenses: 10_000,
       pensionBalances: [100_000],
       pensionAccountOverrides: [{ productCategory: "comprehensivePension", accountStatus: "activeContributing" }],
+    });
+    expect(ids(profile)).toEqual(["contributionRates"]);
+  });
+
+  it("does not ask for the personal salary when the contributing account has its own salary base", () => {
+    const profile = buildTestProfile({
+      age: 40,
+      retirementAge: 67,
+      gender: "male",
+      retirementMonthlyExpenses: 10_000,
+      pensionBalances: [100_000],
+      pensionAccountOverrides: [{ ...ACTIVE, contributions: { ...ACTIVE.contributions, monthlySalaryBase: 15_000 } }],
+    });
+    expect(ids(profile)).toEqual([]);
+  });
+
+  it("flags rate-less contributing accounts that have their own salary base but no personal salary", () => {
+    const profile = buildTestProfile({
+      age: 40,
+      retirementAge: 67,
+      gender: "male",
+      retirementMonthlyExpenses: 10_000,
+      pensionBalances: [100_000],
+      pensionAccountOverrides: [
+        {
+          productCategory: "comprehensivePension",
+          accountStatus: "activeContributing",
+          contributions: { ...ACTIVE.contributions, monthlySalaryBase: 15_000, employeeRatePercent: null, employerRatePercent: null, severanceRatePercent: null },
+        },
+      ],
     });
     expect(ids(profile)).toEqual(["contributionRates"]);
   });

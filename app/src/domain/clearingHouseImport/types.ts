@@ -30,6 +30,7 @@ export interface ImportedFieldValues {
   joinDate: string;
   liquidityDate: string;
   totalAccumulatedBalance: number;
+  monthlySalaryBase: number;
   employeeRatePercent: number;
   employerRatePercent: number;
   severanceRatePercent: number;
@@ -53,6 +54,7 @@ export const ACCOUNT_FIELD_KEYS: readonly AccountFieldKey[] = [
   "joinDate",
   "liquidityDate",
   "totalAccumulatedBalance",
+  "monthlySalaryBase",
   "employeeRatePercent",
   "employerRatePercent",
   "severanceRatePercent",

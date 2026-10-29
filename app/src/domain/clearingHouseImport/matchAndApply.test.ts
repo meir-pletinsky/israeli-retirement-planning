@@ -151,10 +151,11 @@ describe("applyImport", () => {
             providerName: official("קרן א"),
             totalAccumulatedBalance: official(250000),
             employeeRatePercent: official(6),
+            monthlySalaryBase: official(27000),
             investmentTrackName: official("מסלול"),
           }),
           updateAccountId: null,
-          selectedFields: ["providerName", "totalAccumulatedBalance", "employeeRatePercent"],
+          selectedFields: ["providerName", "totalAccumulatedBalance", "monthlySalaryBase", "employeeRatePercent"],
         },
       ],
       personal: {},
@@ -166,7 +167,7 @@ describe("applyImport", () => {
       owner: "spouse",
       providerName: "קרן א",
       totalAccumulatedBalance: 250000,
-      contributions: { employeeRatePercent: 6 },
+      contributions: { monthlySalaryBase: 27000, employeeRatePercent: 6 },
     });
     expect(added?.investmentAndFees.investmentTrackName).toBe("");
   });

@@ -1,4 +1,5 @@
 import type { PensionAccount, ProfileData } from "../types";
+import { contributionSalaryBase } from "./contributions";
 import {
   accountsInPlan,
   aggregateCurrentNetWorth,
@@ -71,13 +72,17 @@ export function findDataGaps(profile: ProfileData): DataGap[] {
   add("accountType", "pension-savings", counted.filter((a) => a.productCategory === null).length);
   add("accountStatus", "pension-savings", counted.filter((a) => a.accountStatus === null).length);
 
-  if (ownSalary <= 0) add("salary", "personal", own.filter(isContributing).length);
+  const usesPersonalSalary = (account: PensionAccount) =>
+    isContributing(account) && (account.contributions.monthlySalaryBase ?? 0) <= 0;
+  if (ownSalary <= 0) add("salary", "personal", own.filter(usesPersonalSalary).length);
   if (isCouple && spouseSalary <= 0) {
-    add("spouseSalary", "personal", spouse.filter(isContributing).length);
+    add("spouseSalary", "personal", spouse.filter(usesPersonalSalary).length);
   }
 
   const withoutRates = (accounts: PensionAccount[], salary: number) =>
-    salary > 0 ? accounts.filter((a) => isContributing(a) && totalRatePercent(a) === 0).length : 0;
+    accounts.filter(
+      (a) => isContributing(a) && contributionSalaryBase(a, salary) > 0 && totalRatePercent(a) === 0,
+    ).length;
   add(
     "contributionRates",
     "pension-savings",

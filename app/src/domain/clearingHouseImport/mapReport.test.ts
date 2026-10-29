@@ -267,6 +267,29 @@ describe("contributions", () => {
     expect(candidate.fields.employerRatePercent?.value).toBe(7.5);
   });
 
+  it("imports the salary on the policy as the base the account's rates apply to", () => {
+    const candidate = candidateOf(policy({ salary: 12345, deposits: [{ type: 2, percent: 6 }, { type: 3, percent: 6.5 }] }));
+    expect(candidate.fields.monthlySalaryBase).toMatchObject({
+      value: 12345,
+      confidence: "official",
+      source: "SACHAR-POLISA",
+    });
+  });
+
+  it("keeps a separate base per account when the salaries differ", () => {
+    const pension = candidateOf(policy({ salary: 6000, deposits: [{ type: 2, percent: 6 }] }));
+    const studyFund = candidateOf(policy({ salary: 10000, kerenType: null, deposits: [{ type: 8, percent: 2.5 }] }), { type: 4 });
+    expect(pension.fields.monthlySalaryBase?.value).toBe(6000);
+    expect(studyFund.fields.monthlySalaryBase?.value).toBe(10000);
+  });
+
+  it("imports no salary base without a usable salary, for frozen accounts, or without positive rates", () => {
+    expect(candidateOf(policy({ salary: null, deposits: [{ type: 2, percent: 6 }] })).fields.monthlySalaryBase).toBeUndefined();
+    expect(candidateOf(policy({ salary: 0, deposits: [{ type: 2, percent: 6 }] })).fields.monthlySalaryBase).toBeUndefined();
+    expect(candidateOf(activePension({ status: 2 })).fields.monthlySalaryBase).toBeUndefined();
+    expect(candidateOf(policy({ salary: 9000, deposits: [{ type: 2, percent: 0 }] })).fields.monthlySalaryBase).toBeUndefined();
+  });
+
   it("imports explicit zeros only when another group is positive", () => {
     const mixed = candidateOf(policy({ deposits: [{ type: 2, percent: 0 }, { type: 3, percent: 6.5 }] }));
     expect(mixed.fields.employeeRatePercent?.value).toBe(0);

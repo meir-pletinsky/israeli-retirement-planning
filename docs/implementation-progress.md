@@ -665,6 +665,22 @@ own start unticked.
 Behavior change: none for existing data; the import only writes what the user
 ticks.
 
+- [x] O6. **Per-account salary base (audit of a real import).** Auditing the
+      first real import showed the engine applied one personal salary to every
+      active account, although each policy has its own salary (two employment
+      lines, and a study fund covering both), overstating deposits by about two
+      thirds.
+      Added `AccountContributions.monthlySalaryBase` (empty = personal salary;
+      old data is filled by the existing merge defaults, no migration).
+      `monthlyContributionForAccount` and `contributionSalaryBase` use it; the
+      importer reads `SACHAR-POLISA` into it (new review field); the account
+      form has a field for it (en, he, ru); `findDataGaps` no longer asks for
+      the personal salary when every contributing account has a base. Tests:
+      engine (own base, fallback, zero, frozen, mixed salaries), importer
+      (imported, per account, not for frozen / no salary / zero rates),
+      `applyImport`, data gaps, profile import and the form. Details in
+      `clearing-house-import-analysis.md` section 6.2.1.
+
 - **Tax modeling assumptions (Phase I).**
   - Tax is a post-hoc layer on the level-gross plan, so the plan is
     conservative: it does not re-solve for a higher gross to reach a net

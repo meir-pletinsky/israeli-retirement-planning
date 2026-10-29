@@ -355,11 +355,34 @@ to `Mutzar/NetuneiMutzar` unless stated.
 | `contributions.employeeRatePercent` | `PerutHafrashotLePolisa`, `SUG-HAFRASHA` 2 (and 8 in study funds) | sum `ACHUZ-HAFRASHA` |
 | `contributions.employerRatePercent` | `SUG-HAFRASHA` 3 (and 9 in study funds) | sum |
 | `contributions.severanceRatePercent` | `SUG-HAFRASHA` 1 | sum |
+| `contributions.monthlySalaryBase` | `PirteiHaasaka/SACHAR-POLISA` of the same policy | official; set only for an active policy with a positive salary and at least one positive rate. The engine applies the account's rates to this salary, not to the personal one (see 6.2.1) |
 | (not modelled) | types 4, 5, 6, 7, 10, 11, 12 | 4 is a section-47 balance: informational; 5 is a premium for loss-of-work-capacity cover: informational; others: warn "extra deposit type not modelled" |
 | `PersonalData.monthlyGrossSalary` | `PirteiHaasaka/SACHAR-POLISA` | **suggestion only**, take the largest value among active accounts, show source, user confirms. A zero or missing salary (closed or frozen account) is ignored |
 
 When only an amount `SCHUM-HAFRASHA` is given (no percent), derive percent =
 amount ÷ `SACHAR-POLISA` if the salary is positive, else warn.
+
+#### 6.2.1 One salary per account (found by auditing a real import)
+
+`SACHAR-POLISA` is the salary **of that product**, and it differs between
+products of the same person: in the audited report a pension and a managers
+insurance (two employment lines) each carried their own salary, while the study
+fund carried their sum. The engine used to apply the single personal salary
+(the largest of them, which is the sum) to every active account, so deposits
+were overstated by about two thirds in that report.
+
+Fix: `AccountContributions.monthlySalaryBase` (empty: fall back to the personal
+salary). `monthlyContributionForAccount` uses it when positive, so a spouse's
+accounts are covered the same way. The importer fills it from `SACHAR-POLISA`,
+the account form has a field for it, and the data-gap hints no longer ask for the
+personal salary when every contributing account has its own base. The personal
+`monthlyGrossSalary` suggestion (largest value) is unchanged, and is now only the
+fallback. Accounts imported before this change get the base when the report is
+imported again (it shows as "fills empty", ticked by default).
+
+Known remaining gap: a policy with a fixed deposit amount, no percent and no
+salary (seen once, on an employee-only provident-fund deposit of type 11) still
+gets no rate, as before.
 
 ### 6.3 Balances
 

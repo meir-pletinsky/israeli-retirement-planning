@@ -67,6 +67,7 @@ describe("PensionSavingsStep — accounts repeater", () => {
     await user.click(await screen.findByRole("button", { name: "Add account" }));
     await user.type(screen.getByLabelText(/^Provider name/), "Clal");
     await user.click(screen.getByRole("button", { name: /ongoing contributions/i }));
+    await user.type(screen.getByLabelText(/Monthly gross salary these rates apply to/), "27000");
     await user.type(screen.getByLabelText(/Employee contribution rate/), "6");
     await user.type(screen.getByLabelText(/Employer contribution rate/), "6.5");
     await user.type(screen.getByLabelText(/Severance contribution rate/), "6");
@@ -76,6 +77,7 @@ describe("PensionSavingsStep — accounts repeater", () => {
     await waitFor(async () => {
       const stored = await loadProfileFromDb();
       expect(stored?.pensionSavings.accounts[0].contributions).toEqual({
+        monthlySalaryBase: 27000,
         employeeRatePercent: 6,
         employerRatePercent: 6.5,
         severanceRatePercent: 6,

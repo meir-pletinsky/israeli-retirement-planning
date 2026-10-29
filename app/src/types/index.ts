@@ -106,12 +106,19 @@ export interface InvestmentAndFees {
 
 /** Ongoing deposit rates into an account, each as a percent of gross monthly salary. */
 export interface AccountContributions {
+  /**
+   * The monthly gross salary these rates apply to. Empty: the owner's monthly gross salary
+   * from the Personal step is used. Set it when accounts are funded from different salaries
+   * (two employers, or a study fund covering the combined salary).
+   */
+  monthlySalaryBase: number | null;
   employeeRatePercent: number | null;
   employerRatePercent: number | null;
   severanceRatePercent: number | null;
 }
 
 export const EMPTY_ACCOUNT_CONTRIBUTIONS: AccountContributions = {
+  monthlySalaryBase: null,
   employeeRatePercent: null,
   employerRatePercent: null,
   severanceRatePercent: null,

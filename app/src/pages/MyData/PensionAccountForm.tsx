@@ -212,6 +212,16 @@ export function PensionAccountForm({
           {f(showOwner ? "contributionsHelperOwner" : "contributionsHelper")}
         </p>
         <NumberField
+          label={f("monthlySalaryBase")}
+          value={contributions.monthlySalaryBase}
+          onChange={(v) =>
+            onChange({ contributions: { ...contributions, monthlySalaryBase: v } })
+          }
+          suffix={currency}
+          min={0}
+        />
+        <p className="text-xs text-slate-500">{f("monthlySalaryBaseHelper")}</p>
+        <NumberField
           label={f("employeeRatePercent")}
           importance="recommended"
           value={contributions.employeeRatePercent}

@@ -2,15 +2,25 @@ import type { PensionAccount, ProfileData } from "../types";
 import { ownAccounts } from "./profileBasics";
 
 /**
- * Monthly deposit into one account, in today's money: gross monthly salary
- * times the sum of its employee/employer/severance rates. Only accounts
- * with status "activeContributing" receive deposits.
+ * The monthly salary an account's rates apply to: the account's own salary
+ * base when it has one, otherwise the owner's gross monthly salary.
+ */
+export function contributionSalaryBase(account: PensionAccount, ownerSalary: number): number {
+  const own = account.contributions.monthlySalaryBase ?? 0;
+  return own > 0 ? own : ownerSalary;
+}
+
+/**
+ * Monthly deposit into one account, in today's money: its salary base times
+ * the sum of its employee/employer/severance rates. Only accounts with status
+ * "activeContributing" receive deposits.
  */
 export function monthlyContributionForAccount(
   account: PensionAccount,
   monthlySalary: number,
 ): number {
-  if (account.accountStatus !== "activeContributing" || monthlySalary <= 0) {
+  const base = contributionSalaryBase(account, monthlySalary);
+  if (account.accountStatus !== "activeContributing" || base <= 0) {
     return 0;
   }
   const { employeeRatePercent, employerRatePercent, severanceRatePercent } =
@@ -19,7 +29,7 @@ export function monthlyContributionForAccount(
     Math.max(employeeRatePercent ?? 0, 0) +
     Math.max(employerRatePercent ?? 0, 0) +
     Math.max(severanceRatePercent ?? 0, 0);
-  return (monthlySalary * totalRatePercent) / 100;
+  return (base * totalRatePercent) / 100;
 }
 
 /**
