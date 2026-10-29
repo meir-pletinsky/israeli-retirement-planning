@@ -23,7 +23,10 @@ ages side by side, with a chart), and input guidance: only the current age
 and the desired retirement age are required, every other field is badged
 "Recommended" or "Reference only" (for example the policy number and fund
 ID, which are saved for cross-reference but not used in any calculation),
-and the app works the same for a person without a partner — see
+and the app works the same for a person without a partner. Pension accounts can
+also be filled in from the **Pension Clearing House** consolidated report (the
+zip or its XML files, read on the device, with a review step before anything is
+saved) — see
 [`docs/implementation-progress.md`](docs/implementation-progress.md) for
 the detailed checklist and [`docs/plan.md`](docs/plan.md)'s Status section
 for how it compares to the original spec.
@@ -66,8 +69,8 @@ fuller cross-machine setup/resume guide.
   Clearing House route.
 - [`docs/clearing-house-import-analysis.md`](docs/clearing-house-import-analysis.md)
   — analysis of the real Pension Clearing House XML files: schema, code
-  tables, field-by-field mapping to the app, edge cases and test plan
-  (the recommended first import route; not built).
+  tables, field-by-field mapping to the app, edge cases and test plan, plus
+  notes on how the importer (built) differs from the spec.
 - [`app/`](app) — the application (evolved from the original click-through
   prototype; same stack, now with real persistence and calculations).
 

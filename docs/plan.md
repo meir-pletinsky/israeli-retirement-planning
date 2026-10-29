@@ -276,10 +276,10 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
 - Live external data integrations per the fetch-then-fallback strategy
   (CPI, FX, fund performance, mortality tables, risk-free rate)
 - Household dashboard KPIs from functional spec Section 13 in full
-- Statement import (AI-assisted, bring-your-own key, and a structured
-  Pension Clearing House file): proposal only. The Clearing House XML route
-  is verified feasible and should go first; see
-  `docs/clearing-house-import-analysis.md` and
+- Statement import: the **Pension Clearing House route is built** (zip or XML
+  files, password prompt, review before apply; see
+  `docs/clearing-house-import-analysis.md`). The AI-assisted,
+  bring-your-own-key route for provider PDFs is still a proposal; see
   `docs/ai-statement-import-design.md`
 
 ## Non-Functional Requirements (all phases)

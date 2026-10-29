@@ -20,7 +20,8 @@ scenario comparison as Phase J, input guidance, single-person checks and
 UI polish as Phase K, tax refinements (exemption schedule by year,
 early-retirement health tax) as Phase L, Section 102 employer stock tax
 as Phase M, and its follow-ups (contributions on the ordinary part, vesting
-batches, a constants check) as Phase N.
+batches, a constants check) as Phase N, and the Pension Clearing House import
+(read a zip or XML files, review, apply) as Phase O.
 
 ## Phase A — Project setup & infra
 
@@ -617,7 +618,52 @@ Behavior change: profiles with Section 102 shares now show health tax (and
 Bituach Leumi before the statutory age) on the ordinary part, so their
 after-tax income is a little lower.
 
-## Deviations from original docs (log as they happen)
+## Phase O — Pension Clearing House import
+
+The user ordered a consolidated report from the Pension Clearing House
+(swiftness.co.il), analysed its files (`docs/clearing-house-import-analysis.md`,
+which holds the schema, code tables, mapping and the deviations of the built
+importer) and asked for an importer: instructions on how to get the report, a
+zip upload, and a password prompt.
+
+- [x] O1. **Domain** (`domain/clearingHouseImport/`, pure TypeScript):
+      `readFiles.ts` (a zip with a password, or plain XML; limits of 50 files,
+      25 MB per entry and 100 MB in total; non-XML entries ignored),
+      `xmlTree.ts` (DOM-free tree; nil, empty and absent leaves alike),
+      `codes.ts` (the official code tables), `mapReport.ts` (report to
+      `ImportedAccountCandidate[]` with a confidence per value, skipped records,
+      personal suggestions and localized warning codes), `matchAndApply.ts`
+      (matching to existing accounts, diffs, default selection, `applyImport`),
+      `errors.ts` (`ClearingHouseImportError` with a code per failure).
+- [x] O2. **UI** (`pages/ClearingHouseImport/`, route `/import/clearing-house`,
+      "Import report" button on the Pension & savings step): instructions and a
+      link to the site, file picker with drag and drop, password prompt (wrong
+      password reported separately, field cleared after each attempt), a review
+      screen (whose report is it, personal details, one card per account with a
+      per-field tick, a confidence and a diff badge, warnings, skipped
+      records, the provider's own projection shown for comparison) and a
+      done screen.
+- [x] O3. **i18n:** `clearingHouse` section in en, he and ru (104 keys, same
+      keys and placeholders in all three).
+- [x] O4. **Tests:** `mapReport.test.ts` (79), `matchAndApply.test.ts`,
+      `importFlow.test.ts`, `readFiles.test.ts` (ZipCrypto and AES),
+      `reviewState.test.ts`, `ClearingHouseImportPage.test.tsx` (end to end with
+      an invented zip: password, wrong password, partner, update-vs-new,
+      skipped records, no ID on screen) and the entry link. All fixtures hold
+      invented values; a gitignored `*.local.test.ts` runs the real files from
+      `CH_REAL_DIR` and writes only counts to `CH_OUT`.
+- [x] O5. **Dependency:** `@zip.js/zip.js` 2.24.0, lazy-loaded (its own 217 kB
+      chunk, workers off). **`package.json` and `package-lock.json` were edited
+      by hand** because the sandbox's npm proxy returned 404 for the tarball;
+      re-run `npm install` where the registry is reachable to confirm the
+      lockfile.
+
+Not imported on purpose: the pre/post-2008 and section-190 balance split, the
+expected annuity and the conversion factor. The user is reminded to enter the
+annuity themselves. Uncertain values and values that would overwrite the user's
+own start unticked.
+Behavior change: none for existing data; the import only writes what the user
+ticks.
 
 - **Tax modeling assumptions (Phase I).**
   - Tax is a post-hoc layer on the level-gross plan, so the plan is

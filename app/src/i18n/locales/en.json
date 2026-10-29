@@ -425,6 +425,138 @@
       "spouseAges": "Spouse:"
     }
   },
+  "clearingHouse": {
+    "title": "Import from the Pension Clearing House",
+    "entryButton": "Import report",
+    "backToAccounts": "Back to pension & savings",
+    "privacy": "Your files are read on this device only. Nothing is uploaded and the password is not stored.",
+    "instructions": {
+      "title": "How to get your report",
+      "step1": "Go to swiftness.co.il, the Pension Clearing House (HaMaslaka HaPensionit), and order the consolidated pension report. You verify your identity and pay a small fee.",
+      "step2": "The report arrives by email, usually about one business day later, as a password-protected zip file. The email says which password to use.",
+      "step3": "Choose that zip file below, or the XML files inside it. If the zip is protected, you will be asked for the password from the email.",
+      "otherFiles": "The Excel and PDF files in the package are not needed.",
+      "openSite": "Open swiftness.co.il"
+    },
+    "pick": {
+      "choose": "Choose zip or XML files",
+      "drop": "or drop them here"
+    },
+    "reading": "Reading the report\u2026",
+    "password": {
+      "title": "This file is password protected",
+      "body": "Enter the password from the email that came with the report. It is used only to open the file on this device.",
+      "label": "Zip file password",
+      "submit": "Open file",
+      "chooseOther": "Choose different files"
+    },
+    "errors": {
+      "noFiles": "No file was selected.",
+      "noXmlFiles": "No XML report files were found. Choose the zip file you received, or the XML files from inside it.",
+      "tooManyFiles": "That is more files than a report normally contains. Choose the zip file, or just the report's XML files.",
+      "tooLarge": "These files are too large to be a pension report.",
+      "passwordRequired": "This zip file needs a password.",
+      "wrongPassword": "That password did not open the file. Check the email and try again.",
+      "unreadableArchive": "This zip file could not be opened. It may be damaged, or it may not be the file from the Pension Clearing House.",
+      "invalidXml": "One of the XML files could not be read. Use the files exactly as they came from the Pension Clearing House.",
+      "notClearingHouseReport": "These files do not look like a Pension Clearing House report.",
+      "noAccounts": "The report does not contain any pension or savings accounts.",
+      "unknown": "Something went wrong while reading the files."
+    },
+    "review": {
+      "title": "Review before importing",
+      "found": "Accounts found: {{accounts}}. Other records skipped: {{skipped}}.",
+      "ignored": "Other files in the package that were ignored: {{count}}.",
+      "whoseTitle": "Whose report is this?",
+      "whoseHelp": "A report covers one person. The accounts are saved under the owner you choose.",
+      "whoseSelf": "Mine",
+      "whoseSpouse": "My partner's",
+      "personalTitleSelf": "About you",
+      "personalTitleSpouse": "About your partner",
+      "personalHelp": "The report also holds a few personal details. Tick the ones to copy to your profile.",
+      "accountsTitle": "Accounts",
+      "nothingToImport": "Nothing in this report can be imported.",
+      "include": "Import this account",
+      "modeLabel": "How to import it",
+      "modeUpdate": "Update my existing account",
+      "modeNew": "Add as a new account",
+      "matched": "This looks like an account you already entered.",
+      "plan": "Plan: {{value}}",
+      "employer": "Employer: {{value}}",
+      "balanceDate": "Balance as of {{date}}",
+      "projection": {
+        "title": "The provider's projection at age {{age}}, if deposits continue:",
+        "pension": "{{amount}} a month",
+        "savings": "{{amount}} saved",
+        "note": "These are the provider's own assumptions. They are shown for comparison and are not imported."
+      },
+      "diff": {
+        "new": "New",
+        "fillsEmpty": "Fills an empty field",
+        "same": "Already the same",
+        "differs": "Currently {{value}}"
+      },
+      "confidence": {
+        "official": "From the report",
+        "derived": "Calculated",
+        "uncertain": "Please confirm"
+      },
+      "skippedTitle": "Records skipped",
+      "skippedReason": {
+        "noRetirementBalance": "{{kind}}: holds no retirement savings.",
+        "closedOrCancelled": "{{kind}}: closed or cancelled.",
+        "noBalanceData": "{{kind}}: no balance in the report."
+      },
+      "productKind": {
+        "1": "Savings-linked insurance",
+        "2": "Pension fund",
+        "3": "Provident fund",
+        "4": "Study fund",
+        "5": "Savings policy",
+        "6": "Risk insurance",
+        "7": "Mortgage life insurance",
+        "8": "Collective risk insurance",
+        "9": "Investment provident fund",
+        "10": "Child savings",
+        "unknown": "Unknown product"
+      },
+      "warningsTitle": "Notes about the report",
+      "nothingSelected": "Tick at least one value to import.",
+      "apply": "Import selected values",
+      "startOver": "Start over"
+    },
+    "done": {
+      "title": "Import complete",
+      "summary": "Accounts imported: {{accounts}}. Profile details updated: {{personal}}.",
+      "reminder": "Open each account to check it and to add what the report does not contain, such as the expected monthly annuity.",
+      "toAccounts": "Go to pension & savings"
+    },
+    "warnings": {
+      "policyNumberIsHolderId": "The report uses your ID number as the policy number (new pension funds work this way), so no policy number was imported.",
+      "productTypeUnknown": "The product type is not recognised, so the category was left empty. Choose it yourself after importing.",
+      "pensionTypeUnknown": "The report does not say which kind of pension fund this is, so the category was left empty.",
+      "pensionTypeBasic": "The report calls this a basic pension fund, which the app has no category for. It is suggested as a general pension fund: please confirm.",
+      "statusUnknown": "The account status code ({{code}}) is not recognised, so the status was not imported.",
+      "contributionRatesDerived": "Contribution rates were calculated from the latest deposits and the salary on the policy.",
+      "contributionRatesMissingSalary": "The report has deposits but no salary, so some contribution rates could not be calculated.",
+      "contributionTypeNotModelled": "The account has a kind of deposit the app does not model (type {{type}}), so it was left out.",
+      "feeRowsDiffer": "The report lists more than one management fee for this account. The highest plausible one is suggested: please check it.",
+      "feesAllZero": "The report shows zero fees, which usually means \"not reported\" rather than free, so fees were not imported.",
+      "feeAccumulationMismatch": "The annual fee from accumulation ({{structure}}%) does not match the monthly fee actually charged ({{reported}}% a year). Please check it.",
+      "trackFromDepositOnly": "Only the track for new deposits is named in the report, so it is suggested here: please confirm that it also holds the existing balance.",
+      "trackDiffersFromDeposit": "New deposits go to a different track than the existing balance. The balance's track is shown.",
+      "negativeBalance": "The report shows a negative balance, so the balance was not imported.",
+      "joinDateImplausible": "The join date looks implausible, so it was not imported.",
+      "controlCountMismatch": "The report says it holds {{declared}} {{what}}, but {{parsed}} were found. Some files may be missing.",
+      "staleReport": "This report is {{months}} months old. Balances may be out of date: consider ordering a new one.",
+      "newerSchemaVersion": "This report uses a newer format (version {{version}}) than the app was built for. Check the results carefully.",
+      "personalConflict": "The files disagree about this detail ({{field}}), so it was not suggested.",
+      "controlWhat": {
+        "products": "products",
+        "providers": "providers"
+      }
+    }
+  },
   "settings": {
     "title": "Settings",
     "language": "Language",

@@ -54,9 +54,18 @@ done**, **Phase J (retirement scenario comparison) is done**, **Phase K
 (input guidance, single-person checks, UI polish) is done**, **Phase L
 (tax refinements) is done**, **Phase M (Section 102 employer stock tax)
 is done**, and **Phase N (Section 102 follow-ups: contributions, vesting
-batches, constants check) is done**. Phases A–K are committed and pushed to
-`main`; Phases L, M and N are committed and pushed only if `git log` shows
+batches, constants check) is done**, and **Phase O (Pension Clearing House
+import) is done**. Phases A–K are committed and pushed to
+`main`; Phases L, M, N and O are committed and pushed only if `git log` shows
 them.
+
+- **Phase O (Pension Clearing House import): DONE.** See
+  `docs/implementation-progress.md` and `docs/clearing-house-import-analysis.md`
+  ("Implementation notes"). `@zip.js/zip.js` was added with a **hand-edited
+  `package.json` / `package-lock.json`** (the npm proxy 404ed); run
+  `npm install` on a machine that reaches the registry to regenerate the
+  lockfile. A real-file smoke test is gitignored (`*.local.test.ts`, env
+  `CH_REAL_DIR` / `CH_OUT`).
 
 - **Phase N (Section 102 follow-ups): ALL DONE.** The user asked for "only
   what applies to RSUs", so ESPP and option strike prices stayed out.
@@ -410,16 +419,18 @@ Remaining, not yet started:
 - Using the reference-only fields (policy number, fund ID, fees, annuity tax
   type, ...) in calculations, or matching `fundId` to published fund data
   (Phase 4, external data).
-- **Statement import** (pre-fill pension accounts from the Pension Clearing
-  House XML files, or from provider PDFs via AI). Researched and written up as
-  a proposal; nothing is implemented. The **Clearing House XML route is
-  verified feasible** on 8 real files (one skeleton, official CMA schema and
-  code tables, numbers reconcile) and should be built first; the schema, the
-  field mapping and the test plan are in
-  `docs/clearing-house-import-analysis.md`. The AI/PDF route is in
-  `docs/ai-statement-import-design.md` and starts with a spike that needs a few
-  real statement PDFs (kept out of the repo). Real files are never committed;
-  tests use synthetic fixtures.
+- **Statement import.** The **Pension Clearing House route is built** (Phase O):
+  the user picks the consolidated report's zip (or its XML files), types the
+  password from the email when asked, reviews what was found and ticks what to
+  import. Code in `app/src/domain/clearingHouseImport/` and
+  `app/src/pages/ClearingHouseImport/`; the spec and the list of deviations are
+  in `docs/clearing-house-import-analysis.md`. Not imported on purpose: the
+  pre/post-2008 split and the expected annuity. Not yet done: importing from
+  provider PDFs via AI, which starts with a spike that needs a few real
+  statement PDFs (kept out of the repo); see `docs/ai-statement-import-design.md`.
+  Real files are never committed; tests use synthetic fixtures. Possible
+  follow-ups: the report's Excel file (deposit history), a sample of a paying
+  pension, the v009 XSD.
 
 ## Key technical decisions to know before continuing
 

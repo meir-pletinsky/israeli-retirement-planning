@@ -1,6 +1,8 @@
 # Pension Clearing House XML import — schema analysis and mapping
 
-**Status:** analysis only, nothing implemented. **Analysed:** 2026-10-28.
+**Status:** **implemented** (importer and review screen at `/import/clearing-house`;
+see "Implementation notes" below for where the code departs from this spec).
+**Analysed:** 2026-10-28. **Implemented:** 2026-10-29.
 **Companion to:** [`ai-statement-import-design.md`](./ai-statement-import-design.md)
 (Track B / decision D1a there is now **confirmed feasible** by this analysis).
 
@@ -18,6 +20,67 @@ no-network importer.
 > **Evidence tags.** **[V]** = verified in the 8 real files and/or the official
 > schema documentation. **[I]** = my inference, consistent with the data but not
 > stated by a source. **[?]** = could not be verified.
+
+## Implementation notes (what was built, and where it differs from the sections below)
+
+Code: `app/src/domain/clearingHouseImport/` (pure logic, tested with invented
+fixtures in `app/src/test/fixtures/clearingHouse/`) and
+`app/src/pages/ClearingHouseImport/` (UI). Entry: "Import report" button on the
+Pension & savings step, route `/import/clearing-house`.
+
+**Flow.** instructions (with a link to swiftness.co.il) -> choose the zip or the
+XML files -> password prompt if the zip is protected -> review -> apply -> done
+screen. The zip is first tried without a password; the prompt appears only when
+needed, a wrong password is reported separately, and the field is cleared after
+each attempt. The password lives in component state only.
+
+**Zip handling supersedes "unzip first" in sections 2 and 11.** The zip is read
+in the browser with `@zip.js/zip.js` (lazy-loaded, about 217 kB, its own chunk;
+web workers off). ZipCrypto and AES both work. Limits: 50 files, 25 MB per entry,
+100 MB in total; non-XML entries (Excel, PDF) are counted and ignored. File
+names are never kept.
+
+**Deviations from the spec.**
+
+| Spec | Built |
+|---|---|
+| Section 8: compare `ReshumatSgira` counts | Only `KAMUT-MUTZARIM` and `KAMUT-YATZRANIM` are compared against what was found. `KAMUT-POLISOT` is **not** compared: it was 1 in every real file regardless of how many policies the file held, so it is unreliable. |
+| Section 8: rate x salary reconciliation | Dropped. The rates are *derived* from deposit / salary, so the check was circular. The importer instead warns when the salary is missing (`contributionRatesMissingSalary`) and labels derived rates `derived`. |
+| Section 8: monthly fee x 12 vs annual fee | Kept as `feeAccumulationMismatch`, a warning only. |
+| Section 7.11: assign each account to self or spouse | One choice per report ("Mine" / "My partner's"), shown only when the user is married or already has partner accounts. A report covers one holder, so a per-account choice only invites mistakes. A partner receives gender, age and salary, but no marital status. |
+| Section 7.10: duplicate import | `matchCandidates`: same owner and same policy number (and the same provider, unless the number has 6 or more digits); otherwise a lone same-provider, same-category account with no policy number. A match defaults to "update", with "add as new" as the alternative. |
+| Section 6.3 / 6.4 | The pre-2008, post-2008 and section-190 balance split, `estimatedMonthlyAnnuity` and `conversionFactor` are **not imported**; the mapping of the breakdown was an interpretation and the annuity is an assumption of the provider, not a fact about the user. The nearest projection to the user's retirement age is **shown for comparison** (labelled as the provider's own assumptions) and the done screen reminds the user to enter the expected annuity themselves. |
+
+**Rules the tests pin down.**
+
+- A report whose fees are all zero means "not reported", so fees are not
+  imported (`feesAllZero`), for every product type. A negative balance is not
+  imported (`negativeBalance`). A policy number equal to the holder's ID is
+  dropped (`policyNumberIsHolderId`), so the ID is never stored.
+- **Empty-element gotcha:** `SCHUM-KITZVAT-ZIKNA` (pension with premiums) can be
+  an *empty element* rather than absent or nil. The projection falls back to
+  `KITZVAT-HODSHIT-TZFUYA` when the first has no number, not only when it is
+  absent. A unit test caught this.
+- Review defaults: certain values that fill an empty field are ticked;
+  `uncertain` values (marital status always, other inferred values) and
+  values that would overwrite something the user already entered start unticked.
+  A value identical to the current one is locked. Applying is disabled until
+  something is ticked.
+- Unknown codes become empty fields plus a localized warning, never an error.
+  Newer schema versions give a warning (`newerSchemaVersion`), and reports older
+  than the staleness threshold give another (`staleReport`).
+- Privacy: nothing from the holder block (ID, name, address) is carried into the
+  candidates; a test checks that the holder's ID is nowhere on screen. The
+  employer name is shown during review only and is not written to the profile.
+
+**Local real-file check.** `realFiles.local.test.ts` (gitignored through
+`*.local.test.ts`) runs the importer over a folder of real files named by the
+`CH_REAL_DIR` environment variable and writes only counts and warning codes to the
+file named by `CH_OUT`. It skips itself when the variable is unset.
+
+**Still open** (carried from section 9): the v009 XSD, `ACHOZ-HATAVA` semantics,
+paying-annuity samples, whether projections are nominal or real, and whether the
+user's own zip is ZipCrypto or AES (both are supported).
 
 ---
 
@@ -63,10 +126,9 @@ The first number in the file name is the **holder's ID number** and the second
 is the provider's legal company ID. **The importer must never persist or log
 the file name** (it contains the ID number).
 
-The zip itself is encrypted with an ordinary zip password. A browser-only
-importer therefore either asks the user to unzip first (simple, v1), or uses a
-small client-side zip library with a password prompt (later; same approach as
-the PDF password prompt in the AI design doc).
+The zip itself is encrypted with an ordinary zip password. **Built:** the app
+reads the zip directly in the browser (zip.js) and prompts for the password; the
+user does not need to unzip anything. Choosing the XML files directly still works.
 
 ---
 
@@ -415,9 +477,9 @@ to *suggest* turning on the partner plan, but never to create partner data.
   already uses it for component tests) or keep the tree-walking code behind a
   tiny interface (`child(name)`, `children(name)`, `text()`, `isNil()`), with
   an adapter for `DOMParser`. Prefer the adapter: the mapping stays unit-testable.
-- **No external dependency** for v1. The files are plain, well-formed XML;
-  `DOMParser` is enough. Parse with `application/xml` and check for
-  `parsererror`.
+- **Dependency:** none for XML (`DOMParser` is enough: plain, well-formed XML;
+  parse with `application/xml` and check for `parsererror`). The only dependency
+  is `@zip.js/zip.js`, loaded lazily for password-protected zips.
 - **Encoding:** read the `File` as `ArrayBuffer`, decode with `TextDecoder("utf-8")`
   (files are UTF-8). Do not rely on `File.text()` charset guessing.
 - **Limits:** reject files above a size bound (the 8 samples are small) and cap
@@ -491,8 +553,9 @@ to *suggest* turning on the partner plan, but never to create partner data.
 1. Request the **consolidated report** from the clearing house (identity
    verification, small fee, about one business day). A licensed adviser with a
    power of attorney can request it too.
-2. Open the email, use the password stated in it to open the zip, and select the
-   **XML files** (you can select all of them at once).
+2. Open the email and note the password it states. In the app, choose the **zip
+   file** as it came (or the XML files from inside it) and type that password
+   when asked; you do not need to unzip anything yourself.
 3. The app reads them **on your device**. Nothing is uploaded.
 4. Review each account; tick what to import. Values from the report are marked
    as official figures.
@@ -733,7 +796,7 @@ structure) is the reliable source.
    import" of totals. Decide after the XML importer exists; both would feed the
    same review screen.
 4. **Packaging:** because the XML is one file per provider, the UI should accept
-   **multiple files at once**, and (later) a zip with a password prompt, so the
+   **multiple files at once**, and a zip with a password prompt (built), so the
    user does not have to unpack and pick eight files by hand.
 5. To close the open items (12.1, 12.2, 12.3, 12.5, 12.6) the owner can share,
    with ID, names and policy numbers blanked: one **data row per product type**

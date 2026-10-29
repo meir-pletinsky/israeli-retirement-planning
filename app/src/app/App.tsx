@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { isRtl } from "../i18n";
+import { ClearingHouseImportPage } from "../pages/ClearingHouseImport/ClearingHouseImportPage";
 import { AssumptionsStep } from "../pages/MyData/AssumptionsStep";
 import { EquityStep } from "../pages/MyData/EquityStep";
 import { ExpensesStep } from "../pages/MyData/ExpensesStep";
@@ -44,6 +45,7 @@ export function App() {
           <Route path="assumptions" element={<AssumptionsStep />} />
         </Route>
         <Route path="/projections" element={<Projections />} />
+        <Route path="/import/clearing-house" element={<ClearingHouseImportPage />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

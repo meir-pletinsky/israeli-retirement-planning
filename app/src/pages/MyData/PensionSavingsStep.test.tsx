@@ -82,6 +82,17 @@ describe("PensionSavingsStep — accounts repeater", () => {
       });
     });
   });
+  it("links to the Pension Clearing House import", async () => {
+    renderWithProviders(<PensionSavingsStep />, {
+      route: "/my-data/pension-savings",
+    });
+
+    expect(await screen.findByRole("link", { name: "Import report" })).toHaveAttribute(
+      "href",
+      "/import/clearing-house",
+    );
+  });
+
   it("saves the policy number and fund ID and shows them on the account card", async () => {
     const user = userEvent.setup();
     renderWithProviders(<PensionSavingsStep />, {

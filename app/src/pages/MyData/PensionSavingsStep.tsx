@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 
 import { useProfile } from "../../app/ProfileContext";
 import { ConfirmModal } from "../../components/ConfirmModal";
@@ -57,13 +58,21 @@ export function PensionSavingsStep() {
         <h2 className="text-sm font-semibold text-slate-700">
           {t("myData.steps.pensionSavings.accountsTitle")}
         </h2>
-        <button
-          type="button"
-          onClick={() => setEditingAccount(createEmptyPensionAccount())}
-          className="rounded-md bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700"
-        >
-          {t("myData.steps.pensionSavings.addAccount")}
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/import/clearing-house"
+            className="rounded-md border border-teal-600 px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-50"
+          >
+            {t("clearingHouse.entryButton")}
+          </Link>
+          <button
+            type="button"
+            onClick={() => setEditingAccount(createEmptyPensionAccount())}
+            className="rounded-md bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700"
+          >
+            {t("myData.steps.pensionSavings.addAccount")}
+          </button>
+        </div>
       </div>
 
       {pensionSavings.accounts.length === 0 ? (
