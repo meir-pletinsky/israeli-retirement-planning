@@ -2,20 +2,24 @@ import { normalizeProfile, type ProfileData } from "../types";
 
 const EXPORT_FILENAME_PREFIX = "israeli-retirement-planning";
 
-/** Triggers a browser download of the given profile as a timestamped JSON file. */
-export function exportProfileToFile(profile: ProfileData): void {
-  const json = JSON.stringify(profile, null, 2);
+/** Triggers a browser download of `json` as `<prefix>-<today>.json`. */
+export function downloadJsonFile(json: string, nameSuffix = ""): void {
   const blob = new Blob([json], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const date = new Date().toISOString().slice(0, 10);
 
   const link = document.createElement("a");
   link.href = url;
-  link.download = `${EXPORT_FILENAME_PREFIX}-${date}.json`;
+  link.download = `${EXPORT_FILENAME_PREFIX}${nameSuffix}-${date}.json`;
   document.body.appendChild(link);
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+/** Triggers a browser download of the given profile as a timestamped JSON file. */
+export function exportProfileToFile(profile: ProfileData): void {
+  downloadJsonFile(JSON.stringify(profile, null, 2));
 }
 
 /** Top-level keys a plausible profile export should have at least one of. */

@@ -1,6 +1,15 @@
 import type { ProfileData } from "../types";
 import { resolveRetirementTiming, retirementTimingAtAge, type RetirementTiming } from "./household";
 import { estimateNetIncomeForTiming } from "./netIncome";
+import {
+  fromDerived,
+  fromLatestStep,
+  fromProfile,
+  fromStep,
+  input,
+  recordStep,
+  withScope,
+} from "./trace";
 import type { FundingGapResult, RetirementScenario } from "./types";
 
 /**
@@ -21,10 +30,38 @@ export function calculateFundingGapForTiming(
   );
   const desiredMonthlyExpenses = profile.expenses.retirementMonthly ?? 0;
   const monthlyGap = Math.round(netMonthlyIncome - desiredMonthlyExpenses);
+  const status = monthlyGap >= 0 ? "onTrack" : "shortfall";
+
+  withScope("fundingGap", () => {
+    const gapId = recordStep("monthlyGap", () => ({
+      title: "Monthly gap between the net income and the desired spending",
+      formula: "net monthly income − desired monthly spending, rounded to a whole shekel",
+      expr: "round(netMonthlyIncome - desiredMonthlyExpenses)",
+      inputs: {
+        netMonthlyIncome: input(
+          netMonthlyIncome,
+          fromLatestStep("net/netMonthlyIncome", netMonthlyIncome),
+        ),
+        desiredMonthlyExpenses: input(
+          desiredMonthlyExpenses,
+          profile.expenses.retirementMonthly === null
+            ? fromDerived("no retirement spending entered, counted as 0")
+            : fromProfile("expenses.retirementMonthly"),
+        ),
+      },
+      output: monthlyGap,
+    }));
+    recordStep("status", () => ({
+      title: "Whether the plan covers the desired spending",
+      formula: "onTrack when the monthly gap is 0 or more, otherwise shortfall",
+      inputs: { monthlyGap: input(monthlyGap, fromStep(gapId)) },
+      output: status,
+    }));
+  });
 
   return {
     monthlyGap,
-    status: monthlyGap >= 0 ? "onTrack" : "shortfall",
+    status,
     estimatedMonthlyIncome: netMonthlyIncome,
     grossMonthlyIncome,
     estimatedMonthlyTax: taxMonthly,

@@ -6,8 +6,12 @@ import type {
   TaxTrack,
 } from "../types";
 import { ACCESS_RULES } from "./accessRules";
-import { FALLBACK_USD_TO_ILS_RATE } from "./constants";
-import { futureValueOfMonthlyContributions, monthlyContributionForAccount } from "./contributions";
+import { DEFAULT_CURRENT_AGE, FALLBACK_USD_TO_ILS_RATE } from "./constants";
+import {
+  contributionSalaryBase,
+  futureValueOfMonthlyContributions,
+  monthlyContributionForAccount,
+} from "./contributions";
 import {
   accountsInPlan,
   holdingValueIls,
@@ -16,6 +20,19 @@ import {
   resolveCurrentAge,
 } from "./profileBasics";
 import { TAX_RATES } from "./taxRates";
+import {
+  engineNowMs,
+  fromConst,
+  fromDerived,
+  fromProfile,
+  fromStep,
+  input,
+  isTracing,
+  recordStep,
+  recordTable,
+  withScope,
+  type TraceStepBody,
+} from "./trace";
 
 /** The kinds of savings a retirement income can be drawn from. */
 export type SourceKind =
@@ -82,6 +99,11 @@ export interface RetirementSource {
   capitalGainsTaxRate: number;
 }
 
+/** The trace scope a source's steps are recorded under: the account, or the investment bucket. */
+export function sourceTraceScope(source: Pick<RetirementSource, "id" | "kind">): string {
+  return source.kind === "otherInvestments" ? source.id : `account[${source.id}]`;
+}
+
 export function sourceKindForCategory(category: ProductCategory | null): SourceKind {
   switch (category) {
     case "providentFund":
@@ -128,7 +150,7 @@ function otherInvestmentsTaxProfile(
   profile: ProfileData,
   holdings: StockHolding[],
   nonTrustee: EquitySplit["nonTrustee"],
-): { costBasis: number; rate: number } {
+): { costBasis: number; rate: number; value: number; gains: number; weightedRate: number } {
   const defaultRate = TAX_RATES.capitalGainsRate;
   const otherAssets = profile.pensionSavings.otherAssets ?? 0;
   let value = otherAssets + nonTrustee.value;
@@ -151,6 +173,9 @@ function otherInvestmentsTaxProfile(
   return {
     costBasis: Math.max(value - gains, 0),
     rate: value > 0 ? weightedRate / value : defaultRate,
+    value,
+    gains,
+    weightedRate,
   };
 }
 
@@ -160,7 +185,7 @@ const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
 function yearsUntilDate(isoDate: string | null): number | null {
   if (!isoDate) return null;
   const time = Date.parse(isoDate);
-  return Number.isNaN(time) ? null : (time - Date.now()) / MS_PER_YEAR;
+  return Number.isNaN(time) ? null : (time - engineNowMs()) / MS_PER_YEAR;
 }
 
 /**
@@ -280,12 +305,14 @@ function splitEquityByTaxRoute(profile: ProfileData, yearsToRetirement: number):
     nonTrustee: { value: 0, grantValue: 0 },
     rest: [],
   };
+  const lotRows: (string | number)[][] = [];
   for (const holding of profile.equity.holdings) {
     if (holding.investmentCategory !== "employerGrantedStock") {
       split.rest.push(holding);
       continue;
     }
     for (const lot of employerLots(holding, yearsToRetirement)) {
+      if (isTracing()) lotRows.push([holding.id, lot.value, lot.grantValue, lot.route]);
       switch (lot.route) {
         case "section102Capital":
           split.capitalRoute.value += lot.value;
@@ -300,7 +327,26 @@ function splitEquityByTaxRoute(profile: ProfileData, yearsToRetirement: number):
       }
     }
   }
+  if (lotRows.length > 0) {
+    recordTable("employerLots", () => ({
+      title: "Employer-granted share lots and their tax route",
+      columns: ["holdingId", "valueIls", "grantValueIls", "route"],
+      rows: lotRows,
+      note: `Values are quantity × price in USD × ${FALLBACK_USD_TO_ILS_RATE} (FALLBACK_USD_TO_ILS_RATE); grantValueIls is the part worth that at the grant (ordinary income on the Section 102 capital route, already-taxed income on Section 3(i)).`,
+    }));
+  }
   return split;
+}
+
+/** Years until a study fund can be withdrawn without tax: its liquidity date, else the join date plus the waiting period; null when neither is known. */
+function studyFundYearsToLiquidity(account: PensionAccount): number | null {
+  return (
+    yearsUntilDate(account.liquidityDate) ??
+    (() => {
+      const sinceJoin = yearsUntilDate(account.joinDate);
+      return sinceJoin === null ? null : sinceJoin + ACCESS_RULES.studyFundLiquidityYears;
+    })()
+  );
 }
 
 /**
@@ -317,12 +363,7 @@ export function accountUnlockAge(account: PensionAccount, currentAge: number): n
     case "iraProvidentFund":
       return ACCESS_RULES.earliestAnnuityAge;
     case "studyFund": {
-      const yearsToLiquidity =
-        yearsUntilDate(account.liquidityDate) ??
-        (() => {
-          const sinceJoin = yearsUntilDate(account.joinDate);
-          return sinceJoin === null ? null : sinceJoin + ACCESS_RULES.studyFundLiquidityYears;
-        })();
+      const yearsToLiquidity = studyFundYearsToLiquidity(account);
       return yearsToLiquidity === null
         ? ACCESS_RULES.alwaysAccessibleAge
         : currentAge + Math.max(yearsToLiquidity, 0);
@@ -338,6 +379,15 @@ function canAnnuitize(kind: SourceKind): boolean {
   return kind === "pensionFund" || kind === "managersInsurance";
 }
 
+/** Step ids and the profile-path helper an account's trace steps refer back to. */
+interface AccountTraceRefs {
+  retirementAge: string;
+  rate: string;
+  unlockAge: string;
+  valueAtRetirement: string;
+  field: (name: string) => string;
+}
+
 function buildAnnuity(
   account: PensionAccount,
   kind: SourceKind,
@@ -345,18 +395,50 @@ function buildAnnuity(
   retirementAge: number,
   valueAtRetirement: number,
   rate: number,
+  refs: AccountTraceRefs | null,
 ): SourceAnnuity | null {
-  if (!canAnnuitize(kind)) return null;
+  if (!canAnnuitize(kind)) {
+    recordStep("annuity", () => ({
+      title: "Monthly annuity",
+      formula: "only pension funds and managers insurance convert into a monthly annuity",
+      inputs: { kind: input(kind, fromDerived("source kind from the product category")) },
+      output: "none",
+      note: "This kind of savings is drawn down as capital.",
+    }));
+    return null;
+  }
   const { estimatedMonthlyAnnuity, hasGuaranteedFactor, conversionFactor } =
     account.annuityParameters;
   // An account that already pays an annuity does so from the retirement age
   // regardless of the product's earliest-access age.
-  const startAge =
-    account.accountStatus === "payingAnnuity"
-      ? retirementAge
-      : Math.max(retirementAge, unlockAge);
+  const paying = account.accountStatus === "payingAnnuity";
+  const startAge = paying ? retirementAge : Math.max(retirementAge, unlockAge);
+  const startAgeId = recordStep("annuityStartAge", () => ({
+    title: "Age the annuity starts",
+    formula: paying
+      ? "an account already paying an annuity pays from the retirement age"
+      : "the later of the retirement age and the earliest access age",
+    expr: paying ? "retirementAge" : "max(retirementAge, unlockAge)",
+    inputs: {
+      retirementAge: input(retirementAge, fromStep(refs?.retirementAge ?? "")),
+      ...(paying ? {} : { unlockAge: input(unlockAge, fromStep(refs?.unlockAge ?? "")) }),
+    },
+    output: startAge,
+  }));
 
   if (estimatedMonthlyAnnuity !== null && estimatedMonthlyAnnuity > 0) {
+    recordStep("annuityMonthly", () => ({
+      title: "Monthly annuity (the user's own estimate)",
+      formula: "the estimate entered for this account, used as is",
+      expr: "estimatedMonthlyAnnuity",
+      inputs: {
+        estimatedMonthlyAnnuity: input(
+          estimatedMonthlyAnnuity,
+          refs?.field("annuityParameters.estimatedMonthlyAnnuity") ?? "",
+        ),
+      },
+      output: estimatedMonthlyAnnuity,
+    }));
     return { monthly: estimatedMonthlyAnnuity, startAge, origin: "override" };
   }
   // A pension fund's factor is the fund's own and applies whether or not the
@@ -365,9 +447,213 @@ function buildAnnuity(
   const factorApplies = hasGuaranteedFactor || kind === "pensionFund";
   if (factorApplies && conversionFactor !== null && conversionFactor > 0) {
     const balanceAtStart = valueAtRetirement * Math.pow(1 + rate, Math.max(startAge - retirementAge, 0));
+    const balanceAtStartId = recordStep("annuityBalanceAtStart", () => ({
+      title: "Balance when the annuity starts",
+      formula: "value at retirement grown at the real rate until the annuity start age",
+      expr: "valueAtRetirement * (1 + rate) ^ max(startAge - retirementAge, 0)",
+      inputs: {
+        valueAtRetirement: input(valueAtRetirement, fromStep(refs?.valueAtRetirement ?? "")),
+        rate: input(rate, fromStep(refs?.rate ?? "")),
+        startAge: input(startAge, fromStep(startAgeId)),
+        retirementAge: input(retirementAge, fromStep(refs?.retirementAge ?? "")),
+      },
+      output: balanceAtStart,
+    }));
+    recordStep("annuityMonthly", () => ({
+      title: "Monthly annuity from the conversion factor",
+      formula: "balance at the start age / conversion factor",
+      expr: "balanceAtStart / conversionFactor",
+      inputs: {
+        balanceAtStart: input(balanceAtStart, fromStep(balanceAtStartId)),
+        conversionFactor: input(conversionFactor, refs?.field("annuityParameters.conversionFactor") ?? ""),
+      },
+      output: balanceAtStart / conversionFactor,
+    }));
     return { monthly: balanceAtStart / conversionFactor, startAge, origin: "factor" };
   }
+  recordStep("annuity", () => ({
+    title: "Monthly annuity",
+    formula: "needs the user's own estimate or a usable conversion factor",
+    inputs: {
+      estimatedMonthlyAnnuity: input(
+        estimatedMonthlyAnnuity,
+        refs?.field("annuityParameters.estimatedMonthlyAnnuity") ?? "",
+      ),
+      conversionFactor: input(conversionFactor, refs?.field("annuityParameters.conversionFactor") ?? ""),
+      hasGuaranteedFactor: input(
+        hasGuaranteedFactor,
+        refs?.field("annuityParameters.hasGuaranteedFactor") ?? "",
+      ),
+    },
+    output: "none",
+    note: "No annuity is modelled: the account is drawn down as capital.",
+  }));
   return null;
+}
+
+interface MemberTraceIds {
+  currentAge: string;
+  retirementAge: string;
+  years: string;
+  rate: string;
+  monthlyRate: string;
+  growth: string;
+  salary: string;
+}
+
+/** Records the figures every account of one person shares: ages, the real rate, growth and salary. */
+function recordMemberBasics(
+  profile: ProfileData,
+  v: {
+    currentAge: number;
+    retirementAge: number;
+    years: number;
+    rate: number;
+    growth: number;
+    salary: number;
+  },
+): MemberTraceIds {
+  const currentAge = recordStep("currentAge", () => ({
+    title: "Current age",
+    formula: "the age entered, or DEFAULT_CURRENT_AGE when it is blank",
+    inputs: {
+      age: input(profile.personal.age, fromProfile("personal.age")),
+      defaultAge: input(DEFAULT_CURRENT_AGE, fromConst("DEFAULT_CURRENT_AGE")),
+    },
+    output: v.currentAge,
+  }));
+  const retirementAge = recordStep("retirementAge", () => ({
+    title: "Retirement age in this scenario",
+    formula: "set by the scenario's retirement timing (see scenario.timing in the pack)",
+    inputs: { retirementAge: input(v.retirementAge, fromDerived("scenario.timing")) },
+    output: v.retirementAge,
+  }));
+  const years = recordStep("years", () => ({
+    title: "Years until retirement",
+    formula: "max(retirement age - current age, 0)",
+    expr: "max(retirementAge - currentAge, 0)",
+    inputs: {
+      retirementAge: input(v.retirementAge, fromStep(retirementAge)),
+      currentAge: input(v.currentAge, fromStep(currentAge)),
+    },
+    output: v.years,
+  }));
+  const rate = recordStep("realRate", () => ({
+    title: "Real annual return",
+    formula: "(1 + nominal return) / (1 + inflation) - 1",
+    expr: "(1 + investmentReturnPct / 100) / (1 + inflationPct / 100) - 1",
+    inputs: {
+      investmentReturnPct: input(
+        profile.assumptions.investmentReturnPct,
+        fromProfile("assumptions.investmentReturnPct"),
+      ),
+      inflationPct: input(profile.assumptions.inflationPct, fromProfile("assumptions.inflationPct")),
+    },
+    output: v.rate,
+  }));
+  const monthlyRate = recordStep("monthlyRate", () => ({
+    title: "Equivalent monthly real rate",
+    formula: "(1 + real rate) ^ (1/12) - 1",
+    expr: "(1 + rate) ^ (1 / 12) - 1",
+    inputs: { rate: input(v.rate, fromStep(rate)) },
+    output: Math.pow(1 + v.rate, 1 / 12) - 1,
+  }));
+  const growth = recordStep("growth", () => ({
+    title: "Growth factor until retirement",
+    formula: "(1 + real rate) ^ years",
+    expr: "(1 + rate) ^ years",
+    inputs: { rate: input(v.rate, fromStep(rate)), years: input(v.years, fromStep(years)) },
+    output: v.growth,
+  }));
+  const salary = recordStep("salary", () => ({
+    title: "Monthly gross salary",
+    formula: "the salary entered; 0 when blank",
+    expr: "monthlyGrossSalary",
+    inputs: {
+      monthlyGrossSalary: input(
+        profile.personal.monthlyGrossSalary,
+        fromProfile("personal.monthlyGrossSalary"),
+      ),
+    },
+    output: v.salary,
+  }));
+  return { currentAge, retirementAge, years, rate, monthlyRate, growth, salary };
+}
+
+function unlockAgeStep(
+  account: PensionAccount,
+  currentAge: number,
+  unlockAge: number,
+  field: (name: string) => string,
+  currentAgeId: string,
+): TraceStepBody {
+  const productCategory = input(account.productCategory, field("productCategory"));
+  switch (account.productCategory) {
+    case "comprehensivePension":
+    case "generalPension":
+    case "managersInsurance":
+    case "providentFund":
+    case "iraProvidentFund":
+      return {
+        title: "Earliest age the money can be used",
+        formula: "pension-like products: the earliest annuity age",
+        expr: "earliestAnnuityAge",
+        inputs: {
+          productCategory,
+          earliestAnnuityAge: input(
+            ACCESS_RULES.earliestAnnuityAge,
+            fromConst("ACCESS_RULES.earliestAnnuityAge"),
+          ),
+        },
+        output: unlockAge,
+      };
+    case "studyFund": {
+      const yearsToLiquidity = studyFundYearsToLiquidity(account);
+      const always = input(
+        ACCESS_RULES.alwaysAccessibleAge,
+        fromConst("ACCESS_RULES.alwaysAccessibleAge"),
+      );
+      return yearsToLiquidity === null
+        ? {
+            title: "Earliest age the money can be used",
+            formula: "study fund with no liquidity or join date: always accessible",
+            expr: "alwaysAccessibleAge",
+            inputs: { productCategory, alwaysAccessibleAge: always },
+            output: unlockAge,
+          }
+        : {
+            title: "Earliest age the money can be used",
+            formula:
+              "study fund: current age + years until the liquidity date (or join date + 6 years), never negative",
+            expr: "currentAge + max(yearsToLiquidity, 0)",
+            inputs: {
+              productCategory,
+              liquidityDate: input(account.liquidityDate, field("liquidityDate")),
+              joinDate: input(account.joinDate, field("joinDate")),
+              currentAge: input(currentAge, fromStep(currentAgeId)),
+              yearsToLiquidity: input(
+                yearsToLiquidity,
+                fromDerived("years from evaluatedAt (meta) to the liquidity date, else to the join date + 6"),
+              ),
+            },
+            output: unlockAge,
+          };
+    }
+    default:
+      return {
+        title: "Earliest age the money can be used",
+        formula: "investment provident funds and uncategorized accounts: always accessible",
+        expr: "alwaysAccessibleAge",
+        inputs: {
+          productCategory,
+          alwaysAccessibleAge: input(
+            ACCESS_RULES.alwaysAccessibleAge,
+            fromConst("ACCESS_RULES.alwaysAccessibleAge"),
+          ),
+        },
+        output: unlockAge,
+      };
+  }
 }
 
 /**
@@ -388,27 +674,114 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
   const growth = Math.pow(1 + rate, years);
   const salary = profile.personal.monthlyGrossSalary ?? 0;
 
-  const sources: RetirementSource[] = ownAccounts(profile).map((account) => {
-    const kind = sourceKindForCategory(account.productCategory);
-    const balance = account.totalAccumulatedBalance ?? 0;
-    const monthlyContribution = monthlyContributionForAccount(account, salary);
-    const unlockAge = accountUnlockAge(account, currentAge);
-    const valueAtRetirement =
-      balance * growth + futureValueOfMonthlyContributions(monthlyContribution, rate, years);
-    return {
-      id: account.id,
-      kind,
-      balance,
-      monthlyContribution,
-      unlockAge,
-      valueAtRetirement,
-      annuity: buildAnnuity(account, kind, unlockAge, retirementAge, valueAtRetirement, rate),
-      taxTreatment: taxTreatmentForCategory(account.productCategory),
-      costBasis: balance,
-      ordinaryLayer: 0,
-      capitalGainsTaxRate: TAX_RATES.capitalGainsRate,
-    };
-  });
+  const ids = isTracing()
+    ? recordMemberBasics(profile, { currentAge, retirementAge, years, rate, growth, salary })
+    : null;
+
+  const sources: RetirementSource[] = ownAccounts(profile).map((account) =>
+    withScope(`account[${account.id}]`, () => {
+      const kind = sourceKindForCategory(account.productCategory);
+      const balance = account.totalAccumulatedBalance ?? 0;
+      const monthlyContribution = monthlyContributionForAccount(account, salary);
+      const unlockAge = accountUnlockAge(account, currentAge);
+      const futureValue = futureValueOfMonthlyContributions(monthlyContribution, rate, years);
+      const valueAtRetirement = balance * growth + futureValue;
+
+      let refs: AccountTraceRefs | null = null;
+      if (ids) {
+        const field = (name: string) => fromProfile(`pensionSavings.accounts[id=${account.id}].${name}`);
+        const { contributions } = account;
+        const base = contributionSalaryBase(account, salary);
+        const depositing = account.accountStatus === "activeContributing" && base > 0;
+        const contributionId = recordStep("monthlyDeposit", () => ({
+          title: "Monthly deposit into the account",
+          formula:
+            "salary base × (employee + employer + severance rate) / 100, only while the account is activeContributing",
+          expr: depositing
+            ? "salaryBase * (max(employeeRatePercent, 0) + max(employerRatePercent, 0) + max(severanceRatePercent, 0)) / 100"
+            : undefined,
+          inputs: {
+            salaryBase: input(
+              base,
+              (contributions.monthlySalaryBase ?? 0) > 0
+                ? field("contributions.monthlySalaryBase")
+                : fromStep(ids.salary),
+            ),
+            employeeRatePercent: input(contributions.employeeRatePercent, field("contributions.employeeRatePercent")),
+            employerRatePercent: input(contributions.employerRatePercent, field("contributions.employerRatePercent")),
+            severanceRatePercent: input(contributions.severanceRatePercent, field("contributions.severanceRatePercent")),
+            accountStatus: input(account.accountStatus, field("accountStatus")),
+          },
+          output: monthlyContribution,
+          note: depositing
+            ? undefined
+            : "No deposits: the account is not activeContributing, or it has no salary base.",
+        }));
+        const futureValueId = recordStep("futureValueOfDeposits", () => {
+          const common = {
+            title: "Deposits grown until retirement",
+            inputs: {
+              monthlyContribution: input(monthlyContribution, fromStep(contributionId)),
+              rate: input(rate, fromStep(ids.rate)),
+              years: input(years, fromStep(ids.years)),
+              monthlyRate: input(Math.pow(1 + rate, 1 / 12) - 1, fromStep(ids.monthlyRate)),
+            },
+            output: futureValue,
+          };
+          if (monthlyContribution <= 0 || years <= 0) {
+            return { ...common, formula: "0 when there are no deposits or no time left" };
+          }
+          if (Math.abs(Math.pow(1 + rate, 1 / 12) - 1) < 1e-9) {
+            return {
+              ...common,
+              formula: "zero real rate: monthly deposit × 12 × years",
+              expr: "monthlyContribution * 12 * years",
+            };
+          }
+          return {
+            ...common,
+            formula: "monthly deposit × ((1 + rate)^years - 1) / monthly rate (end-of-month deposits)",
+            expr: "monthlyContribution * ((1 + rate) ^ years - 1) / monthlyRate",
+          };
+        });
+        const valueId = recordStep("valueAtRetirement", () => ({
+          title: "Value at retirement (today's money)",
+          formula: "balance × growth + deposits grown until retirement",
+          expr: "balance * growth + futureValueOfDeposits",
+          inputs: {
+            balance: input(account.totalAccumulatedBalance, field("totalAccumulatedBalance")),
+            growth: input(growth, fromStep(ids.growth)),
+            futureValueOfDeposits: input(futureValue, fromStep(futureValueId)),
+          },
+          output: valueAtRetirement,
+        }));
+        const unlockId = recordStep("unlockAge", () =>
+          unlockAgeStep(account, currentAge, unlockAge, field, ids.currentAge),
+        );
+        refs = {
+          retirementAge: ids.retirementAge,
+          rate: ids.rate,
+          unlockAge: unlockId,
+          valueAtRetirement: valueId,
+          field,
+        };
+      }
+
+      return {
+        id: account.id,
+        kind,
+        balance,
+        monthlyContribution,
+        unlockAge,
+        valueAtRetirement,
+        annuity: buildAnnuity(account, kind, unlockAge, retirementAge, valueAtRetirement, rate, refs),
+        taxTreatment: taxTreatmentForCategory(account.productCategory),
+        costBasis: balance,
+        ordinaryLayer: 0,
+        capitalGainsTaxRate: TAX_RATES.capitalGainsRate,
+      };
+    }),
+  );
 
   const equity = splitEquityByTaxRoute(profile, years);
   const otherBalance =
@@ -416,50 +789,198 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
     equity.nonTrustee.value +
     equity.rest.reduce((sum, holding) => sum + holdingValueIls(holding), 0);
   const otherTax = otherInvestmentsTaxProfile(profile, equity.rest, equity.nonTrustee);
+  const otherBalanceId = withScope("other-investments", () =>
+    ids ? recordOtherInvestmentsSteps(profile, equity, otherBalance, otherTax) : "",
+  );
   const investment = (
     id: string,
     balance: number,
     tax: Pick<RetirementSource, "taxTreatment" | "costBasis" | "ordinaryLayer" | "capitalGainsTaxRate">,
-  ): RetirementSource => ({
-    id,
-    kind: "otherInvestments",
-    balance,
-    monthlyContribution: 0,
-    unlockAge: ACCESS_RULES.alwaysAccessibleAge,
-    valueAtRetirement: balance * growth,
-    annuity: null,
-    ...tax,
-  });
+    balanceFrom: string,
+  ): RetirementSource =>
+    withScope(id, () => {
+      const valueAtRetirement = balance * growth;
+      recordStep("valueAtRetirement", () => ({
+        title: "Value at retirement (today's money)",
+        formula: "balance × growth (no deposits are made into these)",
+        expr: "balance * growth",
+        inputs: {
+          balance: input(balance, balanceFrom),
+          growth: input(growth, fromStep(ids?.growth ?? "")),
+        },
+        output: valueAtRetirement,
+      }));
+      return {
+        id,
+        kind: "otherInvestments",
+        balance,
+        monthlyContribution: 0,
+        unlockAge: ACCESS_RULES.alwaysAccessibleAge,
+        valueAtRetirement,
+        annuity: null,
+        ...tax,
+      };
+    });
   sources.push(
-    investment("other-investments", otherBalance, {
-      taxTreatment: "capitalGains",
-      costBasis: otherTax.costBasis,
-      ordinaryLayer: 0,
-      capitalGainsTaxRate: otherTax.rate,
-    }),
+    investment(
+      "other-investments",
+      otherBalance,
+      {
+        taxTreatment: "capitalGains",
+        costBasis: otherTax.costBasis,
+        ordinaryLayer: 0,
+        capitalGainsTaxRate: otherTax.rate,
+      },
+      fromStep(otherBalanceId),
+    ),
   );
   if (equity.capitalRoute.value > 0) {
     sources.push(
-      investment("employer-stock-section-102", equity.capitalRoute.value, {
-        taxTreatment: "capitalGains",
-        costBasis: 0,
-        ordinaryLayer: equity.capitalRoute.ordinaryLayer,
-        capitalGainsTaxRate: TAX_RATES.capitalGainsRate,
-      }),
+      investment(
+        "employer-stock-section-102",
+        equity.capitalRoute.value,
+        {
+          taxTreatment: "capitalGains",
+          costBasis: 0,
+          ordinaryLayer: equity.capitalRoute.ordinaryLayer,
+          capitalGainsTaxRate: TAX_RATES.capitalGainsRate,
+        },
+        fromDerived("employerLots table: lots on the section102Capital route"),
+      ),
     );
   }
   if (equity.ordinaryValue > 0) {
     sources.push(
-      investment("employer-stock-ordinary-income", equity.ordinaryValue, {
-        taxTreatment: "ordinaryIncome",
-        costBasis: 0,
-        ordinaryLayer: 0,
-        capitalGainsTaxRate: TAX_RATES.capitalGainsRate,
-      }),
+      investment(
+        "employer-stock-ordinary-income",
+        equity.ordinaryValue,
+        {
+          taxTreatment: "ordinaryIncome",
+          costBasis: 0,
+          ordinaryLayer: 0,
+          capitalGainsTaxRate: TAX_RATES.capitalGainsRate,
+        },
+        fromDerived("employerLots table: lots on the ordinaryIncome route"),
+      ),
     );
   }
 
+  recordTable("sources", () => ({
+    title: "Retirement sources of this person",
+    columns: [
+      "id",
+      "kind",
+      "balance",
+      "monthlyContribution",
+      "unlockAge",
+      "valueAtRetirement",
+      "annuityMonthly",
+      "annuityStartAge",
+      "annuityOrigin",
+      "taxTreatment",
+      "costBasis",
+      "ordinaryLayer",
+      "capitalGainsTaxRate",
+    ],
+    rows: sources.map((source) => [
+      source.id,
+      source.kind,
+      source.balance,
+      source.monthlyContribution,
+      source.unlockAge,
+      source.valueAtRetirement,
+      source.annuity?.monthly ?? null,
+      source.annuity?.startAge ?? null,
+      source.annuity?.origin ?? null,
+      source.taxTreatment,
+      source.costBasis,
+      source.ordinaryLayer,
+      source.capitalGainsTaxRate,
+    ]),
+    note: "All money amounts are in today's money (real terms). These are the inputs of the retirement-income solver, the drawdown simulation and the tax step.",
+  }));
+
   return sources;
+}
+
+/** Records how the non-pension investments bucket's balance, cost basis and tax rate are made up. Returns the balance step's id. */
+function recordOtherInvestmentsSteps(
+  profile: ProfileData,
+  equity: EquitySplit,
+  balance: number,
+  tax: ReturnType<typeof otherInvestmentsTaxProfile>,
+): string {
+  const holdings = profile.equity.holdings;
+  if (holdings.length > 0) {
+    recordTable("holdings", () => ({
+      title: "Equity holdings",
+      columns: [
+        "id",
+        "investmentCategory",
+        "quantity",
+        "currentMarketPriceUSD",
+        "valueIls",
+        "unrealizedCapitalGainUSD",
+        "capitalGainsTaxRatePercent",
+      ],
+      rows: holdings.map((holding) => [
+        holding.id,
+        holding.investmentCategory,
+        holding.quantity,
+        holding.currentMarketPriceUSD,
+        holdingValueIls(holding),
+        holding.personalPurchaseDetails.unrealizedCapitalGainUSD,
+        holding.personalPurchaseDetails.capitalGainsTaxRatePercent,
+      ]),
+      note: `valueIls = quantity × currentMarketPriceUSD × ${FALLBACK_USD_TO_ILS_RATE} (FALLBACK_USD_TO_ILS_RATE).`,
+    }));
+  }
+  const balanceId = recordStep("balance", () => ({
+    title: "Balance of the non-pension investments bucket",
+    formula: "other assets + Section 3(i) employer shares + every holding that is not employer-granted",
+    expr: "otherAssets + nonTrusteeValue + otherHoldingsValue",
+    inputs: {
+      otherAssets: input(profile.pensionSavings.otherAssets, fromProfile("pensionSavings.otherAssets")),
+      nonTrusteeValue: input(
+        equity.nonTrustee.value,
+        fromDerived("employerLots table: lots on the nonTrustee route"),
+      ),
+      otherHoldingsValue: input(
+        equity.rest.reduce((sum, holding) => sum + holdingValueIls(holding), 0),
+        fromDerived("holdings table: valueIls of holdings that are not employerGrantedStock"),
+      ),
+    },
+    output: balance,
+  }));
+  recordStep("costBasis", () => ({
+    title: "Cost basis of the bucket (the part that is not taxable gain)",
+    formula:
+      "balance - gains, where gains are the Section 3(i) growth above the grant value plus each holding's declared unrealized gain (capped at its value)",
+    expr: "max(balance - gains, 0)",
+    inputs: {
+      balance: input(tax.value, fromStep(balanceId)),
+      gains: input(
+        tax.gains,
+        fromDerived("Section 3(i) growth + holdings table: min(unrealizedCapitalGainUSD × FX, valueIls)"),
+      ),
+    },
+    output: tax.costBasis,
+  }));
+  recordStep("capitalGainsTaxRate", () => ({
+    title: "Capital-gains tax rate of the bucket",
+    formula: "value-weighted average of each part's rate; the statutory rate when the bucket is empty",
+    expr: tax.value > 0 ? "weightedRate / balance" : "defaultRate",
+    inputs: {
+      weightedRate: input(
+        tax.weightedRate,
+        fromDerived("sum of value × rate: other assets and 3(i) shares at the statutory rate, holdings at their own rate when set"),
+      ),
+      balance: input(tax.value, fromStep(balanceId)),
+      defaultRate: input(TAX_RATES.capitalGainsRate, fromConst("TAX_RATES.capitalGainsRate")),
+    },
+    output: tax.rate,
+  }));
+  return balanceId;
 }
 
 /** Counted accounts that hold money but have no product type, so their access rules are unknown. */

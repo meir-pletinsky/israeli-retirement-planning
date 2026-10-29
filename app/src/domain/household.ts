@@ -14,6 +14,18 @@ import {
   spouseAccounts,
 } from "./profileBasics";
 import { buildSources, countUncategorizedAccounts, type RetirementSource } from "./sources";
+import {
+  engineCurrentYear,
+  fromConst,
+  fromDerived,
+  fromProfile,
+  fromStep,
+  input,
+  recordStep,
+  recordTable,
+  withMember,
+  withScope,
+} from "./trace";
 import type { BituachLeumiEstimate, RetirementScenario, SpouseSupplement } from "./types";
 
 /**
@@ -212,7 +224,7 @@ function spouseSupplementFor(
 export function buildHousehold(
   profile: ProfileData,
   timing: RetirementTiming,
-  baseYear: number = new Date().getFullYear(),
+  baseYear: number = engineCurrentYear(),
 ): Household {
   const views: { role: MemberRole; view: ProfileData; retirementAge: number }[] = [
     { role: "self", view: selfProfileView(profile), retirementAge: timing.selfAge },
@@ -225,14 +237,16 @@ export function buildHousehold(
     });
   }
 
-  const members: HouseholdMember[] = views.map(({ role, view, retirementAge }) => ({
-    role,
-    profile: view,
-    currentAge: resolveCurrentAge(view),
-    retirementAge,
-    sources: buildSources(view, retirementAge),
-    bituachLeumi: estimateBituachLeumiPension(view, retirementAge, baseYear),
-  }));
+  const members: HouseholdMember[] = views.map(({ role, view, retirementAge }) =>
+    withMember(role, () => ({
+      role,
+      profile: view,
+      currentAge: resolveCurrentAge(view),
+      retirementAge,
+      sources: buildSources(view, retirementAge),
+      bituachLeumi: estimateBituachLeumiPension(view, retirementAge, baseYear),
+    })),
+  );
 
   if (members.length === 2) {
     const [self, spouse] = members;
@@ -240,6 +254,7 @@ export function buildHousehold(
     const spouseSupplement = spouseSupplementFor(spouse, self);
     self.bituachLeumi = { ...self.bituachLeumi, spouseSupplement: selfSupplement };
     spouse.bituachLeumi = { ...spouse.bituachLeumi, spouseSupplement };
+    recordSupplementSteps(self, spouse);
   }
 
   const retirementYears = Math.max(
@@ -248,7 +263,7 @@ export function buildHousehold(
   const primary = members[0];
   const primaryRetirementYears = Math.max(primary.retirementAge - primary.currentAge, 0);
 
-  return {
+  const household: Household = {
     members,
     rate: realAnnualReturnRate(profile.assumptions),
     retirementYears,
@@ -266,6 +281,148 @@ export function buildHousehold(
     ),
     baseYear,
   };
+  recordHouseholdSteps(household, profile);
+  return household;
+}
+
+/** Records the household-level timing figures. A no-op unless tracing. */
+function recordHouseholdSteps(household: Household, profile: ProfileData): void {
+  recordStep("realRate", () => ({
+    title: "Real annual return used by the household calculations",
+    formula: "(1 + nominal return) / (1 + inflation) - 1",
+    expr: "(1 + investmentReturnPct / 100) / (1 + inflationPct / 100) - 1",
+    inputs: {
+      investmentReturnPct: input(
+        profile.assumptions.investmentReturnPct,
+        fromProfile("assumptions.investmentReturnPct"),
+      ),
+      inflationPct: input(profile.assumptions.inflationPct, fromProfile("assumptions.inflationPct")),
+    },
+    output: household.rate,
+  }));
+  recordTable("members", () => ({
+    title: "Household members and their Bituach Leumi pension",
+    columns: [
+      "role",
+      "currentAge",
+      "retirementAge",
+      "bituachLeumiIncluded",
+      "bituachLeumiEligible",
+      "bituachLeumiSource",
+      "statutoryRetirementAge",
+      "claimAge",
+      "insuredYearsAtClaim",
+      "seniorityRate",
+      "deferralRate",
+      "monthlyPension",
+      "spouseSupplementMonthly",
+      "spouseSupplementStartAge",
+      "spouseSupplementEndAge",
+    ],
+    rows: household.members.map((member) => [
+      member.role,
+      member.currentAge,
+      member.retirementAge,
+      member.bituachLeumi.included,
+      member.bituachLeumi.eligible,
+      member.bituachLeumi.source,
+      member.bituachLeumi.statutoryRetirementAge,
+      member.bituachLeumi.claimAge,
+      member.bituachLeumi.insuredYearsAtClaim,
+      member.bituachLeumi.seniorityRate,
+      member.bituachLeumi.deferralRate,
+      member.bituachLeumi.monthlyPension,
+      member.bituachLeumi.spouseSupplement?.monthly ?? null,
+      member.bituachLeumi.spouseSupplement?.startAge ?? null,
+      member.bituachLeumi.spouseSupplement?.endAge ?? null,
+    ]),
+  }));
+  const retirementYears = recordStep("retirementYears", () => ({
+    title: "Years from now until household drawing starts",
+    formula: "the largest of each member's (retirement age - current age), never negative",
+    expr: `max(${household.members.map((_, i) => `max(retirementAge${i} - currentAge${i}, 0)`).join(", ")})`,
+    inputs: Object.fromEntries(
+      household.members.flatMap((member, i) => [
+        [`retirementAge${i}`, input(member.retirementAge, fromDerived(`members table: ${member.role} retirementAge`))],
+        [`currentAge${i}`, input(member.currentAge, fromDerived(`members table: ${member.role} currentAge`))],
+      ]),
+    ),
+    output: household.retirementYears,
+  }));
+  recordStep("horizonYears", () => ({
+    title: "Years from now until the youngest member reaches the planning age",
+    formula: "the largest of each member's (MAX_PLANNING_AGE - current age), never negative",
+    expr: `max(${household.members.map((_, i) => `max(maxPlanningAge - currentAge${i}, 0)`).join(", ")})`,
+    inputs: {
+      maxPlanningAge: input(MAX_PLANNING_AGE, fromConst("MAX_PLANNING_AGE")),
+      ...Object.fromEntries(
+        household.members.map((member, i) => [
+          `currentAge${i}`,
+          input(member.currentAge, fromDerived(`members table: ${member.role} currentAge`)),
+        ]),
+      ),
+    },
+    output: household.horizonYears,
+  }));
+  recordStep("drawdownStartAge", () => ({
+    title: "Primary user's age when household drawing starts",
+    formula:
+      "their own retirement age when they retire last (or alone), otherwise their current age + the household's years to retirement",
+    inputs: {
+      retirementYears: input(household.retirementYears, fromStep(retirementYears)),
+      primaryRetirementAge: input(
+        household.members[0].retirementAge,
+        fromDerived("members table: self retirementAge"),
+      ),
+      primaryCurrentAge: input(
+        household.members[0].currentAge,
+        fromDerived("members table: self currentAge"),
+      ),
+    },
+    output: household.drawdownStartAge,
+  }));
+  recordStep("baseYear", () => ({
+    title: "Calendar year the plan counts from",
+    formula: "the year of the evaluation time (meta.evaluatedAt); used for year-dependent tax rules and birth years",
+    inputs: { evaluatedAt: input(null, fromDerived("meta.evaluatedAt")) },
+    output: household.baseYear,
+  }));
+}
+
+/** Records the spouse-supplement decision for each member of a couple. A no-op unless tracing. */
+function recordSupplementSteps(self: HouseholdMember, spouse: HouseholdMember): void {
+  for (const [recipient, other] of [
+    [self, spouse],
+    [spouse, self],
+  ] as const) {
+    const supplement = recipient.bituachLeumi.spouseSupplement;
+    withScope(recipient.role, () =>
+      recordStep("spouseSupplement", () => ({
+        title: "Spouse supplement paid to this member",
+        formula:
+          "paid while this member's own pension is paid and the other spouse has no pension of their own and has stopped working or passed the income-test-exempt age; it starts at the latest of: this member's claim, the other spouse's income-test moment, now; and ends when the other spouse's pension starts",
+        inputs: {
+          ownPensionPaid: input(
+            recipient.bituachLeumi.included &&
+              recipient.bituachLeumi.eligible &&
+              recipient.bituachLeumi.monthlyPension > 0,
+            fromDerived("members table: this member's bituachLeumi included, eligible, monthlyPension"),
+          ),
+          otherEligibleForOwnPension: input(
+            other.bituachLeumi.eligible,
+            fromDerived("members table: the other member's bituachLeumiEligible"),
+          ),
+          otherClaimAge: input(other.bituachLeumi.claimAge, fromDerived("members table: the other member's claimAge")),
+          otherRetirementAge: input(other.retirementAge, fromDerived("members table: the other member's retirementAge")),
+          monthlyAmount: input(RATES.spouseSupplementMonthly, fromConst("BITUACH_LEUMI_RATES.spouseSupplementMonthly")),
+        },
+        output: supplement ? supplement.monthly : 0,
+        note: supplement
+          ? `starts at age ${supplement.startAge}, ends at ${supplement.endAge ?? "never"} (this member's age)`
+          : "no supplement",
+      })),
+    );
+  }
 }
 
 /** Years from now at which `member` reaches `age`. */

@@ -20,8 +20,9 @@ scenario comparison as Phase J, input guidance, single-person checks and
 UI polish as Phase K, tax refinements (exemption schedule by year,
 early-retirement health tax) as Phase L, Section 102 employer stock tax
 as Phase M, and its follow-ups (contributions on the ordinary part, vesting
-batches, a constants check) as Phase N, and the Pension Clearing House import
-(read a zip or XML files, review, apply) as Phase O.
+batches, a constants check) as Phase N, the Pension Clearing House import
+(read a zip or XML files, review, apply) as Phase O, and the calculation trace
+with its offline verification pack as Phase P.
 
 ## Phase A — Project setup & infra
 
@@ -711,6 +712,51 @@ ticks.
       (Phase P) behind an alias; the redaction key file maps it back. The
       separate `fundId` and the plan name are still not imported. Tests in
       `mapReport.test.ts` and `matchAndApply.test.ts`; texts in en, he and ru.
+
+## Phase P — Calculation trace and verification pack
+
+The user asked for a way to validate the app's calculations: "traces of all
+calculation steps to be exportable for debugging and may be used validation by
+independent AI sessions offline". Design and usage: `docs/calculation-trace.md`.
+
+- [x] P1. **Trace core** (`domain/trace.ts`): a module-level, synchronous
+      context (`runTraced`), a no-op when off, lazy step builders, scope-path ids
+      (`#n` for a repeat), provenance (`profile:`, `step:`, `const:`,
+      `derived:`), tables, and one engine clock (`engineNowMs`,
+      `engineCurrentYear`, `withEngineClock`) so that "now" is the same for the
+      traced run and the untraced figures beside it.
+- [x] P2. **Instrumentation of the whole chain**: `sources`, `bituachLeumi`,
+      `household`, `retirementIncome`, `drawdown`, `tax` (`recordPersonTaxSteps`),
+      `memberTax`, `netIncome` / `netIncomeTrace`, `fundingGap`. One traced
+      `calculateFundingGapForTiming` covers everything (about 215 to 255 steps).
+      Results are unchanged with tracing off (a test compares both).
+- [x] P3. **Self-check** (`traceCheck.ts`): evaluates every `expr`, follows every
+      `step:`, `profile:` and `const:` link, nine issue kinds, with a tamper test.
+      `traceConstants.ts` snapshots every tax, National Insurance and access-rule
+      constant.
+- [x] P4. **Verification pack** (`verificationPack.ts`, `verificationGuide.ts`,
+      `verificationRedaction.ts`): a target (scenario or age), the traced run, the
+      displayed figures (funding gap, earliest feasible age, age comparison, gap
+      for every retirement age), `roundingSteps`, the auditor guide and prompt.
+      **Privacy:** an allow-list redaction (numbers, enums and dates are kept, other
+      text becomes `[redacted]`), ids aliased to `acctN` / `holdingN` /
+      `trancheN`, a separate local-only redaction key, and a leak check that
+      throws `VerificationPackLeakError` (locations only) before anything is
+      exported.
+- [x] P5. **UI:** Settings, "Calculation verification" (`components/VerificationExport.tsx`):
+      scenario or age picker, export of the pack, then the key; privacy
+      warning ("redacted is not anonymous"); en, he and ru.
+- [x] P6. **Tests:** `trace.test.ts`, `traceCheck.test.ts`, `tracePipeline.test.ts`,
+      `verificationPack.test.ts`, `VerificationExport.test.tsx`; invented data only.
+      Run on a real exported profile (locally, counts only): all four targets
+      build, no leak, no self-check issue.
+
+Behavior change: none. Tracing is off during normal use.
+Open: the pack proves the arithmetic and the sources, not that a formula is the
+right rule (the reviewer's Part B); a `fromLatestStep` fallback to `derived:` is
+not flagged by the self-check.
+
+## Modeling assumptions (by phase)
 
 - **Tax modeling assumptions (Phase I).**
   - Tax is a post-hoc layer on the level-gross plan, so the plan is

@@ -3,10 +3,27 @@ import {
   resolveRetirementTiming,
   retirementTimingAtAge,
   type Household,
+  type HouseholdMember,
   type RetirementTiming,
 } from "./household";
 import { futureValueOfMonthlyContributions } from "./contributions";
-import { SOURCE_KINDS, type SourceKind, type TaxTreatment } from "./sources";
+import {
+  SOURCE_KINDS,
+  sourceTraceScope,
+  type RetirementSource,
+  type SourceKind,
+  type TaxTreatment,
+} from "./sources";
+import {
+  fromDerived,
+  fromLatestStep,
+  input,
+  isTracing,
+  recordStep,
+  recordTable,
+  withScope,
+  type TraceScalar,
+} from "./trace";
 import type { ProfileData } from "../types";
 import type { RetirementScenario } from "./types";
 
@@ -66,6 +83,17 @@ const emptyByKind = (): Record<SourceKind, number> => ({
   otherInvestments: 0,
 });
 
+/** One source's running position in the simulation. */
+interface SourceState {
+  member: HouseholdMember;
+  memberIndex: number;
+  source: RetirementSource;
+  balance: number;
+  basis: number;
+  ordinaryLayer: number;
+  annualContribution: number;
+}
+
 /**
  * Year-by-year simulation of every source of a household, entirely in
  * today's money:
@@ -91,11 +119,120 @@ export function simulateHouseholdDrawdown(
   household: Household,
   monthlySpending: number,
 ): DrawdownYear[] {
+  return withScope("drawdown", () => simulate(household, monthlySpending));
+}
+
+/** Records the starting state of the simulation: the spending, the yearly deposits and one row per source. */
+function recordDrawdownStart(
+  household: Household,
+  monthlySpending: number,
+  state: SourceState[],
+): void {
+  const { rate, retirementYears, horizonYears } = household;
+  recordStep("annualSpending", () => ({
+    title: "Spending the simulation must fund each year (today's money)",
+    formula: "monthly spending × 12",
+    expr: "monthlySpending * 12",
+    inputs: {
+      monthlySpending: input(
+        monthlySpending,
+        fromLatestStep("income/monthlyIncomeTodayMoney", monthlySpending),
+      ),
+    },
+    output: monthlySpending * 12,
+  }));
+  recordStep("rows", () => ({
+    title: "Rows simulated: today, then one per year to the horizon",
+    formula: "horizon years + 1",
+    expr: "horizonYears + 1",
+    inputs: {
+      horizonYears: input(horizonYears, fromLatestStep("horizonYears", horizonYears)),
+      realRate: input(rate, fromLatestStep("realRate", rate)),
+      retirementYears: input(retirementYears, fromLatestStep("retirementYears", retirementYears)),
+    },
+    output: horizonYears + 1,
+    note: "realRate drives every balance; retirementYears is when withdrawals start (year index >= retirementYears).",
+  }));
+
+  for (const entry of state) {
+    withScope(entry.member.role, () =>
+      withScope(sourceTraceScope(entry.source), () =>
+        recordStep("annualContribution", () => {
+          const monthlyRate = Math.pow(1 + rate, 1 / 12) - 1;
+          const common = {
+            title: "Deposits added in each year before the owner retires (today's money)",
+            inputs: {
+              monthlyContribution: input(
+                entry.source.monthlyContribution,
+                fromDerived("the source's monthlyContribution in the sources table"),
+              ),
+              rate: input(rate, fromLatestStep("realRate", rate)),
+              monthlyRate: input(monthlyRate, fromDerived("(1 + rate)^(1/12) - 1")),
+            },
+            output: entry.annualContribution,
+          };
+          if (entry.source.monthlyContribution <= 0) {
+            return { ...common, formula: "0 when the source takes no deposits" };
+          }
+          if (Math.abs(monthlyRate) < 1e-9) {
+            return {
+              ...common,
+              formula: "zero real rate: monthly deposit × 12",
+              expr: "monthlyContribution * 12",
+            };
+          }
+          return {
+            ...common,
+            formula: "monthly deposit × ((1 + rate) - 1) / monthly rate (one year of end-of-month deposits)",
+            expr: "monthlyContribution * ((1 + rate) - 1) / monthlyRate",
+          };
+        }),
+      ),
+    );
+  }
+
+  recordTable("sources", () => ({
+    title: "Sources at the start of the simulation (today's money)",
+    columns: [
+      "source",
+      "kind",
+      "taxTreatment",
+      "balance",
+      "costBasis",
+      "ordinaryLayer",
+      "monthlyContribution",
+      "annualContribution",
+      "unlockAge",
+      "ownerCurrentAge",
+      "ownerRetirementAge",
+      "annuityStartAge",
+      "annuityMonthly",
+    ],
+    rows: state.map(({ member, source, basis, ordinaryLayer, annualContribution }) => [
+      `${member.role}: ${sourceTraceScope(source)}`,
+      source.kind,
+      source.taxTreatment,
+      source.balance,
+      basis,
+      ordinaryLayer,
+      source.monthlyContribution,
+      annualContribution,
+      source.unlockAge,
+      member.currentAge,
+      member.retirementAge,
+      source.annuity?.startAge ?? null,
+      source.annuity?.monthly ?? null,
+    ]),
+    note: "costBasis and ordinaryLayer are capped as the simulation caps them: costBasis at the balance, ordinaryLayer at balance minus costBasis.",
+  }));
+}
+
+function simulate(household: Household, monthlySpending: number): DrawdownYear[] {
   const { rate, members, retirementYears, horizonYears } = household;
   const annualSpending = monthlySpending * 12;
   const primary = members[0];
 
-  const state = members.flatMap((member, memberIndex) =>
+  const state: SourceState[] = members.flatMap((member, memberIndex) =>
     member.sources.map((source) => ({
       member,
       memberIndex,
@@ -106,6 +243,8 @@ export function simulateHouseholdDrawdown(
       annualContribution: futureValueOfMonthlyContributions(source.monthlyContribution, rate, 1),
     })),
   );
+  recordDrawdownStart(household, monthlySpending, state);
+  const traceRows: TraceScalar[][] | null = isTracing() ? [] : null;
 
   const rows: DrawdownYear[] = [];
   for (let years = 0; years <= horizonYears; years += 1) {
@@ -182,9 +321,11 @@ export function simulateHouseholdDrawdown(
       };
     });
 
+    let drawn = 0;
     if (years > 0 && years >= retirementYears && unlockedTotal > 0) {
       const streamsAnnual = PAYMENT_SOURCES.reduce((sum, band) => sum + streams[band], 0) * 12;
       const draw = Math.min(Math.max(annualSpending - streamsAnnual, 0), unlockedTotal);
+      drawn = draw;
       for (const entry of unlocked) {
         if (entry.balance <= 0) continue;
         const taken = (draw * entry.balance) / unlockedTotal;
@@ -194,6 +335,14 @@ export function simulateHouseholdDrawdown(
       }
     }
 
+    traceRows?.push([
+      years,
+      primary.currentAge + years,
+      unlockedTotal,
+      drawn,
+      ...PAYMENT_SOURCES.map((band) => streams[band]),
+      ...state.map((entry) => entry.balance),
+    ]);
     rows.push({
       age: primary.currentAge + years,
       yearsFromNow: years,
@@ -202,6 +351,30 @@ export function simulateHouseholdDrawdown(
       capitalShare,
       holdings,
     });
+  }
+
+  if (traceRows) {
+    recordTable("years", () => ({
+      title: "Year-by-year simulation (today's money)",
+      columns: [
+        "yearsFromNow",
+        "primaryAge",
+        "unlockedTotal",
+        "annualDraw",
+        ...PAYMENT_SOURCES.map((band) => `monthly:${band}`),
+        ...state.map((entry) => `end:${entry.member.role}: ${sourceTraceScope(entry.source)}`),
+      ],
+      rows: traceRows,
+      note:
+        "Row 0 is today. For each later row, every source first becomes balance × (1 + realRate); " +
+        "while the owner's age is at most their retirement age, annualContribution is added; a source " +
+        "whose annuity has started goes to 0. Monthly streams are the Bituach Leumi pensions (and the spouse " +
+        "supplement) and the account annuities active at that age. unlockedTotal is the sum of balances of " +
+        "sources with no annuity whose unlockAge has been reached, before the draw. When yearsFromNow >= " +
+        "retirementYears and unlockedTotal > 0, annualDraw = min(max(annualSpending - 12 × the monthly streams, 0), " +
+        "unlockedTotal), taken from the unlocked sources in proportion to their balances. The end: columns " +
+        "are balances after the draw.",
+    }));
   }
 
   return rows;

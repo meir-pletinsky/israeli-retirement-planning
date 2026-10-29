@@ -55,9 +55,23 @@ done**, **Phase J (retirement scenario comparison) is done**, **Phase K
 (tax refinements) is done**, **Phase M (Section 102 employer stock tax)
 is done**, and **Phase N (Section 102 follow-ups: contributions, vesting
 batches, constants check) is done**, and **Phase O (Pension Clearing House
-import) is done**. Phases A–K are committed and pushed to
-`main`; Phases L, M, N and O are committed and pushed only if `git log` shows
+import) is done**, and **Phase P (calculation trace and offline verification
+pack) is done**. Phases A–K are committed and pushed to
+`main`; Phases L, M, N, O and P are committed and pushed only if `git log` shows
 them.
+
+- **Phase P (calculation trace and verification pack): DONE.** See
+  `docs/calculation-trace.md` (usage, pack format, design, redaction, how to
+  instrument) and `docs/implementation-progress.md`. Settings has a "Calculation
+  verification" section that exports every calculation step for a scenario or a
+  retirement age as one JSON file, with ids aliased and free text removed, plus a
+  separate local-only redaction key. The engine records steps only inside
+  `runTraced` (a module-level context, a no-op otherwise) and reads "now" only
+  through `engineNowMs` / `engineCurrentYear` (`domain/trace.ts`); **never call
+  `Date.now()` or `new Date()` for "today" inside the engine**. New calculations
+  should record steps (`recordStep`, with an `expr` where the output is
+  arithmetic) and a test in `tracePipeline.test.ts`. Real files and values never
+  go into the repo or tests.
 
 - **Phase O (Pension Clearing House import): DONE.** See
   `docs/implementation-progress.md` and `docs/clearing-house-import-analysis.md`
@@ -392,13 +406,25 @@ them.
   - D3: live deploy verified (done as a side effect of A7).
 - 396 tests total, all green; lint/typecheck/build all green.
 
+(Counts moved on later: 635 passed and 1 skipped after Phase P.)
+
 ## Where to go next
 
 Phase 1, the Phase 2 modules (Bituach Leumi, per-source model,
 couples/household), the Phase 3 tax module and scenario comparison, the
 Phase K input guidance, the Phase L tax refinements, the Phase M
-Section 102 employer stock tax and its Phase N follow-ups are complete.
+Section 102 employer stock tax and its Phase N follow-ups, the Phase O
+clearing-house import and the Phase P calculation trace are complete.
 Remaining, not yet started:
+
+- **Use the verification pack.** Export one from Settings, give it to an
+  independent AI session with the prompt inside the pack, and fix whatever it
+  finds. The pack proves the arithmetic and where each number came from; the
+  reviewer's Part B checks that each formula is the right rule. Possible
+  follow-ups: a self-check flag for `fromLatestStep` fallbacks, and an app
+  version in the pack (there is no runtime version today). The timeline
+  (`timeline.ts`) only groups income points the trace already covers into
+  segments, so it is not traced itself.
 
 - **Survivor analysis** (simulate the death of either spouse), Phase 3. The
   user said not now.
@@ -461,6 +487,13 @@ Remaining, not yet started:
   changes.
 - **Linting is `oxlint`**, not ESLint — a deliberate deviation from the
   original `docs/architecture.md`, already logged there.
+- **The calculation trace is a module-level context** (`app/src/domain/trace.ts`).
+  The engine stays plain synchronous functions with no extra arguments; steps
+  are recorded only inside `runTraced` and cost nothing otherwise. "Now" comes
+  only from `engineNowMs()` / `engineCurrentYear()` so the traced run and the
+  displayed figures use the same date. The verification pack redacts with an
+  allow-list (unknown text becomes `[redacted]`) and refuses to export if a leak
+  check fails. Details: `docs/calculation-trace.md`.
 
 ## Session-tracking mechanics (for the agent resuming this)
 

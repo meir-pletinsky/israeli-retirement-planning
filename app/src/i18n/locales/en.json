@@ -575,6 +575,22 @@
     "about": "About & data sources",
     "exportSuccess": "Data exported.",
     "importSuccess": "Data imported successfully.",
-    "importError": "Couldn't import this file. Please choose a valid exported profile JSON."
+    "importError": "Couldn't import this file. Please choose a valid exported profile JSON.",
+    "verification": {
+      "title": "Calculation verification",
+      "intro": "Export every calculation step behind your results so an independent reviewer (a person or an AI session) can re-check the numbers offline.",
+      "target": "What to trace",
+      "ageOption": "Specific age",
+      "ageLabel": "Your retirement age",
+      "ageHelp": "Allowed: {{min}}–{{max}}. A spouse in the plan retires the same number of years earlier or later than in the standard scenario.",
+      "exportPack": "Export verification pack",
+      "exportKey": "Export redaction key",
+      "keyHelp": "Maps the aliases in the pack (acct1, holding1…) back to your accounts. Keep it on this device and don't share it.",
+      "privacy": "Account, holding and vesting ids are replaced by aliases, and provider names, policy numbers, fund ids, tickers and other free text are removed. Redacted is not anonymous: the pack still contains your balances, salary, ages and dates. Share it only with someone you trust with that.",
+      "packExported": "Verification pack exported.",
+      "keyExported": "Redaction key exported.",
+      "leakError": "Export stopped: the pack still contained text from your data. Nothing was saved.",
+      "error": "Couldn't build the verification pack."
+    }
   }
 }

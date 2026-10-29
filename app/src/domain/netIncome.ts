@@ -1,5 +1,5 @@
 import type { ProfileData } from "../types";
-import { PAYMENT_SOURCES, simulateHouseholdDrawdown, type DrawdownHolding } from "./drawdown";
+import { PAYMENT_SOURCES, simulateHouseholdDrawdown } from "./drawdown";
 import {
   buildHousehold,
   resolveRetirementTiming,
@@ -7,9 +7,10 @@ import {
   type Household,
   type RetirementTiming,
 } from "./household";
+import { memberTax } from "./memberTax";
+import { recordNetIncomeTrace, type NetYearDetail } from "./netIncomeTrace";
 import { estimateHouseholdRetirementIncome } from "./retirementIncome";
-import { calculatePersonTax, defaultCreditPoints } from "./tax";
-import { TAX_RATES } from "./taxRates";
+import { isTracing } from "./trace";
 import type { RetirementScenario } from "./types";
 
 /** One retirement year's income before and after tax, per month in today's money. */
@@ -39,58 +40,6 @@ export interface NetIncomeEstimate {
   years: NetIncomeYear[];
   /** The calendar year the plan counts from; the tax rules of that year apply to year zero. */
   baseYear: number;
-}
-
-/** The income tax a household member pays in one year, from the holdings that year's income comes out of. */
-function memberTaxMonthly(
-  household: Household,
-  memberIndex: number,
-  yearsFromNow: number,
-  annuities: DrawdownHolding[],
-  draws: { holding: DrawdownHolding; amount: number }[],
-): number {
-  const member = household.members[memberIndex];
-  const { personal, taxExemptionBasket } = member.profile;
-
-  let pensionMonthly = 0;
-  let ordinaryInvestmentMonthly = 0;
-  let capitalGainMonthly = 0;
-  let capitalGainsTax = 0;
-  for (const holding of annuities) {
-    if (holding.memberIndex === memberIndex && holding.treatment === "pension") {
-      pensionMonthly += holding.annuityMonthly;
-    }
-  }
-  for (const { holding, amount } of draws) {
-    if (holding.memberIndex !== memberIndex) continue;
-    if (holding.treatment === "pension") {
-      pensionMonthly += amount;
-    } else if (holding.treatment === "ordinaryIncome") {
-      ordinaryInvestmentMonthly += amount;
-    } else if (holding.treatment === "capitalGains") {
-      ordinaryInvestmentMonthly += amount * holding.ordinaryFraction;
-      const gain = amount * holding.gainFraction;
-      capitalGainMonthly += gain;
-      capitalGainsTax += gain * holding.capitalGainsTaxRate;
-    }
-  }
-
-  const pastStatutoryAge =
-    member.currentAge + yearsFromNow >= member.bituachLeumi.statutoryRetirementAge;
-
-  return calculatePersonTax({
-    pensionMonthly,
-    exemptionApplies: pastStatutoryAge,
-    beforeStatutoryAge: !pastStatutoryAge,
-    taxYear: household.baseYear + yearsFromNow,
-    ordinaryInvestmentMonthly,
-    capitalGainMonthly,
-    capitalGainsRate:
-      capitalGainMonthly > 0 ? capitalGainsTax / capitalGainMonthly : TAX_RATES.capitalGainsRate,
-    creditPoints: personal.creditPoints ?? defaultCreditPoints(personal.gender),
-    pastTaxFreeSeverance: taxExemptionBasket.pastTaxFreeSeveranceWithdrawn ?? 0,
-    monthlyExemptionCap: taxExemptionBasket.remainingMonthlyExemptionCap,
-  }).totalMonthly;
 }
 
 /**
@@ -125,6 +74,7 @@ export function estimateNetIncomeForHousehold(household: Household): NetIncomeEs
   const { monthlyIncomeTodayMoney } = estimateHouseholdRetirementIncome(household);
   const rows = simulateHouseholdDrawdown(household, monthlyIncomeTodayMoney);
 
+  const details: NetYearDetail[] | null = isTracing() ? [] : null;
   const years: NetIncomeYear[] = [];
   let drawHoldings = rows[0].holdings;
   for (let index = Math.ceil(household.retirementYears); index < rows.length; index += 1) {
@@ -140,13 +90,11 @@ export function estimateNetIncomeForHousehold(household: Household): NetIncomeEs
       amount: fromSavings * holding.capitalShare,
     }));
 
-    const taxMonthly = Math.round(
-      household.members.reduce(
-        (sum, _member, memberIndex) =>
-          sum + memberTaxMonthly(household, memberIndex, row.yearsFromNow, row.holdings, draws),
-        0,
-      ),
+    const memberTaxes = household.members.map(
+      (_member, memberIndex) =>
+        memberTax(household, memberIndex, row.yearsFromNow, row.holdings, draws).totalMonthly,
     );
+    const taxMonthly = Math.round(memberTaxes.reduce((sum, tax) => sum + tax, 0));
     const grossMonthly = Math.round(streamsTotal + fromSavings);
     years.push({
       age: row.age,
@@ -154,32 +102,37 @@ export function estimateNetIncomeForHousehold(household: Household): NetIncomeEs
       taxMonthly,
       netMonthly: grossMonthly - taxMonthly,
     });
+    details?.push({ row, draws, streamsTotal, fromSavings, memberTaxes });
   }
 
   const lowest = years.reduce<NetIncomeYear | null>(
     (best, year) => (best === null || year.netMonthly < best.netMonthly ? year : best),
     null,
   );
-  if (lowest === null || lowest.grossMonthly <= 0) {
-    return {
-      grossMonthlyIncome: 0,
-      taxMonthly: 0,
-      netMonthlyIncome: 0,
-      effectiveTaxRate: 0,
-      lowestNetAge: null,
-      years,
-      baseYear: household.baseYear,
-    };
+  const estimate: NetIncomeEstimate =
+    lowest === null || lowest.grossMonthly <= 0
+      ? {
+          grossMonthlyIncome: 0,
+          taxMonthly: 0,
+          netMonthlyIncome: 0,
+          effectiveTaxRate: 0,
+          lowestNetAge: null,
+          years,
+          baseYear: household.baseYear,
+        }
+      : {
+          grossMonthlyIncome: lowest.grossMonthly,
+          taxMonthly: lowest.taxMonthly,
+          netMonthlyIncome: lowest.netMonthly,
+          effectiveTaxRate: lowest.taxMonthly / lowest.grossMonthly,
+          lowestNetAge: lowest.age,
+          years,
+          baseYear: household.baseYear,
+        };
+  if (details) {
+    recordNetIncomeTrace(household, monthlyIncomeTodayMoney, years, details, estimate);
   }
-  return {
-    grossMonthlyIncome: lowest.grossMonthly,
-    taxMonthly: lowest.taxMonthly,
-    netMonthlyIncome: lowest.netMonthly,
-    effectiveTaxRate: lowest.taxMonthly / lowest.grossMonthly,
-    lowestNetAge: lowest.age,
-    years,
-    baseYear: household.baseYear,
-  };
+  return estimate;
 }
 
 /** `estimateNetIncomeForHousehold` for the given retirement ages. */

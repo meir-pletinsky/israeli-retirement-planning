@@ -7,6 +7,7 @@ import { useProfile } from "../app/ProfileContext";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { Toast } from "../components/Toast";
+import { VerificationExport } from "../components/VerificationExport";
 
 export function Settings() {
   const { t } = useTranslation();
@@ -89,6 +90,13 @@ export function Settings() {
           </button>
         </div>
       </section>
+
+      <VerificationExport
+        onNotify={(message, tone) => {
+          setToastTone(tone);
+          setToast(message);
+        }}
+      />
 
       <ConfirmModal
         open={confirmOpen}
