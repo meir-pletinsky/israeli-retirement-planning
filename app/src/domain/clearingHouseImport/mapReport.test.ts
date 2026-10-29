@@ -75,28 +75,34 @@ describe("mapClearingHouseReport: an active comprehensive pension", () => {
 });
 
 describe("privacy", () => {
-  it("never lets the holder ID, date of birth, employer or plan name reach an importable field", () => {
+  it("never lets the date of birth, employer or plan name reach an importable field", () => {
     const result = mapOne(activePension());
     const importable = JSON.stringify({ fields: result.candidates[0].fields, personal: result.personal, warnings: result.warnings });
-    expect(importable).not.toContain(HOLDER_ID);
     expect(importable).not.toContain("1980");
     expect(importable).not.toContain(EMPLOYER_NAME);
     expect(importable).not.toContain("תוכנית לדוגמה");
   });
 
-  it("drops a policy number that equals the holder ID, even without its leading zeros", () => {
+  it("keeps a policy number that equals the holder ID, even without its leading zeros, and flags it", () => {
     const stripped = candidateOf(activePension({ number: "18" }));
-    expect(stripped.fields.policyNumber).toBeUndefined();
+    expect(stripped.fields.policyNumber).toMatchObject({ value: "18", confidence: "official" });
     expect(codes(stripped.warnings)).toContain("policyNumberIsHolderId");
+
+    const full = candidateOf(activePension({ number: HOLDER_ID }));
+    expect(full.fields.policyNumber?.value).toBe(HOLDER_ID);
+    expect(codes(full.warnings)).toContain("policyNumberIsHolderId");
   });
 
-  it("drops a nine-digit number that passes the ID check digit, whoever's it is", () => {
+  it("flags a nine-digit number that passes the ID check digit, whoever's it is", () => {
     const candidate = candidateOf(activePension({ number: "123456782" }), { holder: { id: "999999990" } });
-    expect(candidate.fields.policyNumber).toBeUndefined();
+    expect(candidate.fields.policyNumber?.value).toBe("123456782");
+    expect(codes(candidate.warnings)).toContain("policyNumberIsHolderId");
   });
 
-  it("keeps ordinary policy numbers", () => {
-    expect(candidateOf(activePension({ number: "5550001" })).fields.policyNumber?.value).toBe("5550001");
+  it("keeps ordinary policy numbers without a flag", () => {
+    const ordinary = candidateOf(activePension({ number: "5550001" }));
+    expect(ordinary.fields.policyNumber?.value).toBe("5550001");
+    expect(codes(ordinary.warnings)).not.toContain("policyNumberIsHolderId");
     expect(candidateOf(activePension({ number: "123456789" }), { holder: { id: "999999990" } }).fields.policyNumber?.value).toBe(
       "123456789",
     );

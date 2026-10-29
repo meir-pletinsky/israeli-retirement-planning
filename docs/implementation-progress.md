@@ -703,6 +703,15 @@ ticks.
       Open: whether the report's projections are real or nominal. They are read
       as today's money, like the rest of the engine.
 
+- [x] O8. **Policy number kept even when it equals the holder's ID** (the user
+      wants to compare the app with the offline PDF statements; for a new pension
+      fund the report's "policy number" is the holder's ID). It is stored on this
+      device only, flagged in review (`policyNumberIsHolderId`), never a
+      distinctive matching key, and redacted from the verification pack
+      (Phase P) behind an alias; the redaction key file maps it back. The
+      separate `fundId` and the plan name are still not imported. Tests in
+      `mapReport.test.ts` and `matchAndApply.test.ts`; texts in en, he and ru.
+
 - **Tax modeling assumptions (Phase I).**
   - Tax is a post-hoc layer on the level-gross plan, so the plan is
     conservative: it does not re-solve for a higher gross to reach a net

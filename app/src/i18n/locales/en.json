@@ -537,7 +537,7 @@
       "toAccounts": "Go to pension & savings"
     },
     "warnings": {
-      "policyNumberIsHolderId": "The report uses your ID number as the policy number (new pension funds work this way), so no policy number was imported.",
+      "policyNumberIsHolderId": "The report uses your ID number as the policy number (new pension funds work this way). It is kept in your saved data on this device only, so you can match the account to your statements, and it is left out of the verification pack.",
       "productTypeUnknown": "The product type is not recognised, so the category was left empty. Choose it yourself after importing.",
       "pensionTypeUnknown": "The report does not say which kind of pension fund this is, so the category was left empty.",
       "pensionTypeBasic": "The report calls this a basic pension fund, which the app has no category for. It is suggested as a general pension fund: please confirm.",

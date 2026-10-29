@@ -148,6 +148,63 @@ describe("matchCandidates", () => {
     const twin = account({ id: "y", owner: "self", providerName: "קרן א", productCategory: "studyFund" });
     expect(matchCandidates([only], [existing, twin], "self").size).toBe(0);
   });
+
+  describe("a policy number that is the holder's ID", () => {
+    const shared = (key: string, provider: string, category: "comprehensivePension" | "generalPension") => ({
+      ...candidate(key, {
+        policyNumber: official("000000018"),
+        providerName: official(provider),
+        productCategory: official(category),
+      }),
+      warnings: [{ code: "policyNumberIsHolderId" as const }],
+    });
+
+    it("matches only the account of the same provider and kind", () => {
+      const sameKind = account({
+        id: "x",
+        owner: "self",
+        providerName: "קרן א",
+        productCategory: "comprehensivePension",
+        policyNumber: "18",
+      });
+      const otherKind = account({
+        id: "y",
+        owner: "self",
+        providerName: "קרן א",
+        productCategory: "generalPension",
+        policyNumber: "18",
+      });
+      const matches = matchCandidates([shared("c1", "קרן א", "comprehensivePension")], [otherKind, sameKind], "self");
+      expect(matches.get("c1")).toBe("x");
+    });
+
+    it("is not distinctive on its own, however long, unlike an ordinary policy number", () => {
+      const existing = account({
+        id: "x",
+        owner: "self",
+        providerName: "שם ישן",
+        productCategory: "comprehensivePension",
+        policyNumber: "000000018",
+      });
+      expect(matchCandidates([shared("c1", "שם חדש", "comprehensivePension")], [existing], "self").size).toBe(0);
+    });
+
+    it("does not guess between two candidates of the same provider and kind", () => {
+      const existing = account({
+        id: "x",
+        owner: "self",
+        providerName: "קרן א",
+        productCategory: "comprehensivePension",
+        policyNumber: "18",
+      });
+      const matches = matchCandidates(
+        [shared("c1", "קרן א", "comprehensivePension"), shared("c2", "קרן א", "comprehensivePension")],
+        [existing],
+        "self",
+      );
+      expect(matches.size).toBe(0);
+    });
+  });
 });
 
 describe("applyImport", () => {

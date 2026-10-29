@@ -48,7 +48,7 @@ names are never kept.
 | Section 8: rate x salary reconciliation | Dropped. The rates are *derived* from deposit / salary, so the check was circular. The importer instead warns when the salary is missing (`contributionRatesMissingSalary`) and labels derived rates `derived`. |
 | Section 8: monthly fee x 12 vs annual fee | Kept as `feeAccumulationMismatch`, a warning only. |
 | Section 7.11: assign each account to self or spouse | One choice per report ("Mine" / "My partner's"), shown only when the user is married or already has partner accounts. A report covers one holder, so a per-account choice only invites mistakes. A partner receives gender, age and salary, but no marital status. |
-| Section 7.10: duplicate import | `matchCandidates`: same owner and same policy number (and the same provider, unless the number has 6 or more digits); otherwise a lone same-provider, same-category account with no policy number. A match defaults to "update", with "add as new" as the alternative. |
+| Section 7.10: duplicate import | `matchCandidates`: same owner and same policy number (and the same provider, unless the number has 6 or more digits); otherwise a lone same-provider, same-category account with no policy number. A policy number that equals the holder's ID is not distinctive: it matches only an account of the same provider and category, and only when exactly one candidate and one account fit. A match defaults to "update", with "add as new" as the alternative. |
 | Section 6.3 / 6.4 | The pre-2008, post-2008 and section-190 balance split is **not imported**; the mapping of the breakdown was an interpretation. The annuity **is** imported (see 6.4.1), because without it the engine treats every pension fund and managers insurance as capital: the nearest projection supplies a conversion factor or, for old pension funds, the projected monthly pension. Every annuity value is a suggestion for the user's retirement age and is unticked when the report's age differs. |
 
 **Rules the tests pin down.**
@@ -56,7 +56,13 @@ names are never kept.
 - A report whose fees are all zero means "not reported", so fees are not
   imported (`feesAllZero`), for every product type. A negative balance is not
   imported (`negativeBalance`). A policy number equal to the holder's ID is
-  dropped (`policyNumberIsHolderId`), so the ID is never stored.
+  **kept** and flagged (`policyNumberIsHolderId`, info): it is stored in the
+  profile on this device only, so the user can recognise the account against
+  their own statements, and it is left out of the verification pack (the
+  redaction key file maps it back). Because every new pension fund of the
+  holder carries the same number, it never counts as distinctive for matching:
+  it only matches an account of the same provider and category, and only when
+  one candidate and one account fit.
 - **Empty-element gotcha:** `SCHUM-KITZVAT-ZIKNA` (pension with premiums) can be
   an *empty element* rather than absent or nil. The projection falls back to
   `KITZVAT-HODSHIT-TZFUYA` when the first has no number, not only when it is
@@ -70,8 +76,9 @@ names are never kept.
   Newer schema versions give a warning (`newerSchemaVersion`), and reports older
   than the staleness threshold give another (`staleReport`).
 - Privacy: nothing from the holder block (ID, name, address) is carried into the
-  candidates; a test checks that the holder's ID is nowhere on screen. The
-  employer name is shown during review only and is not written to the profile.
+  candidates, except that a policy number which equals the holder's ID is kept
+  as the policy number (see above). The employer name is shown during review
+  only and is not written to the profile.
 
 **Local real-file check.** `realFiles.local.test.ts` (gitignored through
 `*.local.test.ts`) runs the importer over a folder of real files named by the
@@ -341,7 +348,7 @@ to `Mutzar/NetuneiMutzar` unless stated.
 | App field | Source | Rule |
 |---|---|---|
 | `providerName` | `/Mimshak/YeshutYatzran/SHEM-YATZRAN` | text as-is |
-| `policyNumber` | `HeshbonOPolisa/MISPAR-POLISA-O-HESHBON` | reference only. **Privacy trap [V]:** for a new pension fund the "policy number" **is the holder's ID number** (found in the sample, and in the Excel column too). Rule: if the value is 9 digits and passes the Israeli ID check digit, **do not store or export it**; leave the field empty and note "provider uses your ID as the account number". In the 8 sample files this caught exactly the one pension fund and none of the other 8 policy numbers; a rare false positive only drops a reference-only field |
+| `policyNumber` | `HeshbonOPolisa/MISPAR-POLISA-O-HESHBON` | reference only. **Privacy trap [V]:** for a new pension fund the "policy number" **is the holder's ID number** (found in the sample, and in the Excel column too). Original rule: if the value is 9 digits and passes the Israeli ID check digit, do not store or export it. **Decision changed (the user's request):** the number is stored anyway, on this device only, so the account can be matched against the user's annual statements; it is flagged (`policyNumberIsHolderId`), is not a distinctive matching key, and is redacted from the calculation verification pack. In the 8 sample files the flag caught exactly the one pension fund and none of the other 8 policy numbers |
 | `fundId` | no equivalent field **[?]** | closest is the investment-track code `KOD-MASLUL-HASHKAA` (a 30-digit code: 9-digit provider legal ID + zeros + product/track number; see the gov.il code table). Not secret. Treat as optional |
 | `productCategory` | `SUG-MUTZAR` (+ `SUG-KEREN-PENSIA`) | 2 + comprehensive -> `comprehensivePension`; 2 + general -> `generalPension`; 2 + basic **[I]** -> `generalPension`, flag for review; 1, 5 -> `managersInsurance`; 3 -> `providentFund`; 9 -> `investmentProvidentFund`; 4 -> `studyFund`; **6, 7, 8, 10: no retirement balance; skip** (offer "import as note" later) |
 | `legacyPolicyModel` | `SUG-POLISA` (insurance) | 2 -> `adif`; otherwise `none`; old-pension specifics are not in the file, so leave null and let the user choose |
@@ -547,9 +554,11 @@ to *suggest* turning on the partner plan, but never to create partner data.
   drift): rate x salary approximates the monthly deposit within rounding;
   monthly fee x 12 approximates the annual fee; `ReshumatSgira` counts match;
   balances are non-negative; valuation date is within the last 13 months.
-- **Never store:** holder ID (**including a policy number that equals it**,
-  section 6.1), name, address, phone, e-mail, employer ID,
-  employer name, file names. The employer *name* is arguably useful to the user
+- **Never store:** holder name, address, phone, e-mail, employer ID,
+  employer name, file names. The holder ID is not stored as such, but a policy
+  number that equals it (section 6.1) **is** stored, locally, by the user's
+  choice; it appears in the manual profile export and never in the verification
+  pack. The employer *name* is arguably useful to the user
   (to recognise accounts); keep it only in memory on the review screen, and
   do not write it to Dexie or to exports.
 
@@ -590,9 +599,11 @@ to *suggest* turning on the partner plan, but never to create partner data.
   rate derivation from deposit rows; fee reconciliation; code-table fallbacks
   (unknown code -> null plus warning, never a throw); date and number parsing;
   control-count warning.
-- **Privacy tests:** the candidate list contains no field equal to any
-  identifier in the fixtures (holder ID, employer ID, names); the export of an
-  imported profile contains none either.
+- **Privacy tests:** the candidate list contains no field equal to the holder's
+  name, employer ID or employer name in the fixtures (the one deliberate
+  exception is a policy number equal to the holder's ID, which is kept and
+  flagged); the verification pack contains none of them either, nor any policy
+  number.
 - **Property-style test:** random shuffling of sibling elements must not change
   the result (order independence).
 - **A local, uncommitted smoke script** (outside the repo) that runs the real

@@ -185,12 +185,26 @@ export function matchCandidates(
     const number = candidate.fields.policyNumber?.value;
     if (!number) continue;
     const provider = candidate.fields.providerName?.value ?? "";
+    const category = candidate.fields.productCategory?.value;
     const digits = number.replace(/\D/g, "").replace(/^0+/, "");
+    const sharedNumber = candidate.warnings.some((warning) => warning.code === "policyNumberIsHolderId");
+    if (sharedNumber) {
+      // The holder's ID is on every new pension fund, so it only counts with the same provider and kind.
+      const twins = candidates.filter(
+        (other) =>
+          other.warnings.some((warning) => warning.code === "policyNumberIsHolderId") &&
+          other.fields.productCategory?.value === category &&
+          sameProvider(other.fields.providerName?.value ?? "", provider),
+      );
+      if (twins.length !== 1) continue;
+    }
     const found = pool.find(
       (account) =>
         !used.has(account.id) &&
         sameIdNumber(account.policyNumber, number) &&
-        (sameProvider(account.providerName, provider) || digits.length >= MIN_DISTINCTIVE_POLICY_DIGITS),
+        (sharedNumber
+          ? account.productCategory === category && sameProvider(account.providerName, provider)
+          : sameProvider(account.providerName, provider) || digits.length >= MIN_DISTINCTIVE_POLICY_DIGITS),
     );
     if (found) {
       matches.set(candidate.key, found.id);

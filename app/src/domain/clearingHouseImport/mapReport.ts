@@ -163,11 +163,8 @@ function mapPolicy(policy: XmlNode, context: PolicyContext, key: string, now: Da
 
   const policyNumber = textAt(policy, "MISPAR-POLISA-O-HESHBON");
   if (policyNumber) {
-    if (looksLikeHolderId(policyNumber, context.holderId)) {
-      warnings.push({ code: "policyNumberIsHolderId" });
-    } else {
-      put(fields, "policyNumber", policyNumber, "official", "MISPAR-POLISA-O-HESHBON");
-    }
+    put(fields, "policyNumber", policyNumber, "official", "MISPAR-POLISA-O-HESHBON");
+    if (looksLikeHolderId(policyNumber, context.holderId)) warnings.push({ code: "policyNumberIsHolderId" });
   }
 
   const isOldPension = numberAt(policy, "PENSIA-VATIKA-O-HADASHA") === 1;
@@ -235,7 +232,11 @@ function put<K extends AccountFieldKey>(
   (fields as Record<string, unknown>)[key] = { value, confidence, source };
 }
 
-/** New pension funds use the holder's ID as the account number; it must never be stored. */
+/**
+ * New pension funds use the holder's ID as the account number. It is still kept (on this device only,
+ * so the account can be recognised against the annual statements), but it is flagged: it is not a
+ * distinctive key for matching, and it is redacted from the verification pack.
+ */
 function looksLikeHolderId(policyNumber: string, holderId: string | null): boolean {
   const digits = policyNumber.replace(/\s/g, "");
   if (isValidIsraeliId(digits)) return true;
