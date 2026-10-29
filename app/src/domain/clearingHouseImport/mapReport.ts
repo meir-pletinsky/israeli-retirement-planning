@@ -1,3 +1,4 @@
+import type { ProductCategory } from "../../types";
 import { sameIdNumber, isValidIsraeliId } from "./israeliId";
 import {
   DEATH_COVER_TYPES,
@@ -22,6 +23,7 @@ import {
 import { ClearingHouseImportError } from "./errors";
 import type {
   AccountFieldKey,
+  AnnuityBasis,
   ImportConfidence,
   ImportWarning,
   ImportedAccountCandidate,
@@ -216,6 +218,7 @@ function mapPolicy(policy: XmlNode, context: PolicyContext, key: string, now: Da
       fields,
       warnings,
       projections: mapProjections(policy),
+      annuityBasis: annuityBasisFor(category.category, isOldPension),
       display: { planName: textAt(policy, "SHEM-TOCHNIT"), employerName: context.employerName },
       valuationDate,
     },
@@ -483,17 +486,50 @@ function mapProjections(policy: XmlNode): ReportProjection[] {
     const age = numberAt(block, "GIL-PRISHA");
     if (age === null || age <= 0) continue;
     const accumulation = numberAt(block, "TOTAL-CHISACHON-MITZTABER-TZAFUY");
+    const funds = allAt(block, "Kupot", "Kupa");
     const monthlyPension = sumNumbers(
-      allAt(block, "Kupot", "Kupa").map((fund) =>
+      funds.map((fund) =>
         numberAt(fund, "SCHUM-KITZVAT-ZIKNA") !== null
           ? at(fund, "SCHUM-KITZVAT-ZIKNA")
           : at(fund, "KITZVAT-HODSHIT-TZFUYA"),
       ),
     );
     if (accumulation === null && monthlyPension === null) continue;
-    projections.push({ age, accumulation, monthlyPension });
+
+    // Both bases give the same ratio in real reports, so the factor is read from whichever pair is complete.
+    const impliedFactor =
+      ratio(accumulation, sumNumbers(funds.map((fund) => at(fund, "SCHUM-KITZVAT-ZIKNA")))) ??
+      ratio(
+        numberAt(block, "TZVIRAT-CHISACHON-CHAZUYA-LELO-PREMIYOT"),
+        sumNumbers(funds.map((fund) => at(fund, "KITZVAT-HODSHIT-TZFUYA"))),
+      );
+    const guaranteed = numberAt(block, "MEKADEM-MOVTACH-LEPRISHA");
+    projections.push({
+      age,
+      accumulation,
+      monthlyPension,
+      guaranteedFactor: guaranteed !== null && guaranteed > 0 ? guaranteed : null,
+      impliedFactor,
+    });
   }
   return projections.sort((a, b) => a.age - b.age);
+}
+
+function ratio(numerator: number | null, denominator: number | null): number | null {
+  if (numerator === null || denominator === null || numerator <= 0 || denominator <= 0) return null;
+  return round2(numerator / denominator);
+}
+
+function annuityBasisFor(category: ProductCategory | null, isOldPension: boolean): AnnuityBasis | null {
+  switch (category) {
+    case "comprehensivePension":
+    case "generalPension":
+      return isOldPension ? "pension" : "factor";
+    case "managersInsurance":
+      return "factor";
+    default:
+      return null;
+  }
 }
 
 function readHolder(holder: XmlNode | undefined, now: Date): PersonalSuggestions {

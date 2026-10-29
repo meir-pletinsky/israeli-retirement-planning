@@ -82,6 +82,10 @@ export interface BalanceBreakdown {
   severanceBalance: number | null;
 }
 
+/** The conversion factors the annuity form accepts. */
+export const CONVERSION_FACTOR_MIN = 100;
+export const CONVERSION_FACTOR_MAX = 300;
+
 export interface AnnuityParameters {
   hasGuaranteedFactor: boolean;
   conversionFactor: number | null;

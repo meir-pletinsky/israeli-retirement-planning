@@ -658,10 +658,9 @@ zip upload, and a password prompt.
       re-run `npm install` where the registry is reachable to confirm the
       lockfile.
 
-Not imported on purpose: the pre/post-2008 and section-190 balance split, the
-expected annuity and the conversion factor. The user is reminded to enter the
-annuity themselves. Uncertain values and values that would overwrite the user's
-own start unticked.
+Not imported on purpose: the pre/post-2008 and section-190 balance split.
+Uncertain values and values that would overwrite the user's own start
+unticked. (The annuity was first left out too; O7 adds it.)
 Behavior change: none for existing data; the import only writes what the user
 ticks.
 
@@ -680,6 +679,29 @@ ticks.
       (imported, per account, not for frozen / no salary / zero rates),
       `applyImport`, data gaps, profile import and the form. Details in
       `clearing-house-import-analysis.md` section 6.2.1.
+
+- [x] O7. **Annuity import (second finding of the same audit).** Without an
+      annuity the engine treated every pension fund and managers insurance as
+      capital. The report states the projections the provider itself makes, so
+      the importer now turns the one nearest the user's retirement age into
+      annuity fields (`clearingHouseImport/annuity.ts`, applied in the review
+      stage because the mapper does not know the retirement age):
+      old pension funds get `estimatedMonthlyAnnuity` (the projected pension);
+      policies with `MEKADEM-MOVTACH-LEPRISHA` get that factor and
+      `hasGuaranteedFactor`; new pension funds and newer managers insurance get
+      the implied factor (accumulation ÷ monthly pension), derived. A figure
+      from another age, or a factor outside 100 to 300, starts unticked.
+      **Engine:** a pension fund now uses its conversion factor even when it
+      is not marked guaranteed; managers insurance still needs the flag, and
+      the review card says so. Shared `CONVERSION_FACTOR_MIN/MAX` replace the
+      form's literals. Texts updated in en, he and ru (helper, projection
+      note, done reminder, yes/no, the not-guaranteed note). Tests: mapper
+      (projection shape, implied and guaranteed factors, basis per product),
+      `annuity.test.ts`, `applyImport`, diff rules, the engine rule and an end
+      to end page test. Existing users re-import the zip to get the new fields;
+      matched accounts show them as "fills an empty field".
+      Open: whether the report's projections are real or nominal. They are read
+      as today's money, like the rest of the engine.
 
 - **Tax modeling assumptions (Phase I).**
   - Tax is a post-hoc layer on the level-gross plan, so the plan is

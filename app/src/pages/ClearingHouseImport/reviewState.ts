@@ -6,7 +6,6 @@ import {
   type ImportPlan,
   type PersonalFieldKey,
   type PersonalSuggestions,
-  type ReportProjection,
 } from "../../domain/clearingHouseImport";
 import type { AccountOwner, Gender, MaritalStatus, PensionAccount, ProfileData } from "../../types";
 
@@ -87,22 +86,6 @@ export function defaultSelectedPersonal(
 export function targetRetirementAge(profile: ProfileData, owner: AccountOwner): number {
   const age = owner === "self" ? profile.personal.retirementAge : profile.spouse.retirementAge;
   return age ?? DEFAULT_RETIREMENT_AGE;
-}
-
-function hasFigure(projection: ReportProjection): boolean {
-  return (projection.accumulation ?? 0) > 0 || (projection.monthlyPension ?? 0) > 0;
-}
-
-/** The report's projection closest to the user's retirement age, among those that carry a positive figure. */
-export function nearestProjection(projections: ReportProjection[], targetAge: number): ReportProjection | null {
-  let best: ReportProjection | null = null;
-  for (const projection of projections) {
-    if (!hasFigure(projection)) continue;
-    if (best === null || Math.abs(projection.age - targetAge) < Math.abs(best.age - targetAge)) {
-      best = projection;
-    }
-  }
-  return best;
 }
 
 export function buildImportPlan(

@@ -9,7 +9,6 @@ import {
   countPlan,
   defaultSelectedPersonal,
   initialAccountState,
-  nearestProjection,
   personalDiff,
   suggestedPersonal,
   targetRetirementAge,
@@ -55,20 +54,6 @@ describe("targetRetirementAge", () => {
     const profile = buildTestProfile({ retirementAge: 62 });
     expect(targetRetirementAge(profile, "self")).toBe(62);
     expect(targetRetirementAge(profile, "spouse")).toBe(67);
-  });
-});
-
-describe("nearestProjection", () => {
-  it("picks the closest age that carries a figure", () => {
-    const projections = [
-      { age: 60, accumulation: 1, monthlyPension: null },
-      { age: 65, accumulation: null, monthlyPension: null },
-      { age: 67, accumulation: 5, monthlyPension: 2 },
-    ];
-    expect(nearestProjection(projections, 65)?.age).toBe(67);
-    expect(nearestProjection(projections, 58)?.age).toBe(60);
-    expect(nearestProjection([], 67)).toBeNull();
-    expect(nearestProjection([{ age: 67, accumulation: 0, monthlyPension: null }], 67)).toBeNull();
   });
 });
 

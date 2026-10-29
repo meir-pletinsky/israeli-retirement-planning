@@ -61,9 +61,12 @@ describe("mapClearingHouseReport: an active comprehensive pension", () => {
     expect(candidate.fields.investmentTrackName?.value).toBe("מסלול לדוגמה");
   });
 
-  it("keeps the report's own projection for display only", () => {
-    expect(candidate.projections).toEqual([{ age: 67, accumulation: 2000000, monthlyPension: 10000 }]);
+  it("keeps the report's own projection for display, with the factors it implies", () => {
+    expect(candidate.projections).toEqual([
+      { age: 67, accumulation: 2000000, monthlyPension: 10000, guaranteedFactor: null, impliedFactor: 200 },
+    ]);
     expect(candidate.fields).not.toHaveProperty("estimatedMonthlyAnnuity");
+    expect(candidate.annuityBasis).toBe("factor");
   });
 
   it("holds the employer and plan names for display only", () => {
@@ -453,8 +456,8 @@ describe("report projections", () => {
       }),
     );
     expect(candidate.projections).toEqual([
-      { age: 60, accumulation: 500, monthlyPension: 2 },
-      { age: 67, accumulation: 900, monthlyPension: 5 },
+      { age: 60, accumulation: 500, monthlyPension: 2, guaranteedFactor: null, impliedFactor: null },
+      { age: 67, accumulation: 900, monthlyPension: 5, guaranteedFactor: null, impliedFactor: 180 },
     ]);
   });
 
@@ -468,7 +471,52 @@ describe("report projections", () => {
         ],
       }),
     );
-    expect(candidate.projections).toEqual([{ age: 67, accumulation: null, monthlyPension: 5 }]);
+    expect(candidate.projections).toEqual([
+      { age: 67, accumulation: null, monthlyPension: 5, guaranteedFactor: null, impliedFactor: null },
+    ]);
+  });
+
+  it("derives the factor from the accumulation and the summed pension of all funds", () => {
+    const candidate = candidateOf(
+      policy({ projections: [{ age: 67, accumulation: 1000, kupot: [{ zikna: 2 }, { zikna: 3 }] }] }),
+    );
+    expect(candidate.projections[0].impliedFactor).toBe(200);
+  });
+
+  it("falls back to the without-premiums pair when the with-premiums pension is missing", () => {
+    const candidate = candidateOf(
+      policy({ projections: [{ age: 67, accumulationWithout: 1500, kupot: [{ zikna: null, hodshit: 10 }] }] }),
+    );
+    expect(candidate.projections[0]).toMatchObject({ monthlyPension: 10, impliedFactor: 150 });
+  });
+
+  it("reads a positive guaranteed factor and drops a nil or zero one", () => {
+    const candidate = candidateOf(
+      policy({
+        projections: [
+          { age: 60, accumulation: 100, guaranteedFactor: 150.5 },
+          { age: 65, accumulation: 100, guaranteedFactor: null },
+          { age: 67, accumulation: 100, guaranteedFactor: 0 },
+        ],
+      }),
+    );
+    expect(candidate.projections.map((entry) => entry.guaranteedFactor)).toEqual([150.5, null, null]);
+  });
+});
+
+describe("annuity basis", () => {
+  it.each([
+    ["a new comprehensive pension", { type: 2 }, { kerenType: 2, vatika: 2 }, "factor"],
+    ["an old comprehensive pension", { type: 2 }, { kerenType: 1, vatika: 1 }, "pension"],
+    ["managers insurance", { type: 1 }, {}, "factor"],
+    ["a provident fund", { type: 3 }, {}, null],
+    ["a study fund", { type: 4 }, {}, null],
+  ] as const)("is decided for %s", (_label, productOptions, policyOptions, expected) => {
+    const candidate = candidateOf(
+      policy({ ...policyOptions, projections: [{ age: 67, accumulation: 1000, kupot: [{ zikna: 5 }] }] }),
+      productOptions,
+    );
+    expect(candidate.annuityBasis).toBe(expected);
   });
 });
 

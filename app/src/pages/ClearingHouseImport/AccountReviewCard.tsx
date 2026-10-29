@@ -4,6 +4,7 @@ import {
   ACCOUNT_FIELD_KEYS,
   defaultSelectedFields,
   diffField,
+  nearestProjection,
   readField,
   type AccountFieldKey,
   type ImportedAccountCandidate,
@@ -11,7 +12,7 @@ import {
 import type { PensionAccount } from "../../types";
 import { FieldRow } from "./FieldRow";
 import { formatAccountValue, formatMoney, productKindLabel } from "./formatFieldValue";
-import { initialAccountState, nearestProjection, type AccountReviewState } from "./reviewState";
+import { initialAccountState, type AccountReviewState } from "./reviewState";
 import { WarningList } from "./WarningList";
 
 interface AccountReviewCardProps {
@@ -155,6 +156,14 @@ export function AccountReviewCard({
           );
         })}
       </ul>
+
+      {candidate.fields.conversionFactor &&
+        !candidate.fields.hasGuaranteedFactor &&
+        candidate.fields.productCategory?.value === "managersInsurance" && (
+          <p className="mt-3 rounded-md bg-slate-50 p-3 text-xs text-slate-600">
+            {t("clearingHouse.review.factorNotGuaranteed")}
+          </p>
+        )}
 
       {candidate.warnings.length > 0 && (
         <div className="mt-3">

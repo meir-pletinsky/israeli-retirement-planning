@@ -86,6 +86,12 @@ describe("ClearingHouseImportPage", () => {
     expect(account.providerName).toBe(PROVIDER_NAME);
     expect(account.totalAccumulatedBalance).toBe(120000);
     expect(saved.personal.age).toBe(46);
+    // 2,000,000 projected at 67 over a 10,000 monthly pension: an estimate, so not flagged as guaranteed.
+    expect(account.annuityParameters).toMatchObject({
+      conversionFactor: 200,
+      hasGuaranteedFactor: false,
+      estimatedMonthlyAnnuity: null,
+    });
 
     await user.click(screen.getByRole("button", { name: "Go to pension & savings" }));
     expect(await screen.findByText("Accounts page")).toBeInTheDocument();
@@ -219,6 +225,57 @@ describe("ClearingHouseImportPage", () => {
     const skipped = await screen.findByText("Records skipped");
     expect(within(skipped.parentElement!).getByText("Risk insurance: holds no retirement savings.")).toBeInTheDocument();
     expect(screen.getByText("Accounts found: 1. Other records skipped: 1.")).toBeInTheDocument();
+  });
+
+  it("imports a guaranteed factor, an estimated factor and an old pension fund's projected pension", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const xml = toXml(
+      report(
+        {},
+        product(
+          { type: 1 },
+          policy({
+            number: "1110001",
+            projections: [{ age: 67, accumulation: 1500000, guaranteedFactor: 150, kupot: [{ zikna: 10000 }] }],
+          }),
+          policy({
+            number: "1110002",
+            projections: [{ age: 67, accumulation: 1500000, kupot: [{ zikna: 7500 }] }],
+          }),
+        ),
+        product(
+          {},
+          policy({
+            number: "2220001",
+            kerenType: 1,
+            vatika: 1,
+            projections: [{ age: 67, accumulation: null, kupot: [{ zikna: null, hodshit: 3100 }] }],
+          }),
+        ),
+      ),
+    );
+    await user.upload(await screen.findByLabelText("Choose zip or XML files"), xmlFile(xml));
+    await screen.findByText("Review before importing");
+
+    // Only the managers insurance with an estimated factor needs the reminder that the app will not use it yet.
+    expect(screen.getAllByText(/This factor is an estimate, not a guarantee/)).toHaveLength(1);
+
+    await user.click(screen.getByRole("button", { name: "Import selected values" }));
+    expect(await screen.findByText("Import complete")).toBeInTheDocument();
+
+    const saved = await waitFor(async () => {
+      const profile = await loadProfileFromDb();
+      expect(profile?.pensionSavings.accounts).toHaveLength(3);
+      return profile!;
+    });
+    const byNumber = (number: string) => saved.pensionSavings.accounts.find((entry) => entry.policyNumber === number)!;
+    expect(byNumber("1110001").annuityParameters).toMatchObject({ hasGuaranteedFactor: true, conversionFactor: 150 });
+    expect(byNumber("1110002").annuityParameters).toMatchObject({ hasGuaranteedFactor: false, conversionFactor: 200 });
+    expect(byNumber("2220001").annuityParameters).toMatchObject({
+      estimatedMonthlyAnnuity: 3100,
+      conversionFactor: null,
+    });
   });
 
   it("never shows the holder ID number", async () => {

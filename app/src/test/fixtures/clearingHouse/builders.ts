@@ -51,6 +51,9 @@ export interface CoverageSpec {
 export interface ProjectionSpec {
   age: number;
   accumulation?: number | null;
+  /** The accumulation projected without further premiums. */
+  accumulationWithout?: number | null;
+  guaranteedFactor?: number | null;
   kupot?: { zikna?: number | null; hodshit?: number | null }[];
 }
 
@@ -173,6 +176,8 @@ export function policy(options: PolicyOptions = {}): XmlNode {
         "YitraLefiGilPrisha",
         leaf("GIL-PRISHA", projection.age),
         opt("TOTAL-CHISACHON-MITZTABER-TZAFUY", projection.accumulation),
+        opt("TZVIRAT-CHISACHON-CHAZUYA-LELO-PREMIYOT", projection.accumulationWithout),
+        opt("MEKADEM-MOVTACH-LEPRISHA", projection.guaranteedFactor),
         el(
           "Kupot",
           ...(projection.kupot ?? []).map((fund) =>

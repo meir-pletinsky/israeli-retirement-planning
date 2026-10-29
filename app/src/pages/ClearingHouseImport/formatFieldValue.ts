@@ -9,6 +9,7 @@ const MONEY_KEYS: ReadonlySet<AccountFieldKey> = new Set([
   "deathCoverageAmount",
   "monthlyDisabilityAmount",
   "monthlyRiskDeduction",
+  "estimatedMonthlyAnnuity",
 ]);
 
 const PERCENT_KEYS: ReadonlySet<AccountFieldKey> = new Set([
@@ -33,11 +34,12 @@ export function formatMoney(value: number, currency: string): string {
 
 export function formatAccountValue(
   key: AccountFieldKey,
-  value: string | number | null | undefined,
+  value: string | number | boolean | null | undefined,
   t: TFunction,
   currency: string,
 ): string {
   if (value === null || value === undefined || value === "") return EMPTY;
+  if (typeof value === "boolean") return t(value ? "clearingHouse.review.yes" : "clearingHouse.review.no");
   if (OPTION_KEYS.has(key)) return t(`myData.steps.pensionSavings.options.${key}.${value}`);
   if (typeof value === "number") {
     if (MONEY_KEYS.has(key)) return formatMoney(value, currency);

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useProfile } from "../../app/ProfileContext";
 import {
   matchCandidates,
+  withAnnuityFields,
   type ImportPlan,
   type ParsedReport,
   type PersonalFieldKey,
@@ -104,9 +105,11 @@ function ReviewBody({ owner, result, onApply, onStartOver }: ReviewBodyProps) {
   const { t } = useTranslation();
   const { profile } = useProfile();
   const currency = t("common.currencySymbol");
-  const { candidates, personal, skipped } = result;
+  const { personal, skipped } = result;
   const accounts = profile.pensionSavings.accounts;
+  const retirementAge = targetRetirementAge(profile, owner);
 
+  const [candidates] = useState(() => withAnnuityFields(result.candidates, retirementAge));
   const [matches] = useState(() => matchCandidates(candidates, accounts, owner));
   const [states, setStates] = useState<Record<string, AccountReviewState>>(() =>
     Object.fromEntries(
@@ -124,7 +127,6 @@ function ReviewBody({ owner, result, onApply, onStartOver }: ReviewBodyProps) {
   const plan = buildImportPlan(owner, candidates, states, personal, selectedPersonal);
   const counts = countPlan(plan);
   const personalRows = suggestedPersonal(personal, owner);
-  const retirementAge = targetRetirementAge(profile, owner);
 
   function togglePersonal(key: PersonalFieldKey, checked: boolean) {
     setSelectedPersonal((current) =>

@@ -41,6 +41,9 @@ export interface ImportedFieldValues {
   investmentTrackName: string;
   feeFromAccumulationPercent: number;
   feeFromDepositPercent: number;
+  hasGuaranteedFactor: boolean;
+  conversionFactor: number;
+  estimatedMonthlyAnnuity: number;
 }
 
 export type AccountFieldKey = keyof ImportedFieldValues;
@@ -65,6 +68,9 @@ export const ACCOUNT_FIELD_KEYS: readonly AccountFieldKey[] = [
   "investmentTrackName",
   "feeFromAccumulationPercent",
   "feeFromDepositPercent",
+  "hasGuaranteedFactor",
+  "conversionFactor",
+  "estimatedMonthlyAnnuity",
 ];
 
 export type ImportedFields = { [K in AccountFieldKey]?: ImportedValue<ImportedFieldValues[K]> };
@@ -127,14 +133,29 @@ export interface SkippedRecord {
   productTypeCode: number | null;
 }
 
-/** The report's own projection at one retirement age. Display only, never imported. */
+/**
+ * The report's own projection at one retirement age. Shown for comparison; the annuity fields
+ * are derived from it for the user's retirement age (see `annuityFieldsFor`).
+ */
 export interface ReportProjection {
   age: number;
   /** Accumulation at that age assuming deposits continue. */
   accumulation: number | null;
   /** Monthly pension at that age assuming deposits continue. */
   monthlyPension: number | null;
+  /** The conversion factor the policy guarantees at that age, when it states one. */
+  guaranteedFactor: number | null;
+  /** Accumulation divided by monthly pension, when the report states both on the same basis. */
+  impliedFactor: number | null;
 }
+
+/**
+ * How an account's monthly annuity is best estimated from the report:
+ * - pension: the provider's projected pension (old pension funds, whose pension follows the fund's rules, not a balance);
+ * - factor: the accumulation divided by a conversion factor.
+ * A candidate holds null when its product does not convert into an annuity.
+ */
+export type AnnuityBasis = "pension" | "factor";
 
 export interface ImportedAccountCandidate {
   /** Unique within one import session. */
@@ -143,6 +164,7 @@ export interface ImportedAccountCandidate {
   fields: ImportedFields;
   warnings: ImportWarning[];
   projections: ReportProjection[];
+  annuityBasis: AnnuityBasis | null;
   /** For recognising the account on the review screen only: never stored or exported. */
   display: { planName: string | null; employerName: string | null };
   /** `yyyy-mm-dd` valuation date of the balance, if the report states one. */

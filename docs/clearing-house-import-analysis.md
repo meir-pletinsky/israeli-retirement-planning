@@ -49,7 +49,7 @@ names are never kept.
 | Section 8: monthly fee x 12 vs annual fee | Kept as `feeAccumulationMismatch`, a warning only. |
 | Section 7.11: assign each account to self or spouse | One choice per report ("Mine" / "My partner's"), shown only when the user is married or already has partner accounts. A report covers one holder, so a per-account choice only invites mistakes. A partner receives gender, age and salary, but no marital status. |
 | Section 7.10: duplicate import | `matchCandidates`: same owner and same policy number (and the same provider, unless the number has 6 or more digits); otherwise a lone same-provider, same-category account with no policy number. A match defaults to "update", with "add as new" as the alternative. |
-| Section 6.3 / 6.4 | The pre-2008, post-2008 and section-190 balance split, `estimatedMonthlyAnnuity` and `conversionFactor` are **not imported**; the mapping of the breakdown was an interpretation and the annuity is an assumption of the provider, not a fact about the user. The nearest projection to the user's retirement age is **shown for comparison** (labelled as the provider's own assumptions) and the done screen reminds the user to enter the expected annuity themselves. |
+| Section 6.3 / 6.4 | The pre-2008, post-2008 and section-190 balance split is **not imported**; the mapping of the breakdown was an interpretation. The annuity **is** imported (see 6.4.1), because without it the engine treats every pension fund and managers insurance as capital: the nearest projection supplies a conversion factor or, for old pension funds, the projected monthly pension. Every annuity value is a suggestion for the user's retirement age and is unticked when the report's age differs. |
 
 **Rules the tests pin down.**
 
@@ -79,8 +79,9 @@ names are never kept.
 file named by `CH_OUT`. It skips itself when the variable is unset.
 
 **Still open** (carried from section 9): the v009 XSD, `ACHOZ-HATAVA` semantics,
-paying-annuity samples, whether projections are nominal or real, and whether the
-user's own zip is ZipCrypto or AES (both are supported).
+paying-annuity samples, whether the projections are in nominal or real terms
+(the importer reads them as today's money, like the rest of the engine), and
+whether the user's own zip is ZipCrypto or AES (both are supported).
 
 ---
 
@@ -398,9 +399,38 @@ gets no rate, as before.
 
 | App field | Source | Rule |
 |---|---|---|
-| `annuityParameters.estimatedMonthlyAnnuity` | `YitraLefiGilPrisha/Kupot/Kupa/SCHUM-KITZVAT-ZIKNA` | only when `GIL-PRISHA` equals the user's retirement age; otherwise keep as a benchmark, not as the estimate |
-| `annuityParameters.conversionFactor` | derived: projected accumulation ÷ projected monthly pension | **[I]** derived, mark as derived |
-| `annuityParameters.hasGuaranteedFactor` | not in the file | leave default |
+| `annuityParameters.estimatedMonthlyAnnuity` | `YitraLefiGilPrisha/Kupot/Kupa/SCHUM-KITZVAT-ZIKNA`, else `KITZVAT-HODSHIT-TZFUYA` | **old pension funds only** (`PENSIA-VATIKA-O-HADASHA` = 1), see 6.4.1 |
+| `annuityParameters.conversionFactor` | `MEKADEM-MOVTACH-LEPRISHA` when positive, else derived: projected accumulation ÷ projected monthly pension | managers insurance and new pension funds only |
+| `annuityParameters.hasGuaranteedFactor` | `true` only when `MEKADEM-MOVTACH-LEPRISHA` is positive | otherwise left as it is |
+
+#### 6.4.1 How the annuity import works
+
+The mapper does not know the user's retirement age, so it keeps every
+projection (`ReportProjection`: age, accumulation, monthly pension, guaranteed
+factor, implied factor) and an `annuityBasis` per candidate. The review stage
+calls `withAnnuityFields(candidates, retirementAge)` to turn the projection
+nearest the user's retirement age into importable fields.
+
+| Product | Basis | Imported |
+|---|---|---|
+| Old pension fund (frozen, balance-independent rules) | `pension` | `estimatedMonthlyAnnuity`: the projected pension of the nearest age. A balance-based factor makes no sense here: the implied ratio is far below any real factor. |
+| Managers insurance with a positive `MEKADEM-MOVTACH-LEPRISHA` | `factor` | the guaranteed factor and `hasGuaranteedFactor = true`, confidence official |
+| New pension fund, newer managers insurance (no guaranteed factor) | `factor` | the implied factor, confidence derived, `hasGuaranteedFactor` left alone |
+| Provident and study funds, anything else | none | nothing: the report states no pension for them |
+
+- The implied factor is the same with or without premiums at a given age (the
+  report's own pairs agree), and for old managers-insurance policies it equals
+  the guaranteed factor. It is **not constant across ages** for newer policies
+  (it falls as the retirement age rises), which is why the nearest age matters.
+- A figure from an age other than the retirement age, and a factor outside the
+  form's 100 to 300 range, are `uncertain`, so they start unticked.
+- **Engine rule:** a pension fund uses its `conversionFactor` whether or not it
+  is marked guaranteed; managers insurance uses it only when
+  `hasGuaranteedFactor` is true. An implied factor on managers insurance is
+  therefore stored but not used until the user ticks the guarantee, and the
+  review card says so.
+- An unticked `hasGuaranteedFactor` counts as empty when matching an existing
+  account, so an imported guarantee is offered as "fills an empty field".
 
 ### 6.5 Coverages
 

@@ -359,7 +359,11 @@ function buildAnnuity(
   if (estimatedMonthlyAnnuity !== null && estimatedMonthlyAnnuity > 0) {
     return { monthly: estimatedMonthlyAnnuity, startAge, origin: "override" };
   }
-  if (hasGuaranteedFactor && conversionFactor !== null && conversionFactor > 0) {
+  // A pension fund's factor is the fund's own and applies whether or not the
+  // statement calls it guaranteed; managers insurance may use a different one
+  // at retirement, so its factor counts only when the user marks it guaranteed.
+  const factorApplies = hasGuaranteedFactor || kind === "pensionFund";
+  if (factorApplies && conversionFactor !== null && conversionFactor > 0) {
     const balanceAtStart = valueAtRetirement * Math.pow(1 + rate, Math.max(startAge - retirementAge, 0));
     return { monthly: balanceAtStart / conversionFactor, startAge, origin: "factor" };
   }

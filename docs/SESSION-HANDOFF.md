@@ -425,7 +425,8 @@ Remaining, not yet started:
   import. Code in `app/src/domain/clearingHouseImport/` and
   `app/src/pages/ClearingHouseImport/`; the spec and the list of deviations are
   in `docs/clearing-house-import-analysis.md`. Not imported on purpose: the
-  pre/post-2008 split and the expected annuity. Not yet done: importing from
+  pre/post-2008 split. The annuity is imported from the report's projections
+  (O7; real versus nominal terms is open). Not yet done: importing from
   provider PDFs via AI, which starts with a spike that needs a few real
   statement PDFs (kept out of the repo); see `docs/ai-statement-import-design.md`.
   Real files are never committed; tests use synthetic fixtures. Possible

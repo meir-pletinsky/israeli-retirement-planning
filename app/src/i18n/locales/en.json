@@ -236,7 +236,7 @@
           "tikun190CapitalBalance": "Tikun 190 capital balance",
           "severanceBalance": "Severance balance",
           "sectionAnnuityParameters": "Annuity parameters",
-          "annuityParametersHelper": "Used for pension funds and managers insurance. Enter the monthly annuity from your statement (today's money), or tick the guaranteed factor and enter the conversion factor (typically 140–215) to compute it from the balance. The annuity starts at age 60, or right away if the account is already paying an annuity.",
+          "annuityParametersHelper": "Used for pension funds and managers insurance. Enter the monthly annuity from your statement (today's money), or enter the conversion factor (typically 140–215) to compute it from the balance. A pension fund uses the factor as entered; managers insurance uses it only when you tick the guaranteed factor. The annuity starts at age 60, or right away if the account is already paying an annuity.",
           "hasGuaranteedFactor": "Has guaranteed conversion factor",
           "conversionFactor": "Conversion factor",
           "estimatedMonthlyAnnuity": "Estimated monthly annuity",
@@ -490,8 +490,11 @@
         "title": "The provider's projection at age {{age}}, if deposits continue:",
         "pension": "{{amount}} a month",
         "savings": "{{amount}} saved",
-        "note": "These are the provider's own assumptions. They are shown for comparison and are not imported."
+        "note": "These are the provider's own assumptions, shown for comparison. The annuity figures above are taken from them where they apply to this account, and you can untick any of them."
       },
+      "yes": "Yes",
+      "no": "No",
+      "factorNotGuaranteed": "This factor is an estimate, not a guarantee. The app uses it only once you tick \"Has guaranteed conversion factor\" on the account.",
       "diff": {
         "new": "New",
         "fillsEmpty": "Fills an empty field",
@@ -530,7 +533,7 @@
     "done": {
       "title": "Import complete",
       "summary": "Accounts imported: {{accounts}}. Profile details updated: {{personal}}.",
-      "reminder": "Open each account to check it and to add what the report does not contain, such as the expected monthly annuity.",
+      "reminder": "Open each account to check it and to add what the report does not contain, such as the spouse's details or a salary base for accounts without one.",
       "toAccounts": "Go to pension & savings"
     },
     "warnings": {

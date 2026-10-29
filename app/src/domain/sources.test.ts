@@ -180,6 +180,20 @@ describe("buildSources", () => {
       expect(source.annuity).toBeNull();
     });
 
+    it("uses a pension fund's conversion factor even when it is not marked guaranteed", () => {
+      const source = managersInsurance({
+        productCategory: "comprehensivePension",
+        annuityParameters: {
+          hasGuaranteedFactor: false,
+          conversionFactor: 200,
+          estimatedMonthlyAnnuity: null,
+          annuityTaxType: null,
+          guaranteedPaymentMonths: null,
+        },
+      });
+      expect(source.annuity).toEqual({ monthly: 5000, startAge: 60, origin: "factor" });
+    });
+
     it("prefers the user's own estimate over the factor", () => {
       const source = managersInsurance({
         annuityParameters: {

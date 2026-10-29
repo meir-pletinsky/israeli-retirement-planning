@@ -6,6 +6,7 @@ import { DateField } from "../../components/fields/DateField";
 import { NumberField } from "../../components/fields/NumberField";
 import { SelectField } from "../../components/fields/SelectField";
 import { TextField } from "../../components/fields/TextField";
+import { CONVERSION_FACTOR_MAX, CONVERSION_FACTOR_MIN } from "../../types";
 import type {
   AccountOwner,
   AccountStatus,
@@ -275,8 +276,8 @@ export function PensionAccountForm({
               annuityParameters: { ...annuityParameters, conversionFactor: v },
             })
           }
-          min={100}
-          max={300}
+          min={CONVERSION_FACTOR_MIN}
+          max={CONVERSION_FACTOR_MAX}
         />
         <NumberField
           label={f("estimatedMonthlyAnnuity")}

@@ -16,6 +16,7 @@ function candidate(key: string, fields: ImportedFields): ImportedAccountCandidat
     fields,
     warnings: [],
     projections: [],
+    annuityBasis: null,
     display: { planName: null, employerName: null },
     valuationDate: null,
   };
@@ -67,6 +68,21 @@ describe("diffField and defaultSelectedFields", () => {
       null,
     );
     expect(selected).toEqual(["totalAccumulatedBalance"]);
+  });
+
+  it("treats the unticked guaranteed box as empty, so an imported guarantee fills it", () => {
+    const existing = account({
+      annuityParameters: { ...createEmptyPensionAccount().annuityParameters, conversionFactor: 150 },
+    });
+    expect(diffField(existing, "hasGuaranteedFactor", true)).toBe("fillsEmpty");
+    expect(diffField(existing, "conversionFactor", 150)).toBe("same");
+    expect(diffField(existing, "conversionFactor", 190)).toBe("differs");
+    expect(diffField(existing, "estimatedMonthlyAnnuity", 3200)).toBe("fillsEmpty");
+
+    const ticked = account({
+      annuityParameters: { ...createEmptyPensionAccount().annuityParameters, hasGuaranteedFactor: true },
+    });
+    expect(diffField(ticked, "hasGuaranteedFactor", true)).toBe("same");
   });
 });
 
@@ -170,6 +186,31 @@ describe("applyImport", () => {
       contributions: { monthlySalaryBase: 27000, employeeRatePercent: 6 },
     });
     expect(added?.investmentAndFees.investmentTrackName).toBe("");
+  });
+
+  it("writes the annuity fields into the account's annuity parameters", () => {
+    const plan: ImportPlan = {
+      owner: "self",
+      accounts: [
+        {
+          candidate: candidate("c1", {
+            hasGuaranteedFactor: official(true),
+            conversionFactor: official(157.5),
+            estimatedMonthlyAnnuity: official(3200),
+          }),
+          updateAccountId: null,
+          selectedFields: ["hasGuaranteedFactor", "conversionFactor", "estimatedMonthlyAnnuity"],
+        },
+      ],
+      personal: {},
+      selectedPersonal: [],
+    };
+    const added = applyImport(profileWith([]), plan).pensionSavings?.accounts[0];
+    expect(added?.annuityParameters).toMatchObject({
+      hasGuaranteedFactor: true,
+      conversionFactor: 157.5,
+      estimatedMonthlyAnnuity: 3200,
+    });
   });
 
   it("updates an existing account in place and leaves the others alone", () => {
