@@ -451,6 +451,17 @@ Remaining, not yet started:
   option strike prices (the user kept both out of scope). Also finish the
   constants check: read the Tax Authority's own tables for rows 1-9 and
   check row 17 (`docs/constants-to-verify.md`).
+- **Foreign-stock capital gains in a personal brokerage account: researched,
+  not built** (2026-10-30; the user chose to record the rules only). Rules R-T
+  in `docs/constants-to-verify.md`: the taxable gain is the lower of the
+  nominal shekel gain and the USD gain × the sale-date rate, which equals
+  value − USD cost × max(purchase rate, sale rate); FIFO order for lots; old
+  purchases (before 2012) may have transitional rates (unresolved). The model
+  uses only the USD gain × 3.7, so it overstates tax when the dollar was higher
+  at purchase. If the user asks to build it: per-holding purchase lots (date,
+  shares, USD price, rate at purchase), an effective cost basis in
+  `otherInvestmentsTaxProfile` and its trace, tests from the vectors in rule R;
+  FIFO inside the drawdown is optional and changes timing only.
 - Possible refinements to the contribution model (they change numbers, so
   they were deliberately left out of Phase K): real wage growth, a
   per-account salary override, and the study-fund **annual deposit** ceiling

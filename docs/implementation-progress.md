@@ -788,6 +788,17 @@ importing the clearing-house report, and above the "Which fields matter?" card.
 
 Behavior change: none to any calculation.
 
+### Research note: foreign-stock capital gains (no code)
+
+The user shared a research document on Israeli capital gains tax for foreign
+stocks (FIFO lots and USD/ILS rates). Checked on 2026-10-30 against accountant
+write-ups and the 2002 Income Tax Regulations; recorded as rules R-T and log
+rows in `docs/constants-to-verify.md`. The "lower of nominal shekel gain and
+dollar gain at the sale-date rate" rule and FIFO are confirmed; the transitional
+rates for purchases before 2012 are not. The app uses only the user-entered USD
+gain × 3.7, keeps no purchase lots and does not use `averageCostBasisUSD` or
+`purchaseDate`. The user chose to record the rules only, so nothing was built.
+
 ## Modeling assumptions (by phase)
 
 - **Tax modeling assumptions (Phase I).**
