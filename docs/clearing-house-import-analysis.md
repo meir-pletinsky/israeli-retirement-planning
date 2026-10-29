@@ -3,8 +3,9 @@
 **Status:** **implemented** (importer and review screen at `/import/clearing-house`;
 see "Implementation notes" below for where the code departs from this spec).
 **Analysed:** 2026-10-28. **Implemented:** 2026-10-29.
-**Companion to:** [`ai-statement-import-design.md`](./ai-statement-import-design.md)
-(Track B / decision D1a there is now **confirmed feasible** by this analysis).
+**Related research (parked):** [`ai-statement-import-design.md`](./ai-statement-import-design.md)
+(Track B / decision D1a there is now **confirmed feasible** by this analysis;
+the AI route is not needed for now).
 
 This document records what a real Pension Clearing House (המסלקה הפנסיונית)
 consolidated report contains, how consistent its XML is, and how it maps onto
@@ -100,12 +101,11 @@ whether the user's own zip is ZipCrypto or AES (both are supported).
 | Is there an official, public schema? | **Yes [V].** The CMA "uniform structure" (מבנה אחיד) Holdings XSD, v008, is public (section 13). Our files declare **v009**, which I could not obtain; see 9. |
 | Are the code values documented? | **Yes [V].** The XSD carries Hebrew `documentation` and enumerations for almost every coded field (section 4). The mapping rests on documented codes, not guesses. |
 | Do the numbers reconcile? | **Yes [V].** Declared contribution rates equal (deposit ÷ salary) from the monthly rows; the monthly actual fee × 12 equals the contractual annual fee for every file; the official pension projection implies a standard annuity factor. |
-| Best import input? | **XML first.** It is complete, typed, free, and local. The Excel file is a flat, lossy summary of the same data on three sheets (section 12): convenient, but it lacks the salary, the balance by tax layer and the investment tracks the app needs. The PDFs add nothing the importer needs. AI-from-PDF stays as the fallback for statements the clearing house does not cover. |
+| Best import input? | **XML first.** It is complete, typed, free, and local. The Excel file is a flat, lossy summary of the same data on three sheets (section 12): convenient, but it lacks the salary, the balance by tax layer and the investment tracks the app needs. The PDFs add nothing the importer needs. The AI-from-PDF route researched in the companion doc is parked: it is not needed for now. |
 
-**Recommendation for the delivery plan:** make the clearing-house XML the
-**primary import route (Track B moves ahead of the AI route)**. It needs no
-network, no key, no consent screen about third-party AI, and has no
-hallucination risk. The AI route becomes the "other documents" path.
+**Decision for the delivery plan:** the clearing-house XML is the import route.
+It needs no network, no key, no consent screen about third-party AI, and has no
+hallucination risk.
 
 ---
 
@@ -546,8 +546,8 @@ to *suggest* turning on the partner plan, but never to create partner data.
   the number of records, to keep the UI responsive.
 - **Output:** an `ImportedAccountCandidate[]` with, per field, the value, a
   `source` (file role + element name, **no values, no file name**), and a list
-  of warnings. The same review screen designed for the AI route (design doc 6.4)
-  consumes it, with `confidence = "official"`.
+  of warnings. The same review screen design (research doc 6.4) consumes it,
+  with `confidence = "official"`.
 - **Pipeline:** `files -> parse -> normalise records -> map to candidates ->
   validate (section 7 rules, reconciliation) -> review screen -> apply`.
 - **Reconciliation checks to ship** (these are deterministic and catch format
@@ -565,7 +565,7 @@ to *suggest* turning on the partner plan, but never to create partner data.
 ### Interaction with other plan items
 
 - **Import into existing data:** show a diff per account (new / changed /
-  unchanged) before applying, same as the AI design.
+  unchanged) before applying.
 - **Export:** profile export already omits secrets; confirm imported accounts
   carry no identifiers (a test).
 - **i18n:** the Hebrew strings in the file (plan names, provider names) are

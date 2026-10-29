@@ -63,10 +63,6 @@ fuller cross-machine setup/resume guide.
 - [`docs/constants-to-verify.md`](docs/constants-to-verify.md) — every tax,
   Bituach Leumi and savings-access figure the app hard-codes, how
   confident we are, and what to look up on official sites to confirm it.
-- [`docs/ai-statement-import-design.md`](docs/ai-statement-import-design.md)
-  — research-backed design and plan (proposal, not built) for importing
-  pension statements, with a bring-your-own-key AI route and a structured
-  Clearing House route.
 - [`docs/clearing-house-import-analysis.md`](docs/clearing-house-import-analysis.md)
   — analysis of the real Pension Clearing House XML files: schema, code
   tables, field-by-field mapping to the app, edge cases and test plan, plus

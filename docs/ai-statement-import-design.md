@@ -1,6 +1,9 @@
 # AI-assisted statement import — design and plan
 
-**Status:** proposal, nothing implemented. **Researched:** 2026-10-27;
+**Status:** research only, parked. AI integration is not needed for now
+(decision of 2026-10-29), so this is not part of the plan, the README or the
+session handoff. The document is kept as a record. Nothing is implemented.
+**Researched:** 2026-10-27;
 Clearing House XML route confirmed 2026-10-28 (see
 [`clearing-house-import-analysis.md`](./clearing-house-import-analysis.md)).
 **Scope:** let a user pick Israeli pension / insurance / provident-fund

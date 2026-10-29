@@ -278,9 +278,7 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
 - Household dashboard KPIs from functional spec Section 13 in full
 - Statement import: the **Pension Clearing House route is built** (zip or XML
   files, password prompt, review before apply; see
-  `docs/clearing-house-import-analysis.md`). The AI-assisted,
-  bring-your-own-key route for provider PDFs is still a proposal; see
-  `docs/ai-statement-import-design.md`
+  `docs/clearing-house-import-analysis.md`). No other import route is planned.
 
 ## Non-Functional Requirements (all phases)
 
