@@ -138,6 +138,17 @@
       },
       "legendOptional": "Fields with no tag are optional refinements; a sensible default applies when they are empty."
     },
+    "summary": {
+      "pensionTitle": "Pension & savings at a glance",
+      "equityTitle": "Equity & investments at a glance",
+      "readOnlyHint": "Summary only. To add, edit or remove an item, use the cards below.",
+      "total": "Total",
+      "pensionNotCountedNote": "The total leaves out accounts marked \"Not counted\" until you enter your spouse's age.",
+      "priceUsd": "Price (USD)",
+      "valueUsd": "Value (USD)",
+      "valueIls": "Value (ILS)",
+      "fxNote": "Shekel values use a fixed rate of {{rate}} per US dollar."
+    },
     "validation": {
       "required": "This field is required.",
       "retirementAfterAge": "Retirement age must be greater than your current age.",

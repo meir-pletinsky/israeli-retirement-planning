@@ -21,8 +21,9 @@ UI polish as Phase K, tax refinements (exemption schedule by year,
 early-retirement health tax) as Phase L, Section 102 employer stock tax
 as Phase M, and its follow-ups (contributions on the ordinary part, vesting
 batches, a constants check) as Phase N, the Pension Clearing House import
-(read a zip or XML files, review, apply) as Phase O, and the calculation trace
-with its offline verification pack as Phase P.
+(read a zip or XML files, review, apply) as Phase O, the calculation trace
+with its offline verification pack as Phase P, and the read-only summary tables
+on the My Data steps as Phase Q.
 
 ## Phase A — Project setup & infra
 
@@ -755,6 +756,37 @@ Behavior change: none. Tracing is off during normal use.
 Open: the pack proves the arithmetic and the sources, not that a formula is the
 right rule (the reviewer's Part B); a `fromLatestStep` fallback to `derived:` is
 not flagged by the self-check.
+
+## Phase Q — Read-only summary tables on My Data
+
+The user asked for "readonly summary tables for sections like 'Pension & Saving'
+and 'Equity & Investments'", in addition to the ways of adding items and
+importing the clearing-house report, and above the "Which fields matter?" card.
+
+- [x] Q1. **Placement:** `MyDataLayout` renders the table for the current step
+      between the stepper and `FieldLegend`; the step components, cards, Add,
+      Import, Edit and Remove are unchanged. No table appears on the other steps,
+      or while a step has no items.
+- [x] Q2. **Pension & Savings** (`PensionSummaryTable.tsx`): one row per account
+      with provider (and policy / fund reference), product category, owner (only
+      when the owner is shown on the cards), status, balance, employee, employer
+      and severance rates, fee from accumulation and estimated monthly annuity;
+      a balance total from `aggregatePensionBalance`, so it matches the plan. A
+      spouse's account that is not yet counted is flagged and left out of the
+      total, with a note.
+- [x] Q3. **Equity & Investments** (`EquitySummaryTable.tsx`): ticker and company,
+      category, custodian, quantity, price, value in USD and in ILS, with totals
+      and a note on the fixed exchange rate (`holdingValueIls`, now exported from
+      `domain`).
+- [x] Q4. **Shared pieces:** `SummaryTable.tsx` (read-only table with a totals row,
+      scrolls sideways on a narrow screen, figures in `dir="ltr"` so they read the
+      same in Hebrew) and `summaryFormat.ts`. Texts under `myData.summary` in en,
+      he and ru; the column headers reuse the existing field labels.
+- [x] Q5. **Tests:** `SummaryTables.test.tsx` (invented data only): rows and
+      totals, order above the legend, read-only, spouse counted / not counted, owner
+      column hidden for a single person, no table when empty or on another step.
+
+Behavior change: none to any calculation.
 
 ## Modeling assumptions (by phase)
 

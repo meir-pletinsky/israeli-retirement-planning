@@ -13,6 +13,7 @@ export {
   aggregateCurrentNetWorth,
   aggregateOtherBalance,
   aggregatePensionBalance,
+  holdingValueIls,
   isHouseholdActive,
   realAnnualReturnRate,
   resolveCurrentAge,

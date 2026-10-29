@@ -56,9 +56,21 @@ done**, **Phase J (retirement scenario comparison) is done**, **Phase K
 is done**, and **Phase N (Section 102 follow-ups: contributions, vesting
 batches, constants check) is done**, and **Phase O (Pension Clearing House
 import) is done**, and **Phase P (calculation trace and offline verification
-pack) is done**. Phases A–K are committed and pushed to
-`main`; Phases L, M, N, O and P are committed and pushed only if `git log` shows
+pack) is done**, and **Phase Q (read-only summary tables on My Data) is done**.
+Phases A–K are committed and pushed to
+`main`; Phases L, M, N, O, P and Q are committed and pushed only if `git log` shows
 them.
+
+- **Phase Q (read-only summary tables on My Data): DONE.** The Pension & Savings
+  and Equity & Investments steps show a table of every item above the "Which
+  fields matter?" card (`MyDataLayout` picks it by step; the step pages, cards,
+  Add, Import, Edit and Remove are unchanged). Files: `MyData/SummaryTable.tsx`
+  (shared read-only table with a totals row), `PensionSummaryTable.tsx`,
+  `EquitySummaryTable.tsx`, `summaryFormat.ts`; texts under `myData.summary`. The
+  pension total is `aggregatePensionBalance`, so a spouse's account that is not
+  yet counted is flagged and left out; equity shows USD and ILS at the fixed
+  rate. To add a column, add an entry to the `columns` list of that table and
+  reuse the existing `fields` label for its header.
 
 - **Phase P (calculation trace and verification pack): DONE.** See
   `docs/calculation-trace.md` (usage, pack format, design, redaction, how to
@@ -406,7 +418,7 @@ them.
   - D3: live deploy verified (done as a side effect of A7).
 - 396 tests total, all green; lint/typecheck/build all green.
 
-(Counts moved on later: 635 passed and 1 skipped after Phase P.)
+(Counts moved on later: 645 passed and 1 skipped after Phase Q.)
 
 ## Where to go next
 
@@ -414,7 +426,8 @@ Phase 1, the Phase 2 modules (Bituach Leumi, per-source model,
 couples/household), the Phase 3 tax module and scenario comparison, the
 Phase K input guidance, the Phase L tax refinements, the Phase M
 Section 102 employer stock tax and its Phase N follow-ups, the Phase O
-clearing-house import and the Phase P calculation trace are complete.
+clearing-house import, the Phase P calculation trace and the Phase Q summary
+tables are complete.
 Remaining, not yet started:
 
 - **Use the verification pack.** Export one from Settings, give it to an

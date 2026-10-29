@@ -138,6 +138,17 @@
       },
       "legendOptional": "שדות ללא תגית הם התאמות אופציונליות; כשהם ריקים חל ערך ברירת מחדל סביר."
     },
+    "summary": {
+      "pensionTitle": "סיכום פנסיה וחיסכון",
+      "equityTitle": "סיכום מניות והשקעות",
+      "readOnlyHint": "סיכום בלבד. כדי להוסיף, לערוך או להסיר פריט, השתמש בכרטיסים שמתחת.",
+      "total": "סה\"כ",
+      "pensionNotCountedNote": "הסכום אינו כולל חשבונות המסומנים \"לא נספר\" עד שתזין את גיל בן/בת הזוג.",
+      "priceUsd": "מחיר (דולר)",
+      "valueUsd": "שווי (דולר)",
+      "valueIls": "שווי (ש\"ח)",
+      "fxNote": "שווי בשקלים מחושב לפי שער קבוע של {{rate}} ש\"ח לדולר."
+    },
     "validation": {
       "required": "\u05e9\u05d3\u05d4 \u05d6\u05d4 \u05d4\u05d5\u05d0 \u05e9\u05d3\u05d4 \u05d7\u05d5\u05d1\u05d4.",
       "retirementAfterAge": "\u05d2\u05d9\u05dc \u05d4\u05e4\u05e8\u05d9\u05e9\u05d4 \u05d7\u05d9\u05d9\u05d1 \u05dc\u05d4\u05d9\u05d5\u05ea \u05d2\u05d3\u05d5\u05dc \u05de\u05d4\u05d2\u05d9\u05dc \u05d4\u05e0\u05d5\u05db\u05d7\u05d9 \u05e9\u05dc\u05da.",
