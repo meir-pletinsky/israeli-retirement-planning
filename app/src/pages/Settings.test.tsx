@@ -89,3 +89,16 @@ describe("Settings — exchange rates", () => {
     expect(await loadFxLookupEnabledFromDb()).toBe(true);
   });
 });
+
+describe("Settings — privacy", () => {
+  it("explains what stays on the device and the two things that are requested", async () => {
+    renderWithProviders(<Settings />, { route: "/settings" });
+
+    const heading = await screen.findByRole("heading", { name: "Privacy" });
+    const section = heading.closest("section") as HTMLElement;
+    expect(section).toHaveTextContent("saved in this browser only");
+    expect(section).toHaveTextContent("Exchange rates:");
+    expect(section).toHaveTextContent("Stock prices:");
+    expect(section).toHaveTextContent("The app never uploads them.");
+  });
+});

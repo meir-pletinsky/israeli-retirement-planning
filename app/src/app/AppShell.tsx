@@ -4,6 +4,7 @@ import { NavLink, Outlet } from "react-router-dom";
 
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { LogoMark } from "../components/LogoMark";
+import { PrivacyBanner } from "../components/PrivacyBanner";
 import { useUsdToIlsRateRefresh } from "./useUsdToIlsRateRefresh";
 
 const NAV_ITEMS = [
@@ -19,7 +20,7 @@ export function AppShell() {
 
   return (
     <div className="flex min-h-screen flex-col bg-surface md:flex-row">
-      <aside className="hidden w-60 shrink-0 border-e border-slate-200 bg-white p-4 md:flex md:flex-col">
+      <aside className="hidden w-60 shrink-0 overflow-y-auto border-e border-slate-200 bg-white p-4 md:sticky md:top-0 md:flex md:h-screen md:flex-col md:self-start">
         <div className="mb-6 flex items-center gap-2.5 px-2">
           <LogoMark size={36} className="shrink-0" />
           <span className="text-[15px] font-semibold leading-tight text-slate-900">
@@ -45,18 +46,22 @@ export function AppShell() {
             </NavLink>
           ))}
         </nav>
+        <PrivacyBanner variant="card" />
       </aside>
 
       <div className="flex flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 md:px-6">
-          <span className="flex items-center gap-2 text-base font-semibold text-slate-900 md:hidden">
-            <LogoMark size={28} className="shrink-0" />
-            {t("common.appName")}
-          </span>
-          <div className="ms-auto">
-            <LanguageSwitcher />
-          </div>
-        </header>
+        <div className="sticky top-0 z-20 md:static">
+          <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 md:px-6">
+            <span className="flex items-center gap-2 text-base font-semibold text-slate-900 md:hidden">
+              <LogoMark size={28} className="shrink-0" />
+              {t("common.appName")}
+            </span>
+            <div className="ms-auto">
+              <LanguageSwitcher />
+            </div>
+          </header>
+          <PrivacyBanner variant="strip" />
+        </div>
         <main className="flex-1 overflow-y-auto p-4 pb-24 md:p-6 md:pb-6">
           <Outlet />
         </main>

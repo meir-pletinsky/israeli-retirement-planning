@@ -598,6 +598,19 @@
       }
     }
   },
+  "privacy": {
+    "title": "Private by design",
+    "body": "Your data stays on this device. Nothing is uploaded to a server, and there is no account.",
+    "short": "Your data stays on this device. Nothing is uploaded.",
+    "details": "How it works",
+    "section": {
+      "title": "Privacy",
+      "stored": "Everything you enter is saved in this browser only. There is no account and no server that holds your data.",
+      "rates": "Exchange rates: the app can ask for the dollar rate, sending just the currency pair and a date. You can switch this off below.",
+      "stocks": "Stock prices: choosing a ticker loads that stock's public price file from this site. None of your amounts, dates or other details are sent.",
+      "files": "Files you export or import stay with you. The app never uploads them."
+    }
+  },
   "settings": {
     "title": "Settings",
     "language": "Language",

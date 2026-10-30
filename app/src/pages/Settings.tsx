@@ -55,6 +55,18 @@ export function Settings() {
 
       <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <h2 className="mb-2 text-sm font-semibold text-slate-700">
+          {t("privacy.section.title")}
+        </h2>
+        <ul className="list-disc space-y-1.5 ps-5 text-sm text-slate-600">
+          <li>{t("privacy.section.stored")}</li>
+          <li>{t("privacy.section.rates")}</li>
+          <li>{t("privacy.section.stocks")}</li>
+          <li>{t("privacy.section.files")}</li>
+        </ul>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 className="mb-2 text-sm font-semibold text-slate-700">
           {t("settings.language")}
         </h2>
         <LanguageSwitcher />
