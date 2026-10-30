@@ -12,7 +12,7 @@ export type FieldImportance = "required" | "recommended" | "reference";
 
 const BADGE_CLASSES: Record<FieldImportance, string> = {
   required: "bg-rose-50 text-rose-700",
-  recommended: "bg-teal-50 text-teal-700",
+  recommended: "bg-brand-50 text-brand-700",
   reference: "bg-slate-100 text-slate-500",
 };
 

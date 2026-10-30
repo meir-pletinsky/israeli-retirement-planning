@@ -68,6 +68,13 @@ them.
   returning visitors with saved data land on the Dashboard. See "Welcome page for returning
   visitors" in `docs/implementation-progress.md`.
 
+- **App logo and colour scheme: DONE.** A pomegranate mark (`components/LogoMark.tsx`,
+  `public/favicon.svg`) and a Mediterranean palette. Tailwind 4 `@theme` in `src/index.css`
+  defines `brand-50…950` and `surface`; the old `teal-*` classes are gone, so use
+  `brand-*` for anything new. The provident-fund chart colour changed to turquoise so it
+  differs from the blue pension-fund colour. No `apple-touch-icon` or manifest yet (they need
+  PNGs). See "App logo and Mediterranean colour scheme" in `docs/implementation-progress.md`.
+
 - **Phase T (stock price data and autofill): DONE.** A daily job
   (`app/scripts/stock-data/`, `npm run stock-data`, scheduled in
   `.github/workflows/deploy.yml`) turns the Kaggle S&P 500 dataset into one JSON file
@@ -450,7 +457,7 @@ them.
   - D3: live deploy verified (done as a side effect of A7).
 - 396 tests total, all green; lint/typecheck/build all green.
 
-(Counts moved on later: 645 passed and 1 skipped after Phase Q; 664 passed and 1 skipped after Phase S; 712 passed and 1 skipped after Phase T; 720 passed and 1 skipped after the returning-visitor change.)
+(Counts moved on later: 645 passed and 1 skipped after Phase Q; 664 passed and 1 skipped after Phase S; 712 passed and 1 skipped after Phase T; 720 passed and 1 skipped after the returning-visitor change; 723 passed and 1 skipped after the logo and colour change.)
 
 ## Where to go next
 

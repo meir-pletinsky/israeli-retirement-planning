@@ -51,7 +51,7 @@ export function FeasibilityCard({ feasibility, maxSearchAge }: FeasibilityCardPr
           {t("dashboard.feasibility.noTarget")}{" "}
           <Link
             to="/my-data/expenses"
-            className="font-medium text-teal-700 hover:underline"
+            className="font-medium text-brand-700 hover:underline"
           >
             {t("dashboard.feasibility.noTargetCta")}
           </Link>

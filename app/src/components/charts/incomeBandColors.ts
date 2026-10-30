@@ -2,8 +2,8 @@ import type { IncomeBandKey } from "../../domain";
 
 /** Series colors, shared by the income chart and the retirement timeline. */
 export const INCOME_BAND_COLORS: Record<IncomeBandKey, string> = {
-  pensionFund: "#0d9488",
-  providentFund: "#0ea5e9",
+  pensionFund: "#0b6e99",
+  providentFund: "#2dd4bf",
   managersInsurance: "#6366f1",
   studyFund: "#84cc16",
   investments: "#94a3b8",

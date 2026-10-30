@@ -72,7 +72,7 @@ export function BituachLeumiCard({ members, monthlyIncomeTodayMoney }: BituachLe
             href={BITUACH_LEUMI_RATES.sourceUrl}
             target="_blank"
             rel="noreferrer"
-            className="text-teal-700 hover:underline"
+            className="text-brand-700 hover:underline"
           >
             {t("dashboard.bituachLeumi.source")}
           </a>
@@ -104,7 +104,7 @@ function MemberPension({
   };
 
   const settingsLink = (
-    <Link to="/my-data/personal" className="font-medium text-teal-700 hover:underline">
+    <Link to="/my-data/personal" className="font-medium text-brand-700 hover:underline">
       {t("dashboard.bituachLeumi.editSettings")}
     </Link>
   );

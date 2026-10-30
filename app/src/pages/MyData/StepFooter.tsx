@@ -44,7 +44,7 @@ export function StepFooter({ currentKey, isValid = true, onInvalidAttempt }: Ste
       <button
         type="button"
         onClick={handleNext}
-        className="rounded-md bg-teal-600 px-5 py-2 text-sm font-semibold text-white hover:bg-teal-700"
+        className="rounded-md bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700"
       >
         {next ? t("common.next") : t("common.save")}
       </button>

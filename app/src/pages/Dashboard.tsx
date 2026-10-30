@@ -36,7 +36,7 @@ export function Dashboard() {
         action={
           <Link
             to="/my-data/personal"
-            className="rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700"
+            className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
           >
             {t("dashboard.emptyCta")}
           </Link>
@@ -119,7 +119,7 @@ export function Dashboard() {
           </h2>
           <Link
             to="/my-data/assumptions"
-            className="text-xs font-medium text-teal-700 hover:underline"
+            className="text-xs font-medium text-brand-700 hover:underline"
           >
             {t("dashboard.adjustAssumptions")}
           </Link>

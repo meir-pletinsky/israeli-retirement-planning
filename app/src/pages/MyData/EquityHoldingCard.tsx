@@ -37,7 +37,7 @@ export function EquityHoldingCard({
         </p>
         <p className="truncate text-xs text-slate-500">{categoryLabel}</p>
         {totalValue > 0 && (
-          <p className="mt-1 text-sm font-medium text-teal-700">
+          <p className="mt-1 text-sm font-medium text-brand-700">
             ${totalValue.toLocaleString()}
           </p>
         )}
@@ -46,7 +46,7 @@ export function EquityHoldingCard({
         <button
           type="button"
           onClick={onEdit}
-          className="rounded-md px-3 py-1.5 text-xs font-medium text-teal-700 hover:bg-teal-50"
+          className="rounded-md px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50"
         >
           {t("common.edit")}
         </button>

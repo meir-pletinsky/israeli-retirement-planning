@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { FieldDiff, ImportConfidence } from "../../domain/clearingHouseImport";
 
 const CONFIDENCE_STYLE: Record<ImportConfidence, string> = {
-  official: "bg-teal-50 text-teal-700",
+  official: "bg-brand-50 text-brand-700",
   derived: "bg-sky-50 text-sky-700",
   uncertain: "bg-amber-100 text-amber-800",
 };
@@ -45,7 +45,7 @@ export function FieldRow({
         checked={checked && !locked}
         disabled={disabled || locked}
         onChange={(e) => onChange(e.target.checked)}
-        className="mt-1 h-4 w-4 shrink-0 accent-teal-600"
+        className="mt-1 h-4 w-4 shrink-0 accent-brand-600"
       />
       <label htmlFor={id} className="min-w-0 flex-1">
         <span className="block text-xs text-slate-500">{label}</span>

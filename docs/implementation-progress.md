@@ -947,6 +947,28 @@ Not handled: data saved under a different address (another browser, device, or
 `localhost` versus the published site) is a different IndexedDB, so it cannot be detected.
 Use Settings → Export and Import to move it.
 
+## App logo and Mediterranean colour scheme
+
+The app had no logo (plain text in the header and the Vite purple bolt as the favicon) and
+used Tailwind's teal. The user picked a pomegranate mark (Israeli touch, no Magen David) and
+a Mediterranean palette (sea blue, warm Jerusalem-stone page background, sun gold accent).
+
+- [x] **Logo.** New `components/LogoMark.tsx` (SVG, decorative, gradient ids made unique
+      with `useId` so several marks can share a page). Used in the desktop sidebar, the
+      mobile header and the Welcome page. `public/favicon.svg` replaced with the same mark.
+      `index.html` gained a `theme-color` meta tag.
+- [x] **Palette.** `index.css` defines `--color-brand-50…950` (600 is `#0b6e99`, 700 is
+      `#075985`) and `--color-surface` (`#faf6ec`) in a Tailwind 4 `@theme` block. All
+      `teal-*` classes became `brand-*` (35 files); the page background in `AppShell` and
+      `Welcome` is `bg-surface`. Use `brand-*` for new work, not a raw colour name.
+- [x] **Charts.** Net worth, net income and comparison charts use the brand blues. The
+      provident-fund band moved from sky blue to turquoise `#2dd4bf` so it stays distinct
+      from the (now blue) pension-fund band. Status colours (green, amber, rose) are unchanged.
+- [x] Tests: `components/LogoMark.test.tsx`.
+
+Not done: an `apple-touch-icon` and a web manifest (both need PNG files, and the project
+has no image tooling). `public/icons.svg` is an unused Vite template leftover.
+
 ## Modeling assumptions (by phase)
 
 - **Tax modeling assumptions (Phase I).**

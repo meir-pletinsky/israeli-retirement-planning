@@ -31,7 +31,7 @@ export function NumberField({
     <label className="block">
       <FieldLabel label={label} importance={importance} />
       <div
-        className={`mt-1 flex items-center rounded-md border bg-white focus-within:border-teal-500 ${
+        className={`mt-1 flex items-center rounded-md border bg-white focus-within:border-brand-500 ${
           error ? "border-red-400" : "border-slate-300"
         }`}
       >

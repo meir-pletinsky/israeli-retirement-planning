@@ -79,7 +79,7 @@ export function AccountReviewCard({
           type="checkbox"
           checked={state.include}
           onChange={(e) => setInclude(e.target.checked)}
-          className="mt-1 h-4 w-4 shrink-0 accent-teal-600"
+          className="mt-1 h-4 w-4 shrink-0 accent-brand-600"
         />
         <div className="min-w-0 flex-1">
           <label htmlFor={`${candidate.key}-include`} className="block cursor-pointer">
@@ -108,9 +108,9 @@ export function AccountReviewCard({
       </div>
 
       {matched && (
-        <fieldset className="mt-3 rounded-md bg-teal-50 p-3">
+        <fieldset className="mt-3 rounded-md bg-brand-50 p-3">
           <legend className="sr-only">{t("clearingHouse.review.modeLabel")}</legend>
-          <p className="text-xs font-medium text-teal-800">{t("clearingHouse.review.matched")}</p>
+          <p className="text-xs font-medium text-brand-800">{t("clearingHouse.review.matched")}</p>
           <div className="mt-2 flex flex-col gap-1.5 text-sm text-slate-700">
             <label className="flex items-center gap-2">
               <input
@@ -118,7 +118,7 @@ export function AccountReviewCard({
                 name={`${candidate.key}-mode`}
                 checked={state.updateAccountId !== null}
                 onChange={() => setMode(true)}
-                className="accent-teal-600"
+                                className="accent-brand-600"
               />
               {t("clearingHouse.review.modeUpdate")}
             </label>
@@ -128,7 +128,7 @@ export function AccountReviewCard({
                 name={`${candidate.key}-mode`}
                 checked={state.updateAccountId === null}
                 onChange={() => setMode(false)}
-                className="accent-teal-600"
+                                className="accent-brand-600"
               />
               {t("clearingHouse.review.modeNew")}
             </label>

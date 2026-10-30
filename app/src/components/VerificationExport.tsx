@@ -88,7 +88,7 @@ export function VerificationExport({ onNotify }: Props) {
             onClick={() => setChoice(option)}
             className={clsx(
               "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
-              choice === option ? "bg-white text-teal-700 shadow" : "text-slate-500",
+              choice === option ? "bg-white text-brand-700 shadow" : "text-slate-500",
             )}
           >
             {option === "age"

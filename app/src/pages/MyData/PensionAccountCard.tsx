@@ -55,7 +55,7 @@ export function PensionAccountCard({
           </p>
         )}
         {account.totalAccumulatedBalance != null && (
-          <p className="mt-1 text-sm font-medium text-teal-700">
+          <p className="mt-1 text-sm font-medium text-brand-700">
             {currencySymbol}
             {account.totalAccumulatedBalance.toLocaleString()}
           </p>
@@ -65,7 +65,7 @@ export function PensionAccountCard({
         <button
           type="button"
           onClick={onEdit}
-          className="rounded-md px-3 py-1.5 text-xs font-medium text-teal-700 hover:bg-teal-50"
+          className="rounded-md px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50"
         >
           {t("common.edit")}
         </button>

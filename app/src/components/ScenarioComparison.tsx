@@ -168,7 +168,7 @@ export function ScenarioComparison({ profile }: ScenarioComparisonProps) {
                 >
                   {outcome ? t("projections.compare.ageColumn", { age: outcome.retirementAge }) : "-"}
                   {age === planAge && outcome && (
-                    <span className="mt-0.5 block w-fit rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-medium text-teal-700">
+                    <span className="mt-0.5 block w-fit rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-700">
                       {t("projections.compare.yourPlan")}
                     </span>
                   )}

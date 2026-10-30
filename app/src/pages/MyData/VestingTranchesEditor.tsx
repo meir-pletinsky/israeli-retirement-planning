@@ -88,7 +88,7 @@ export function VestingTranchesEditor({
       <button
         type="button"
         onClick={() => onChange([...tranches, createEmptyVestingTranche()])}
-        className="self-start rounded-md border border-teal-600 px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-50"
+        className="self-start rounded-md border border-brand-600 px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-50"
       >
         {f("add")}
       </button>

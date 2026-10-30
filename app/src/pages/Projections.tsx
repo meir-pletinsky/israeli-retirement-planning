@@ -74,7 +74,7 @@ export function Projections() {
               className={clsx(
                 "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
                 scenario === s
-                  ? "bg-white text-teal-700 shadow"
+                  ? "bg-white text-brand-700 shadow"
                   : "text-slate-500",
               )}
             >
@@ -96,7 +96,7 @@ export function Projections() {
           <button
             type="button"
             onClick={() => setView(view === "chart" ? "table" : "chart")}
-            className="text-xs font-medium text-teal-700 hover:underline"
+            className="text-xs font-medium text-brand-700 hover:underline"
           >
             {view === "chart"
               ? t("projections.viewTable")

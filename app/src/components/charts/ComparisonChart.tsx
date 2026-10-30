@@ -54,7 +54,7 @@ export function ComparisonChart({
         />
         <Bar dataKey="netMonthly" name={netLabel} maxBarSize={72} radius={[4, 4, 0, 0]}>
           {data.map((point) => (
-            <Cell key={point.age} fill={point.age === planAge ? "#0f766e" : "#5eead4"} />
+            <Cell key={point.age} fill={point.age === planAge ? "#075985" : "#9dd1e5"} />
           ))}
         </Bar>
         {target !== null && (

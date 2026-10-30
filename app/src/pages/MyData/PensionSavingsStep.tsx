@@ -61,14 +61,14 @@ export function PensionSavingsStep() {
         <div className="flex items-center gap-2">
           <Link
             to="/import/clearing-house"
-            className="rounded-md border border-teal-600 px-3 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-50"
+            className="rounded-md border border-brand-600 px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-50"
           >
             {t("clearingHouse.entryButton")}
           </Link>
           <button
             type="button"
             onClick={() => setEditingAccount(createEmptyPensionAccount())}
-            className="rounded-md bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700"
+            className="rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
           >
             {t("myData.steps.pensionSavings.addAccount")}
           </button>
@@ -123,7 +123,7 @@ export function PensionSavingsStep() {
             <button
               type="button"
               onClick={handleSave}
-              className="rounded-md bg-teal-600 px-5 py-2 text-sm font-semibold text-white hover:bg-teal-700"
+              className="rounded-md bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700"
             >
               {t("common.save")}
             </button>

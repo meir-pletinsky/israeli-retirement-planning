@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { NavLink, Outlet } from "react-router-dom";
 
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
+import { LogoMark } from "../components/LogoMark";
 
 const NAV_ITEMS = [
   { to: "/dashboard", key: "nav.dashboard", icon: "🏠" },
@@ -15,10 +16,13 @@ export function AppShell() {
   const { t } = useTranslation();
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 md:flex-row">
+    <div className="flex min-h-screen flex-col bg-surface md:flex-row">
       <aside className="hidden w-60 shrink-0 border-e border-slate-200 bg-white p-4 md:flex md:flex-col">
-        <div className="mb-6 px-2 text-lg font-semibold text-slate-900">
-          {t("common.appName")}
+        <div className="mb-6 flex items-center gap-2.5 px-2">
+          <LogoMark size={36} className="shrink-0" />
+          <span className="text-[15px] font-semibold leading-tight text-slate-900">
+            {t("common.appName")}
+          </span>
         </div>
         <nav className="flex flex-1 flex-col gap-1">
           {NAV_ITEMS.map((item) => (
@@ -29,7 +33,7 @@ export function AppShell() {
                 clsx(
                   "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-teal-50 text-teal-700"
+                    ? "bg-brand-50 text-brand-700"
                     : "text-slate-600 hover:bg-slate-100",
                 )
               }
@@ -43,7 +47,8 @@ export function AppShell() {
 
       <div className="flex flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 md:px-6">
-          <span className="text-base font-semibold text-slate-900 md:hidden">
+          <span className="flex items-center gap-2 text-base font-semibold text-slate-900 md:hidden">
+            <LogoMark size={28} className="shrink-0" />
             {t("common.appName")}
           </span>
           <div className="ms-auto">
@@ -63,7 +68,7 @@ export function AppShell() {
             className={({ isActive }) =>
               clsx(
                 "flex flex-col items-center gap-0.5 py-2 text-xs font-medium",
-                isActive ? "text-teal-700" : "text-slate-500",
+                isActive ? "text-brand-700" : "text-slate-500",
               )
             }
           >

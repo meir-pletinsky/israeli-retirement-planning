@@ -84,7 +84,7 @@ export function TaxCard({ net, isCouple, hasEmployerStock }: TaxCardProps) {
       )}
 
       <details className="mt-3 text-sm text-slate-700">
-        <summary className="cursor-pointer text-xs font-medium text-teal-700">
+        <summary className="cursor-pointer text-xs font-medium text-brand-700">
           {t("dashboard.tax.includedTitle")}
         </summary>
         <ul className="mt-2 list-disc space-y-1 ps-5 text-xs text-slate-600">
@@ -148,7 +148,7 @@ export function TaxCard({ net, isCouple, hasEmployerStock }: TaxCardProps) {
           href={TAX_RATES.sourceUrl}
           target="_blank"
           rel="noreferrer"
-          className="text-teal-700 hover:underline"
+          className="text-brand-700 hover:underline"
         >
           {t("dashboard.tax.source")}
         </a>

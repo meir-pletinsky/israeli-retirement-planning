@@ -35,7 +35,7 @@ export function NetIncomeChart({ data, currencySymbol, netLabel, taxLabel }: Net
           formatter={(value) => `${currencySymbol}${Number(value).toLocaleString()}`}
         />
         <Legend wrapperStyle={{ fontSize: 12 }} />
-        <Bar dataKey="netMonthly" name={netLabel} stackId="income" fill="#0d9488" />
+        <Bar dataKey="netMonthly" name={netLabel} stackId="income" fill="#0b6e99" />
         <Bar
           dataKey="taxMonthly"
           name={taxLabel}

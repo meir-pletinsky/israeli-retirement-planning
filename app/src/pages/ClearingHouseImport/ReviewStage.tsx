@@ -79,7 +79,7 @@ export function ReviewStage({ parsed, onApply, onStartOver }: ReviewStageProps) 
                   name="clearing-house-owner"
                   checked={owner === value}
                   onChange={() => setOwner(value)}
-                  className="accent-teal-600"
+                                    className="accent-brand-600"
                 />
                 {t(value === "self" ? "clearingHouse.review.whoseSelf" : "clearingHouse.review.whoseSpouse")}
               </label>
@@ -211,7 +211,7 @@ function ReviewBody({ owner, result, onApply, onStartOver }: ReviewBodyProps) {
             type="button"
             disabled={counts.values === 0}
             onClick={() => onApply(plan)}
-            className="rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+            className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
             {t("clearingHouse.review.apply")}
           </button>

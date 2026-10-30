@@ -1,5 +1,23 @@
 @import "tailwindcss";
 
+/* Mediterranean sea blue; use `brand-*` utilities instead of a raw colour name. */
+@theme {
+  --color-brand-50: #e6f3f9;
+  --color-brand-100: #cde8f2;
+  --color-brand-200: #9dd1e5;
+  --color-brand-300: #6bb8d6;
+  --color-brand-400: #3a9cc4;
+  --color-brand-500: #1385b0;
+  --color-brand-600: #0b6e99;
+  --color-brand-700: #075985;
+  --color-brand-800: #064a6f;
+  --color-brand-900: #053d5c;
+  --color-brand-950: #032a40;
+
+  /* Warm Jerusalem-stone page background. */
+  --color-surface: #faf6ec;
+}
+
 :root {
   color-scheme: light;
 }

@@ -34,7 +34,7 @@ export function AssumptionsStep() {
               className={clsx(
                 "rounded-full px-3 py-1.5 text-sm font-medium",
                 assumptions.preset === preset
-                  ? "bg-teal-600 text-white"
+                  ? "bg-brand-600 text-white"
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200",
               )}
             >
@@ -47,7 +47,7 @@ export function AssumptionsStep() {
       <button
         type="button"
         onClick={() => setShowAdvanced((v) => !v)}
-        className="self-start text-xs font-medium text-teal-700 hover:underline"
+        className="self-start text-xs font-medium text-brand-700 hover:underline"
       >
         {t("myData.steps.assumptions.advanced")}
       </button>

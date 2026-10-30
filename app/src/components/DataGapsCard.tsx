@@ -24,7 +24,7 @@ export function DataGapsCard({ gaps }: DataGapsCardProps) {
   return (
     <section
       aria-labelledby="data-gaps-title"
-      className="rounded-xl border border-teal-200 bg-teal-50/50 p-4 shadow-sm"
+      className="rounded-xl border border-brand-200 bg-brand-50/50 p-4 shadow-sm"
     >
       <h2 id="data-gaps-title" className="text-sm font-semibold text-slate-700">
         {t("dashboard.gaps.title")}
@@ -37,7 +37,7 @@ export function DataGapsCard({ gaps }: DataGapsCardProps) {
             <span>{t(`dashboard.gaps.items.${gap.id}`, { count: gap.count })}</span>
             <Link
               to={`/my-data/${gap.step}`}
-              className="shrink-0 text-xs font-medium text-teal-700 hover:underline"
+              className="shrink-0 text-xs font-medium text-brand-700 hover:underline"
             >
               {t("dashboard.gaps.goTo", { step: t(STEP_LABEL_KEYS[gap.step]) })}
             </Link>

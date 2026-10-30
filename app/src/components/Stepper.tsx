@@ -22,9 +22,9 @@ export function Stepper({ steps, currentKey, onStepClick }: StepperProps) {
             className={clsx(
               "flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
               isActive
-                ? "bg-teal-600 text-white"
+                ? "bg-brand-600 text-white"
                 : isComplete
-                  ? "bg-teal-50 text-teal-700"
+                  ? "bg-brand-50 text-brand-700"
                   : "bg-slate-100 text-slate-500",
             )}
           >
@@ -34,7 +34,7 @@ export function Stepper({ steps, currentKey, onStepClick }: StepperProps) {
                 isActive
                   ? "bg-white/20"
                   : isComplete
-                    ? "bg-teal-600 text-white"
+                    ? "bg-brand-600 text-white"
                     : "bg-slate-300 text-slate-600",
               )}
             >

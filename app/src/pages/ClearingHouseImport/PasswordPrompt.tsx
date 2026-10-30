@@ -50,7 +50,7 @@ export function PasswordPrompt({ busy, errorMessage, onSubmit, onChooseOther }: 
         <button
           type="submit"
           disabled={busy || password === ""}
-          className="rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+          className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
           {t("clearingHouse.password.submit")}
         </button>

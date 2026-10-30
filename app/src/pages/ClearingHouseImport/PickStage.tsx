@@ -40,7 +40,7 @@ export function PickStage({ busy, errorMessage, onFiles }: PickStageProps) {
           href={SITE_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-3 inline-block text-sm font-medium text-teal-700 underline hover:text-teal-800"
+          className="mt-3 inline-block text-sm font-medium text-brand-700 underline hover:text-brand-800"
         >
           {t("clearingHouse.instructions.openSite")}
         </a>
@@ -54,12 +54,12 @@ export function PickStage({ busy, errorMessage, onFiles }: PickStageProps) {
         onDragLeave={() => setDragging(false)}
         onDrop={handleDrop}
         className={`flex flex-col items-center gap-2 rounded-xl border-2 border-dashed p-6 text-center ${
-          dragging ? "border-teal-500 bg-teal-50" : "border-slate-300 bg-white"
+          dragging ? "border-brand-500 bg-brand-50" : "border-slate-300 bg-white"
         }`}
       >
         <label
-          className={`cursor-pointer rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white focus-within:ring-2 focus-within:ring-teal-400 focus-within:ring-offset-2 ${
-            busy ? "pointer-events-none opacity-60" : "hover:bg-teal-700"
+          className={`cursor-pointer rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white focus-within:ring-2 focus-within:ring-brand-400 focus-within:ring-offset-2 ${
+            busy ? "pointer-events-none opacity-60" : "hover:bg-brand-700"
           }`}
         >
           {t("clearingHouse.pick.choose")}

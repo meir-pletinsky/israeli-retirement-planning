@@ -41,14 +41,14 @@ export function NetWorthChart({
         {retirementAge && (
           <ReferenceLine
             x={retirementAge}
-            stroke="#0d9488"
+            stroke="#0b6e99"
             strokeDasharray="4 4"
           />
         )}
         <Line
           type="monotone"
           dataKey="netWorth"
-          stroke="#0d9488"
+          stroke="#0b6e99"
           strokeWidth={2}
           dot={false}
         />

@@ -89,17 +89,17 @@ export function ClearingHouseImportPage() {
       )}
 
       {stage.name === "done" && (
-        <section className="flex flex-col gap-3 rounded-xl border border-teal-200 bg-teal-50 p-4">
-          <h2 className="text-sm font-semibold text-teal-900">{t("clearingHouse.done.title")}</h2>
-          <p className="text-sm text-teal-900">
+        <section className="flex flex-col gap-3 rounded-xl border border-brand-200 bg-brand-50 p-4">
+          <h2 className="text-sm font-semibold text-brand-900">{t("clearingHouse.done.title")}</h2>
+          <p className="text-sm text-brand-900">
             {t("clearingHouse.done.summary", { accounts: stage.accounts, personal: stage.personal })}
           </p>
-          <p className="text-xs text-teal-800">{t("clearingHouse.done.reminder")}</p>
+          <p className="text-xs text-brand-800">{t("clearingHouse.done.reminder")}</p>
           <div>
             <button
               type="button"
               onClick={() => navigate(ACCOUNTS_ROUTE)}
-              className="rounded-md bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-700"
+              className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
             >
               {t("clearingHouse.done.toAccounts")}
             </button>

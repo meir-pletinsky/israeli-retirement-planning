@@ -49,7 +49,7 @@ export function EquityStep() {
         <button
           type="button"
           onClick={() => setEditingHolding(createEmptyStockHolding())}
-          className="rounded-md bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700"
+          className="rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
         >
           {t("myData.steps.equity.addHolding")}
         </button>
@@ -91,7 +91,7 @@ export function EquityStep() {
             <button
               type="button"
               onClick={handleSave}
-              className="rounded-md bg-teal-600 px-5 py-2 text-sm font-semibold text-white hover:bg-teal-700"
+              className="rounded-md bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700"
             >
               {t("common.save")}
             </button>
