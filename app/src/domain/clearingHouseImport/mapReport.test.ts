@@ -11,8 +11,9 @@ import {
   type ProductOptions,
 } from "../../test/fixtures/clearingHouse/builders";
 import { ClearingHouseImportError } from "./errors";
+import { defaultSelectedFields } from "./matchAndApply";
 import { mapClearingHouseReport, mergeReportResults, parseReportDate } from "./mapReport";
-import type { ImportedAccountCandidate, ImportWarning, ReportMapResult } from "./types";
+import { WARNING_SEVERITY, type ImportedAccountCandidate, type ImportWarning, type ReportMapResult } from "./types";
 import { node, type XmlNode } from "./xmlTree";
 
 const NOW = new Date("2026-06-15T12:00:00");
@@ -134,8 +135,17 @@ describe("product category", () => {
     expect(codes(noKind.warnings)).toContain("pensionTypeUnknown");
   });
 
-  it("flags a basic (old) pension kind for review", () => {
+  it("flags a basic pension kind for review", () => {
     expect(codes(candidateOf(policy({ kerenType: 1 }), { type: 2 }).warnings)).toContain("pensionTypeBasic");
+  });
+
+  it("explains an old (vatika) pension fund instead of flagging it as basic", () => {
+    const candidate = candidateOf(policy({ kerenType: 1, vatika: 1 }), { type: 2 });
+    expect(candidate.fields.productCategory).toMatchObject({ value: "generalPension", confidence: "derived" });
+    expect(defaultSelectedFields(candidate, null)).toContain("productCategory");
+    expect(codes(candidate.warnings)).toContain("oldPensionFund");
+    expect(codes(candidate.warnings)).not.toContain("pensionTypeBasic");
+    expect(WARNING_SEVERITY.oldPensionFund).toBe("info");
   });
 
   it("maps a preferred (adif) insurance policy and leaves old pension funds without a model", () => {
@@ -326,12 +336,19 @@ describe("contributions", () => {
 });
 
 describe("fees", () => {
-  it("takes the plausible value and flags rows that disagree", () => {
+  it("ignores an implausible extra row without asking for confirmation", () => {
     const candidate = candidateOf(
       policy({ feeRows: [{ basis: 1, rate: 0.6 }, { basis: 1, rate: 15 }, { basis: 2, rate: 1.2 }] }),
     );
-    expect(candidate.fields.feeFromAccumulationPercent).toMatchObject({ value: 0.6, confidence: "uncertain" });
+    expect(candidate.fields.feeFromAccumulationPercent).toMatchObject({ value: 0.6, confidence: "official" });
     expect(candidate.fields.feeFromDepositPercent?.value).toBe(1.2);
+    expect(codes(candidate.warnings)).not.toContain("feeRowsDiffer");
+    expect(defaultSelectedFields(candidate, null)).toContain("feeFromAccumulationPercent");
+  });
+
+  it("takes the highest plausible value and flags rows that genuinely disagree", () => {
+    const candidate = candidateOf(policy({ feeRows: [{ basis: 1, rate: 0.6 }, { basis: 1, rate: 1.1 }] }));
+    expect(candidate.fields.feeFromAccumulationPercent).toMatchObject({ value: 1.1, confidence: "uncertain" });
     expect(codes(candidate.warnings)).toContain("feeRowsDiffer");
   });
 
@@ -397,9 +414,10 @@ describe("investment track", () => {
     expect(codes(candidate.warnings)).toContain("trackDiffersFromDeposit");
   });
 
-  it("falls back to the deposit track as an uncertain value", () => {
+  it("falls back to the deposit track as a pre-selected, derived value with a note", () => {
     const candidate = candidateOf(policy({ tracks: [{ role: 2, name: "ב", amount: 1 }] }));
-    expect(candidate.fields.investmentTrackName).toMatchObject({ value: "ב", confidence: "uncertain" });
+    expect(candidate.fields.investmentTrackName).toMatchObject({ value: "ב", confidence: "derived" });
+    expect(defaultSelectedFields(candidate, null)).toContain("investmentTrackName");
     expect(codes(candidate.warnings)).toContain("trackFromDepositOnly");
   });
 });

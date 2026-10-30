@@ -80,6 +80,7 @@ export type ImportWarningCode =
   | "productTypeUnknown"
   | "pensionTypeUnknown"
   | "pensionTypeBasic"
+  | "oldPensionFund"
   | "statusUnknown"
   | "contributionRatesDerived"
   | "contributionRatesMissingSalary"
@@ -108,6 +109,7 @@ export const WARNING_SEVERITY: Record<ImportWarningCode, "info" | "warning"> = {
   productTypeUnknown: "warning",
   pensionTypeUnknown: "warning",
   pensionTypeBasic: "warning",
+  oldPensionFund: "info",
   statusUnknown: "warning",
   contributionRatesDerived: "info",
   contributionRatesMissingSalary: "warning",

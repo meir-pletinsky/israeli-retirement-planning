@@ -168,7 +168,7 @@ function mapPolicy(policy: XmlNode, context: PolicyContext, key: string, now: Da
   }
 
   const isOldPension = numberAt(policy, "PENSIA-VATIKA-O-HADASHA") === 1;
-  const category = resolveProductCategory(productType, numberAt(policy, "SUG-KEREN-PENSIA"));
+  const category = resolveProductCategory(productType, numberAt(policy, "SUG-KEREN-PENSIA"), isOldPension);
   if (category.category) put(fields, "productCategory", category.category, category.confidence, "SUG-MUTZAR");
   if (category.warning) warnings.push(category.warning);
 
@@ -362,7 +362,8 @@ interface FeePick {
 function pickFee(rates: number[], cap: number): FeePick | null {
   const plausible = rates.filter((rate) => rate <= cap);
   if (plausible.length === 0) return null;
-  const differs = rates.length > 1;
+  // Rows above the cap are a different kind of fee, so only real rivals count as a conflict.
+  const differs = plausible.length > 1;
   return { value: Math.max(...plausible), differs, confidence: differs ? "uncertain" : "official" };
 }
 
@@ -445,7 +446,7 @@ function mapTrack(policy: XmlNode, fields: ImportedFields, warnings: ImportWarni
       warnings.push({ code: "trackDiffersFromDeposit" });
     }
   } else if (depositTrack?.name) {
-    put(fields, "investmentTrackName", depositTrack.name, "uncertain", "SHEM-MASLUL-HASHKAA");
+    put(fields, "investmentTrackName", depositTrack.name, "derived", "SHEM-MASLUL-HASHKAA");
     warnings.push({ code: "trackFromDepositOnly" });
   }
 }

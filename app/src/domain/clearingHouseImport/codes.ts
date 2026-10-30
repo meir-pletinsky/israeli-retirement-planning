@@ -14,10 +14,15 @@ export interface CategoryResolution {
   warning?: ImportWarning;
 }
 
-/** `SUG-MUTZAR` (+ `SUG-KEREN-PENSIA` for pension funds) to the app's product category. */
+/**
+ * `SUG-MUTZAR` (+ `SUG-KEREN-PENSIA` for pension funds) to the app's product category.
+ * `isOldPension` is `PENSIA-VATIKA-O-HADASHA`: an old fund reports kind 1, which is a known case, so it is
+ * suggested as "derived" (pre-selected on the review screen) with an explanatory note.
+ */
 export function resolveProductCategory(
   productType: number | null,
   pensionKind: number | null,
+  isOldPension = false,
 ): CategoryResolution {
   switch (productType) {
     case 1:
@@ -33,11 +38,10 @@ export function resolveProductCategory(
       if (pensionKind === 2) return { category: "comprehensivePension", confidence: "official" };
       if (pensionKind === 3) return { category: "generalPension", confidence: "official" };
       if (pensionKind === 1) {
-        return {
-          category: "generalPension",
-          confidence: "uncertain",
-          warning: { code: "pensionTypeBasic" },
-        };
+        if (isOldPension) {
+          return { category: "generalPension", confidence: "derived", warning: { code: "oldPensionFund" } };
+        }
+        return { category: "generalPension", confidence: "uncertain", warning: { code: "pensionTypeBasic" } };
       }
       return { category: null, confidence: "uncertain", warning: { code: "pensionTypeUnknown" } };
     default:
