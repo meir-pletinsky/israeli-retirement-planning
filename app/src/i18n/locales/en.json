@@ -338,7 +338,7 @@
           "taxTrack": "Tax track",
           "trusteeHoldingPeriodMet": "24-month trustee holding period met",
           "costBasisAtGrantUSD": "Share price at grant",
-          "costBasisAtGrantHelper": "Per share, in USD: the market value of one share on the grant date. Leave empty if unknown: then the whole value is taxed as a capital gain.",
+          "costBasisAtGrantHelper": "Per share, in USD: the fair market value on the grant date for Israeli tax. Some plans define it as the average price over the 30 trading days before the grant, so check your plan documents. Leave empty if unknown: then the whole value is taxed as a capital gain.",
           "estimatedMarginalTaxOnVesting": "Estimated tax on vesting/sale",
           "sectionEsppDetails": "ESPP details",
           "purchaseDate": "Purchase date",

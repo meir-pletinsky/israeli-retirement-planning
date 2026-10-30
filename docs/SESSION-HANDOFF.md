@@ -447,7 +447,7 @@ Remaining, not yet started:
   Section 102 shares (for example early retirees' non-pension income), health tax
   exceptions and non-pension income, a credit-points breakdown helper,
   tax-aware withdrawal splitting between spouses (needs a drawdown rework),
-  the gemel-to-annuity exemption, the 30% rate for a 10%+ holder, ESPP and
+  the investment-gemel annuity exemption from 60 (rule U), the 30% rate for a 10%+ holder, ESPP and
   option strike prices (the user kept both out of scope). Also finish the
   constants check: read the Tax Authority's own tables for rows 1-9 and
   check row 17 (`docs/constants-to-verify.md`).
@@ -462,6 +462,18 @@ Remaining, not yet started:
   shares, USD price, rate at purchase), an effective cost basis in
   `otherInvestmentsTaxProfile` and its trace, tests from the vectors in rule R;
   FIFO inside the drawdown is optional and changes timing only.
+- **Investment gemel: researched, not built** (2026-10-30). Rule U in
+  `docs/constants-to-verify.md`. Lump sum: 25% of the real gain at any age, no
+  exemption at 60. A life annuity from 60 through a paying fund is tax-free.
+  No 0% route before 60 was found, and nothing varies by fund or program. The
+  2026 deposit ceiling is ₪83,641. The app keeps 25% at any age.
+- **Bridge Planner: design written, waiting for the user's review**
+  (2026-10-30; Phase R in `docs/implementation-progress.md`, full design in
+  `docs/bridge-planner-design.md`). It covers the liquidity ladder, named
+  withdrawal strategies, purchase lots for private and ESPP stock, an RSU
+  schedule generator with vest-aware "cost of leaving early", per-source cost
+  and stress tests, in six to seven independent steps. Nothing is built. Start
+  with the open questions in section 7 of the design.
 - Possible refinements to the contribution model (they change numbers, so
   they were deliberately left out of Phase K): real wage growth, a
   per-account salary override, and the study-fund **annual deposit** ceiling

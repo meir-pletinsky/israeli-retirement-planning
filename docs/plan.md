@@ -243,9 +243,11 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
   with their own 24-month periods. Not modeled: Bituach Leumi
   contributions on other income, health tax on non-pension income, other credit
   points (children), tax planning between spouses (for example shifting
-  withdrawals to the spouse with the lower rate), the gemel-to-annuity
-  exemption, the 30% rate for a 10% shareholder, options with a strike price
-  and ESPP.
+  withdrawals to the spouse with the lower rate), the investment-gemel annuity
+  exemption from 60, the 30% rate for a 10% shareholder, options with a strike price
+  and ESPP. A **Bridge Planner** (liquidity ladder, withdrawal strategies,
+  purchase lots, vest-aware retirement date) is designed but not built: see
+  [`docs/bridge-planner-design.md`](bridge-planner-design.md).
 - Survivor analysis (simulate death of either spouse)
 - Real estate module (equity, rental income, appreciation)
 - **Retirement scenario comparison — done** (Phase J in

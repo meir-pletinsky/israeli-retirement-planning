@@ -799,6 +799,33 @@ rates for purchases before 2012 are not. The app uses only the user-entered USD
 gain × 3.7, keeps no purchase lots and does not use `averageCostBasisUSD` or
 `purchaseDate`. The user chose to record the rules only, so nothing was built.
 
+### Research note: investment gemel (no code)
+
+Checked on 2026-10-30 against three advisory sites (Kol Zchut and gov.il returned
+403); recorded as rule U and a log row in `docs/constants-to-verify.md`. A lump
+sum pays 25% of the real gain at any age, with no exemption at 60. Only a
+monthly life annuity taken from 60 through a paying fund is tax-free. No source
+describes a 0% route before 60, and the rule does not vary by fund or program.
+The 2026 deposit ceiling is ₪83,641. The app keeps treating the fund as 25% of
+the real gain at any age; the annuity route is not modeled.
+
+## Phase R — Bridge Planner (design only, not started)
+
+Proposal for the early-retirement bridge: which source to use first, what each
+costs and what leaving early does to unvested RSUs. Full design, build order
+and open questions: [`docs/bridge-planner-design.md`](bridge-planner-design.md).
+Waiting for the user's review.
+
+- [ ] R1. Liquidity ladder (read-only, no new inputs).
+- [ ] R2. Split the pooled investments source, withdrawal order in
+      `drawdown.ts`, strategy comparison card.
+- [ ] R3. RSU schedule generator, "keeps vesting after leaving" flag, vest-aware
+      retirement date and "cost of leaving early".
+- [ ] R4. Purchase lots (private and ESPP) with an effective cost basis (rule R).
+- [ ] R5. Per-source cost table (tax per ₪100 net, what you give up).
+- [ ] R6. Stress tests (employer-stock haircut, USD/ILS move).
+- [ ] R7. Investment-gemel annuity route from 60 (rule U), if wanted.
+
 ## Modeling assumptions (by phase)
 
 - **Tax modeling assumptions (Phase I).**
