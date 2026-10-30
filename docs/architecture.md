@@ -168,6 +168,13 @@ This keeps the "no backend" principle while giving best-effort freshness
 where the source cooperates, and a safe, deterministic fallback everywhere
 else (important for Monte Carlo/default assumptions reproducibility).
 
+**First implemented feed: stock prices (Phase T).** A scheduled GitHub Action
+(`deploy.yml`) builds one JSON file per S&P 500 stock into `public/stock-data/`
+and publishes it with the app, rather than opening a PR with checked-in data (58 MB
+is too large to commit daily). The app reads those files from its own site only
+when the ticker typed in the stock dialog is in the list, so no third-party host
+is contacted, but the ticker is visible to the Pages host. Nothing else about the
+profile leaves the device. See [`docs/stock-price-data-design.md`](stock-price-data-design.md).
 ## Localization & RTL
 
 - Languages at launch: English (default), Russian, Hebrew.

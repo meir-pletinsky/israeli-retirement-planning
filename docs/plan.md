@@ -248,7 +248,13 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
   and ESPP. A **Bridge Planner** (liquidity ladder, withdrawal strategies,
   purchase lots, vest-aware retirement date) is designed but not built: see
   [`docs/bridge-planner-design.md`](bridge-planner-design.md).
-- Survivor analysis (simulate death of either spouse)
+- **Stock price data and autofill — done** (Phase T in
+  [`docs/implementation-progress.md`](implementation-progress.md); design in
+  [`docs/stock-price-data-design.md`](stock-price-data-design.md)). A daily job
+  publishes the S&P 500 price history with the app; the stock dialog suggests
+  tickers and fills the price on the purchase or grant date, today's price and the
+  company name. Prices are dividend-adjusted (older prices of dividend payers are
+  too low). No calculation changed. (simulate death of either spouse)
 - Real estate module (equity, rental income, appreciation)
 - **Retirement scenario comparison — done** (Phase J in
   [`docs/implementation-progress.md`](implementation-progress.md)).

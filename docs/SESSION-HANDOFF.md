@@ -56,10 +56,38 @@ done**, **Phase J (retirement scenario comparison) is done**, **Phase K
 is done**, and **Phase N (Section 102 follow-ups: contributions, vesting
 batches, constants check) is done**, and **Phase O (Pension Clearing House
 import) is done**, and **Phase P (calculation trace and offline verification
-pack) is done**, and **Phase Q (read-only summary tables on My Data) is done**.
+pack) is done**, and **Phase Q (read-only summary tables on My Data) is done**,
+and **Phase S (simple purchase / grant entry, per-category equity tables) is done**,
+and **Phase T (stock price files, ticker suggestions and price autofill) is done**.
 Phases A–K are committed and pushed to
-`main`; Phases L, M, N, O, P and Q are committed and pushed only if `git log` shows
+`main`; Phases L, M, N, O, P, Q, S and T are committed and pushed only if `git log` shows
 them.
+
+- **Phase T (stock price data and autofill): DONE.** A daily job
+  (`app/scripts/stock-data/`, `npm run stock-data`, scheduled in
+  `.github/workflows/deploy.yml`) turns the Kaggle S&P 500 dataset into one JSON file
+  per stock under `public/stock-data/` (gitignored, deployed with the app, last good
+  set kept in the Actions cache). The app (`src/stockPrices/`,
+  `MyData/useStockPriceAutofill.ts`) suggests tickers and fills the price on the
+  purchase or grant date, today's price and the company name; typed values always
+  win and nothing happens when the files cannot be loaded. **Prices are
+  dividend-adjusted, so older prices of dividend payers are too low** (the dialog
+  says so). No calculation changed. The workflow has not run yet: after the first
+  push, run it once from the Actions tab and check the "Refresh stock price files"
+  step. Also verify the dataset's license. Details and open items:
+  `docs/stock-price-data-design.md` and Phase T in `docs/implementation-progress.md`.
+
+- **Phase S (simple entry and per-category equity tables): DONE.** The "Stock /
+  equity holding" dialog leads with category, ticker, quantity, purchase or grant
+  date, the share price on that date (always shown, even before a category is
+  chosen) and the current price; the old detail fields
+  sit under a collapsed "More details" (open when they already hold a value).
+  `MyData/holdingEntry.ts` maps the date and price onto the existing fields (ESOP:
+  `grantDate` / `costBasisAtGrantUSD`; ESPP: `purchaseDate` /
+  `fairMarketValueAtPurchaseUSD`; private: `purchaseDate` / `averageCostBasisUSD`),
+  so no calculation changed. `EquitySummaryTable.tsx` now renders one table per
+  category (ESOP / RSU, ESPP, private, no category) with totals and a total across
+  categories. Details and open items: Phase S in `docs/implementation-progress.md`.
 
 - **Phase Q (read-only summary tables on My Data): DONE.** The Pension & Savings
   and Equity & Investments steps show a table of every item above the "Which
@@ -69,7 +97,7 @@ them.
   `EquitySummaryTable.tsx`, `summaryFormat.ts`; texts under `myData.summary`. The
   pension total is `aggregatePensionBalance`, so a spouse's account that is not
   yet counted is flagged and left out; equity shows USD and ILS at the fixed
-  rate. To add a column, add an entry to the `columns` list of that table and
+  rate (Phase S split the equity table per category). To add a column, add an entry to the `columns` list of that table and
   reuse the existing `fields` label for its header.
 
 - **Phase P (calculation trace and verification pack): DONE.** See
@@ -418,7 +446,7 @@ them.
   - D3: live deploy verified (done as a side effect of A7).
 - 396 tests total, all green; lint/typecheck/build all green.
 
-(Counts moved on later: 645 passed and 1 skipped after Phase Q.)
+(Counts moved on later: 645 passed and 1 skipped after Phase Q; 664 passed and 1 skipped after Phase S; 712 passed and 1 skipped after Phase T.)
 
 ## Where to go next
 

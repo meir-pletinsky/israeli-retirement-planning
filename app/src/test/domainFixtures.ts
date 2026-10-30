@@ -1,6 +1,7 @@
 import type {
   BituachLeumiData,
   Gender,
+  InvestmentCategory,
   MaritalStatus,
   PensionAccount,
   ProfileData,
@@ -40,6 +41,11 @@ export function buildTestProfile(overrides: {
   equity?: {
     quantity: number;
     priceUSD: number;
+    /** Defaults to employer-granted when `employerGrant` is set, otherwise to no category. */
+    category?: InvestmentCategory;
+    ticker?: string;
+    /** The purchase or grant: its date and the share price that day, saved in the category's own fields. */
+    entry?: { date?: string; priceUSD?: number };
     unrealizedCapitalGainUSD?: number;
     capitalGainsTaxRatePercent?: number;
     /** Makes the holding an employer grant, with these details. */
@@ -145,46 +151,58 @@ export function buildTestProfile(overrides: {
       otherAssets: otherAssets ?? null,
     },
     equity: {
-      holdings: equity.map((holding, index) => ({
-        id: `test-holding-${index}`,
-        investmentCategory: holding.employerGrant ? "employerGrantedStock" : null,
-        tickerSymbol: "TEST",
-        companyName: "Test Co",
-        custodianOrBroker: "",
-        quantity: holding.quantity,
-        currentMarketPriceUSD: holding.priceUSD,
-        employerGrantDetails: {
-          grantDate: holding.employerGrant?.grantDate ?? null,
-          taxTrack: holding.employerGrant?.taxTrack ?? null,
-          vestedQuantity: null,
-          unvestedQuantity: null,
-          trusteeHoldingPeriodMet: holding.employerGrant?.holdingPeriodMet ?? false,
-          costBasisAtGrantUSD: holding.employerGrant?.grantPriceUSD ?? null,
-          estimatedMarginalTaxOnVesting: null,
-          vestingTranches: (holding.employerGrant?.vestingTranches ?? []).map(
-            (tranche, trancheIndex) => ({
-              id: `test-tranche-${index}-${trancheIndex}`,
-              vestDate: tranche.vestDate ?? null,
-              quantity: tranche.quantity,
-              grantPriceUSD: tranche.grantPriceUSD ?? null,
-            }),
-          ),
-        },
-        esppDetails: {
-          purchaseDate: null,
-          discountPercentage: null,
-          purchasePriceUSD: null,
-          fairMarketValueAtPurchaseUSD: null,
-          taxedDiscountValueUSD: null,
-          capitalGainsOnGrowthUSD: null,
-        },
-        personalPurchaseDetails: {
-          purchaseDate: null,
-          averageCostBasisUSD: null,
-          unrealizedCapitalGainUSD: holding.unrealizedCapitalGainUSD ?? null,
-          capitalGainsTaxRatePercent: holding.capitalGainsTaxRatePercent ?? null,
-        },
-      })),
+      holdings: equity.map((holding, index) => {
+        const category: InvestmentCategory | null =
+          holding.category ?? (holding.employerGrant ? "employerGrantedStock" : null);
+        const entryDate = holding.entry?.date ?? null;
+        const entryPrice = holding.entry?.priceUSD ?? null;
+        // As in the app, an entry made before choosing a category sits in every category's fields.
+        const entryIn = (target: InvestmentCategory) => category === target || category === null;
+        return {
+          id: `test-holding-${index}`,
+          investmentCategory: category,
+          tickerSymbol: holding.ticker ?? "TEST",
+          companyName: "Test Co",
+          custodianOrBroker: "",
+          quantity: holding.quantity,
+          currentMarketPriceUSD: holding.priceUSD,
+          employerGrantDetails: {
+            grantDate:
+              holding.employerGrant?.grantDate ??
+              (entryIn("employerGrantedStock") ? entryDate : null),
+            taxTrack: holding.employerGrant?.taxTrack ?? null,
+            vestedQuantity: null,
+            unvestedQuantity: null,
+            trusteeHoldingPeriodMet: holding.employerGrant?.holdingPeriodMet ?? false,
+            costBasisAtGrantUSD:
+              holding.employerGrant?.grantPriceUSD ??
+              (entryIn("employerGrantedStock") ? entryPrice : null),
+            estimatedMarginalTaxOnVesting: null,
+            vestingTranches: (holding.employerGrant?.vestingTranches ?? []).map(
+              (tranche, trancheIndex) => ({
+                id: `test-tranche-${index}-${trancheIndex}`,
+                vestDate: tranche.vestDate ?? null,
+                quantity: tranche.quantity,
+                grantPriceUSD: tranche.grantPriceUSD ?? null,
+              }),
+            ),
+          },
+          esppDetails: {
+            purchaseDate: entryIn("employerEsppDiscount") ? entryDate : null,
+            discountPercentage: null,
+            purchasePriceUSD: null,
+            fairMarketValueAtPurchaseUSD: entryIn("employerEsppDiscount") ? entryPrice : null,
+            taxedDiscountValueUSD: null,
+            capitalGainsOnGrowthUSD: null,
+          },
+          personalPurchaseDetails: {
+            purchaseDate: entryIn("personalBrokeragePurchase") ? entryDate : null,
+            averageCostBasisUSD: entryIn("personalBrokeragePurchase") ? entryPrice : null,
+            unrealizedCapitalGainUSD: holding.unrealizedCapitalGainUSD ?? null,
+            capitalGainsTaxRatePercent: holding.capitalGainsTaxRatePercent ?? null,
+          },
+        };
+      }),
     },
     expenses: {
       currentMonthly: currentMonthlyExpenses ?? null,

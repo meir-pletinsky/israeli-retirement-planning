@@ -1,5 +1,11 @@
 import { FieldLabel, type FieldImportance } from "./FieldLabel";
 
+export interface TextSuggestion {
+  value: string;
+  /** Shown next to the value in the browser's suggestion list (for example a company name). */
+  label?: string;
+}
+
 interface TextFieldProps {
   label: string;
   importance?: FieldImportance;
@@ -9,7 +15,7 @@ interface TextFieldProps {
   /** Short hint shown under the input. */
   helperText?: string;
   /** Optional list of suggestions shown via a native datalist; the field stays free text. */
-  suggestions?: string[];
+  suggestions?: Array<string | TextSuggestion>;
   /** Required (and must be unique on the page) when `suggestions` is provided. */
   suggestionsId?: string;
 }
@@ -40,9 +46,11 @@ export function TextField({
       )}
       {suggestions && suggestionsId && (
         <datalist id={suggestionsId}>
-          {suggestions.map((option) => (
-            <option key={option} value={option} />
-          ))}
+          {suggestions.map((option) => {
+            const { value: optionValue, label: optionLabel } =
+              typeof option === "string" ? { value: option, label: undefined } : option;
+            return <option key={optionValue} value={optionValue} label={optionLabel} />;
+          })}
         </datalist>
       )}
     </label>

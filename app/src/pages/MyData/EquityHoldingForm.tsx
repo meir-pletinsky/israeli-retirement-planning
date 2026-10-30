@@ -11,13 +11,18 @@ import type {
   StockHolding,
   TaxTrack,
 } from "../../types";
+import {
+  CATEGORY_ORDER,
+  categoryChangePatch,
+  entryDate,
+  entryDatePatch,
+  entryPricePatch,
+  entryPriceUsd,
+  hasAdvancedDetails,
+} from "./holdingEntry";
 import { VestingTranchesEditor } from "./VestingTranchesEditor";
+import { useStockPriceAutofill } from "./useStockPriceAutofill";
 
-const INVESTMENT_CATEGORIES: InvestmentCategory[] = [
-  "employerGrantedStock",
-  "employerEsppDiscount",
-  "personalBrokeragePurchase",
-];
 const TAX_TRACKS: TaxTrack[] = [
   "section102CapitalGainsTrustee",
   "section102OrdinaryIncomeTrustee",
@@ -43,17 +48,47 @@ export function EquityHoldingForm({
   const quantity = holding.quantity ?? 0;
   const price = holding.currentMarketPriceUSD ?? 0;
   const totalValue = quantity * price;
+  const category = holding.investmentCategory;
+  const detailsOpen = hasAdvancedDetails(holding);
+  const { suggestions, hint } = useStockPriceAutofill(holding, onChange);
+
+  const entryFields = {
+    employerGrantedStock: {
+      dateLabel: f("grantDate"),
+      priceLabel: f("costBasisAtGrantUSD"),
+      priceHelper: f("costBasisAtGrantHelper"),
+      importance: "recommended" as const,
+    },
+    employerEsppDiscount: {
+      dateLabel: f("purchaseDate"),
+      priceLabel: f("esppPriceOnPurchaseDate"),
+      priceHelper: f("esppPriceOnPurchaseDateHelper"),
+      importance: "reference" as const,
+    },
+    personalBrokeragePurchase: {
+      dateLabel: f("purchaseDate"),
+      priceLabel: f("personalPurchasePrice"),
+      priceHelper: f("personalPurchasePriceHelper"),
+      importance: "reference" as const,
+    },
+  };
+  const entry = category
+    ? entryFields[category]
+    : {
+        dateLabel: f("entryDateGeneric"),
+        priceLabel: f("entryPriceGeneric"),
+        priceHelper: f("entryPriceGenericHelper"),
+        importance: "recommended" as const,
+      };
 
   return (
     <div className="flex flex-col gap-4">
       <SelectField
         label={f("investmentCategory")}
         importance="reference"
-        value={holding.investmentCategory}
-        onChange={(v) =>
-          onChange({ investmentCategory: v as InvestmentCategory })
-        }
-        options={INVESTMENT_CATEGORIES.map((v) => ({
+        value={category}
+        onChange={(v) => onChange(categoryChangePatch(holding, v as InvestmentCategory))}
+        options={CATEGORY_ORDER.map((v) => ({
           value: v,
           label: opt("investmentCategory", v),
         }))}
@@ -64,21 +99,10 @@ export function EquityHoldingForm({
           importance="reference"
           value={holding.tickerSymbol}
           onChange={(v) => onChange({ tickerSymbol: v.toUpperCase() })}
+          suggestions={suggestions.length > 0 ? suggestions : undefined}
+          suggestionsId="stock-ticker-suggestions"
+          helperText={suggestions.length > 0 ? f("tickerHelper") : undefined}
         />
-        <TextField
-          label={f("companyName")}
-          importance="reference"
-          value={holding.companyName}
-          onChange={(companyName) => onChange({ companyName })}
-        />
-      </div>
-      <TextField
-        label={f("custodianOrBroker")}
-        importance="reference"
-        value={holding.custodianOrBroker}
-        onChange={(custodianOrBroker) => onChange({ custodianOrBroker })}
-      />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <NumberField
           label={f("quantity")}
           importance="recommended"
@@ -86,39 +110,76 @@ export function EquityHoldingForm({
           onChange={(v) => onChange({ quantity: v })}
           min={0}
         />
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <DateField
+          label={entry.dateLabel}
+          importance={entry.importance}
+          value={entryDate(holding)}
+          onChange={(date) => onChange(entryDatePatch(holding, date))}
+        />
         <NumberField
-          label={f("currentMarketPriceUSD")}
-          importance="recommended"
-          value={holding.currentMarketPriceUSD}
-          onChange={(v) => onChange({ currentMarketPriceUSD: v })}
+          label={entry.priceLabel}
+          importance={entry.importance}
+          helperText={entry.priceHelper}
+          value={entryPriceUsd(holding)}
+          onChange={(v) => onChange(entryPricePatch(holding, v))}
           suffix="$"
           min={0}
         />
       </div>
+      {hint && (
+        <div className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">
+          {hint.entryPriceDate && (
+            <p>
+              {t("myData.steps.equity.fields.priceHintEntry", { date: hint.entryPriceDate })}
+            </p>
+          )}
+          {hint.currentPriceDate && (
+            <p>
+              {t("myData.steps.equity.fields.priceHintCurrent", { date: hint.currentPriceDate })}
+            </p>
+          )}
+          <p className="mt-1">{f("priceHintAdjusted")}</p>
+        </div>
+      )}
+      <NumberField
+        label={f("currentMarketPriceUSD")}
+        importance="recommended"
+        helperText={f("currentMarketPriceHelper")}
+        value={holding.currentMarketPriceUSD}
+        onChange={(v) => onChange({ currentMarketPriceUSD: v })}
+        suffix="$"
+        min={0}
+      />
       <p className="text-sm text-slate-600">
         {f("totalValue")}:{" "}
         <span className="font-semibold text-slate-900">
           ${totalValue.toLocaleString()}
         </span>
       </p>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <TextField
+          label={f("companyName")}
+          importance="reference"
+          value={holding.companyName}
+          onChange={(companyName) => onChange({ companyName })}
+        />
+        <TextField
+          label={f("custodianOrBroker")}
+          importance="reference"
+          value={holding.custodianOrBroker}
+          onChange={(custodianOrBroker) => onChange({ custodianOrBroker })}
+        />
+      </div>
 
-      {holding.investmentCategory === "employerGrantedStock" && (
+      {category === "employerGrantedStock" && (
         <CollapsibleSection
           title={f("sectionEmployerGrantDetails")}
           importance="reference"
-          defaultOpen
+          defaultOpen={detailsOpen}
         >
           <p className="text-xs text-slate-500">{f("employerGrantIntro")}</p>
-          <DateField
-            label={f("grantDate")}
-            importance="recommended"
-            value={employerGrantDetails.grantDate}
-            onChange={(grantDate) =>
-              onChange({
-                employerGrantDetails: { ...employerGrantDetails, grantDate },
-              })
-            }
-          />
           <SelectField
             label={f("taxTrack")}
             importance="recommended"
@@ -158,22 +219,6 @@ export function EquityHoldingForm({
             }
           />
           <NumberField
-            label={f("costBasisAtGrantUSD")}
-            importance="recommended"
-            helperText={f("costBasisAtGrantHelper")}
-            value={employerGrantDetails.costBasisAtGrantUSD}
-            onChange={(v) =>
-              onChange({
-                employerGrantDetails: {
-                  ...employerGrantDetails,
-                  costBasisAtGrantUSD: v,
-                },
-              })
-            }
-            suffix="$"
-            min={0}
-          />
-          <NumberField
             label={f("estimatedMarginalTaxOnVesting")}
             value={employerGrantDetails.estimatedMarginalTaxOnVesting}
             onChange={(v) =>
@@ -190,19 +235,12 @@ export function EquityHoldingForm({
         </CollapsibleSection>
       )}
 
-      {holding.investmentCategory === "employerEsppDiscount" && (
+      {category === "employerEsppDiscount" && (
         <CollapsibleSection
           title={f("sectionEsppDetails")}
           importance="reference"
-          defaultOpen
+          defaultOpen={detailsOpen}
         >
-          <DateField
-            label={f("purchaseDate")}
-            value={esppDetails.purchaseDate}
-            onChange={(purchaseDate) =>
-              onChange({ esppDetails: { ...esppDetails, purchaseDate } })
-            }
-          />
           <NumberField
             label={f("discountPercentage")}
             value={esppDetails.discountPercentage}
@@ -215,33 +253,17 @@ export function EquityHoldingForm({
             min={0}
             max={50}
           />
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <NumberField
-              label={f("purchasePriceUSD")}
-              value={esppDetails.purchasePriceUSD}
-              onChange={(v) =>
-                onChange({
-                  esppDetails: { ...esppDetails, purchasePriceUSD: v },
-                })
-              }
-              suffix="$"
-              min={0}
-            />
-            <NumberField
-              label={f("fairMarketValueAtPurchaseUSD")}
-              value={esppDetails.fairMarketValueAtPurchaseUSD}
-              onChange={(v) =>
-                onChange({
-                  esppDetails: {
-                    ...esppDetails,
-                    fairMarketValueAtPurchaseUSD: v,
-                  },
-                })
-              }
-              suffix="$"
-              min={0}
-            />
-          </div>
+          <NumberField
+            label={f("purchasePriceUSD")}
+            value={esppDetails.purchasePriceUSD}
+            onChange={(v) =>
+              onChange({
+                esppDetails: { ...esppDetails, purchasePriceUSD: v },
+              })
+            }
+            suffix="$"
+            min={0}
+          />
           <NumberField
             label={f("taxedDiscountValueUSD")}
             value={esppDetails.taxedDiscountValueUSD}
@@ -267,39 +289,11 @@ export function EquityHoldingForm({
         </CollapsibleSection>
       )}
 
-      {holding.investmentCategory === "personalBrokeragePurchase" && (
+      {category === "personalBrokeragePurchase" && (
         <CollapsibleSection
           title={f("sectionPersonalPurchaseDetails")}
-          defaultOpen
+          defaultOpen={detailsOpen}
         >
-          <DateField
-            label={f("purchaseDate")}
-            importance="reference"
-            value={personalPurchaseDetails.purchaseDate}
-            onChange={(purchaseDate) =>
-              onChange({
-                personalPurchaseDetails: {
-                  ...personalPurchaseDetails,
-                  purchaseDate,
-                },
-              })
-            }
-          />
-          <NumberField
-            label={f("averageCostBasisUSD")}
-            importance="reference"
-            value={personalPurchaseDetails.averageCostBasisUSD}
-            onChange={(v) =>
-              onChange({
-                personalPurchaseDetails: {
-                  ...personalPurchaseDetails,
-                  averageCostBasisUSD: v,
-                },
-              })
-            }
-            suffix="$"
-            min={0}
-          />
           <NumberField
             label={f("unrealizedCapitalGainUSD")}
             value={personalPurchaseDetails.unrealizedCapitalGainUSD}

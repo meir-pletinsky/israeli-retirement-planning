@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "stock-data": "node scripts/stock-data/cli.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",

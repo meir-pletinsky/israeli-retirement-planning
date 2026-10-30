@@ -3,6 +3,9 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  # Daily refresh of the stock price files that are published with the app.
+  schedule:
+    - cron: "17 5 * * *"
   workflow_dispatch:
 
 permissions:
@@ -31,6 +34,39 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      # The price files (public/stock-data) are not committed. The last good set is kept in the
+      # Actions cache, so a normal push does not download the ~100 MB dataset again.
+      - name: Restore stock price files
+        id: stock-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: app/public/stock-data
+          key: stock-data-${{ github.run_id }}
+          restore-keys: stock-data-
+
+      # Runs on the daily schedule, on a manual run, and on any run that has no cached files yet.
+      # The script only replaces the files after the new set passed its checks, so when it fails
+      # the app is still deployed with the cached files (or without price files if there are none).
+      - name: Refresh stock price files
+        id: stock-refresh
+        if: github.event_name != 'push' || steps.stock-cache.outputs.cache-matched-key == ''
+        continue-on-error: true
+        run: npm run stock-data
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+
+      - name: Warn when the refresh failed
+        if: steps.stock-refresh.outcome == 'failure'
+        run: echo "::warning title=Stock price refresh failed::Deploying with the previously cached price files, if any."
+
+      - name: Save stock price files
+        if: steps.stock-refresh.outcome == 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: app/public/stock-data
+          key: stock-data-${{ github.run_id }}
 
       - name: Build
         run: npm run build

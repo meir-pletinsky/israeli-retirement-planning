@@ -67,6 +67,9 @@ fuller cross-machine setup/resume guide.
   — analysis of the real Pension Clearing House XML files: schema, code
   tables, field-by-field mapping to the app, edge cases and test plan, plus
   notes on how the importer (built) differs from the spec.
+- [`docs/stock-price-data-design.md`](docs/stock-price-data-design.md) — the
+  daily job that publishes S&P 500 price files with the app, and how the stock
+  dialog uses them to suggest tickers and fill prices.
 - [`app/`](app) — the application (evolved from the original click-through
   prototype; same stack, now with real persistence and calculations).
 

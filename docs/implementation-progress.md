@@ -22,8 +22,10 @@ early-retirement health tax) as Phase L, Section 102 employer stock tax
 as Phase M, and its follow-ups (contributions on the ordinary part, vesting
 batches, a constants check) as Phase N, the Pension Clearing House import
 (read a zip or XML files, review, apply) as Phase O, the calculation trace
-with its offline verification pack as Phase P, and the read-only summary tables
-on the My Data steps as Phase Q.
+with its offline verification pack as Phase P, the read-only summary tables
+on the My Data steps as Phase Q, and the simple purchase / grant entry with
+per-category equity tables as Phase S (Phase R is the Bridge Planner design), and
+the daily stock price files with ticker suggestions and price autofill as Phase T.
 
 ## Phase A — Project setup & infra
 
@@ -777,7 +779,7 @@ importing the clearing-house report, and above the "Which fields matter?" card.
 - [x] Q3. **Equity & Investments** (`EquitySummaryTable.tsx`): ticker and company,
       category, custodian, quantity, price, value in USD and in ILS, with totals
       and a note on the fixed exchange rate (`holdingValueIls`, now exported from
-      `domain`).
+      `domain`). Phase S replaced the single table with one table per category.
 - [x] Q4. **Shared pieces:** `SummaryTable.tsx` (read-only table with a totals row,
       scrolls sideways on a narrow screen, figures in `dir="ltr"` so they read the
       same in Hebrew) and `summaryFormat.ts`. Texts under `myData.summary` in en,
@@ -825,6 +827,106 @@ Waiting for the user's review.
 - [ ] R5. Per-source cost table (tax per ₪100 net, what you give up).
 - [ ] R6. Stress tests (employer-stock haircut, USD/ILS move).
 - [ ] R7. Investment-gemel annuity route from 60 (rule U), if wanted.
+
+## Phase S — Simple purchase / grant entry and per-category summary tables
+
+The user asked to help enter stock (ESOP, ESPP, private investment) in the "Stock /
+equity holding" dialog: first just category, stock symbol, quantity, purchase or
+grant date and share price; second, a separate summary table per category on
+Equity & Investments. "Share price" is the price on the purchase or grant date;
+the current price stays a separate field because it gives the holding its value.
+
+- [x] S1. **Entry form** (`EquityHoldingForm.tsx`): category, ticker, quantity, the
+      date and the price on that date, current price, total value; company and
+      custodian below. The date and price are always shown. Before a category is
+      chosen they have generic labels ("Purchase / grant date", "Share price on
+      that date"); the entry is kept in all three categories' fields, and choosing a
+      category (`categoryChangePatch`) moves it into that category's fields and
+      clears the others, so changing the category later carries it over. Everything
+      else (tax track, vesting batches, 24-month
+      flag, ESPP discount and price paid, unrealized gain, tax rate) sits in one
+      "More details" section per category, collapsed unless the holding already
+      has a value there, so editing an existing holding still shows its settings.
+- [x] S2. **No new fields, no calculation change.** `holdingEntry.ts` maps the
+      date and price onto the existing fields, so the Section 102 and tax logic
+      reads the same values as before:
+
+      | Category | Date | Price on that date |
+      |---|---|---|
+      | ESOP / RSU | `employerGrantDetails.grantDate` | `costBasisAtGrantUSD` |
+      | ESPP | `esppDetails.purchaseDate` | `fairMarketValueAtPurchaseUSD` (market price that day, before the discount; the price paid stays under "More details") |
+      | Private | `personalPurchaseDetails.purchaseDate` | `averageCostBasisUSD` |
+
+- [x] S3. **Per-category tables** (`EquitySummaryTable.tsx`): one read-only table each
+      for ESOP / RSU, ESPP, private investments and holdings with no category;
+      empty ones are hidden. Columns: ticker and company, custodian, quantity, date
+      and price on that date (generic headers for uncategorised), current price,
+      value in USD and ILS, with totals. When more than one table shows, a line gives the total
+      across categories; the exchange-rate note appears once.
+- [x] S4. **Tests** (invented data only): `holdingEntry.test.ts` (mapping, the
+      no-category entry, `categoryChangePatch`, "has advanced details"),
+      `EquityStep.test.tsx` (saving each category's date and price, entering them
+      before a category and carrying them over, collapsed and auto-opened details),
+      `SummaryTables.test.tsx` (per-category tables, totals, hidden empty ones,
+      missing cells). The test fixture `buildTestProfile` gained `category`,
+      `ticker` and `entry`.
+
+Behavior change: none to any calculation. The entry is a single purchase or grant
+(no lots): a second purchase is a second holding with its own current price.
+
+Caveat: today only the ESOP / RSU price and date feed the tax result (grant price
+in `employerLots`). For ESPP and private holdings the tax uses the hand-entered
+unrealized gain and rate under "More details"; the entered purchase price and date
+are reference only.
+
+Open: derive a private holding's unrealized gain from (current − purchase price) ×
+quantity instead of asking for it (would change the tax result); a field for sale
+transaction expenses (Section 102 deducts them); one current price per ticker
+instead of per entry; purchase lots (Bridge Planner R4).
+
+## Phase T — Stock price data, ticker suggestions and price autofill
+
+A daily job caches the S&P 500 price history as one JSON file per stock and publishes it
+with the app. In the "Stock / equity holding" dialog the ticker suggests those stocks and,
+once it is one of them, the app fills the price on the purchase or grant date, today's
+price and the company name. Typed values always win. Design, the dividend-adjusted
+finding and open items: [`docs/stock-price-data-design.md`](stock-price-data-design.md).
+
+- [x] T1. **Data job** (`app/scripts/stock-data/`, run with `npm run stock-data`):
+      downloads the Kaggle dataset zip, streams the CSV (RFC 4180 parser), writes
+      `public/stock-data/_index.json` and `<TICKER>.json` (dates and closes as parallel
+      lists). Checks the set (at least 400 symbols, newest price at most 7 days old)
+      before swapping it in, so a bad run never replaces good files. Real run: 503
+      stocks, 2.95M rows, about 18 s, 58 MB.
+- [x] T2. **Workflow** (`.github/workflows/deploy.yml`): daily schedule next to push and
+      manual runs; the last good files are kept in the Actions cache; a failed refresh
+      deploys with the cached files and shows a warning. Not testable locally: run it
+      once from the Actions tab after the first push.
+- [x] T3. **App side** (`app/src/stockPrices/`): `format.ts` (file shape, shared with
+      the job), `lookup.ts` (last trading day on or before a date, up to 10 days back),
+      `client.ts` (fetch, validate the JSON because Pages answers a missing file with an
+      HTML page, cache; null on any failure).
+- [x] T4. **Form** (`MyData/useStockPriceAutofill.ts`, `EquityHoldingForm.tsx`,
+      `TextField.tsx`): ticker suggestions with company names (other tickers still
+      allowed), the fill rules (an empty field is filled once, a filled value follows
+      the date, a typed or deleted value is left alone, a ticker change clears what was
+      filled) and a note under the price saying which trading day it is from. Texts in
+      en, he and ru.
+- [x] T5. **Tests** (invented symbols only): `csv`, `build` and `dataset` tests for the
+      job (the dataset test builds a small zip), `lookup` and `client` tests, and
+      `StockPriceAutofill.test.tsx` (suggestions, fill, weekend fallback, no overwrite,
+      ticker change, unlisted ticker, editing an existing holding, offline).
+
+Behavior change: none to any calculation. The prices only fill form fields.
+
+Known limitation: the dataset's close is the dividend- and split-adjusted close, so an
+older price for a dividend payer is lower than the price quoted that day (KO: about −30%
+for 2015). The user accepted this for now; the dialog says so. The source can be swapped
+later without touching the app.
+
+Open: the dataset's license for republishing, a source with real closes, coverage beyond
+the S&P 500 (Israeli-employer stocks such as CHKP and WIX), ticker spelling for share
+classes, an opt-out for lookups in Settings. All in `docs/stock-price-data-design.md`.
 
 ## Modeling assumptions (by phase)
 
