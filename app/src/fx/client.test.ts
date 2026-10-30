@@ -4,6 +4,8 @@ import { loadUsdIlsRate, resetFxCache } from "./client";
 
 const TODAY = { date: "2026-10-30", base: "USD", quote: "ILS", rate: 3.118 };
 const FRIDAY = { date: "2019-03-15", base: "USD", quote: "ILS", rate: 3.604 };
+const NOW = new Date("2026-06-15T12:00:00Z");
+const MINUTE_MS = 60 * 1000;
 
 function jsonResponse(body: unknown, ok = true) {
   return Promise.resolve({ ok, json: () => Promise.resolve(body) } as Response);
@@ -14,11 +16,13 @@ const fetchMock = vi.fn<typeof fetch>();
 beforeEach(() => {
   resetFxCache();
   fetchMock.mockReset();
+  vi.setSystemTime(NOW);
   vi.stubGlobal("fetch", fetchMock);
 });
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.setSystemTime(NOW);
 });
 
 describe("loadUsdIlsRate", () => {
@@ -47,6 +51,23 @@ describe("loadUsdIlsRate", () => {
     expect((await loadUsdIlsRate())?.rate).toBe(3.118);
     expect((await loadUsdIlsRate("2019-03-15"))?.rate).toBe(3.604);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("asks for the latest rate again after an hour, but never for a date's rate again", async () => {
+    fetchMock.mockImplementation((url) => jsonResponse(String(url).includes("date=") ? FRIDAY : TODAY));
+    await loadUsdIlsRate();
+    await loadUsdIlsRate("2019-03-15");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    vi.setSystemTime(NOW.getTime() + 30 * MINUTE_MS);
+    await loadUsdIlsRate();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    vi.setSystemTime(NOW.getTime() + 60 * MINUTE_MS);
+    await loadUsdIlsRate();
+    await loadUsdIlsRate("2019-03-15");
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls[2][0]).not.toMatch(/date=/);
   });
 
   it("gives null when offline, and tries again next time", async () => {

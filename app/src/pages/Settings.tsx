@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 
 import { exportProfileToFile, importProfileFromFile } from "../storage/profileIO";
 import { useProfile } from "../app/ProfileContext";
+import { useLatestUsdIlsRate } from "../app/useLatestUsdIlsRate";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { CheckboxField } from "../components/fields/CheckboxField";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
@@ -21,6 +22,7 @@ export function Settings() {
     fxLookupEnabled,
     setFxLookupEnabled,
   } = useProfile();
+  const { rate: latestRate, settled: rateSettled } = useLatestUsdIlsRate(fxLookupEnabled);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [toastTone, setToastTone] = useState<"default" | "error">("default");
@@ -67,6 +69,19 @@ export function Settings() {
           checked={fxLookupEnabled}
           onChange={setFxLookupEnabled}
         />
+        {fxLookupEnabled && (
+          <p role="status" className="mt-3 text-sm text-slate-700">
+            {latestRate
+              ? t("settings.fxCurrent", {
+                  rate: latestRate.rate.toLocaleString(undefined, {
+                    minimumFractionDigits: 3,
+                    maximumFractionDigits: 4,
+                  }),
+                  date: latestRate.date,
+                })
+              : t(rateSettled ? "settings.fxCurrentUnavailable" : "settings.fxCurrentLoading")}
+          </p>
+        )}
         <p className="mt-2 text-xs text-slate-500">{t("settings.fxLookupPrivacy")}</p>
       </section>
 

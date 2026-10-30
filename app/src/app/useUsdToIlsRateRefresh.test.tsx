@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -26,6 +26,8 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+  vi.setSystemTime(new Date("2026-06-15T12:00:00Z"));
 });
 
 function Probe() {
@@ -74,6 +76,23 @@ describe("useUsdToIlsRateRefresh", () => {
     renderWithProviders(<Probe />);
 
     await waitFor(() => expect(rate()).toHaveTextContent("3.118 | 2026-10-30"));
+  });
+
+  it("checks again every hour and keeps the profile's rate up to date", async () => {
+    const setIntervalSpy = vi.spyOn(globalThis, "setInterval");
+    await saveProfileToDb(buildTestProfile({ age: 50, equity: HOLDINGS }));
+    renderWithProviders(<Probe />);
+    await waitFor(() => expect(rate()).toHaveTextContent("3.118 | 2026-10-30"));
+
+    const check = setIntervalSpy.mock.calls.find((call) => call[1] === 60 * 60 * 1000);
+    if (!check) throw new Error("no hourly check was started");
+    fetchMock.mockImplementation(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve({ ...TODAY, date: "2026-10-31", rate: 3.2 }) } as Response),
+    );
+    vi.setSystemTime(Date.now() + 60 * 60 * 1000);
+    act(() => (check[0] as () => void)());
+
+    await waitFor(() => expect(rate()).toHaveTextContent("3.2 | 2026-10-31"));
   });
 
   it("never replaces a rate the user typed, and does not even ask", async () => {
