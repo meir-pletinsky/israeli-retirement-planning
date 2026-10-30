@@ -243,6 +243,8 @@ export interface EmployerGrantDetails {
   trusteeHoldingPeriodMet: boolean;
   /** Share price at the grant date, for the shares not listed as a vesting tranche. */
   costBasisAtGrantUSD: number | null;
+  /** Shekels per US dollar on the grant date; recorded for reference, not used in the calculations yet. */
+  usdToIlsRateAtGrant: number | null;
   estimatedMarginalTaxOnVesting: number | null;
   /**
    * Batches of the holding's shares acquired on other dates. They are part of
@@ -259,6 +261,7 @@ export const EMPTY_EMPLOYER_GRANT_DETAILS: EmployerGrantDetails = {
   unvestedQuantity: null,
   trusteeHoldingPeriodMet: false,
   costBasisAtGrantUSD: null,
+  usdToIlsRateAtGrant: null,
   estimatedMarginalTaxOnVesting: null,
   vestingTranches: [],
 };
@@ -268,6 +271,8 @@ export interface EsppDetails {
   discountPercentage: number | null;
   purchasePriceUSD: number | null;
   fairMarketValueAtPurchaseUSD: number | null;
+  /** Shekels per US dollar on the purchase date; recorded for reference, not used in the calculations yet. */
+  usdToIlsRateAtPurchase: number | null;
   taxedDiscountValueUSD: number | null;
   capitalGainsOnGrowthUSD: number | null;
 }
@@ -275,6 +280,8 @@ export interface EsppDetails {
 export interface PersonalPurchaseDetails {
   purchaseDate: string | null;
   averageCostBasisUSD: number | null;
+  /** Shekels per US dollar on the purchase date; recorded for reference, not used in the calculations yet. */
+  usdToIlsRateAtPurchase: number | null;
   unrealizedCapitalGainUSD: number | null;
   capitalGainsTaxRatePercent: number | null;
 }
@@ -307,12 +314,14 @@ export function createEmptyStockHolding(): StockHolding {
       discountPercentage: null,
       purchasePriceUSD: null,
       fairMarketValueAtPurchaseUSD: null,
+      usdToIlsRateAtPurchase: null,
       taxedDiscountValueUSD: null,
       capitalGainsOnGrowthUSD: null,
     },
     personalPurchaseDetails: {
       purchaseDate: null,
       averageCostBasisUSD: null,
+      usdToIlsRateAtPurchase: null,
       unrealizedCapitalGainUSD: null,
       capitalGainsTaxRatePercent: 25,
     },
@@ -321,6 +330,13 @@ export function createEmptyStockHolding(): StockHolding {
 
 export interface EquityData {
   holdings: StockHolding[];
+  /**
+   * Shekels per US dollar used to value the holdings; null = the built-in fallback rate.
+   * With a `usdToIlsRateDate` it is the Bank of Israel rate of that day, kept up to date by the
+   * app. Without one the user typed it, and it is never replaced by a lookup.
+   */
+  usdToIlsRate: number | null;
+  usdToIlsRateDate: string | null;
 }
 
 export interface ExpensesData {
@@ -399,11 +415,16 @@ export const EMPTY_PROFILE: ProfileData = {
   },
   bituachLeumi: { ...EMPTY_BITUACH_LEUMI },
   pensionSavings: { accounts: [], otherAssets: null },
-  equity: { holdings: [] },
+  equity: { holdings: [], usdToIlsRate: null, usdToIlsRateDate: null },
   expenses: { currentMonthly: null, retirementMonthly: null },
   assumptions: { preset: "base", ...ASSUMPTION_PRESETS.base },
   comparisonAges: null,
 };
+
+/** An exchange rate is a positive number; anything else (missing, zero, text from a hand-edited file) is no rate. */
+function validRate(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
+}
 
 function isComparisonAges(value: unknown): value is [number, number, number] {
   return (
@@ -463,14 +484,14 @@ export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined
   if (!Array.isArray(merged.equity?.holdings)) {
     merged.equity = EMPTY_PROFILE.equity;
   } else {
-    // Holdings saved before vesting tranches existed lack `vestingTranches`.
+    // Holdings saved before vesting tranches or exchange rates existed lack those fields.
     merged.equity = {
-      ...merged.equity,
       holdings: merged.equity.holdings.map((holding) => ({
         ...holding,
         employerGrantDetails: {
           ...EMPTY_EMPLOYER_GRANT_DETAILS,
           ...holding.employerGrantDetails,
+          usdToIlsRateAtGrant: validRate(holding.employerGrantDetails?.usdToIlsRateAtGrant),
           vestingTranches: Array.isArray(holding.employerGrantDetails?.vestingTranches)
             ? holding.employerGrantDetails.vestingTranches.map((tranche) => ({
                 ...createEmptyVestingTranche(),
@@ -478,7 +499,21 @@ export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined
               }))
             : [],
         },
+        esppDetails: {
+          ...holding.esppDetails,
+          usdToIlsRateAtPurchase: validRate(holding.esppDetails?.usdToIlsRateAtPurchase),
+        },
+        personalPurchaseDetails: {
+          ...holding.personalPurchaseDetails,
+          usdToIlsRateAtPurchase: validRate(holding.personalPurchaseDetails?.usdToIlsRateAtPurchase),
+        },
       })),
+      usdToIlsRate: validRate(merged.equity.usdToIlsRate),
+      usdToIlsRateDate:
+        validRate(merged.equity.usdToIlsRate) !== null &&
+        typeof merged.equity.usdToIlsRateDate === "string"
+          ? merged.equity.usdToIlsRateDate
+          : null,
     };
   }
   return merged;

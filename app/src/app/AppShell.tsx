@@ -4,6 +4,7 @@ import { NavLink, Outlet } from "react-router-dom";
 
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { LogoMark } from "../components/LogoMark";
+import { useUsdToIlsRateRefresh } from "./useUsdToIlsRateRefresh";
 
 const NAV_ITEMS = [
   { to: "/dashboard", key: "nav.dashboard", icon: "🏠" },
@@ -14,6 +15,7 @@ const NAV_ITEMS = [
 
 export function AppShell() {
   const { t } = useTranslation();
+  useUsdToIlsRateRefresh();
 
   return (
     <div className="flex min-h-screen flex-col bg-surface md:flex-row">

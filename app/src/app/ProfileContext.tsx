@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -10,9 +11,11 @@ import {
 
 import {
   clearAllData,
+  loadFxLookupEnabledFromDb,
   loadOnboardedFromDb,
   loadProfileFromDb,
   migrateLegacyLocalStorageIfNeeded,
+  saveFxLookupEnabledToDb,
   saveOnboardedToDb,
   saveProfileToDb,
 } from "../storage/db";
@@ -33,6 +36,16 @@ interface ProfileContextValue {
   onboarded: boolean;
   completeOnboarding: () => void;
   resetProfile: () => void;
+  /** Whether the app may ask the Frankfurter service for exchange rates; a preference, not part of the profile. */
+  fxLookupEnabled: boolean;
+  setFxLookupEnabled: (enabled: boolean) => void;
+  /**
+   * Sets the dollar rate that values the equity holdings. A rate with a date is the Bank of
+   * Israel's; without a date it is the user's own and no lookup replaces it. Null goes back to
+   * the built-in fallback. Applies to the latest profile, so a lookup that finishes while the
+   * user is typing cannot undo their edits.
+   */
+  setUsdToIlsRate: (rate: number | null, date: string | null) => void;
 }
 
 const ProfileContext = createContext<ProfileContextValue | undefined>(
@@ -42,6 +55,7 @@ const ProfileContext = createContext<ProfileContextValue | undefined>(
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<ProfileData>(EMPTY_PROFILE);
   const [onboarded, setOnboarded] = useState(false);
+  const [fxLookupEnabled, setFxLookupEnabled] = useState(true);
   const [isReady, setIsReady] = useState(false);
   const hasLoadedRef = useRef(false);
 
@@ -53,13 +67,15 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     void (async () => {
       await migrateLegacyLocalStorageIfNeeded();
-      const [storedProfile, storedOnboarded] = await Promise.all([
+      const [storedProfile, storedOnboarded, storedFxLookup] = await Promise.all([
         loadProfileFromDb(),
         loadOnboardedFromDb(),
+        loadFxLookupEnabledFromDb(),
       ]);
       if (cancelled) return;
       if (storedProfile) setProfile(normalizeProfile(storedProfile));
       setOnboarded(storedOnboarded);
+      setFxLookupEnabled(storedFxLookup);
       hasLoadedRef.current = true;
       setIsReady(true);
     })();
@@ -78,7 +94,23 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     void saveOnboardedToDb(onboarded);
   }, [onboarded]);
 
+  useEffect(() => {
+    if (!hasLoadedRef.current) return;
+    void saveFxLookupEnabledToDb(fxLookupEnabled);
+  }, [fxLookupEnabled]);
+
   const hasData = useMemo(() => hasProfileData(profile), [profile]);
+
+  const setUsdToIlsRate = useCallback(
+    (usdToIlsRate: number | null, usdToIlsRateDate: string | null) =>
+      setProfile((prev) =>
+        prev.equity.usdToIlsRate === usdToIlsRate &&
+        prev.equity.usdToIlsRateDate === usdToIlsRateDate
+          ? prev
+          : { ...prev, equity: { ...prev.equity, usdToIlsRate, usdToIlsRateDate } },
+      ),
+    [],
+  );
 
   const value = useMemo<ProfileContextValue>(
     () => ({
@@ -91,9 +123,13 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         void clearAllData();
         setProfile(EMPTY_PROFILE);
         setOnboarded(false);
+        setFxLookupEnabled(true);
       },
+      fxLookupEnabled,
+      setFxLookupEnabled,
+      setUsdToIlsRate,
     }),
-    [profile, onboarded, hasData],
+    [profile, onboarded, hasData, fxLookupEnabled, setUsdToIlsRate],
   );
 
   if (!isReady) return null;

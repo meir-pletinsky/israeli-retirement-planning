@@ -7,11 +7,13 @@ import {
 } from "./constants";
 import {
   aggregateCurrentNetWorth,
+  holdingValueIls,
   projectBalanceAtAge,
   projectNetWorth,
   realAnnualReturnRate,
   resolveCurrentAge,
   resolveRetirementAge,
+  usdToIlsRate,
 } from "./netWorth";
 
 describe("resolveCurrentAge", () => {
@@ -78,8 +80,46 @@ describe("aggregateCurrentNetWorth", () => {
     expect(aggregateCurrentNetWorth(profile)).toBeCloseTo(expected, 5);
   });
 
+  it("values equity at the profile's dollar rate when it has one", () => {
+    const profile = buildTestProfile({
+      otherAssets: 20_000,
+      usdToIlsRate: { rate: 3.118, date: "2026-10-30" },
+      equity: [{ quantity: 10, priceUSD: 100 }],
+    });
+    expect(aggregateCurrentNetWorth(profile)).toBeCloseTo(20_000 + 1000 * 3.118, 5);
+  });
+
   it("is zero for a fully empty profile", () => {
     expect(aggregateCurrentNetWorth(buildTestProfile({}))).toBe(0);
+  });
+});
+
+describe("usdToIlsRate", () => {
+  it("is the profile's rate, looked up or typed by the user", () => {
+    expect(usdToIlsRate(buildTestProfile({ usdToIlsRate: { rate: 3.2, date: "2026-10-30" } }))).toBe(3.2);
+    expect(usdToIlsRate(buildTestProfile({ usdToIlsRate: { rate: 3.3 } }))).toBe(3.3);
+  });
+
+  it("falls back to the built-in rate when the profile has none or an unusable one", () => {
+    expect(usdToIlsRate(buildTestProfile({}))).toBe(FALLBACK_USD_TO_ILS_RATE);
+    expect(usdToIlsRate(buildTestProfile({ usdToIlsRate: { rate: 0 } }))).toBe(FALLBACK_USD_TO_ILS_RATE);
+    expect(usdToIlsRate(buildTestProfile({ usdToIlsRate: { rate: Number.NaN } }))).toBe(
+      FALLBACK_USD_TO_ILS_RATE,
+    );
+  });
+});
+
+describe("holdingValueIls", () => {
+  const [holding] = buildTestProfile({ equity: [{ quantity: 10, priceUSD: 100 }] }).equity.holdings;
+
+  it("is quantity times price times the rate", () => {
+    expect(holdingValueIls(holding, 3)).toBe(3000);
+    expect(holdingValueIls(holding, 3.5)).toBe(3500);
+  });
+
+  it("is zero while the quantity or price is missing", () => {
+    expect(holdingValueIls({ ...holding, quantity: null }, 3)).toBe(0);
+    expect(holdingValueIls({ ...holding, currentMarketPriceUSD: null }, 3)).toBe(0);
   });
 });
 

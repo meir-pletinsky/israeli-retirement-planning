@@ -18,9 +18,13 @@ import {
   entryDatePatch,
   entryPricePatch,
   entryPriceUsd,
+  entryRate,
+  entryRatePatch,
   hasAdvancedDetails,
+  type HoldingChange,
 } from "./holdingEntry";
 import { VestingTranchesEditor } from "./VestingTranchesEditor";
+import { useEntryRateAutofill } from "./useEntryRateAutofill";
 import { useStockPriceAutofill } from "./useStockPriceAutofill";
 
 const TAX_TRACKS: TaxTrack[] = [
@@ -31,7 +35,7 @@ const TAX_TRACKS: TaxTrack[] = [
 
 interface EquityHoldingFormProps {
   holding: StockHolding;
-  onChange: (patch: Partial<StockHolding>) => void;
+  onChange: (change: HoldingChange) => void;
 }
 
 export function EquityHoldingForm({
@@ -51,6 +55,7 @@ export function EquityHoldingForm({
   const category = holding.investmentCategory;
   const detailsOpen = hasAdvancedDetails(holding);
   const { suggestions, hint } = useStockPriceAutofill(holding, onChange);
+  const rateHint = useEntryRateAutofill(holding, onChange);
 
   const entryFields = {
     employerGrantedStock: {
@@ -128,19 +133,36 @@ export function EquityHoldingForm({
           min={0}
         />
       </div>
-      {hint && (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <NumberField
+          label={f("entryRate")}
+          importance="reference"
+          helperText={f("entryRateHelper")}
+          value={entryRate(holding)}
+          onChange={(v) => onChange(entryRatePatch(holding, v))}
+          suffix="₪"
+          min={0}
+          step={0.0001}
+        />
+      </div>
+      {(hint || rateHint) && (
         <div className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">
-          {hint.entryPriceDate && (
+          {hint?.entryPriceDate && (
             <p>
               {t("myData.steps.equity.fields.priceHintEntry", { date: hint.entryPriceDate })}
             </p>
           )}
-          {hint.currentPriceDate && (
+          {hint?.currentPriceDate && (
             <p>
               {t("myData.steps.equity.fields.priceHintCurrent", { date: hint.currentPriceDate })}
             </p>
           )}
-          <p className="mt-1">{f("priceHintAdjusted")}</p>
+          {hint && <p className="mt-1">{f("priceHintAdjusted")}</p>}
+          {rateHint && (
+            <p className={hint ? "mt-1" : undefined}>
+              {t("myData.steps.equity.fields.rateHint", { date: rateHint.rateDate })}
+            </p>
+          )}
         </div>
       )}
       <NumberField

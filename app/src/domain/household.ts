@@ -119,7 +119,7 @@ export function spouseProfileView(profile: ProfileData): ProfileData {
       otherAssets: null,
       accounts: spouseAccounts(profile).map((account) => ({ ...account, owner: "self" })),
     },
-    equity: { holdings: [] },
+    equity: EMPTY_PROFILE.equity,
   };
 }
 

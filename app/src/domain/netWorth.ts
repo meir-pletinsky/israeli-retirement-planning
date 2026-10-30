@@ -18,6 +18,7 @@ export {
   realAnnualReturnRate,
   resolveCurrentAge,
   resolveRetirementAge,
+  usdToIlsRate,
   yearsToRetirement,
 } from "./profileBasics";
 

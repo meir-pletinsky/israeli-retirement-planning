@@ -37,6 +37,7 @@ export const db = new IrpDatabase();
 
 const PROFILE_ID = "current";
 const ONBOARDED_KEY = "onboarded";
+const FX_LOOKUP_OFF_KEY = "fxLookupOff";
 
 export async function loadProfileFromDb(): Promise<ProfileData | undefined> {
   const record = await db.profile.get(PROFILE_ID);
@@ -54,6 +55,16 @@ export async function loadOnboardedFromDb(): Promise<boolean> {
 
 export async function saveOnboardedToDb(value: boolean): Promise<void> {
   await db.meta.put({ key: ONBOARDED_KEY, value });
+}
+
+/** Whether the user allows looking up exchange rates online; on until they turn it off. */
+export async function loadFxLookupEnabledFromDb(): Promise<boolean> {
+  const record = await db.meta.get(FX_LOOKUP_OFF_KEY);
+  return !(record?.value ?? false);
+}
+
+export async function saveFxLookupEnabledToDb(enabled: boolean): Promise<void> {
+  await db.meta.put({ key: FX_LOOKUP_OFF_KEY, value: !enabled });
 }
 
 /** Wipes all locally stored app data (used by Settings → Reset). */

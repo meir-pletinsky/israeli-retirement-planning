@@ -6,7 +6,7 @@ import type {
   TaxTrack,
 } from "../types";
 import { ACCESS_RULES } from "./accessRules";
-import { DEFAULT_CURRENT_AGE, FALLBACK_USD_TO_ILS_RATE } from "./constants";
+import { DEFAULT_CURRENT_AGE } from "./constants";
 import {
   contributionSalaryBase,
   futureValueOfMonthlyContributions,
@@ -18,6 +18,7 @@ import {
   ownAccounts,
   realAnnualReturnRate,
   resolveCurrentAge,
+  usdToIlsRate,
 } from "./profileBasics";
 import { TAX_RATES } from "./taxRates";
 import {
@@ -138,6 +139,15 @@ function taxTreatmentForCategory(category: ProductCategory | null): TaxTreatment
   }
 }
 
+/** Where the dollar rate behind a trace note came from. */
+function fxRateOrigin(profile: ProfileData): string {
+  const { usdToIlsRate: stored, usdToIlsRateDate: date } = profile.equity;
+  if (stored !== usdToIlsRate(profile)) return "FALLBACK_USD_TO_ILS_RATE, as the profile holds no rate";
+  return date
+    ? `Bank of Israel rate of ${date}, from profile.equity.usdToIlsRate`
+    : "entered by the user, profile.equity.usdToIlsRate";
+}
+
 /**
  * Cost basis and tax rate of the non-pension investments bucket. Without
  * declared unrealized gains the whole balance counts as basis, so no gain is
@@ -152,15 +162,16 @@ function otherInvestmentsTaxProfile(
   nonTrustee: EquitySplit["nonTrustee"],
 ): { costBasis: number; rate: number; value: number; gains: number; weightedRate: number } {
   const defaultRate = TAX_RATES.capitalGainsRate;
+  const fxRate = usdToIlsRate(profile);
   const otherAssets = profile.pensionSavings.otherAssets ?? 0;
   let value = otherAssets + nonTrustee.value;
   let gains = nonTrustee.value - nonTrustee.grantValue;
   let weightedRate = (otherAssets + nonTrustee.value) * defaultRate;
   for (const holding of holdings) {
-    const holdingValue = holdingValueIls(holding);
+    const holdingValue = holdingValueIls(holding, fxRate);
     const details = holding.personalPurchaseDetails;
     gains += Math.min(
-      Math.max(details.unrealizedCapitalGainUSD ?? 0, 0) * FALLBACK_USD_TO_ILS_RATE,
+      Math.max(details.unrealizedCapitalGainUSD ?? 0, 0) * fxRate,
       holdingValue,
     );
     weightedRate +=
@@ -255,9 +266,13 @@ interface EmployerLot {
  * employee nothing, so a lot's grant value is the part of its proceeds that
  * is ordinary income (Section 102) or already-taxed income (Section 3(i)).
  */
-function employerLots(holding: StockHolding, yearsToRetirement: number): EmployerLot[] {
+function employerLots(
+  holding: StockHolding,
+  yearsToRetirement: number,
+  fxRate: number,
+): EmployerLot[] {
   const details = holding.employerGrantDetails;
-  const shareValue = (holding.currentMarketPriceUSD ?? 0) * FALLBACK_USD_TO_ILS_RATE;
+  const shareValue = (holding.currentMarketPriceUSD ?? 0) * fxRate;
   const holdingGrantPrice = Math.max(details.costBasisAtGrantUSD ?? 0, 0);
   const total = Math.max(holding.quantity ?? 0, 0);
   const tranches = details.vestingTranches.filter((tranche) => (tranche.quantity ?? 0) > 0);
@@ -268,7 +283,7 @@ function employerLots(holding: StockHolding, yearsToRetirement: number): Employe
     const value = quantity * shareValue;
     return {
       value,
-      grantValue: Math.min(quantity * grantPriceUSD * FALLBACK_USD_TO_ILS_RATE, value),
+      grantValue: Math.min(quantity * grantPriceUSD * fxRate, value),
       route,
     };
   };
@@ -306,12 +321,13 @@ function splitEquityByTaxRoute(profile: ProfileData, yearsToRetirement: number):
     rest: [],
   };
   const lotRows: (string | number)[][] = [];
+  const fxRate = usdToIlsRate(profile);
   for (const holding of profile.equity.holdings) {
     if (holding.investmentCategory !== "employerGrantedStock") {
       split.rest.push(holding);
       continue;
     }
-    for (const lot of employerLots(holding, yearsToRetirement)) {
+    for (const lot of employerLots(holding, yearsToRetirement, fxRate)) {
       if (isTracing()) lotRows.push([holding.id, lot.value, lot.grantValue, lot.route]);
       switch (lot.route) {
         case "section102Capital":
@@ -332,7 +348,7 @@ function splitEquityByTaxRoute(profile: ProfileData, yearsToRetirement: number):
       title: "Employer-granted share lots and their tax route",
       columns: ["holdingId", "valueIls", "grantValueIls", "route"],
       rows: lotRows,
-      note: `Values are quantity × price in USD × ${FALLBACK_USD_TO_ILS_RATE} (FALLBACK_USD_TO_ILS_RATE); grantValueIls is the part worth that at the grant (ordinary income on the Section 102 capital route, already-taxed income on Section 3(i)).`,
+      note: `Values are quantity × price in USD × ${fxRate} (${fxRateOrigin(profile)}); grantValueIls is the part worth that at the grant (ordinary income on the Section 102 capital route, already-taxed income on Section 3(i)).`,
     }));
   }
   return split;
@@ -784,10 +800,11 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
   );
 
   const equity = splitEquityByTaxRoute(profile, years);
+  const fxRate = usdToIlsRate(profile);
   const otherBalance =
     (profile.pensionSavings.otherAssets ?? 0) +
     equity.nonTrustee.value +
-    equity.rest.reduce((sum, holding) => sum + holdingValueIls(holding), 0);
+    equity.rest.reduce((sum, holding) => sum + holdingValueIls(holding, fxRate), 0);
   const otherTax = otherInvestmentsTaxProfile(profile, equity.rest, equity.nonTrustee);
   const otherBalanceId = withScope("other-investments", () =>
     ids ? recordOtherInvestmentsSteps(profile, equity, otherBalance, otherTax) : "",
@@ -911,6 +928,7 @@ function recordOtherInvestmentsSteps(
   tax: ReturnType<typeof otherInvestmentsTaxProfile>,
 ): string {
   const holdings = profile.equity.holdings;
+  const fxRate = usdToIlsRate(profile);
   if (holdings.length > 0) {
     recordTable("holdings", () => ({
       title: "Equity holdings",
@@ -928,11 +946,11 @@ function recordOtherInvestmentsSteps(
         holding.investmentCategory,
         holding.quantity,
         holding.currentMarketPriceUSD,
-        holdingValueIls(holding),
+        holdingValueIls(holding, fxRate),
         holding.personalPurchaseDetails.unrealizedCapitalGainUSD,
         holding.personalPurchaseDetails.capitalGainsTaxRatePercent,
       ]),
-      note: `valueIls = quantity × currentMarketPriceUSD × ${FALLBACK_USD_TO_ILS_RATE} (FALLBACK_USD_TO_ILS_RATE).`,
+      note: `valueIls = quantity × currentMarketPriceUSD × ${fxRate} (${fxRateOrigin(profile)}).`,
     }));
   }
   const balanceId = recordStep("balance", () => ({
@@ -946,7 +964,7 @@ function recordOtherInvestmentsSteps(
         fromDerived("employerLots table: lots on the nonTrustee route"),
       ),
       otherHoldingsValue: input(
-        equity.rest.reduce((sum, holding) => sum + holdingValueIls(holding), 0),
+        equity.rest.reduce((sum, holding) => sum + holdingValueIls(holding, fxRate), 0),
         fromDerived("holdings table: valueIls of holdings that are not employerGrantedStock"),
       ),
     },

@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { exportProfileToFile, importProfileFromFile } from "../storage/profileIO";
 import { useProfile } from "../app/ProfileContext";
 import { ConfirmModal } from "../components/ConfirmModal";
+import { CheckboxField } from "../components/fields/CheckboxField";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { Toast } from "../components/Toast";
 import { VerificationExport } from "../components/VerificationExport";
@@ -12,8 +13,14 @@ import { VerificationExport } from "../components/VerificationExport";
 export function Settings() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { profile, updateProfile, completeOnboarding, resetProfile } =
-    useProfile();
+  const {
+    profile,
+    updateProfile,
+    completeOnboarding,
+    resetProfile,
+    fxLookupEnabled,
+    setFxLookupEnabled,
+  } = useProfile();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [toastTone, setToastTone] = useState<"default" | "error">("default");
@@ -49,6 +56,18 @@ export function Settings() {
           {t("settings.language")}
         </h2>
         <LanguageSwitcher />
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 className="mb-3 text-sm font-semibold text-slate-700">
+          {t("settings.exchangeRates")}
+        </h2>
+        <CheckboxField
+          label={t("settings.fxLookup")}
+          checked={fxLookupEnabled}
+          onChange={setFxLookupEnabled}
+        />
+        <p className="mt-2 text-xs text-slate-500">{t("settings.fxLookupPrivacy")}</p>
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">

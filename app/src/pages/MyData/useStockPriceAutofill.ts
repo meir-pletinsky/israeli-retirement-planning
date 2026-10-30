@@ -10,7 +10,7 @@ import {
   type PricePoint,
 } from "../../stockPrices/lookup";
 import type { StockHolding } from "../../types";
-import { entryDate, entryPricePatch, entryPriceUsd } from "./holdingEntry";
+import { entryDate, entryPricePatch, entryPriceUsd, type HoldingChange } from "./holdingEntry";
 
 /** What the autofill last wrote into the form, and for which symbol. */
 interface Filled {
@@ -37,7 +37,7 @@ export interface StockPriceHint {
  */
 export function useStockPriceAutofill(
   holding: StockHolding,
-  onChange: (patch: Partial<StockHolding>) => void,
+  onChange: (change: HoldingChange) => void,
 ): { suggestions: TextSuggestion[]; hint: StockPriceHint | null } {
   const [index, setIndex] = useState<StockIndexFile | null>(null);
   const [loaded, setLoaded] = useState<{ symbol: string; file: StockHistoryFile | null } | null>(
@@ -84,12 +84,13 @@ export function useStockPriceAutofill(
     const isFilled = (value: number | null, point: PricePoint | null) =>
       point !== null && value === point.close;
     const patch: Partial<StockHolding> = {};
+    let entryPriceChange: { value: number | null } | null = null;
     const filled = filledRef.current;
 
     let base = filled;
     if (filled.symbol !== null && filled.symbol !== symbol) {
       // The ticker changed: what was filled for the old one must not stay behind.
-      if (isFilled(entryValue, filled.entry)) Object.assign(patch, entryPricePatch(holding, null));
+      if (isFilled(entryValue, filled.entry)) entryPriceChange = { value: null };
       if (isFilled(currentValue, filled.current)) patch.currentMarketPriceUSD = null;
       if (filled.name !== null && holding.companyName === filled.name) patch.companyName = "";
       base = NOTHING_FILLED;
@@ -106,7 +107,7 @@ export function useStockPriceAutofill(
       // one must not bring it back.
       if ((entryValue === null && base.entry === null) || isFilled(entryValue, base.entry)) {
         const target = wantedEntry?.close ?? null;
-        if (entryValue !== target) Object.assign(patch, entryPricePatch(holding, target));
+        if (entryValue !== target) entryPriceChange = { value: target };
         next.entry = wantedEntry;
       }
       if ((currentValue === null && base.current === null) || isFilled(currentValue, base.current)) {
@@ -120,7 +121,13 @@ export function useStockPriceAutofill(
       }
     }
 
-    if (Object.keys(patch).length > 0) onChange(patch);
+    if (entryPriceChange || Object.keys(patch).length > 0) {
+      const entryPrice = entryPriceChange;
+      onChange((current) => ({
+        ...(entryPrice ? entryPricePatch(current, entryPrice.value) : {}),
+        ...patch,
+      }));
+    }
     filledRef.current = next;
   }, [symbol, history, holding, entryValue, currentValue, date, onChange]);
 

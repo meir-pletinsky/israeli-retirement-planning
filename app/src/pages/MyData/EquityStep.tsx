@@ -7,6 +7,7 @@ import { FormModal } from "../../components/FormModal";
 import { createEmptyStockHolding, type StockHolding } from "../../types";
 import { EquityHoldingCard } from "./EquityHoldingCard";
 import { EquityHoldingForm } from "./EquityHoldingForm";
+import { applyHoldingChange } from "./holdingEntry";
 import { StepFooter } from "./StepFooter";
 
 export function EquityStep() {
@@ -101,8 +102,10 @@ export function EquityStep() {
         {editingHolding && (
           <EquityHoldingForm
             holding={editingHolding}
-            onChange={(patch) =>
-              setEditingHolding({ ...editingHolding, ...patch })
+            onChange={(change) =>
+              setEditingHolding((current) =>
+                current ? applyHoldingChange(current, change) : current,
+              )
             }
           />
         )}

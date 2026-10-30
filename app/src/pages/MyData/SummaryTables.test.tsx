@@ -1,8 +1,9 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { Route, Routes } from "react-router-dom";
 
-import { clearAllData, saveProfileToDb } from "../../storage/db";
+import { clearAllData, loadProfileFromDb, saveProfileToDb } from "../../storage/db";
 import { buildTestProfile } from "../../test/domainFixtures";
 import { renderWithProviders } from "../../test/renderWithProviders";
 import { EquityStep } from "./EquityStep";
@@ -238,7 +239,8 @@ describe("My Data summary tables — Equity & Investments", () => {
     expect(
       screen.getByText(/Total across all categories/),
     ).toHaveTextContent(`Total across all categories: $2,610 / ${SHEKEL}9,657`);
-    expect(screen.getByText("Shekel values use a fixed rate of 3.7 per US dollar.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Shekels per US dollar")).toHaveValue(3.7);
+    expect(screen.getByText(/A rough built-in rate/)).toBeInTheDocument();
 
     const legend = screen.getByRole("region", { name: "Which fields matter?" });
     expect(
@@ -317,5 +319,72 @@ describe("My Data summary tables — Equity & Investments", () => {
 
     expect(await screen.findByText(/no equity holdings added yet/i)).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  });
+});
+
+describe("My Data summary tables — dollar rate", () => {
+  const holdings = [{ category: "employerGrantedStock" as const, quantity: 10, priceUSD: 100 }];
+
+  it("values the holdings at the Bank of Israel rate in the profile and names its day", async () => {
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 50,
+        usdToIlsRate: { rate: 3.118, date: "2026-10-30" },
+        equity: holdings,
+      }),
+    );
+    renderStep("equity");
+
+    const table = await screen.findByRole("table", { name: "ESOP / RSU at a glance" });
+    expect(within(table).getAllByRole("row")[1]).toHaveTextContent(`${SHEKEL}3,118`);
+    expect(screen.getByLabelText("Shekels per US dollar")).toHaveValue(3.118);
+    expect(screen.getByText(/Bank of Israel rate of 2026-10-30/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Use the automatic rate" })).not.toBeInTheDocument();
+  });
+
+  it("values the holdings at a rate the user types, keeps it as theirs and offers a way back", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 50,
+        usdToIlsRate: { rate: 3.118, date: "2026-10-30" },
+        equity: holdings,
+      }),
+    );
+    renderStep("equity");
+
+    const rate = await screen.findByLabelText("Shekels per US dollar");
+    await user.clear(rate);
+    await user.type(rate, "3.5");
+    await user.tab();
+
+    const table = screen.getByRole("table", { name: "ESOP / RSU at a glance" });
+    expect(within(table).getAllByRole("row")[1]).toHaveTextContent(`${SHEKEL}3,500`);
+    expect(screen.getByText(/The rate you entered/)).toBeInTheDocument();
+    await waitFor(async () => {
+      const stored = await loadProfileFromDb();
+      expect(stored?.equity).toMatchObject({ usdToIlsRate: 3.5, usdToIlsRateDate: null });
+    });
+
+    await user.click(screen.getByRole("button", { name: "Use the automatic rate" }));
+    expect(screen.getByLabelText("Shekels per US dollar")).toHaveValue(3.7);
+    expect(screen.getByText(/A rough built-in rate/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Use the automatic rate" })).not.toBeInTheDocument();
+  });
+
+  it("goes back to the automatic rate when the field is emptied", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(
+      buildTestProfile({ age: 50, usdToIlsRate: { rate: 3.3 }, equity: holdings }),
+    );
+    renderStep("equity");
+
+    const rate = await screen.findByLabelText("Shekels per US dollar");
+    expect(rate).toHaveValue(3.3);
+    await user.clear(rate);
+    await user.tab();
+
+    expect(screen.getByLabelText("Shekels per US dollar")).toHaveValue(3.7);
+    expect(screen.queryByText(/The rate you entered/)).not.toBeInTheDocument();
   });
 });

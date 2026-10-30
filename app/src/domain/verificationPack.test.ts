@@ -33,6 +33,7 @@ function identifiedCouple(): ProfileData {
       })),
     },
     equity: {
+      ...profile.equity,
       holdings: profile.equity.holdings.map((holding, index) => ({
         ...holding,
         tickerSymbol: `ZQXW${index}`,

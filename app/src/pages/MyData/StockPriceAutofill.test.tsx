@@ -43,6 +43,8 @@ beforeEach(async () => {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string) => {
+      // The dollar rate has its own tests; here it is simply unavailable.
+      if (url.includes("frankfurter")) return { ok: false, json: async () => null } as Response;
       const fileName = url.split("/").pop() ?? "";
       requested.push(fileName);
       const body = FILES[fileName];

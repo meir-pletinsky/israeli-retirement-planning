@@ -153,7 +153,13 @@
       "currentPriceUsd": "Current price (USD)",
       "valueUsd": "Value (USD)",
       "valueIls": "Value (ILS)",
-      "fxNote": "Shekel values use a fixed rate of {{rate}} per US dollar."
+      "fxRateLabel": "Shekels per US dollar",
+      "fxRateUseAutomatic": "Use the automatic rate",
+      "fxRateSource": {
+        "boi": "Bank of Israel rate of {{date}}. Type another rate to use your own.",
+        "typed": "The rate you entered. Shekel values use it until you switch back to the automatic rate.",
+        "fallback": "A rough built-in rate, as no exchange rate has been looked up. Type your own, or allow lookups in Settings."
+      }
     },
     "validation": {
       "required": "This field is required.",
@@ -345,6 +351,9 @@
           "priceHintEntry": "The purchase or grant price was filled in from the closing price on {{date}}, the last trading day on or before the date you entered.",
           "priceHintCurrent": "The current price was filled in from the closing price on {{date}}, the latest in the downloaded data.",
           "priceHintAdjusted": "Prices come from a public S&P 500 dataset and are adjusted for later stock splits and dividends. Enter the quantity as you hold it today, and expect older prices to be a little lower than the price quoted at the time. Check them against your broker statement, and edit any value to use your own.",
+          "entryRate": "Dollar rate on that date",
+          "entryRateHelper": "Shekels per US dollar on the purchase or grant date. Filled in automatically; type your own to replace it.",
+          "rateHint": "The dollar rate was filled in from the Bank of Israel rate of {{date}}, the last business day on or before the date you entered. It is saved with the entry for your records; the tax calculations do not use it yet.",
           "esppPriceOnPurchaseDate": "Share price on purchase date",
           "esppPriceOnPurchaseDateHelper": "Per share, in USD: the market price on the purchase day, before the ESPP discount. What you actually paid goes under the details below.",
           "personalPurchasePrice": "Purchase price per share",
@@ -594,6 +603,9 @@
     "language": "Language",
     "currency": "Display currency",
     "dataManagement": "Data management",
+    "exchangeRates": "Exchange rates",
+    "fxLookup": "Look up exchange rates online",
+    "fxLookupPrivacy": "When on, the app asks Frankfurter (frankfurter.dev), which publishes the Bank of Israel's rates, for the dollar rate: today's rate to value your holdings, and the rate on each grant or purchase date you enter. Only the currency pair and a date are sent, with no cookies and no referrer. Turn it off to type the rates yourself. None of your other data is ever sent.",
     "export": "Export data",
     "import": "Import data",
     "reset": "Reset all data",

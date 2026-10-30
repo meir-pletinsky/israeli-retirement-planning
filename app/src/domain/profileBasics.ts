@@ -122,21 +122,32 @@ export function aggregatePensionBalance(profile: ProfileData): number {
 /**
  * Non-pension assets in ILS: the `otherAssets` catch-all (cash, bonds, real
  * estate, etc.) plus equity holdings (`quantity * currentMarketPriceUSD`,
- * converted at `FALLBACK_USD_TO_ILS_RATE` — see constants.ts, no live FX
- * feed yet).
+ * converted at the profile's USD to ILS rate, see `usdToIlsRate`).
  */
 export function aggregateOtherBalance(profile: ProfileData): number {
   const otherAssets = profile.pensionSavings.otherAssets ?? 0;
+  const rate = usdToIlsRate(profile);
   const equityTotal = profile.equity.holdings.reduce(
-    (sum, holding) => sum + holdingValueIls(holding),
+    (sum, holding) => sum + holdingValueIls(holding, rate),
     0,
   );
   return otherAssets + equityTotal;
 }
 
-/** Market value of one equity holding in ILS (`quantity * currentMarketPriceUSD` at the fallback rate). */
-export function holdingValueIls(holding: StockHolding): number {
-  return (holding.quantity ?? 0) * (holding.currentMarketPriceUSD ?? 0) * FALLBACK_USD_TO_ILS_RATE;
+/**
+ * Shekels per US dollar for valuing the equity holdings: the profile's rate
+ * (the Bank of Israel's, or one the user typed), else the built-in fallback.
+ */
+export function usdToIlsRate(profile: ProfileData): number {
+  const rate = profile.equity.usdToIlsRate;
+  return typeof rate === "number" && Number.isFinite(rate) && rate > 0
+    ? rate
+    : FALLBACK_USD_TO_ILS_RATE;
+}
+
+/** Market value of one equity holding in ILS: `quantity * currentMarketPriceUSD` at `rate` shekels per dollar. */
+export function holdingValueIls(holding: StockHolding, rate: number): number {
+  return (holding.quantity ?? 0) * (holding.currentMarketPriceUSD ?? 0) * rate;
 }
 
 /** Sums all balances currently known for the profile into a single "today" net worth figure, in ILS. */

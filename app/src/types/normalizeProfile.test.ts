@@ -96,6 +96,86 @@ describe("normalizeProfile", () => {
     ]);
   });
 
+  it("adds no dollar rates to a profile saved before they existed", () => {
+    const profile = buildTestProfile({
+      equity: [
+        { category: "employerGrantedStock", quantity: 1, priceUSD: 5 },
+        { category: "employerEsppDiscount", quantity: 1, priceUSD: 5 },
+        { category: "personalBrokeragePurchase", quantity: 1, priceUSD: 5 },
+      ],
+    });
+    const holdings = profile.equity.holdings.map((holding) => {
+      const { usdToIlsRateAtGrant: _grant, ...grant } = holding.employerGrantDetails;
+      const { usdToIlsRateAtPurchase: _espp, ...espp } = holding.esppDetails;
+      const { usdToIlsRateAtPurchase: _personal, ...personal } = holding.personalPurchaseDetails;
+      return { ...holding, employerGrantDetails: grant, esppDetails: espp, personalPurchaseDetails: personal };
+    });
+    const result = normalizeProfile({ ...profile, equity: { holdings } } as unknown as Parameters<
+      typeof normalizeProfile
+    >[0]);
+
+    expect(result.equity.usdToIlsRate).toBeNull();
+    expect(result.equity.usdToIlsRateDate).toBeNull();
+    for (const holding of result.equity.holdings) {
+      expect(holding.employerGrantDetails.usdToIlsRateAtGrant).toBeNull();
+      expect(holding.esppDetails.usdToIlsRateAtPurchase).toBeNull();
+      expect(holding.personalPurchaseDetails.usdToIlsRateAtPurchase).toBeNull();
+    }
+  });
+
+  it("keeps saved dollar rates, and drops one that is not a positive number", () => {
+    const profile = buildTestProfile({
+      usdToIlsRate: { rate: 3.118, date: "2026-10-30" },
+      equity: [
+        { category: "employerGrantedStock", quantity: 1, priceUSD: 5, entry: { usdToIlsRate: 3.65 } },
+        { category: "employerEsppDiscount", quantity: 1, priceUSD: 5, entry: { usdToIlsRate: 3.7 } },
+        { category: "personalBrokeragePurchase", quantity: 1, priceUSD: 5, entry: { usdToIlsRate: 3.8 } },
+      ],
+    });
+
+    const kept = normalizeProfile(profile);
+    expect(kept.equity.usdToIlsRate).toBe(3.118);
+    expect(kept.equity.usdToIlsRateDate).toBe("2026-10-30");
+    expect(kept.equity.holdings.map((holding) => holding.employerGrantDetails.usdToIlsRateAtGrant)).toEqual([
+      3.65,
+      null,
+      null,
+    ]);
+    expect(kept.equity.holdings[1].esppDetails.usdToIlsRateAtPurchase).toBe(3.7);
+    expect(kept.equity.holdings[2].personalPurchaseDetails.usdToIlsRateAtPurchase).toBe(3.8);
+
+    for (const bad of [0, -3.6, Number.NaN, Number.POSITIVE_INFINITY, "3.6", null]) {
+      const result = normalizeProfile({
+        ...profile,
+        equity: {
+          ...profile.equity,
+          usdToIlsRate: bad,
+          holdings: profile.equity.holdings.map((holding) => ({
+            ...holding,
+            employerGrantDetails: { ...holding.employerGrantDetails, usdToIlsRateAtGrant: bad },
+          })),
+        },
+      } as unknown as Parameters<typeof normalizeProfile>[0]);
+      expect(result.equity.usdToIlsRate).toBeNull();
+      expect(result.equity.usdToIlsRateDate).toBeNull();
+      expect(result.equity.holdings[0].employerGrantDetails.usdToIlsRateAtGrant).toBeNull();
+    }
+  });
+
+  it("drops the day of a rate that is not a date text, and keeps a rate typed without a day", () => {
+    const profile = buildTestProfile({ usdToIlsRate: { rate: 3.3 } });
+    const typed = normalizeProfile(profile);
+    expect(typed.equity.usdToIlsRate).toBe(3.3);
+    expect(typed.equity.usdToIlsRateDate).toBeNull();
+
+    const result = normalizeProfile({
+      ...profile,
+      equity: { ...profile.equity, usdToIlsRateDate: 20261030 },
+    } as unknown as Parameters<typeof normalizeProfile>[0]);
+    expect(result.equity.usdToIlsRate).toBe(3.3);
+    expect(result.equity.usdToIlsRateDate).toBeNull();
+  });
+
   it("keeps saved comparison ages and drops malformed ones", () => {
     const profile = buildTestProfile({ age: 40 });
     expect(normalizeProfile({ ...profile, comparisonAges: [58, 62, 70] }).comparisonAges).toEqual([58, 62, 70]);

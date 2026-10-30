@@ -38,6 +38,8 @@ export function buildTestProfile(overrides: {
   /** Index-aligned with `pensionBalances`; merged onto each generated account. */
   pensionAccountOverrides?: Partial<PensionAccount>[];
   otherAssets?: number;
+  /** Shekels per US dollar valuing the equity; with a date it is a looked-up rate, without one the user's own. */
+  usdToIlsRate?: { rate: number; date?: string };
   equity?: {
     quantity: number;
     priceUSD: number;
@@ -45,7 +47,7 @@ export function buildTestProfile(overrides: {
     category?: InvestmentCategory;
     ticker?: string;
     /** The purchase or grant: its date and the share price that day, saved in the category's own fields. */
-    entry?: { date?: string; priceUSD?: number };
+    entry?: { date?: string; priceUSD?: number; usdToIlsRate?: number };
     unrealizedCapitalGainUSD?: number;
     capitalGainsTaxRatePercent?: number;
     /** Makes the holding an employer grant, with these details. */
@@ -79,6 +81,7 @@ export function buildTestProfile(overrides: {
     pensionBalances = [],
     pensionAccountOverrides = [],
     otherAssets,
+    usdToIlsRate,
     equity = [],
     currentMonthlyExpenses,
     retirementMonthlyExpenses,
@@ -151,11 +154,14 @@ export function buildTestProfile(overrides: {
       otherAssets: otherAssets ?? null,
     },
     equity: {
+      usdToIlsRate: usdToIlsRate?.rate ?? null,
+      usdToIlsRateDate: usdToIlsRate?.date ?? null,
       holdings: equity.map((holding, index) => {
         const category: InvestmentCategory | null =
           holding.category ?? (holding.employerGrant ? "employerGrantedStock" : null);
         const entryDate = holding.entry?.date ?? null;
         const entryPrice = holding.entry?.priceUSD ?? null;
+        const entryRate = holding.entry?.usdToIlsRate ?? null;
         // As in the app, an entry made before choosing a category sits in every category's fields.
         const entryIn = (target: InvestmentCategory) => category === target || category === null;
         return {
@@ -177,6 +183,7 @@ export function buildTestProfile(overrides: {
             costBasisAtGrantUSD:
               holding.employerGrant?.grantPriceUSD ??
               (entryIn("employerGrantedStock") ? entryPrice : null),
+            usdToIlsRateAtGrant: entryIn("employerGrantedStock") ? entryRate : null,
             estimatedMarginalTaxOnVesting: null,
             vestingTranches: (holding.employerGrant?.vestingTranches ?? []).map(
               (tranche, trancheIndex) => ({
@@ -192,12 +199,14 @@ export function buildTestProfile(overrides: {
             discountPercentage: null,
             purchasePriceUSD: null,
             fairMarketValueAtPurchaseUSD: entryIn("employerEsppDiscount") ? entryPrice : null,
+            usdToIlsRateAtPurchase: entryIn("employerEsppDiscount") ? entryRate : null,
             taxedDiscountValueUSD: null,
             capitalGainsOnGrowthUSD: null,
           },
           personalPurchaseDetails: {
             purchaseDate: entryIn("personalBrokeragePurchase") ? entryDate : null,
             averageCostBasisUSD: entryIn("personalBrokeragePurchase") ? entryPrice : null,
+            usdToIlsRateAtPurchase: entryIn("personalBrokeragePurchase") ? entryRate : null,
             unrealizedCapitalGainUSD: holding.unrealizedCapitalGainUSD ?? null,
             capitalGainsTaxRatePercent: holding.capitalGainsTaxRatePercent ?? null,
           },

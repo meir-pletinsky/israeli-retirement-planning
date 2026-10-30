@@ -33,12 +33,10 @@ export const MAX_RETIREMENT_SEARCH_AGE = 80;
 export const MAX_PLANNING_AGE = 90;
 
 /**
- * Phase 1 has no live/bundled FX data feed yet (that's Phase 4 "External
- * Data" scope per docs/architecture.md), but the data model already allows
- * USD-denominated equity holdings (Section 102 / ESPP / brokerage). Rather
- * than silently dropping equity from net worth, convert at this fixed
- * placeholder rate and call it out everywhere it's used.
- *
- * TODO(Phase 4): replace with the live/bundled FX dataset.
+ * Shekels per US dollar for valuing USD equity holdings when the profile
+ * holds no rate: the app normally fills in the Bank of Israel rate (see
+ * `usdToIlsRate` in profileBasics.ts), so this only applies offline, before
+ * the first lookup, or when lookups are turned off. It is a placeholder, so
+ * every place that uses it says so.
  */
 export const FALLBACK_USD_TO_ILS_RATE = 3.7;
