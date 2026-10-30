@@ -928,6 +928,25 @@ Open: the dataset's license for republishing, a source with real closes, coverag
 the S&P 500 (Israeli-employer stocks such as CHKP and WIX), ticker spelling for share
 classes, an opt-out for lookups in Settings. All in `docs/stock-price-data-design.md`.
 
+## Welcome page for returning visitors
+
+The welcome page used to appear on every visit unless the user had pressed Save on the last
+My Data step or imported a file (the saved `onboarded` flag). Someone who entered data
+without finishing the steps, or who used the clearing-house import, saw it again with a
+profile already saved on the device.
+
+- [x] `ProfileContext` now exposes `onboarded` as the saved flag **or** "the profile holds
+      data" (`hasProfileData` in `types/index.ts`: any difference from `EMPTY_PROFILE`).
+      The start page then goes straight to the Dashboard, which lists what is still
+      missing. A truly empty profile still gets the welcome page and the Dashboard's
+      empty state. Nothing new is saved; it is derived on each load.
+- [x] Tests: `types/hasProfileData.test.ts` and `app/App.test.tsx` (new visitor, saved data
+      without the flag, finished profile, saved but empty profile).
+
+Not handled: data saved under a different address (another browser, device, or
+`localhost` versus the published site) is a different IndexedDB, so it cannot be detected.
+Use Settings → Export and Import to move it.
+
 ## Modeling assumptions (by phase)
 
 - **Tax modeling assumptions (Phase I).**

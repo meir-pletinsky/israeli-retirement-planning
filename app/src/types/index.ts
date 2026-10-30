@@ -484,4 +484,23 @@ export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined
   return merged;
 }
 
+function isSameValue(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  const left = a as Record<string, unknown>;
+  const right = b as Record<string, unknown>;
+  const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+  return [...keys].every((key) => isSameValue(left[key], right[key]));
+}
+
+/**
+ * True once anything in the profile differs from a fresh one, whether it was typed, imported or
+ * read from a clearing-house report. Comparing with `EMPTY_PROFILE` (rather than listing fields)
+ * keeps this right when a field is added later.
+ */
+export function hasProfileData(profile: ProfileData): boolean {
+  return !isSameValue(profile, EMPTY_PROFILE);
+}
+
 export type RetirementScenario = "standard" | "early" | "delayed";

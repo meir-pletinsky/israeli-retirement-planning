@@ -63,6 +63,11 @@ Phases A–K are committed and pushed to
 `main`; Phases L, M, N, O, P, Q, S and T are committed and pushed only if `git log` shows
 them.
 
+- **Welcome page only for new visitors.** `useProfile().onboarded` is true when the
+  saved flag is set **or** the profile differs from `EMPTY_PROFILE` (`hasProfileData`), so
+  returning visitors with saved data land on the Dashboard. See "Welcome page for returning
+  visitors" in `docs/implementation-progress.md`.
+
 - **Phase T (stock price data and autofill): DONE.** A daily job
   (`app/scripts/stock-data/`, `npm run stock-data`, scheduled in
   `.github/workflows/deploy.yml`) turns the Kaggle S&P 500 dataset into one JSON file
@@ -72,9 +77,8 @@ them.
   purchase or grant date, today's price and the company name; typed values always
   win and nothing happens when the files cannot be loaded. **Prices are
   dividend-adjusted, so older prices of dividend payers are too low** (the dialog
-  says so). No calculation changed. The workflow has not run yet: after the first
-  push, run it once from the Actions tab and check the "Refresh stock price files"
-  step. Also verify the dataset's license. Details and open items:
+  says so). No calculation changed. The workflow ran successfully on its first push
+  (503 stocks published to the live site). Verify the dataset's license. Details and open items:
   `docs/stock-price-data-design.md` and Phase T in `docs/implementation-progress.md`.
 
 - **Phase S (simple entry and per-category equity tables): DONE.** The "Stock /
@@ -446,7 +450,7 @@ them.
   - D3: live deploy verified (done as a side effect of A7).
 - 396 tests total, all green; lint/typecheck/build all green.
 
-(Counts moved on later: 645 passed and 1 skipped after Phase Q; 664 passed and 1 skipped after Phase S; 712 passed and 1 skipped after Phase T.)
+(Counts moved on later: 645 passed and 1 skipped after Phase Q; 664 passed and 1 skipped after Phase S; 712 passed and 1 skipped after Phase T; 720 passed and 1 skipped after the returning-visitor change.)
 
 ## Where to go next
 

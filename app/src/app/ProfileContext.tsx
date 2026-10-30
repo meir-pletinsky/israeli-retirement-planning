@@ -16,11 +16,20 @@ import {
   saveOnboardedToDb,
   saveProfileToDb,
 } from "../storage/db";
-import { EMPTY_PROFILE, normalizeProfile, type ProfileData } from "../types";
+import {
+  EMPTY_PROFILE,
+  hasProfileData,
+  normalizeProfile,
+  type ProfileData,
+} from "../types";
 
 interface ProfileContextValue {
   profile: ProfileData;
   updateProfile: (patch: Partial<ProfileData>) => void;
+  /**
+   * True once the user finished the My Data steps or imported a file, and also whenever the saved
+   * profile already holds data, so a returning visitor is not sent back to the welcome page.
+   */
   onboarded: boolean;
   completeOnboarding: () => void;
   resetProfile: () => void;
@@ -69,12 +78,14 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     void saveOnboardedToDb(onboarded);
   }, [onboarded]);
 
+  const hasData = useMemo(() => hasProfileData(profile), [profile]);
+
   const value = useMemo<ProfileContextValue>(
     () => ({
       profile,
       updateProfile: (patch) =>
         setProfile((prev) => ({ ...prev, ...patch })),
-      onboarded,
+      onboarded: onboarded || hasData,
       completeOnboarding: () => setOnboarded(true),
       resetProfile: () => {
         void clearAllData();
@@ -82,7 +93,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         setOnboarded(false);
       },
     }),
-    [profile, onboarded],
+    [profile, onboarded, hasData],
   );
 
   if (!isReady) return null;
