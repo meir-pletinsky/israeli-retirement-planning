@@ -562,4 +562,114 @@ describe("Projections", () => {
       expect(screen.queryByRole("region", { name: "When your money becomes usable" })).not.toBeInTheDocument();
     });
   });
+
+  describe("withdrawal order", () => {
+    const BIDI_MARKS = /[\u2066\u2069]/g;
+    const reads = (pattern: RegExp) => (content: string) => pattern.test(content.replace(BIDI_MARKS, ""));
+    const REGION = "Which savings to draw on first";
+
+    const mixed = {
+      age: 60,
+      retirementAge: 60,
+      investmentReturnPct: 4,
+      inflationPct: 4,
+      pensionBalances: [1_500_000, 600_000],
+      pensionAccountOverrides: [{}, { productCategory: "studyFund" as const }],
+      otherAssets: 400_000,
+      retirementMonthlyExpenses: 9_000,
+    };
+
+    const renderOrder = async (profile: ReturnType<typeof buildTestProfile>) => {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+      return screen.findByRole("region", { name: REGION });
+    };
+
+    it("compares the three orders and marks the one in use", async () => {
+      const card = await renderOrder(buildTestProfile(mixed));
+
+      expect(within(card).getAllByRole("columnheader").map((header) => header.textContent)).toEqual([
+        "Over your retirement",
+        expect.stringMatching(/^Evenly/),
+        expect.stringMatching(/^Taxable money first/),
+        expect.stringMatching(/^Lowest tax first/),
+      ]);
+      for (const label of [
+        "Total tax",
+        "Average income you keep",
+        "Lowest income you keep",
+        "First year below your desired spending",
+        "Highest taxable income in a year",
+      ]) {
+        expect(within(card).getByRole("rowheader", { name: label })).toBeInTheDocument();
+      }
+      expect(within(card).getByRole("rowheader", { name: reads(/^Years above the surtax threshold \(₪721,560 a year\)$/) })).toBeInTheDocument();
+      expect(within(card).getAllByText("In use")).toHaveLength(1);
+      expect(within(card).queryByRole("button", { name: "Use the order: Evenly" })).not.toBeInTheDocument();
+      expect(within(card).getByRole("button", { name: "Use the order: Lowest tax first" })).toBeInTheDocument();
+      expect(within(card).getByText(/No order wins on every line/)).toBeInTheDocument();
+    });
+
+    it("saves the chosen order and shows it as in use", async () => {
+      const user = userEvent.setup();
+      const card = await renderOrder(buildTestProfile(mixed));
+      expect((await loadProfileFromDb())?.assumptions.withdrawalStrategy).toBe("proRata");
+
+      await user.click(within(card).getByRole("button", { name: "Use the order: Lowest tax first" }));
+
+      await waitFor(async () =>
+        expect((await loadProfileFromDb())?.assumptions.withdrawalStrategy).toBe("lowestTaxFirst"),
+      );
+      expect(within(card).queryByRole("button", { name: "Use the order: Lowest tax first" })).not.toBeInTheDocument();
+      expect(within(card).getByRole("button", { name: "Use the order: Evenly" })).toBeInTheDocument();
+      expect(within(card).getAllByText("In use")).toHaveLength(1);
+    });
+
+    it("shows the change from the order in use next to each other order", async () => {
+      const card = await renderOrder(buildTestProfile(mixed));
+      const taxRow = within(card).getByRole("rowheader", { name: "Total tax" }).closest("tr") as HTMLElement;
+      const cells = within(taxRow).getAllByRole("cell");
+
+      expect(cells).toHaveLength(3);
+      // Only the orders that are not in use show a change, as a signed amount.
+      expect(cells[0].textContent?.replace(BIDI_MARKS, "")).toMatch(/^₪[\d,]+$/);
+      expect(cells[1].textContent?.replace(BIDI_MARKS, "")).toMatch(/^₪[\d,]+[+−]₪[\d,]+$/);
+      expect(cells[2].textContent?.replace(BIDI_MARKS, "")).toMatch(/^₪[\d,]+[+−]₪[\d,]+$/);
+    });
+
+    it("says the choice does not matter when every order gives the same tax", async () => {
+      const card = await renderOrder(
+        buildTestProfile({ age: 60, retirementAge: 60, investmentReturnPct: 4, inflationPct: 4, pensionBalances: [500_000] }),
+      );
+
+      expect(within(card).getByText(/every order gives the same tax each year/)).toBeInTheDocument();
+      expect(within(card).queryByRole("table")).not.toBeInTheDocument();
+      expect(within(card).queryByRole("button")).not.toBeInTheDocument();
+    });
+
+    it("leaves out the shortfall line when no desired spending is set", async () => {
+      const card = await renderOrder(buildTestProfile({ ...mixed, retirementMonthlyExpenses: undefined }));
+
+      expect(within(card).queryByRole("rowheader", { name: "First year below your desired spending" })).not.toBeInTheDocument();
+    });
+
+    it("explains itself in a section that starts closed", async () => {
+      const card = await renderOrder(buildTestProfile(mixed));
+      const details = within(card).getByText("How this works").closest("details");
+
+      expect(details).not.toBeNull();
+      expect(details).not.toHaveAttribute("open");
+      expect(within(card).getByText(/do not depend on the order/)).toBeInTheDocument();
+    });
+
+    it("is not shown when there are no savings", async () => {
+      await saveProfileToDb(buildTestProfile({ age: 50, retirementAge: 55 }));
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      await screen.findByRole("heading", { name: "Projections" });
+      expect(screen.queryByRole("region", { name: REGION })).not.toBeInTheDocument();
+    });
+  });
 });

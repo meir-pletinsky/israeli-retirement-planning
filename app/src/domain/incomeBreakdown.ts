@@ -48,8 +48,9 @@ const BAND_FOR_KIND: Record<SourceKind, IncomeBandKey> = {
  *   the capital that is unlocked at that age. Capital that is still locked
  *   (e.g. a pension fund before age 60) does not contribute until it opens,
  *   so the mix shifts at each unlock.
- * There is no withdrawal ordering or tax optimisation yet (Phase 3 scope —
- * see docs/plan.md), so unlocked kinds are drawn on pro rata.
+ * Unlocked kinds are drawn on in the order of the household's withdrawal
+ * strategy: pro rata by default, or one group after another (see
+ * `withdrawalStrategies.ts`).
  *
  * Points start when the household retires (the later spouse) and are
  * labelled with the primary user's age.

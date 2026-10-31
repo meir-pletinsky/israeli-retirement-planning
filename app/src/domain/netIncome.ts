@@ -7,7 +7,7 @@ import {
   type Household,
   type RetirementTiming,
 } from "./household";
-import { memberTax } from "./memberTax";
+import { memberTaxDetail } from "./memberTax";
 import { recordNetIncomeTrace, type NetYearDetail } from "./netIncomeTrace";
 import { estimateHouseholdRetirementIncome } from "./retirementIncome";
 import { isTracing } from "./trace";
@@ -20,6 +20,11 @@ export interface NetIncomeYear {
   grossMonthly: number;
   taxMonthly: number;
   netMonthly: number;
+  /**
+   * The larger of the members' taxable incomes this year, per month: what the brackets and the
+   * surtax threshold apply to (see `MemberTaxDetail`). Not rounded.
+   */
+  taxableMonthly: number;
 }
 
 export interface NetIncomeEstimate {
@@ -90,10 +95,10 @@ export function estimateNetIncomeForHousehold(household: Household): NetIncomeEs
       amount: fromSavings * holding.capitalShare,
     }));
 
-    const memberTaxes = household.members.map(
-      (_member, memberIndex) =>
-        memberTax(household, memberIndex, row.yearsFromNow, row.holdings, draws).totalMonthly,
+    const memberDetails = household.members.map((_member, memberIndex) =>
+      memberTaxDetail(household, memberIndex, row.yearsFromNow, row.holdings, draws),
     );
+    const memberTaxes = memberDetails.map(({ tax }) => tax.totalMonthly);
     const taxMonthly = Math.round(memberTaxes.reduce((sum, tax) => sum + tax, 0));
     const grossMonthly = Math.round(streamsTotal + fromSavings);
     years.push({
@@ -101,6 +106,7 @@ export function estimateNetIncomeForHousehold(household: Household): NetIncomeEs
       grossMonthly,
       taxMonthly,
       netMonthly: grossMonthly - taxMonthly,
+      taxableMonthly: Math.max(...memberDetails.map(({ taxableMonthly }) => taxableMonthly)),
     });
     details?.push({ row, draws, streamsTotal, fromSavings, memberTaxes });
   }

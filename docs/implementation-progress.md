@@ -24,7 +24,8 @@ batches, a constants check) as Phase N, the Pension Clearing House import
 (read a zip or XML files, review, apply) as Phase O, the calculation trace
 with its offline verification pack as Phase P, the read-only summary tables
 on the My Data steps as Phase Q, and the simple purchase / grant entry with
-per-category equity tables as Phase S (Phase R is the Bridge Planner design), and
+per-category equity tables as Phase S (Phase R is the Bridge Planner: R1 liquidity ladder
+and R2 withdrawal order are built), and
 the daily stock price files with ticker suggestions and price autofill as Phase T, and the
 Monte Carlo risk analysis (the first Phase 4 piece) as Phase V, and the household dashboard
 KPIs (retirement snapshot and the retire-at checks) as Phase W, and live Israeli inflation
@@ -991,17 +992,17 @@ describes a 0% route before 60, and the rule does not vary by fund or program.
 The 2026 deposit ceiling is ₪83,641. The app keeps treating the fund as 25% of
 the real gain at any age; the annuity route is not modeled.
 
-## Phase R — Bridge Planner (R1 built; R2–R7 not started)
+## Phase R — Bridge Planner (R1 and R2 built; R3–R7 not started)
 
 Proposal for the early-retirement bridge: which source to use first, what each
 costs and what leaving early does to unvested RSUs. Full design, build order
 and open questions: [`docs/bridge-planner-design.md`](bridge-planner-design.md).
 The user reviewed the design and asked to start; the open questions in section 7
-are still unanswered, so only the step that does not depend on them (R1) is built.
+are still unanswered, so only the steps that do not depend on them (R1, R2) are built.
 
 - [x] R1. Liquidity ladder (read-only, no new inputs). See "R1 notes" below.
-- [ ] R2. Split the pooled investments source, withdrawal order in
-      `drawdown.ts`, strategy comparison card.
+- [x] R2. Withdrawal order in `drawdown.ts`, strategy comparison card and a saved choice.
+      See "R2 notes" below. The pooled investments source is **not** split (see the notes).
 - [ ] R3. RSU schedule generator, "keeps vesting after leaving" flag, vest-aware
       retirement date and "cost of leaving early".
 - [ ] R4. Purchase lots (private and ESPP) with an effective cost basis (rule R).
@@ -1408,6 +1409,65 @@ Decisions (mine, not yet confirmed by the user):
 - [x] R1e. Browser check in English, Hebrew (RTL) and Russian on a saved profile, once with
       a single "when you retire" row and once with a 55 → 60 → 65 staircase. No bidi
       problems. 1171 passed and 1 skipped in all.
+
+### R2 notes — withdrawal order (Phase R)
+
+A "Which savings to draw on first" card on Projections, after the income charts and before
+the liquidity ladder. It compares three orders and the user can **save one**; the saved order
+then drives the whole plan (Dashboard, income chart, timeline, funding gap).
+
+Decisions (mine, not yet confirmed by the user):
+- **Three orders, not four.** `proRata` (default, today's behaviour), `taxableFirst` and
+  `lowestTaxFirst`, in `Assumptions.withdrawalStrategy` (`WITHDRAWAL_STRATEGIES` in
+  `types/index.ts`; an unknown or missing value normalises to pro rata). The design doc's
+  "Bridge-only" order is **dropped**: the engine never draws locked capital, so it would
+  equal pro rata.
+- **Cash is not split from securities.** The pooled `other-investments` source is unchanged.
+  Splitting it would change trace steps, tests and the results for holdings with their own tax
+  rates. It can come later as an optional "R2b".
+- **The order changes only who is drawn on, never how much.** All sources earn the same real
+  rate, so the gross draw, the solver, `unmet`, `spendable` and net worth are identical in
+  every order. Only the tax, and so the net income, changes. Net worth is therefore not a
+  comparison line.
+- **Where it lives.** `Household.withdrawalStrategy` (set in `buildHousehold`);
+  `drawdown.ts` (`withdrawalRank`, `withdrawalTiers`, `allocateDraw`; `simulate()` computes the
+  allocation first, then updates balances). Ranks: taxable first = other investments, then the
+  investment gemel, then pension, exempt (study fund) last; lowest tax first = exempt, then
+  money taxed only on its gain (by `gainFraction × capital-gains rate`), then pension, then
+  money taxed as ordinary income. Sources whose ranks are within 1e-9 share a tier and are drawn
+  pro rata inside it.
+- **Lean runs stay pro rata.** Monte Carlo, the backtest and `spendingTest` use `lean: true`;
+  they only depend on how much is drawn, not on which source. The card says so.
+- **Comparison** (`domain/withdrawalStrategies.ts`, `compareWithdrawalStrategies`): builds the
+  household once, runs the net-income estimate per order (about 9 ms for all three). Lines: total
+  tax, average and lowest income you keep, first year below the desired spending, highest taxable
+  income in a year (`NetIncomeYear.taxableMonthly`, from `memberTaxDetail`), and years above the
+  surtax threshold. When every order gives the same tax each year the card shows only a message.
+- **A lower total tax can lower the headline "lowest year" income.** In a trial plan the order
+  with the least tax left a lower income in the leanest year than pro rata. The card shows all
+  lines and a trade-off note, and never calls an order "optimal".
+- **Trace.** A `withdrawalStrategy` step and a `withdrawalOrder` table appear **only** for a
+  non-default order, so the existing traces and verification pack are unchanged.
+- **Layout.** The three order descriptions are a short list above the table (not in the
+  column headers), so the table fits a 400 px phone without scrolling in English and Russian.
+- **RTL.** Amounts and ages are wrapped in `\u2066…\u2069` and passed as interpolation values.
+
+- [x] R2a. Types and normalisation (`withdrawalStrategy`), fixture override, household wiring.
+- [x] R2b. Engine (`drawdown.ts`), `memberTaxDetail`, `NetIncomeYear.taxableMonthly`.
+- [x] R2c. `domain/withdrawalStrategies.ts` with 13 tests (ordering, shares sum to one, same
+      gross, a source never overdrawn, agreement with `estimateNetIncome`, `identical`,
+      shortfall age, empty income).
+- [x] R2d. Card (`components/WithdrawalStrategyCard.tsx`), wired into `Projections`; a click
+      saves the order with `updateProfile`.
+- [x] R2e. Texts in en, he and ru (`projections.withdrawal.*`);
+      `i18n/withdrawalLocales.test.ts`.
+- [x] R2f. Component tests ("withdrawal order": compare and mark, save, deltas, identical
+      message, no shortfall row, closed details, hidden without savings) and a
+      `normalizeProfile` test.
+- [x] R2g. Browser check in English, Hebrew (RTL) and Russian at 485 px. Saving
+      "Taxable money first" changed the Dashboard income after tax and the timeline (the
+      other-investments pot is drawn first); pro rata left them as before. 1201 passed and 1
+      skipped.
 
 ## Welcome page for returning visitors
 

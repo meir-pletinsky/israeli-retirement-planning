@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 import { buildTestProfile } from "../test/domainFixtures";
 import {
   DEFAULT_VOLATILITY_PCT,
+  DEFAULT_WITHDRAWAL_STRATEGY,
   EMPTY_BITUACH_LEUMI,
   EMPTY_PROFILE,
   EMPTY_SPOUSE,
+  WITHDRAWAL_STRATEGIES,
   normalizeProfile,
 } from "./index";
 
@@ -28,6 +30,19 @@ describe("normalizeProfile", () => {
     expect(withVolatility(0)).toBe(0);
     expect(withVolatility("lots")).toBe(DEFAULT_VOLATILITY_PCT);
     expect(withVolatility(null)).toBe(DEFAULT_VOLATILITY_PCT);
+  });
+
+  it("draws pro rata for a profile saved before withdrawal orders, and for an order it does not know", () => {
+    const { withdrawalStrategy: _strategy, ...legacyAssumptions } = EMPTY_PROFILE.assumptions;
+    const withStrategy = (assumptions: unknown) =>
+      normalizeProfile({ assumptions } as unknown as Parameters<typeof normalizeProfile>[0]).assumptions
+        .withdrawalStrategy;
+    expect(withStrategy(legacyAssumptions)).toBe(DEFAULT_WITHDRAWAL_STRATEGY);
+    expect(withStrategy({ ...legacyAssumptions, withdrawalStrategy: "bestForEveryone" })).toBe("proRata");
+    expect(withStrategy({ ...legacyAssumptions, withdrawalStrategy: null })).toBe("proRata");
+    for (const strategy of WITHDRAWAL_STRATEGIES) {
+      expect(withStrategy({ ...legacyAssumptions, withdrawalStrategy: strategy })).toBe(strategy);
+    }
   });
 
   it("adds an empty spouse to a profile saved before couples were supported", () => {

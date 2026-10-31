@@ -29,4 +29,5 @@ export * from "./traceCheck";
 export * from "./traceConstants";
 export * from "./types";
 export * from "./verificationPack";
+export * from "./withdrawalStrategies";
 export type { RedactionKey } from "./verificationRedaction";

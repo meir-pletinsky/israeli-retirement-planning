@@ -1,6 +1,7 @@
 # Bridge Planner — design (for review, nothing built yet)
 
-Status: **proposal, 2026-10-30; R1 (liquidity ladder) built since.** Written for the
+Status: **proposal, 2026-10-30; R1 (liquidity ladder) and R2 (withdrawal order) built
+since.** Written for the
 user to review before any code. Every number in this file is an invented example.
 
 ## 1. The problem
@@ -137,7 +138,7 @@ and S and invented data only.
 | Step | What | Changes numbers? |
 |---|---|---|
 | R1 | Liquidity ladder (read-only, from existing sources) | No |
-| R2 | Split the pooled source; withdrawal order in `drawdown.ts`; strategy comparison card | Only when a non-default strategy is chosen |
+| R2 | Split the pooled source; withdrawal order in `drawdown.ts`; strategy comparison card (**built, with two changes: "Bridge-only" dropped because it equals pro rata, and the pooled source is not split; see "R2 notes" in `implementation-progress.md`**) | Only when a non-default strategy is chosen |
 | R3 | RSU schedule generator, "keeps vesting" flag, vest-aware retirement date and the "cost of leaving early" line | Yes: unvested shares no longer count at retirement |
 | R4 | Purchase lots and effective cost basis (rule R); ESPP kind | Yes, for holdings with lots (lower tax when the dollar was higher at purchase) |
 | R5 | Per-source cost table ("tax to raise ₪100 net" and "what you give up") | No |

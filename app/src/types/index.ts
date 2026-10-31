@@ -4,12 +4,29 @@ export type MaritalStatus = "single" | "married" | "divorced" | "widowed";
 
 export type AssumptionPreset = "conservative" | "base" | "optimistic";
 
+/**
+ * Which savings are drawn first once spending starts (see `domain/drawdown.ts`):
+ * every unlocked source at the same share, taxable investments before pension
+ * money and the tax-free study fund last, or the cheapest-taxed money first.
+ */
+export type WithdrawalStrategy = "proRata" | "taxableFirst" | "lowestTaxFirst";
+
+export const WITHDRAWAL_STRATEGIES: readonly WithdrawalStrategy[] = [
+  "proRata",
+  "taxableFirst",
+  "lowestTaxFirst",
+];
+
+export const DEFAULT_WITHDRAWAL_STRATEGY: WithdrawalStrategy = "proRata";
+
 export interface Assumptions {
   preset: AssumptionPreset;
   investmentReturnPct: number;
   inflationPct: number;
   /** Standard deviation of the yearly investment return; drives the Monte Carlo spread. */
   volatilityPct: number;
+  /** The order the plan draws on unlocked savings; changes who pays how much tax, not how much is drawn. */
+  withdrawalStrategy: WithdrawalStrategy;
 }
 
 /** A typical mix of Israeli pension funds and global shares. */
@@ -513,7 +530,12 @@ export const EMPTY_PROFILE: ProfileData = {
   pensionSavings: { accounts: [], reports: [], otherAssets: null },
   equity: { holdings: [], usdToIlsRate: null, usdToIlsRateDate: null },
   expenses: { mode: "totals", retirementMonthly: null, items: [] },
-  assumptions: { preset: "base", ...ASSUMPTION_PRESETS.base, volatilityPct: DEFAULT_VOLATILITY_PCT },
+  assumptions: {
+    preset: "base",
+    ...ASSUMPTION_PRESETS.base,
+    volatilityPct: DEFAULT_VOLATILITY_PCT,
+    withdrawalStrategy: DEFAULT_WITHDRAWAL_STRATEGY,
+  },
   comparisonAges: null,
 };
 
@@ -587,10 +609,17 @@ function normalizeExpenses(value: unknown): ExpensesData {
   };
 }
 
-/** Older profiles have no volatility, and a hand-edited one may hold text; both get the default. */
+/**
+ * Older profiles have no volatility or withdrawal order, and a hand-edited one
+ * may hold text or an unknown order; all of those get the default.
+ */
 function normalizeAssumptions(value: Partial<Assumptions> | undefined): Assumptions {
   const merged = { ...EMPTY_PROFILE.assumptions, ...value };
-  return { ...merged, volatilityPct: finiteOrNull(merged.volatilityPct) ?? DEFAULT_VOLATILITY_PCT };
+  return {
+    ...merged,
+    volatilityPct: finiteOrNull(merged.volatilityPct) ?? DEFAULT_VOLATILITY_PCT,
+    withdrawalStrategy: oneOf(WITHDRAWAL_STRATEGIES, merged.withdrawalStrategy, DEFAULT_WITHDRAWAL_STRATEGY),
+  };
 }
 
 function isComparisonAges(value: unknown): value is [number, number, number] {

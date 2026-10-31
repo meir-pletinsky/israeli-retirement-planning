@@ -63,12 +63,36 @@ and **Phase V (Monte Carlo risk analysis, the first Phase 4 piece) is done**,
 and **Phase W (household dashboard KPIs, the second Phase 4 piece) is done**,
 and **Phase X (live Israeli inflation, the third Phase 4 piece) is done**,
 and **Phase Y (historical backtest, the fourth Phase 4 piece) is done**,
-and **Phase R step R1 (the Bridge Planner's liquidity ladder) is done**.
+and **Phase R steps R1 (liquidity ladder) and R2 (withdrawal order) are done**.
 Phases A–K are committed and pushed to
-`main`; Phases L, M, N, O, P, Q, S, T, V, W, X, Y and R1 are committed and pushed only if `git log`
+`main`; Phases L, M, N, O, P, Q, S, T, V, W, X, Y, R1 and R2 are committed and pushed only if `git log`
 shows them.
 
-- **Phase R, step R1 (liquidity ladder): DONE, not yet committed.** The user reviewed
+- **Phase R, step R2 (withdrawal order): DONE, not yet committed.** The user said "pushed,
+  let's do R2" and chose "comparison plus a saved choice that changes the Dashboard and timeline
+  numbers". Projections has a "Which savings to draw on first" card (after the income charts,
+  before the liquidity ladder) comparing three orders: evenly (pro rata, the default and
+  today's behaviour), taxable money first, and lowest tax first. Lines: total tax, average and
+  lowest income you keep, first year below desired spending, highest taxable income in a year,
+  years above the surtax threshold. "Use this order" saves `assumptions.withdrawalStrategy`,
+  and the order then drives the Dashboard, income chart, timeline and funding gap (checked in
+  the browser). My calls, all unconfirmed: **(1) "Bridge-only" is dropped** (the engine never
+  draws locked capital, so it equals pro rata); **(2) cash is not split from securities** (the
+  pooled `other-investments` source is unchanged, because splitting would change existing
+  results; offer it later as an optional "R2b"); **(3) a non-pro-rata order can lower the
+  headline "lowest income in a year" even when total tax falls**, so the card shows every line
+  with a trade-off note and never says "optimal"; **(4) Monte Carlo, the backtest and
+  `spendingTest` stay pro rata** (they depend on how much is drawn, not on which source). The
+  gross draw, `unmet` and net worth are the same for every order, so net worth is not a
+  comparison line. Code: `domain/withdrawalStrategies.ts`, `domain/drawdown.ts`
+  (`withdrawalRank`, `allocateDraw`), `domain/memberTax.ts` (`memberTaxDetail`),
+  `components/WithdrawalStrategyCard.tsx`, `projections.withdrawal.*` texts. The trace records
+  a `withdrawalStrategy` step and `withdrawalOrder` table only for a non-default order, so the
+  verification pack is unchanged. 1201 passed and 1 skipped. **Next:** ask the design doc's
+  open questions one at a time before R3, R4, R5 and R7 (R6, stress tests, is independent).
+  Details: "R2 notes" in `docs/implementation-progress.md`.
+
+- **Phase R, step R1 (liquidity ladder): DONE and pushed.** The user reviewed
   `docs/bridge-planner-design.md` and said to start; they gave no answers to its open
   questions, so I built only R1, which depends on none of them. Projections has a "When your
   money becomes usable" card above the retirement timeline: rows for "When you retire" and each
@@ -81,10 +105,8 @@ shows them.
   not traced (it only groups already-traced values, like the timeline). Code:
   `domain/liquidityLadder.ts`, `components/LiquidityLadderCard.tsx`, `projections.ladder.*`
   texts. The placement, the RSU heads-up and the leave-out-of-the-trace choice are my calls and
-  unconfirmed. **Next: R2** (split the pooled investments source, a withdrawal order in
-  `drawdown.ts` with pro rata kept as the default, a strategy comparison); ask the user the
-  design doc's open questions one at a time before R3, R4, R5 and R7. Details: Phase R and
-  "R1 notes" in `docs/implementation-progress.md`.
+  unconfirmed. R2 followed (see above). Details: Phase R and "R1 notes" in
+  `docs/implementation-progress.md`.
 
 - **Phase Y (historical backtest): DONE and pushed (`4e1703e`).** Projections has a "Historical
   backtest" card right after the risk analysis. It replays the plan on real US stock and bond
@@ -543,7 +565,7 @@ shows them.
   - D3: live deploy verified (done as a side effect of A7).
 - 396 tests total, all green; lint/typecheck/build all green.
 
-(Counts moved on later: 645 passed and 1 skipped after Phase Q; 664 passed and 1 skipped after Phase S; 712 passed and 1 skipped after Phase T; 720 passed and 1 skipped after the returning-visitor change; 723 passed and 1 skipped after the logo and colour change; 998 passed and 1 skipped after Phase V; 1000 passed and 1 skipped after the Assumptions legend removal; 1039 passed and 1 skipped after Phase W; 1099 passed and 1 skipped after Phase X; 1149 passed and 1 skipped after Phase Y; 1171 passed and 1 skipped after Phase R step R1.)
+(Counts moved on later: 645 passed and 1 skipped after Phase Q; 664 passed and 1 skipped after Phase S; 712 passed and 1 skipped after Phase T; 720 passed and 1 skipped after the returning-visitor change; 723 passed and 1 skipped after the logo and colour change; 998 passed and 1 skipped after Phase V; 1000 passed and 1 skipped after the Assumptions legend removal; 1039 passed and 1 skipped after Phase W; 1099 passed and 1 skipped after Phase X; 1149 passed and 1 skipped after Phase Y; 1171 passed and 1 skipped after Phase R step R1; 1201 passed and 1 skipped after Phase R step R2.)
 
 ## Where to go next
 
@@ -604,15 +626,15 @@ Remaining, not yet started:
   exemption at 60. A life annuity from 60 through a paying fund is tax-free.
   No 0% route before 60 was found, and nothing varies by fund or program. The
   2026 deposit ceiling is ₪83,641. The app keeps 25% at any age.
-- **Bridge Planner: R1 built, R2–R7 not started** (Phase R in
+- **Bridge Planner: R1 and R2 built, R3–R7 not started** (Phase R in
   `docs/implementation-progress.md`, full design in `docs/bridge-planner-design.md`). R1, the
-  liquidity ladder, is done (see the top of this file). R2 is next: split the pooled
-  investments source, a withdrawal-order option in `drawdown.ts` (pro rata stays the default so
-  no existing result changes), and a strategy comparison; it must be traced and must never call
-  a strategy "optimal". R3 (RSU schedule, vest-aware retirement date), R4 (purchase lots, ESPP),
-  R5 (per-source cost table) and R7 (investment-gemel annuity route) wait on the open questions
-  in section 7 of the design, which the user has not answered; ask them one at a time. R6
-  (stress tests) is independent.
+  liquidity ladder, and R2, the saved withdrawal order, are done (see the top of this file).
+  Optional "R2b": split cash from securities in the pooled investments source so cash can be
+  drawn first; it would change existing results for holdings with their own tax rates, so only
+  do it if the user wants it. R3 (RSU schedule, vest-aware retirement date), R4 (purchase lots,
+  ESPP), R5 (per-source cost table) and R7 (investment-gemel annuity route) wait on the open
+  questions in section 7 of the design, which the user has not answered; ask them one at a
+  time. R6 (stress tests) is independent.
 - Possible refinements to the contribution model (they change numbers, so
   they were deliberately left out of Phase K): real wage growth, a
   per-account salary override, and the study-fund **annual deposit** ceiling

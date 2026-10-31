@@ -12,11 +12,13 @@ import { LiquidityLadderCard } from "../components/LiquidityLadderCard";
 import { RetirementTimeline } from "../components/RetirementTimeline";
 import { RiskAnalysisCard } from "../components/RiskAnalysisCard";
 import { ScenarioComparison } from "../components/ScenarioComparison";
+import { WithdrawalStrategyCard } from "../components/WithdrawalStrategyCard";
 import {
   MAX_RETIREMENT_SEARCH_AGE,
   type IncomeBandKey,
   buildLiquidityLadder,
   buildRetirementTimeline,
+  compareWithdrawalStrategies,
   desiredRetirementMonthly,
   estimateIncomeBreakdown,
   estimateNetIncome,
@@ -36,7 +38,7 @@ function scenarioLabelKey(scenario: RetirementScenario): string {
 
 export function Projections() {
   const { t } = useTranslation();
-  const { profile } = useProfile();
+  const { profile, updateProfile } = useProfile();
   const [scenario, setScenario] = useState<RetirementScenario>("standard");
   const [view, setView] = useState<"chart" | "table">("chart");
   const currencySymbol = t("common.currencySymbol");
@@ -55,6 +57,10 @@ export function Projections() {
   const hasNetIncome = netIncomeYears.some((year) => year.grossMonthly > 0);
   const timeline = buildRetirementTimeline(incomeData);
   const ladder = useMemo(() => buildLiquidityLadder(profile, scenario), [profile, scenario]);
+  const withdrawalComparison = useMemo(
+    () => compareWithdrawalStrategies(profile, scenario),
+    [profile, scenario],
+  );
   const feasibility = findEarliestFeasibleRetirementAge(profile);
   const isCouple = isHouseholdActive(profile);
   const bandLabels: Record<IncomeBandKey, string> = {
@@ -177,6 +183,15 @@ export function Projections() {
             taxLabel={t("projections.netIncomeTax")}
           />
         </div>
+      )}
+
+      {hasNetIncome && (
+        <WithdrawalStrategyCard
+          comparison={withdrawalComparison}
+          onSelect={(withdrawalStrategy) =>
+            updateProfile({ assumptions: { ...profile.assumptions, withdrawalStrategy } })
+          }
+        />
       )}
 
       <LiquidityLadderCard ladder={ladder} isCouple={isCouple} />

@@ -1,4 +1,4 @@
-import type { Gender, ProfileData } from "../types";
+import type { Gender, ProfileData, WithdrawalStrategy } from "../types";
 import { EMPTY_PROFILE, EMPTY_SPOUSE } from "../types";
 import { estimateBituachLeumiPension } from "./bituachLeumi";
 import { BITUACH_LEUMI_RATES as RATES } from "./bituachLeumiRates";
@@ -74,6 +74,8 @@ export interface Household {
   retirementYears: number;
   /** Years from now until the youngest member reaches `MAX_PLANNING_AGE`. */
   horizonYears: number;
+  /** The order in which the drawdown takes spending money from the unlocked sources. */
+  withdrawalStrategy: WithdrawalStrategy;
   /**
    * The primary user's age when household drawing starts: their own
    * retirement age for a single person, the later spouse's retirement moment
@@ -271,6 +273,7 @@ export function buildHousehold(
     horizonYears: Math.max(
       ...members.map((member) => Math.max(MAX_PLANNING_AGE - member.currentAge, 0)),
     ),
+    withdrawalStrategy: profile.assumptions.withdrawalStrategy,
     // Exact for the common case that the primary user retires last (or alone).
     drawdownStartAge:
       primaryRetirementYears === retirementYears

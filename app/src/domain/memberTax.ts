@@ -106,6 +106,37 @@ export function personTaxInput(
   };
 }
 
+/** A member's tax in one year, with the income it is charged on. */
+export interface MemberTaxDetail {
+  tax: PersonTax;
+  /**
+   * Monthly income the brackets and the surtax threshold apply to: the pension that is not exempt,
+   * the ordinary-income part of share sales and the taxed capital gain. Study-fund money, the
+   * exempt pension and the untaxed return of basis are left out.
+   */
+  taxableMonthly: number;
+}
+
+/** `memberTax`, also reporting the taxable income, from the holdings that year's income comes out of. */
+export function memberTaxDetail(
+  household: Household,
+  memberIndex: number,
+  yearsFromNow: number,
+  annuities: DrawdownHolding[],
+  draws: YearDraw[],
+): MemberTaxDetail {
+  const income = memberIncome(memberIndex, annuities, draws);
+  const tax = calculatePersonTax(personTaxInput(household, memberIndex, yearsFromNow, income));
+  return {
+    tax,
+    taxableMonthly:
+      Math.max(income.pensionMonthly, 0) -
+      tax.exemptPensionMonthly +
+      Math.max(income.ordinaryInvestmentMonthly, 0) +
+      Math.max(income.capitalGainMonthly, 0),
+  };
+}
+
 /** The tax a household member pays in one year, from the holdings that year's income comes out of. */
 export function memberTax(
   household: Household,
@@ -114,7 +145,5 @@ export function memberTax(
   annuities: DrawdownHolding[],
   draws: YearDraw[],
 ): PersonTax {
-  return calculatePersonTax(
-    personTaxInput(household, memberIndex, yearsFromNow, memberIncome(memberIndex, annuities, draws)),
-  );
+  return memberTaxDetail(household, memberIndex, yearsFromNow, annuities, draws).tax;
 }

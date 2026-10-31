@@ -133,6 +133,16 @@ src/
                     # ladder card. It reads the same sources and unlock
                     # ages as retirementIncome.ts, so it changes no
                     # numbers; it is outside the calculation trace.
+                    # drawdown.ts draws pro rata by default; the saved
+                    # Assumptions.withdrawalStrategy (Household
+                    # .withdrawalStrategy) can instead draw sources in an
+                    # order (taxable money first, or lowest tax first).
+                    # The order moves tax, not the gross amount drawn, and
+                    # lean runs (Monte Carlo, backtest) stay pro rata.
+                    # withdrawalStrategies.ts runs netIncome.ts once per
+                    # order for the Projections comparison card; it is
+                    # outside the calculation trace (the drawdown itself
+                    # traces a non-default order).
   history/          # bundled US stock/bond/inflation history, 1928 onward
                     # (usMarketHistory.ts) and the real-return maths
                     # (returns.ts). Extended by hand once a year.

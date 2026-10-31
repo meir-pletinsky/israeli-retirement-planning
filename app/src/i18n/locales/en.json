@@ -738,6 +738,49 @@
       "howPayments": "Annuities and Bituach Leumi are monthly payments, not savings, so they are not added to the usable total.",
       "howReadOnly": "This only shows your plan. It changes none of its numbers, and early-withdrawal penalties are not modeled."
     },
+    "withdrawal": {
+      "title": "Which savings to draw on first",
+      "intro": "Your spending is the same whichever savings pay for it, but the tax is not. Compare the orders and choose the one the whole plan should use.",
+      "strategy": {
+        "proRata": {
+          "name": "Evenly",
+          "description": "Every unlocked source pays the same share of each year's spending."
+        },
+        "taxableFirst": {
+          "name": "Taxable money first",
+          "description": "Other investments and shares first, then the investment provident fund, then pension money. The tax-free study fund is last."
+        },
+        "lowestTaxFirst": {
+          "name": "Lowest tax first",
+          "description": "The tax-free study fund first, then money taxed only on its gain, then pension money. Money taxed as ordinary income is last."
+        }
+      },
+      "metricColumn": "Over your retirement",
+      "totalTax": "Total tax",
+      "averageNet": "Average income you keep",
+      "lowestNet": "Lowest income you keep",
+      "firstShortfall": "First year below your desired spending",
+      "peakTaxable": "Highest taxable income in a year",
+      "surtaxYears": "Years above the surtax threshold ({{threshold}} a year)",
+      "perMonth": "{{amount}} a month",
+      "perYear": "{{amount}} a year",
+      "atAge": "at age {{age}}",
+      "fromAge": "from age {{age}}",
+      "never": "Never",
+      "none": "None",
+      "inUse": "In use",
+      "use": "Use this order",
+      "useNamed": "Use the order: {{name}}",
+      "deltaNote": "The grey figures show the change compared with the order in use.",
+      "identical": "For your savings every order gives the same tax each year, so the choice makes no difference to this plan.",
+      "tradeoff": "No order wins on every line: the one with the lowest total tax can leave you with less in your leanest year. Look at all of the lines before you choose.",
+      "usedEverywhere": "The order you choose is used for the whole plan: the Dashboard, the income chart and the timeline.",
+      "howTitle": "How this works",
+      "howSameGross": "Every order draws the same amount from the same savings, and all of your savings earn the same return, so what is left at each age is the same. Only the tax, and so the income you keep, changes.",
+      "howLocked": "Money that is still locked is not drawn on until it opens. The order applies to all of your unlocked savings together; each spouse is taxed on their own part.",
+      "howRisk": "The risk analysis and the historical test do not depend on the order.",
+      "howEstimate": "Tax is estimated with today's rules. This is not tax advice, and no order is a recommendation."
+    },
     "timeline": {
       "title": "Retirement timeline",
       "intro": "Which sources pay for each stage of retirement, in today's money.",

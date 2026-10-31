@@ -9,6 +9,7 @@ import type {
   SpouseData,
   TaxExemptionBasket,
   TaxTrack,
+  WithdrawalStrategy,
 } from "../types";
 import {
   EMPTY_ACCOUNT_CONTRIBUTIONS,
@@ -42,7 +43,8 @@ export function buildTestProfile(overrides: {
   inflationPct?: number;
   /** Standard deviation of yearly returns for the Monte Carlo; defaults to the app's default. */
   volatilityPct?: number;
-  /** Index-aligned with `pensionBalances`; merged onto each generated account. */
+  /** The order the plan draws on unlocked savings; defaults to pro rata. */
+  withdrawalStrategy?: WithdrawalStrategy;
   pensionAccountOverrides?: Partial<PensionAccount>[];
   otherAssets?: number;
   /** Shekels per US dollar valuing the equity; with a date it is a looked-up rate, without one the user's own. */
@@ -88,6 +90,7 @@ export function buildTestProfile(overrides: {
     investmentReturnPct,
     inflationPct,
     volatilityPct,
+    withdrawalStrategy,
     pensionBalances = [],
     pensionAccountOverrides = [],
     otherAssets,
@@ -235,6 +238,7 @@ export function buildTestProfile(overrides: {
       investmentReturnPct: investmentReturnPct ?? EMPTY_PROFILE.assumptions.investmentReturnPct,
       inflationPct: inflationPct ?? EMPTY_PROFILE.assumptions.inflationPct,
       volatilityPct: volatilityPct ?? EMPTY_PROFILE.assumptions.volatilityPct,
+      withdrawalStrategy: withdrawalStrategy ?? EMPTY_PROFILE.assumptions.withdrawalStrategy,
     },
     comparisonAges: comparisonAges ?? null,
   };
