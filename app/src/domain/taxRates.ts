@@ -38,6 +38,9 @@
  * - Section 102 (capital-gains route): the ordinary-income / capital-gain split,
  *   the 24-month holding period and the 25% rate come from an employer's plan
  *   supplement; the 30% rate for a substantial shareholder is not modelled.
+ *   The 24 months are counted from the award's grant date for every vesting
+ *   batch. This is as reported by the user for an RSU award held by an ESOP in
+ *   Israel; it is not checked against the Ordinance.
  */
 export const TAX_RATES = {
   /** Date the monetary amounts below took effect. */

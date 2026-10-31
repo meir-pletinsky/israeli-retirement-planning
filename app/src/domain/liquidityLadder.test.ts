@@ -136,29 +136,43 @@ describe("buildLiquidityLadder", () => {
   });
 
   describe("employer shares that vest after retirement", () => {
-    const withTranches = (vestDates: string[]) =>
+    const withTranches = (vestDates: string[], keepsVestingAfterLeaving: boolean) =>
       buildTestProfile({
         age: 50,
         retirementAge: 55,
         equity: [
           {
-            quantity: 200,
+            quantity: 100 * vestDates.length,
             priceUSD: 50,
-            employerGrant: { vestingTranches: vestDates.map((vestDate) => ({ vestDate, quantity: 100 })) },
+            employerGrant: {
+              keepsVestingAfterLeaving,
+              vestingTranches: vestDates.map((vestDate) => ({ vestDate, quantity: 100 })),
+            },
           },
         ],
         ...zeroReal,
       });
 
-    it("flags them with their value and the first date", () => {
+    it("flags the ones the owner keeps, with their value and the first date", () => {
       const late = isoDateInYears(7);
-      const ladder = buildLiquidityLadder(withTranches([isoDateInYears(1), late, isoDateInYears(9)]));
+      const ladder = buildLiquidityLadder(
+        withTranches([isoDateInYears(1), late, isoDateInYears(9)], true),
+      );
       // 100 shares * $50 * 3.7 for each of the two late batches.
       expect(ladder.lateVesting).toEqual({ value: 37_000, firstVestDate: late });
     });
 
+    it("does not flag them when the unvested shares are lost on leaving", () => {
+      const ladder = buildLiquidityLadder(
+        withTranches([isoDateInYears(1), isoDateInYears(7), isoDateInYears(9)], false),
+      );
+      expect(ladder.lateVesting).toBeNull();
+    });
+
     it("does not flag shares that are all vested by retirement", () => {
-      expect(buildLiquidityLadder(withTranches([isoDateInYears(1), isoDateInYears(4)])).lateVesting).toBeNull();
+      expect(
+        buildLiquidityLadder(withTranches([isoDateInYears(1), isoDateInYears(4)], true)).lateVesting,
+      ).toBeNull();
     });
   });
 });

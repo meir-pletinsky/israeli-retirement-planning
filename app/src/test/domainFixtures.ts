@@ -68,6 +68,8 @@ export function buildTestProfile(overrides: {
       holdingPeriodMet?: boolean;
       /** Batches of the quantity with their own vesting date and grant price. */
       vestingTranches?: { vestDate?: string; quantity: number; grantPriceUSD?: number }[];
+      /** The plan lets unvested batches keep vesting after leaving. */
+      keepsVestingAfterLeaving?: boolean;
     };
   }[];
   /** Typed monthly spending in retirement (totals mode). */
@@ -208,6 +210,7 @@ export function buildTestProfile(overrides: {
                 grantPriceUSD: tranche.grantPriceUSD ?? null,
               }),
             ),
+            keepsVestingAfterLeaving: holding.employerGrant?.keepsVestingAfterLeaving ?? false,
           },
           esppDetails: {
             purchaseDate: entryIn("employerEsppDiscount") ? entryDate : null,

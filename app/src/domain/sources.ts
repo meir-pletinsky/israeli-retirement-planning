@@ -34,6 +34,12 @@ import {
   withScope,
   type TraceStepBody,
 } from "./trace";
+import {
+  batchStatusAtRetirement,
+  employerShareBatches,
+  momentAfterYears,
+  yearsBetween,
+} from "./vesting";
 
 /** The kinds of savings a retirement income can be drawn from. */
 export type SourceKind =
@@ -212,17 +218,18 @@ function yearsUntilDate(isoDate: string | null): number | null {
 export type EmployerStockRoute = "section102Capital" | "ordinaryIncome" | "nonTrustee";
 
 /**
- * The route of an employer-granted holding's shares. A missing tax track is
- * taken as the Section 102 capital-gains route, the usual one. The plan sells
- * in retirement, so the 24-month holding period is met unless a known
- * acquisition date falls too close to retirement; with no date and no
+ * The route of an employer-granted holding's shares sold `yearsToSale` years
+ * from now. A missing tax track is taken as the Section 102 capital-gains
+ * route, the usual one. The 24-month holding period counts from the grant
+ * date of the award, the same for every batch of it, and is met unless a
+ * known grant date falls too close to the sale; with no date and no
  * confirmation the period is assumed to be met.
  */
 function stockRoute(
   taxTrack: TaxTrack | null,
-  acquiredOn: string | null,
+  grantDate: string | null,
   holdingPeriodConfirmed: boolean,
-  yearsToRetirement: number,
+  yearsToSale: number,
 ): EmployerStockRoute {
   switch (taxTrack ?? "section102CapitalGainsTrustee") {
     case "section102OrdinaryIncomeTrustee":
@@ -230,18 +237,18 @@ function stockRoute(
     case "section3iNonTrustee":
       return "nonTrustee";
     default: {
-      const untilAcquired = yearsUntilDate(acquiredOn);
-      const heldAtRetirement = untilAcquired === null ? null : yearsToRetirement - untilAcquired;
+      const untilGrant = yearsUntilDate(grantDate);
+      const heldAtSale = untilGrant === null ? null : yearsToSale - untilGrant;
       const periodMet =
         holdingPeriodConfirmed ||
-        heldAtRetirement === null ||
-        heldAtRetirement >= TAX_RATES.section102HoldingPeriodYears;
+        heldAtSale === null ||
+        heldAtSale >= TAX_RATES.section102HoldingPeriodYears;
       return periodMet ? "section102Capital" : "ordinaryIncome";
     }
   }
 }
 
-/** The route of the shares of an employer holding that follow its own grant date (not a vesting tranche). */
+/** The route of an employer holding's shares when they are sold at retirement, `yearsToRetirement` years from now. */
 export function employerStockRoute(
   holding: StockHolding,
   yearsToRetirement: number,
@@ -259,45 +266,43 @@ interface EmployerLot {
 }
 
 /**
- * Splits an employer holding into lots: one per vesting tranche, each with
- * its own acquisition date and price at grant, plus the remaining shares,
- * which follow the holding's own grant date and price. Tranches that
- * together exceed the quantity are scaled down to fit. Awards cost the
- * employee nothing, so a lot's grant value is the part of its proceeds that
- * is ordinary income (Section 102) or already-taxed income (Section 3(i)).
+ * Splits an employer holding into lots, one per batch of shares (see
+ * `employerShareBatches`) that the owner still has when they retire. A batch
+ * that vests after retirement is dropped unless the grant keeps vesting after
+ * leaving; a kept one is sold when it vests. Every lot follows the award's
+ * grant date for the 24-month test, and a batch's own price at grant when it
+ * has one. Awards cost the employee nothing, so a lot's grant value is the
+ * part of its proceeds that is ordinary income (Section 102) or
+ * already-taxed income (Section 3(i)).
  */
 function employerLots(
   holding: StockHolding,
   yearsToRetirement: number,
   fxRate: number,
+  vestingRows: (string | number)[][] | null,
 ): EmployerLot[] {
   const details = holding.employerGrantDetails;
   const shareValue = (holding.currentMarketPriceUSD ?? 0) * fxRate;
   const holdingGrantPrice = Math.max(details.costBasisAtGrantUSD ?? 0, 0);
-  const total = Math.max(holding.quantity ?? 0, 0);
-  const tranches = details.vestingTranches.filter((tranche) => (tranche.quantity ?? 0) > 0);
-  const trancheTotal = tranches.reduce((sum, tranche) => sum + (tranche.quantity ?? 0), 0);
-  const scale = trancheTotal > total ? total / trancheTotal : 1;
+  const nowMs = engineNowMs();
+  const retirementMs = momentAfterYears(nowMs, yearsToRetirement);
 
-  const lot = (quantity: number, grantPriceUSD: number, route: EmployerStockRoute): EmployerLot => {
-    const value = quantity * shareValue;
-    return {
+  const lots: EmployerLot[] = [];
+  for (const batch of employerShareBatches(holding)) {
+    const status = batchStatusAtRetirement(holding, batch, retirementMs);
+    vestingRows?.push([holding.id, batch.vestDate ?? "", batch.quantity, status]);
+    if (status === "forfeited") continue;
+    const yearsToSale =
+      batch.vestMs === null
+        ? yearsToRetirement
+        : Math.max(yearsToRetirement, yearsBetween(nowMs, batch.vestMs));
+    const value = batch.quantity * shareValue;
+    const grantPriceUSD = Math.max(batch.grantPriceUSD ?? holdingGrantPrice, 0);
+    lots.push({
       value,
-      grantValue: Math.min(quantity * grantPriceUSD * fxRate, value),
-      route,
-    };
-  };
-
-  const lots = tranches.map((tranche) =>
-    lot(
-      (tranche.quantity ?? 0) * scale,
-      Math.max(tranche.grantPriceUSD ?? holdingGrantPrice, 0),
-      stockRoute(details.taxTrack, tranche.vestDate, false, yearsToRetirement),
-    ),
-  );
-  const rest = trancheTotal >= total ? 0 : total - trancheTotal;
-  if (rest > 0) {
-    lots.push(lot(rest, holdingGrantPrice, employerStockRoute(holding, yearsToRetirement)));
+      grantValue: Math.min(batch.quantity * grantPriceUSD * fxRate, value),
+      route: stockRoute(details.taxTrack, details.grantDate, details.trusteeHoldingPeriodMet, yearsToSale),
+    });
   }
   return lots;
 }
@@ -321,13 +326,14 @@ function splitEquityByTaxRoute(profile: ProfileData, yearsToRetirement: number):
     rest: [],
   };
   const lotRows: (string | number)[][] = [];
+  const vestingRows: (string | number)[][] | null = isTracing() ? [] : null;
   const fxRate = usdToIlsRate(profile);
   for (const holding of profile.equity.holdings) {
     if (holding.investmentCategory !== "employerGrantedStock") {
       split.rest.push(holding);
       continue;
     }
-    for (const lot of employerLots(holding, yearsToRetirement, fxRate)) {
+    for (const lot of employerLots(holding, yearsToRetirement, fxRate, vestingRows)) {
       if (isTracing()) lotRows.push([holding.id, lot.value, lot.grantValue, lot.route]);
       switch (lot.route) {
         case "section102Capital":
@@ -343,12 +349,20 @@ function splitEquityByTaxRoute(profile: ProfileData, yearsToRetirement: number):
       }
     }
   }
+  if (vestingRows && vestingRows.length > 0) {
+    recordTable("employerVesting", () => ({
+      title: "Employer-granted share batches and whether the owner still has them at retirement",
+      columns: ["holdingId", "vestDate", "quantity", "status"],
+      rows: vestingRows,
+      note: "A batch is vested when its vest date is on or before the retirement date (an empty date counts as vested). status is vested, keptByGrant (still unvested, but the grant keeps vesting after leaving) or forfeited (still unvested and lost). Forfeited batches are left out of the employerLots table. Batches kept by the grant are counted from retirement and sold when they vest.",
+    }));
+  }
   if (lotRows.length > 0) {
     recordTable("employerLots", () => ({
       title: "Employer-granted share lots and their tax route",
       columns: ["holdingId", "valueIls", "grantValueIls", "route"],
       rows: lotRows,
-      note: `Values are quantity × price in USD × ${fxRate} (${fxRateOrigin(profile)}); grantValueIls is the part worth that at the grant (ordinary income on the Section 102 capital route, already-taxed income on Section 3(i)).`,
+      note: `Values are quantity × price in USD × ${fxRate} (${fxRateOrigin(profile)}); grantValueIls is the part worth that at the grant (ordinary income on the Section 102 capital route, already-taxed income on Section 3(i)). One lot per batch in the employerVesting table that is not forfeited. A lot is sold at the later of retirement and its vest date, and on the Section 102 capital route it stays on that route when the sale falls at least ${TAX_RATES.section102HoldingPeriodYears} years after the award's grant date (or the holding period is confirmed, or the grant date is unknown).`,
     }));
   }
   return split;
@@ -950,7 +964,7 @@ function recordOtherInvestmentsSteps(
         holding.personalPurchaseDetails.unrealizedCapitalGainUSD,
         holding.personalPurchaseDetails.capitalGainsTaxRatePercent,
       ]),
-      note: `valueIls = quantity × currentMarketPriceUSD × ${fxRate} (${fxRateOrigin(profile)}).`,
+      note: `valueIls = quantity × currentMarketPriceUSD × ${fxRate} (${fxRateOrigin(profile)}). It counts the whole quantity of an employer grant, including shares that have not vested; the employerVesting and employerLots tables show what is kept at retirement.`,
     }));
   }
   const balanceId = recordStep("balance", () => ({

@@ -524,7 +524,31 @@ describe("Projections", () => {
       expect(within(card).getByText("Pension Fund (your spouse's)")).toBeInTheDocument();
     });
 
-    it("warns about company shares that vest after retirement", async () => {
+    it("warns about company shares that keep vesting after retirement", async () => {
+      const card = await renderLadder(
+        buildTestProfile({
+          age: 50,
+          retirementAge: 55,
+          otherAssets: 10_000,
+          equity: [
+            {
+              quantity: 100,
+              priceUSD: 50,
+              employerGrant: {
+                keepsVestingAfterLeaving: true,
+                vestingTranches: [{ vestDate: "2033-03-01", quantity: 100 }],
+              },
+            },
+          ],
+        }),
+      );
+
+      expect(
+        within(card).getByText(reads(/^Company shares worth about ₪18,500 at today's price vest after you retire \(the first batch on 01\.03\.2033\)/)),
+      ).toBeInTheDocument();
+    });
+
+    it("does not count company shares that vest after retirement and are lost", async () => {
       const card = await renderLadder(
         buildTestProfile({
           age: 50,
@@ -540,9 +564,7 @@ describe("Projections", () => {
         }),
       );
 
-      expect(
-        within(card).getByText(reads(/^Company shares worth about ₪18,500 at today's price vest after you retire \(the first batch on 01\.03\.2033\)/)),
-      ).toBeInTheDocument();
+      expect(within(card).queryByText(/Company shares worth about/)).not.toBeInTheDocument();
     });
 
     it("explains itself in a section that starts closed", async () => {
@@ -560,6 +582,75 @@ describe("Projections", () => {
 
       await screen.findByRole("heading", { name: "Projections" });
       expect(screen.queryByRole("region", { name: "When your money becomes usable" })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("unvested company shares", () => {
+    // Invisible direction marks wrap the numbers; text matchers look through them.
+    const BIDI_MARKS = /[\u2066\u2069]/g;
+    const reads = (pattern: RegExp) => (content: string) => pattern.test(content.replace(BIDI_MARKS, ""));
+
+    const profileWith = (keepsVestingAfterLeaving: boolean) =>
+      buildTestProfile({
+        age: 50,
+        retirementAge: 55,
+        otherAssets: 10_000,
+        pensionBalances: [400_000],
+        equity: [
+          {
+            quantity: 300,
+            priceUSD: 50,
+            employerGrant: {
+              keepsVestingAfterLeaving,
+              vestingTranches: [
+                { vestDate: "2031-12-01", quantity: 100 },
+                { vestDate: "2032-06-01", quantity: 200 },
+              ],
+            },
+          },
+        ],
+        investmentReturnPct: 4,
+        inflationPct: 4,
+      });
+
+    const renderCard = async (profile: ReturnType<typeof buildTestProfile>) => {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+      return screen.findByRole("region", { name: "Leaving before your shares vest" });
+    };
+
+    it("says what is lost by retiring before the shares vest and what the next batch would add", async () => {
+      const card = await renderCard(profileWith(false));
+
+      expect(
+        within(card).getByText(
+          reads(/^If you retire on \d\d\.\d\d\.2031, you lose 300 shares of unvested company stock \(about ₪55,500\)\.$/),
+        ),
+      ).toBeInTheDocument();
+      expect(
+        within(card).getByText(
+          reads(/^Staying \d+ months longer, until 01\.12\.2031, would keep another 100 shares \(about ₪18,500\)\./),
+        ),
+      ).toBeInTheDocument();
+      expect(within(card).getByText(reads(/^That adds about ₪[\d,]+ a month to your net retirement income\.$/))).toBeInTheDocument();
+    });
+
+    it("explains itself in a section that starts closed", async () => {
+      const card = await renderCard(profileWith(false));
+      const details = within(card).getByText("How this works").closest("details");
+
+      expect(details).not.toBeNull();
+      expect(details).not.toHaveAttribute("open");
+    });
+
+    it("is not shown when the grant keeps vesting after leaving", async () => {
+      await saveProfileToDb(profileWith(true));
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      await screen.findByRole("region", { name: "When your money becomes usable" });
+      expect(screen.queryByRole("region", { name: "Leaving before your shares vest" })).not.toBeInTheDocument();
     });
   });
 

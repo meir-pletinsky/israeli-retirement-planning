@@ -175,6 +175,7 @@ export function hasAdvancedDetails(holding: StockHolding): boolean {
       return (
         grant.taxTrack !== null ||
         grant.trusteeHoldingPeriodMet ||
+        grant.keepsVestingAfterLeaving ||
         grant.estimatedMarginalTaxOnVesting !== null ||
         grant.vestingTranches.length > 0
       );

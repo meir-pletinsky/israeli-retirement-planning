@@ -98,7 +98,9 @@ src/
                     # schedule, and a pension taken before the statutory
                     # age bears health tax; employer shares under Section
                     # 102 are routed in sources.ts, one lot per vesting
-                    # batch, into an ordinary-income layer (which also pays
+                    # batch (vesting.ts decides which batches count:
+                    # unvested batches are forfeited at retirement unless
+                    # the grant keeps vesting), into an ordinary-income layer (which also pays
                     # health tax and, before the statutory age, Bituach
                     # Leumi, see employerShareContributions in tax.ts) and
                     # a capital-gains remainder). The clock is read only in
@@ -143,6 +145,12 @@ src/
                     # order for the Projections comparison card; it is
                     # outside the calculation trace (the drawdown itself
                     # traces a non-default order).
+                    # leavingEarly.ts (the "Leaving before your shares
+                    # vest" card) finds the unvested company shares lost at
+                    # the retirement date, what one more month would keep
+                    # and the monthly after-tax gain. It is outside the
+                    # trace; the vest-aware engine itself is traced through
+                    # the employerVesting and employerLots tables.
   history/          # bundled US stock/bond/inflation history, 1928 onward
                     # (usMarketHistory.ts) and the real-return maths
                     # (returns.ts). Extended by hand once a year.

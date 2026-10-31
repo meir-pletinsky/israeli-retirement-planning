@@ -220,14 +220,26 @@ export function EquityHoldingForm({
             }))}
           />
           <VestingTranchesEditor
-            tranches={employerGrantDetails.vestingTranches}
-            holdingQuantity={quantity}
+            holding={holding}
             onChange={(vestingTranches) =>
               onChange({
                 employerGrantDetails: { ...employerGrantDetails, vestingTranches },
               })
             }
           />
+          <CheckboxField
+            label={f("keepsVestingAfterLeaving")}
+            checked={employerGrantDetails.keepsVestingAfterLeaving}
+            onChange={(v) =>
+              onChange({
+                employerGrantDetails: {
+                  ...employerGrantDetails,
+                  keepsVestingAfterLeaving: v,
+                },
+              })
+            }
+          />
+          <p className="-mt-2 text-xs text-slate-500">{f("keepsVestingAfterLeavingHelper")}</p>
           <CheckboxField
             label={f("trusteeHoldingPeriodMet")}
             checked={employerGrantDetails.trusteeHoldingPeriodMet}

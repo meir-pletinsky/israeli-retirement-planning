@@ -92,6 +92,57 @@ describe("aggregateCurrentNetWorth", () => {
   it("is zero for a fully empty profile", () => {
     expect(aggregateCurrentNetWorth(buildTestProfile({}))).toBe(0);
   });
+
+  it("leaves out employer shares that have not vested yet", () => {
+    const profile = buildTestProfile({
+      equity: [
+        {
+          quantity: 100,
+          priceUSD: 10,
+          employerGrant: {
+            vestingTranches: [
+              { vestDate: "2025-01-01", quantity: 30 },
+              { vestDate: "2027-01-01", quantity: 50 },
+            ],
+          },
+        },
+      ],
+    });
+    // 30 vested plus the 20 in no batch: 50 shares of 100 are owned on the pinned 2026-06-15.
+    expect(aggregateCurrentNetWorth(profile)).toBeCloseTo(50 * 10 * FALLBACK_USD_TO_ILS_RATE, 5);
+  });
+});
+
+describe("projectBalanceAtAge with employer shares", () => {
+  const holding = (keepsVestingAfterLeaving: boolean) =>
+    buildTestProfile({
+      age: 50,
+      retirementAge: 55,
+      investmentReturnPct: 4,
+      inflationPct: 4,
+      equity: [
+        {
+          quantity: 100,
+          priceUSD: 10,
+          employerGrant: {
+            keepsVestingAfterLeaving,
+            vestingTranches: [
+              { vestDate: "2027-01-01", quantity: 30 },
+              { vestDate: "2040-01-01", quantity: 50 },
+            ],
+          },
+        },
+      ],
+    });
+
+  it("counts shares vested by the retirement date, not only by today", () => {
+    // 20 undated plus the 30 that vest in 2027 are owned at 55; the 50 vesting in 2040 are lost.
+    expect(projectBalanceAtAge(holding(false), 55)).toBeCloseTo(50 * 10 * FALLBACK_USD_TO_ILS_RATE, 5);
+  });
+
+  it("adds the shares a grant keeps vesting after leaving", () => {
+    expect(projectBalanceAtAge(holding(true), 55)).toBeCloseTo(100 * 10 * FALLBACK_USD_TO_ILS_RATE, 5);
+  });
 });
 
 describe("usdToIlsRate", () => {

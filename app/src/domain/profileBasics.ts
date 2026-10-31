@@ -7,7 +7,9 @@ import {
   FALLBACK_USD_TO_ILS_RATE,
   MIN_RETIREMENT_AGE,
 } from "./constants";
+import { engineNowMs } from "./trace";
 import type { RetirementScenario } from "./types";
+import { quantityAtRetirement, vestedQuantityAt } from "./vesting";
 
 /** `personal.age`, falling back to a reasonable default when not yet entered. */
 export function resolveCurrentAge(profile: ProfileData): number {
@@ -123,12 +125,29 @@ export function aggregatePensionBalance(profile: ProfileData): number {
  * Non-pension assets in ILS: the `otherAssets` catch-all (cash, bonds, real
  * estate, etc.) plus equity holdings (`quantity * currentMarketPriceUSD`,
  * converted at the profile's USD to ILS rate, see `usdToIlsRate`).
+ *
+ * Employer-granted shares count only the batches the owner has. Without
+ * `retirementMs` those are the batches vested by now; with it, the batches
+ * counted for an owner retiring then (vested by then, or kept by a grant that
+ * keeps vesting after leaving). Unvested shares that would be lost are left out.
  */
-export function aggregateOtherBalance(profile: ProfileData): number {
+export function aggregateOtherBalance(
+  profile: ProfileData,
+  retirementMs: number | null = null,
+): number {
   const otherAssets = profile.pensionSavings.otherAssets ?? 0;
   const rate = usdToIlsRate(profile);
+  const nowMs = engineNowMs();
   const equityTotal = profile.equity.holdings.reduce(
-    (sum, holding) => sum + holdingValueIls(holding, rate),
+    (sum, holding) =>
+      sum +
+      holdingValueIls(
+        holding,
+        rate,
+        retirementMs === null
+          ? vestedQuantityAt(holding, nowMs)
+          : quantityAtRetirement(holding, retirementMs),
+      ),
     0,
   );
   return otherAssets + equityTotal;
@@ -145,12 +164,16 @@ export function usdToIlsRate(profile: ProfileData): number {
     : FALLBACK_USD_TO_ILS_RATE;
 }
 
-/** Market value of one equity holding in ILS: `quantity * currentMarketPriceUSD` at `rate` shekels per dollar. */
-export function holdingValueIls(holding: StockHolding, rate: number): number {
-  return (holding.quantity ?? 0) * (holding.currentMarketPriceUSD ?? 0) * rate;
+/** Market value in ILS of `quantity` shares of a holding (all of it by default) at `rate` shekels per dollar. */
+export function holdingValueIls(
+  holding: StockHolding,
+  rate: number,
+  quantity: number = holding.quantity ?? 0,
+): number {
+  return quantity * (holding.currentMarketPriceUSD ?? 0) * rate;
 }
 
-/** Sums all balances currently known for the profile into a single "today" net worth figure, in ILS. */
+/** Sums all balances currently known for the profile into a single "today" net worth figure, in ILS. Unvested employer shares are not counted. */
 export function aggregateCurrentNetWorth(profile: ProfileData): number {
   return aggregatePensionBalance(profile) + aggregateOtherBalance(profile);
 }

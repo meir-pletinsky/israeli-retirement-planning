@@ -36,7 +36,9 @@ cost in lost return and in tax; the app should show those options.
 - Employer stock is split by tax route into lots (`employerLots`); a batch
   vesting after retirement is routed as ordinary income, and the user is told
   to leave out shares that would be forfeited. Batches are typed by hand.
-  Net worth and the drawdown use the holding's full quantity.
+  Net worth and the drawdown use the holding's full quantity. *(Before R3.
+  Since R3 the engine is vest-aware: a late batch is forfeited unless the
+  grant keeps vesting, and batches can be generated.)*
 - Scenario comparison (Phase J) varies only the retirement age and is not
   vest-aware.
 
@@ -97,7 +99,7 @@ shows the differences and the assumptions behind them.
 
 **Liquidity ladder.** A staircase of the money that can be used by date or age:
 cash and investment gemel now, stock lots now, RSU batches on their vest dates
-(Section 102 capital route after 24 months, rule P), study fund at its
+(Section 102 capital route after 24 months from the grant date, rule P), study fund at its
 liquidity date, pension and gemel at 60, Bituach Leumi at the statutory age.
 Read-only; it needs no new inputs.
 
@@ -139,7 +141,7 @@ and S and invented data only.
 |---|---|---|
 | R1 | Liquidity ladder (read-only, from existing sources) | No |
 | R2 | Split the pooled source; withdrawal order in `drawdown.ts`; strategy comparison card (**built, with two changes: "Bridge-only" dropped because it equals pro rata, and the pooled source is not split; see "R2 notes" in `implementation-progress.md`**) | Only when a non-default strategy is chosen |
-| R3 | RSU schedule generator, "keeps vesting" flag, vest-aware retirement date and the "cost of leaving early" line | Yes: unvested shares no longer count at retirement |
+| R3 | RSU schedule generator, "keeps vesting" flag, vest-aware retirement date and the "cost of leaving early" line (**built; the leaving-early line shows a monthly after-tax gain, and `quantity` is the whole award; see "R3 notes" in `implementation-progress.md`**) | Yes: unvested shares no longer count at retirement |
 | R4 | Purchase lots and effective cost basis (rule R); ESPP kind | Yes, for holdings with lots (lower tax when the dollar was higher at purchase) |
 | R5 | Per-source cost table ("tax to raise ₪100 net" and "what you give up") | No |
 | R6 | Stress tests: employer-stock haircut and USD/ILS move | No |
@@ -157,9 +159,12 @@ change. R3 fixes a real overstatement: today unvested shares count in full.
 2. **ESPP basis.** Is the ESPP discount taxed on your payslip at purchase? Are
    ESPP shares held under a Section 102 trustee or in a normal brokerage
    account? (Rule P and the 24-month period depend on it.)
-3. **RSU forfeiture.** Does your plan have any retirement-vesting clause, or is
-   every unvested unit lost? The per-grant flag exists for this.
-4. **24 months.** Counted from the grant date or from each vest date (rule P)?
+3. **RSU forfeiture.** *Answered (R3):* every unvested unit is lost when the
+   owner leaves; there is no retirement clause. The per-grant flag exists and
+   defaults to off.
+4. **24 months.** *Answered (R3):* for RSUs held by an ESOP in Israel the 24
+   months count from the original grant date of the award, not from each vest
+   date. User-reported, not checked against the Ordinance.
 5. **Investment gemel annuity (R7).** Worth modelling? It only matters from
    age 60 and locks the money into a life annuity; the exemption rule is from
    advisory sites and the legal section is unconfirmed.

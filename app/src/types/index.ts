@@ -267,13 +267,14 @@ export type TaxTrack =
   | "section3iNonTrustee";
 
 /**
- * A batch of an employer grant's shares that was (or will be) acquired on its
- * own date, so it has its own 24-month holding period and, optionally, its
- * own price at grant. Awards that vest in instalments are entered this way.
+ * A batch of an employer grant's shares that vests on its own date and,
+ * optionally, has its own price at grant. Awards that vest in instalments are
+ * entered this way. A batch that vests after the owner retires is lost unless
+ * the grant keeps vesting after leaving.
  */
 export interface VestingTranche {
   id: string;
-  /** Date the batch vests, i.e. the shares are acquired; the 24-month holding period counts from here. */
+  /** Date the batch vests. Empty = already vested. The 24-month holding period counts from the grant date, not from here. */
   vestDate: string | null;
   quantity: number | null;
   /** Share price at the grant date; null = the holding's own price at grant. */
@@ -285,7 +286,7 @@ export function createEmptyVestingTranche(): VestingTranche {
 }
 
 export interface EmployerGrantDetails {
-  /** Acquisition date of the shares not listed as a vesting tranche. */
+  /** Date of the award. The 24-month Section 102 holding period counts from here, for every batch of the award. */
   grantDate: string | null;
   taxTrack: TaxTrack | null;
   /** Not used by the engine; superseded by `vestingTranches`. */
@@ -300,11 +301,17 @@ export interface EmployerGrantDetails {
   usdToIlsRateAtGrant: number | null;
   estimatedMarginalTaxOnVesting: number | null;
   /**
-   * Batches of the holding's shares acquired on other dates. They are part of
-   * `StockHolding.quantity`; whatever is not covered by a batch follows
-   * `grantDate` and `trusteeHoldingPeriodMet`.
+   * Batches of the holding's shares with their own vesting dates. They are
+   * part of `StockHolding.quantity`; whatever is not covered by a batch is
+   * already vested.
    */
   vestingTranches: VestingTranche[];
+  /**
+   * The plan lets unvested batches keep vesting after the owner leaves (a
+   * retirement clause). Off: batches still unvested on the retirement date
+   * are forfeited and do not count towards the retirement savings.
+   */
+  keepsVestingAfterLeaving: boolean;
 }
 
 export const EMPTY_EMPLOYER_GRANT_DETAILS: EmployerGrantDetails = {
@@ -317,6 +324,7 @@ export const EMPTY_EMPLOYER_GRANT_DETAILS: EmployerGrantDetails = {
   usdToIlsRateAtGrant: null,
   estimatedMarginalTaxOnVesting: null,
   vestingTranches: [],
+  keepsVestingAfterLeaving: false,
 };
 
 export interface EsppDetails {
@@ -690,6 +698,7 @@ export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined
           ...EMPTY_EMPLOYER_GRANT_DETAILS,
           ...holding.employerGrantDetails,
           usdToIlsRateAtGrant: validRate(holding.employerGrantDetails?.usdToIlsRateAtGrant),
+          keepsVestingAfterLeaving: holding.employerGrantDetails?.keepsVestingAfterLeaving === true,
           vestingTranches: Array.isArray(holding.employerGrantDetails?.vestingTranches)
             ? holding.employerGrantDetails.vestingTranches.map((tranche) => ({
                 ...createEmptyVestingTranche(),

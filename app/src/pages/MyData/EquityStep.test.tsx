@@ -185,4 +185,65 @@ describe("EquityStep — vesting tranches", () => {
       "The batches add up to 25 shares, more than the 10 in this holding",
     );
   });
+
+  it("creates an even schedule from the grant date and the quantity", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
+
+    await openAddHolding(user, "employerGrantedStock");
+    await user.type(screen.getByLabelText(/^Quantity \(shares\)/), "400");
+    await user.type(screen.getByLabelText(/^Grant date/), "2024-01-31");
+    await user.click(screen.getByRole("button", { name: /^More details: employer grant/ }));
+
+    const create = screen.getByRole("button", { name: "Create schedule" });
+    expect(create).toBeEnabled();
+    expect(
+      screen.getByText((content) =>
+        /^Batches: 20, from 30\.04\.2024 to 31\.01\.2029\./.test(content.replace(/[\u2066\u2069]/g, "")),
+      ),
+    ).toBeInTheDocument();
+
+    await user.click(create);
+    expect(screen.getAllByLabelText(/^Vesting date/)).toHaveLength(20);
+    // The clock is pinned to 2026-06-15, so the first nine batches have vested.
+    expect(screen.getByText("Shares vested so far: 180. Not yet vested: 220.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Replace the batches with this schedule" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(async () => {
+      const tranches = (await loadProfileFromDb())?.equity.holdings[0].employerGrantDetails.vestingTranches;
+      expect(tranches).toHaveLength(20);
+      expect(tranches?.[0]).toMatchObject({ vestDate: "2024-04-30", quantity: 20 });
+      expect(tranches?.reduce((sum, tranche) => sum + (tranche.quantity ?? 0), 0)).toBe(400);
+    });
+  });
+
+  it("cannot create a schedule without a grant date and a quantity", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
+
+    await openAddHolding(user, "employerGrantedStock");
+    await user.click(screen.getByRole("button", { name: /^More details: employer grant/ }));
+
+    expect(screen.getByRole("button", { name: "Create schedule" })).toBeDisabled();
+    expect(screen.getByText(/^Enter the grant date and the quantity above/)).toBeInTheDocument();
+  });
+
+  it("saves whether the grant keeps vesting after leaving", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
+
+    await openAddHolding(user, "employerGrantedStock");
+    await user.click(screen.getByRole("button", { name: /^More details: employer grant/ }));
+    const keeps = screen.getByRole("checkbox", { name: /^This grant keeps vesting after I leave/ });
+    expect(keeps).not.toBeChecked();
+
+    await user.click(keeps);
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(async () => {
+      const stored = await loadProfileFromDb();
+      expect(stored?.equity.holdings[0].employerGrantDetails.keepsVestingAfterLeaving).toBe(true);
+    });
+  });
 });

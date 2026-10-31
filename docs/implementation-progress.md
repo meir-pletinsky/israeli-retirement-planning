@@ -600,6 +600,10 @@ strike-price options stay out of scope.
       is ordinary income. `EquitySplit.nonTrustee` carries Section 3(i) value
       and grant value, and `grantValueIls` was removed. The vest date as the
       start of the 24 months is **interpreted** from the supplement.
+      **Superseded in R3:** the 24 months now count from the grant date for
+      every lot (reported by the user), batches also drive net worth and the
+      drawdown, and a batch vesting after retirement is forfeited unless the
+      grant keeps vesting. See "R3 notes".
 - [x] N3. **UI.** `pages/MyData/VestingTranchesEditor.tsx` (add/remove rows,
       date, quantity, optional price, a warning when the batches exceed the
       quantity) replaces the unused vested/unvested quantity fields in
@@ -992,7 +996,7 @@ describes a 0% route before 60, and the rule does not vary by fund or program.
 The 2026 deposit ceiling is ₪83,641. The app keeps treating the fund as 25% of
 the real gain at any age; the annuity route is not modeled.
 
-## Phase R — Bridge Planner (R1 and R2 built; R3–R7 not started)
+## Phase R — Bridge Planner (R1, R2 and R3 built; R4–R7 not started)
 
 Proposal for the early-retirement bridge: which source to use first, what each
 costs and what leaving early does to unvested RSUs. Full design, build order
@@ -1003,8 +1007,9 @@ are still unanswered, so only the steps that do not depend on them (R1, R2) are 
 - [x] R1. Liquidity ladder (read-only, no new inputs). See "R1 notes" below.
 - [x] R2. Withdrawal order in `drawdown.ts`, strategy comparison card and a saved choice.
       See "R2 notes" below. The pooled investments source is **not** split (see the notes).
-- [ ] R3. RSU schedule generator, "keeps vesting after leaving" flag, vest-aware
-      retirement date and "cost of leaving early".
+- [x] R3. RSU schedule generator, "keeps vesting after leaving" flag, vest-aware
+      retirement date and "cost of leaving early". See "R3 notes" below. Questions
+      3 (forfeiture) and 4 (24 months) of the design doc are answered.
 - [ ] R4. Purchase lots (private and ESPP) with an effective cost basis (rule R).
 - [ ] R5. Per-source cost table (tax per ₪100 net, what you give up).
 - [ ] R6. Stress tests (employer-stock haircut, USD/ILS move).
@@ -1390,7 +1395,9 @@ Decisions (mine, not yet confirmed by the user):
 - **Employer RSU batches are not rungs.** The engine counts every granted share as usable at
   retirement, so a rung would contradict the numbers elsewhere. Instead an amber note says
   how much company stock vests after retirement and the first vest date (at today's price).
-  R3 makes the engine vest-aware and can turn this into rungs.
+  R3 made the engine vest-aware: the note now covers only grants that keep vesting after the
+  owner leaves (the others lose those shares, which the "Leaving before your shares vest"
+  card shows).
 - **Not traced.** Every figure comes from values the trace already records
   (`valueAtRetirement`, the unlock ages), and the ladder only groups them, like the
   timeline. It is outside the verification pack on purpose; say so if you want it added.
@@ -1468,6 +1475,73 @@ Decisions (mine, not yet confirmed by the user):
       "Taxable money first" changed the Dashboard income after tax and the timeline (the
       other-investments pot is drawn first); pro rata left them as before. 1201 passed and 1
       skipped.
+
+### R3 notes — RSU vesting schedule (Phase R)
+
+What changed: the engine now knows which shares have vested. Before R3 every granted share
+counted in full at retirement, which overstated the plan for anyone retiring before the last
+batch vests.
+
+Answers from the user (design questions 3 and 4):
+- **24 months.** For RSUs held by an ESOP in Israel the 24 months count from the **original
+  grant date of the award**, not from each quarterly vest date. This is **user-reported and not
+  checked against the Ordinance** (rows 21, 23 and rule P in `constants-to-verify.md`). It
+  replaces the Phase N reading.
+- **Forfeiture.** Every unvested unit is lost when the owner leaves (no retirement clause).
+  The per-grant flag `EmployerGrantDetails.keepsVestingAfterLeaving` exists and defaults to off.
+
+Judgement calls (mine, not yet confirmed by the user):
+1. **`quantity` is the whole award** (vested plus unvested). The batches partition it and the
+   remainder is already vested. The design doc said "the holding keeps today's vested quantity;
+   later vests are added". Keeping the whole award means existing holdings and the Section 102
+   summary tables stay as they were, and `vestedQuantityAt` does the split.
+2. **Grant-date 24 months for all lots.** `trusteeHoldingPeriodMet` applies to every lot.
+   A lot is sold at `max(retirement, vest date)`.
+3. **Late batches.** A batch vesting after retirement is forfeited unless the flag is on. With
+   the flag on it is counted from retirement and sold on its vest date; the ladder's amber
+   note then shows its value.
+4. **Net worth today leaves unvested shares out** (Dashboard, input guidance). The equity
+   summary table and the `holdings` trace table keep the full quantity.
+5. **Known simplification.** Shares that vest between today and retirement are valued at
+   today's price and grown from today, which slightly overstates their growth.
+6. **The "leaving early" line shows a monthly after-tax gain**, not a lump sum as the design
+   doc suggested. It treats the next batch as already vested and takes the difference in
+   `estimateNetIncomeForTiming(...).netMonthlyIncome`, floored at zero.
+7. **Not traced.** The leaving-early card is outside the traces and the verification pack, like
+   the ladder and the backtest. The engine changes are traced through the new `employerVesting`
+   table and the `employerLots` table.
+8. **The form shows what has vested** ("vested so far", "not yet vested"). The shares lost at
+   retirement are shown on Projections, because the editor has no retirement date.
+9. **The generator always replaces the whole batch list** and uses the holding's own grant date
+   and quantity. Defaults: 20 batches, every 3 months, first batch 3 months after the grant
+   (`DEFAULT_VESTING_TEMPLATE`).
+
+Where it lives: `domain/vesting.ts` (`employerShareBatches`, `batchStatusAtRetirement`,
+`vestedQuantityAt`, `quantityAtRetirement`, `forfeitedQuantityAt`, `generateVestingSchedule`,
+`addMonthsToIsoDate`), `domain/leavingEarly.ts`
+(`buildLeavingEarlyCost`), `sources.ts` (`stockRoute`, `employerLots`, `employerVesting`
+trace), `profileBasics.ts`, `netWorth.ts`, `liquidityLadder.ts`. UI:
+`components/UnvestedSharesCard.tsx`, `pages/MyData/VestingTranchesEditor.tsx`,
+`EquityHoldingForm.tsx`, `holdingEntry.ts`.
+
+- [x] R3a. Types, `normalizeProfile` (the flag defaults to false and keeps true), fixture
+      option `employerGrant.keepsVestingAfterLeaving`.
+- [x] R3b. `domain/vesting.ts` with tests (batches and scaling, status and forfeiture,
+      quantities, month-end dates, the generator: whole units, the remainder, fewer units than
+      batches, unusable input). `MAX_TEMPLATE_BATCHES` is 120.
+- [x] R3c. Engine: `sources.ts`, `profileBasics.ts`, `netWorth.ts`, `liquidityLadder.ts`.
+- [x] R3d. `domain/leavingEarly.ts` with 6 tests.
+- [x] R3e. UI: the schedule generator, the vested summary, the "keeps vesting" checkbox
+      (it opens "More details"), the "Leaving before your shares vest" card after the ladder.
+- [x] R3f. Texts in en, he and ru (`projections.unvested.*`,
+      `myData.steps.equity.tranches.generate*`, `fields.keepsVestingAfterLeaving*`) with
+      plurals; the locale parity test passes.
+- [x] R3g. Component tests (generator, disabled button, the flag, the card sentences, closed
+      details, no card when the flag is on, no ladder note when the flag is off).
+- [x] R3h. Browser check at 485 px in English and Hebrew with a 2,000-share grant (20
+      quarterly batches). Retiring on 31.10.2027 loses 900 shares (about ₪280,620); one more
+      month would keep 100 shares. With the flag on the card disappears and the ladder note
+      shows the same value. No bidi problems. 1240 passed and 1 skipped in all.
 
 ## Welcome page for returning visitors
 

@@ -12,10 +12,12 @@ import { LiquidityLadderCard } from "../components/LiquidityLadderCard";
 import { RetirementTimeline } from "../components/RetirementTimeline";
 import { RiskAnalysisCard } from "../components/RiskAnalysisCard";
 import { ScenarioComparison } from "../components/ScenarioComparison";
+import { UnvestedSharesCard } from "../components/UnvestedSharesCard";
 import { WithdrawalStrategyCard } from "../components/WithdrawalStrategyCard";
 import {
   MAX_RETIREMENT_SEARCH_AGE,
   type IncomeBandKey,
+  buildLeavingEarlyCost,
   buildLiquidityLadder,
   buildRetirementTimeline,
   compareWithdrawalStrategies,
@@ -57,6 +59,7 @@ export function Projections() {
   const hasNetIncome = netIncomeYears.some((year) => year.grossMonthly > 0);
   const timeline = buildRetirementTimeline(incomeData);
   const ladder = useMemo(() => buildLiquidityLadder(profile, scenario), [profile, scenario]);
+  const leavingEarly = useMemo(() => buildLeavingEarlyCost(profile, scenario), [profile, scenario]);
   const withdrawalComparison = useMemo(
     () => compareWithdrawalStrategies(profile, scenario),
     [profile, scenario],
@@ -195,6 +198,8 @@ export function Projections() {
       )}
 
       <LiquidityLadderCard ladder={ladder} isCouple={isCouple} />
+
+      <UnvestedSharesCard cost={leavingEarly} />
 
       <RetirementTimeline
         segments={timeline}

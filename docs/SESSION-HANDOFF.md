@@ -63,12 +63,40 @@ and **Phase V (Monte Carlo risk analysis, the first Phase 4 piece) is done**,
 and **Phase W (household dashboard KPIs, the second Phase 4 piece) is done**,
 and **Phase X (live Israeli inflation, the third Phase 4 piece) is done**,
 and **Phase Y (historical backtest, the fourth Phase 4 piece) is done**,
-and **Phase R steps R1 (liquidity ladder) and R2 (withdrawal order) are done**.
+and **Phase R steps R1 (liquidity ladder), R2 (withdrawal order) and R3 (RSU vesting schedule) are done**.
 Phases A–K are committed and pushed to
-`main`; Phases L, M, N, O, P, Q, S, T, V, W, X, Y, R1 and R2 are committed and pushed only if `git log`
+`main`; Phases L, M, N, O, P, Q, S, T, V, W, X, Y, R1, R2 and R3 are committed and pushed only if `git log`
 shows them.
 
-- **Phase R, step R2 (withdrawal order): DONE, not yet committed.** The user said "pushed,
+- **Phase R, step R3 (RSU vesting schedule): DONE, not yet committed.** The user said "We will
+  consider R2b later. Let's do R3" and answered two design questions. **24 months:** for RSUs
+  held by an ESOP in Israel the 24 months count from the **original grant date of the award**,
+  not from each quarterly vest date (user-reported, **not checked against the Ordinance**; rows
+  21, 23 and rule P in `docs/constants-to-verify.md` are updated and logged). **Forfeiture:**
+  every unvested unit is lost when the owner leaves; the per-grant flag
+  `EmployerGrantDetails.keepsVestingAfterLeaving` exists and defaults to off. What was built:
+  (a) the engine is vest-aware (`domain/vesting.ts`, `sources.ts`, `profileBasics.ts`,
+  `netWorth.ts`, `liquidityLadder.ts`); (b) My Data → Equity has a schedule generator (batches,
+  months between, months to the first batch; defaults 20 / 3 / 3), a "shares vested so far / not
+  yet vested" line and a "This grant keeps vesting after I leave" checkbox; (c) Projections has a
+  "Leaving before your shares vest" card after the ladder (shares lost at the retirement date,
+  what one more month would keep, and the monthly after-tax gain). It is hidden when nothing is
+  lost. My calls, all unconfirmed: **(1) `quantity` is the whole award** (the batches partition
+  it, the remainder is already vested), which differs from the design doc's "keeps today's
+  vested quantity"; **(2) the grant-date 24 months apply to all lots** and a lot is sold at
+  `max(retirement, vest date)`; **(3) net worth today leaves unvested shares out** while the
+  equity summary and the `holdings` trace table keep the full quantity; **(4) shares that vest
+  before retirement are valued at today's price and grown from today**, which slightly overstates
+  their growth; **(5) the leaving-early line is a monthly after-tax gain**, not a lump sum as the
+  design doc said; **(6) the card is not traced** (like the ladder and the backtest); the engine
+  changes are traced through the `employerVesting` and `employerLots` tables; **(7) the form
+  shows vested and not-yet-vested; the shares lost at retirement are on Projections**, because
+  the editor has no retirement date. 1240 passed and 1 skipped. **Next:** ask the design doc's
+  open questions one at a time before R4 (ESPP basis), R5 (cost display) and R7 (gemel annuity);
+  R6 (stress tests) is independent; R2b is deferred by the user. Details: "R3 notes" in
+  `docs/implementation-progress.md`.
+
+- **Phase R, step R2 (withdrawal order): DONE and pushed (`53f6460`).** The user said "pushed,
   let's do R2" and chose "comparison plus a saved choice that changes the Dashboard and timeline
   numbers". Projections has a "Which savings to draw on first" card (after the income charts,
   before the liquidity ladder) comparing three orders: evenly (pro rata, the default and
@@ -261,6 +289,9 @@ shows them.
     Batches only split the tax route (net worth and drawdown are unchanged);
     they are scaled down if they exceed the quantity. A batch with no date
     counts as met; one that vests after retirement is ordinary income.
+    **Superseded by R3 (see the top of this file):** the 24 months now count from the
+    grant date for every lot (user-reported), batches drive net worth and the drawdown, and
+    a batch vesting after retirement is forfeited unless the grant keeps vesting.
     `EquitySplit.nonTrustee` now carries Section 3(i) value and grant value, and
     `grantValueIls` is gone. UI: `pages/MyData/VestingTranchesEditor.tsx`
     replaces the unused vested/unvested quantity fields (the type fields are kept
@@ -626,15 +657,16 @@ Remaining, not yet started:
   exemption at 60. A life annuity from 60 through a paying fund is tax-free.
   No 0% route before 60 was found, and nothing varies by fund or program. The
   2026 deposit ceiling is ₪83,641. The app keeps 25% at any age.
-- **Bridge Planner: R1 and R2 built, R3–R7 not started** (Phase R in
+- **Bridge Planner: R1, R2 and R3 built, R4–R7 not started** (Phase R in
   `docs/implementation-progress.md`, full design in `docs/bridge-planner-design.md`). R1, the
-  liquidity ladder, and R2, the saved withdrawal order, are done (see the top of this file).
+  liquidity ladder, R2, the saved withdrawal order, and R3, the RSU vesting schedule, are done
+  (see the top of this file).
   Optional "R2b": split cash from securities in the pooled investments source so cash can be
-  drawn first; it would change existing results for holdings with their own tax rates, so only
-  do it if the user wants it. R3 (RSU schedule, vest-aware retirement date), R4 (purchase lots,
+  drawn first; it would change existing results for holdings with their own tax rates, and the
+  user said they will consider it later. R4 (purchase lots,
   ESPP), R5 (per-source cost table) and R7 (investment-gemel annuity route) wait on the open
-  questions in section 7 of the design, which the user has not answered; ask them one at a
-  time. R6 (stress tests) is independent.
+  questions in section 7 of the design (2, 1 and 5), which the user has not answered; ask them
+  one at a time. Questions 3 and 4 were answered for R3. R6 (stress tests) is independent.
 - Possible refinements to the contribution model (they change numbers, so
   they were deliberately left out of Phase K): real wage growth, a
   per-account salary override, and the study-fund **annual deposit** ceiling

@@ -409,30 +409,42 @@ describe("buildSources", () => {
       const find = (sources: ReturnType<typeof sourcesFor>, id: string) =>
         sources.find((source) => source.id === id);
 
-      it("routes each batch by its own vesting date", () => {
-        const sources = sourcesFor({
+      it("routes every batch by the award's grant date, not by its own vesting date", () => {
+        const batches = [
+          { vestDate: old, quantity: 30 },
+          { vestDate: recent, quantity: 40 },
+        ];
+        const longHeld = sourcesFor({
           taxTrack: capitalRoute,
           grantPriceUSD: 20,
-          vestingTranches: [
-            { vestDate: old, quantity: 30 },
-            { vestDate: recent, quantity: 40 },
-          ],
+          grantDate: old,
+          vestingTranches: batches,
         });
-        // 40 recent shares are a disqualifying disposal; 30 old plus the 30 undated ones keep the capital route.
-        expect(find(sources, "employer-stock-ordinary-income")?.balance).toBeCloseTo(7_400, 6);
-        const capital = find(sources, "employer-stock-section-102");
-        expect(capital?.balance).toBeCloseTo(11_100, 6);
-        expect(capital?.ordinaryLayer).toBeCloseTo(4_440, 6);
+        // The 24 months count from the grant, so even the batch vested nine years from now keeps the capital route.
+        expect(find(longHeld, "employer-stock-ordinary-income")).toBeUndefined();
+        const capital = find(longHeld, "employer-stock-section-102");
+        expect(capital?.balance).toBeCloseTo(18_500, 6);
+        expect(capital?.ordinaryLayer).toBeCloseTo(7_400, 6);
+
+        // Granted nine years from now and sold in ten, the award has been held a year: every batch is a disqualifying disposal.
+        const tooRecent = sourcesFor({
+          taxTrack: capitalRoute,
+          grantDate: recent,
+          vestingTranches: batches,
+        });
+        expect(find(tooRecent, "employer-stock-ordinary-income")?.balance).toBeCloseTo(18_500, 6);
+        expect(find(tooRecent, "employer-stock-section-102")).toBeUndefined();
       });
 
-      it("lets the remaining shares follow the holding's own grant date", () => {
+      it("applies the holding-period confirmation to every batch", () => {
         const sources = sourcesFor({
           taxTrack: capitalRoute,
           grantDate: recent,
+          holdingPeriodMet: true,
           vestingTranches: [{ vestDate: old, quantity: 60 }],
         });
-        expect(find(sources, "employer-stock-section-102")?.balance).toBeCloseTo(11_100, 6);
-        expect(find(sources, "employer-stock-ordinary-income")?.balance).toBeCloseTo(7_400, 6);
+        expect(find(sources, "employer-stock-section-102")?.balance).toBeCloseTo(18_500, 6);
+        expect(find(sources, "employer-stock-ordinary-income")).toBeUndefined();
       });
 
       it("scales batches that together exceed the quantity so the total stays put", () => {
@@ -440,14 +452,15 @@ describe("buildSources", () => {
           taxTrack: capitalRoute,
           vestingTranches: [
             { vestDate: old, quantity: 150 },
-            { vestDate: recent, quantity: 50 },
+            { vestDate: isoDateInYears(12), quantity: 50 },
           ],
         });
+        // Scaled to 75 and 25 shares; the 25 vest after retirement and are lost.
         expect(find(sources, "employer-stock-section-102")?.balance).toBeCloseTo(13_875, 6);
-        expect(find(sources, "employer-stock-ordinary-income")?.balance).toBeCloseTo(4_625, 6);
+        expect(find(sources, "employer-stock-ordinary-income")).toBeUndefined();
       });
 
-      it("takes an undated batch as held long enough and ignores one without a quantity", () => {
+      it("takes an undated batch as already vested and ignores one without a quantity", () => {
         const sources = sourcesFor({
           taxTrack: capitalRoute,
           vestingTranches: [{ quantity: 100 }, { vestDate: recent, quantity: 0 }],
@@ -456,13 +469,39 @@ describe("buildSources", () => {
         expect(find(sources, "employer-stock-section-102")?.balance).toBeCloseTo(18_500, 6);
       });
 
-      it("treats a batch that vests after retirement as ordinary income", () => {
+      it("drops a batch that vests after retirement, because unvested shares are lost on leaving", () => {
         const sources = sourcesFor({
+          taxTrack: capitalRoute,
+          vestingTranches: [{ vestDate: isoDateInYears(12), quantity: 40 }],
+        });
+        // 60 shares are in no batch, so they are already vested.
+        expect(find(sources, "employer-stock-section-102")?.balance).toBeCloseTo(11_100, 6);
+        const lost = sourcesFor({
           taxTrack: capitalRoute,
           vestingTranches: [{ vestDate: isoDateInYears(12), quantity: 100 }],
         });
-        expect(find(sources, "employer-stock-ordinary-income")?.balance).toBeCloseTo(18_500, 6);
-        expect(find(sources, "employer-stock-section-102")).toBeUndefined();
+        expect(lost.reduce((sum, source) => sum + source.valueAtRetirement, 0)).toBe(0);
+      });
+
+      it("keeps a batch that vests after retirement when the grant keeps vesting after leaving", () => {
+        const sources = sourcesFor({
+          taxTrack: capitalRoute,
+          keepsVestingAfterLeaving: true,
+          vestingTranches: [{ vestDate: isoDateInYears(12), quantity: 40 }],
+        });
+        expect(find(sources, "employer-stock-section-102")?.balance).toBeCloseTo(18_500, 6);
+      });
+
+      it("tests a kept batch at its vesting date, which is when it is sold", () => {
+        // Granted in nine years: sold at retirement (year ten) it would be held one year, but sold at vesting (year twelve) it is held three.
+        const sources = sourcesFor({
+          taxTrack: capitalRoute,
+          grantDate: recent,
+          keepsVestingAfterLeaving: true,
+          vestingTranches: [{ vestDate: isoDateInYears(12), quantity: 40 }],
+        });
+        expect(find(sources, "employer-stock-section-102")?.balance).toBeCloseTo(7_400, 6);
+        expect(find(sources, "employer-stock-ordinary-income")?.balance).toBeCloseTo(11_100, 6);
       });
 
       it("uses each batch's own grant price for the ordinary layer, falling back to the holding's", () => {
@@ -510,6 +549,20 @@ describe("buildSources", () => {
         );
         const total = sources.reduce((sum, source) => sum + source.valueAtRetirement, 0);
         expect(total).toBeCloseTo(10_000 + 18_500, 6);
+      });
+
+      it("leaves a lost batch out of the total, and puts it back when the grant keeps vesting", () => {
+        const total = (keepsVestingAfterLeaving: boolean) =>
+          sourcesFor(
+            {
+              taxTrack: capitalRoute,
+              keepsVestingAfterLeaving,
+              vestingTranches: [{ vestDate: isoDateInYears(12), quantity: 40 }],
+            },
+            { otherAssets: 10_000 },
+          ).reduce((sum, source) => sum + source.valueAtRetirement, 0);
+        expect(total(false)).toBeCloseTo(10_000 + 11_100, 6);
+        expect(total(true)).toBeCloseTo(10_000 + 18_500, 6);
       });
     });
   });

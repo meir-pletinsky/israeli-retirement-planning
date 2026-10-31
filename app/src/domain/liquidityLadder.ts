@@ -11,6 +11,7 @@ import { usdToIlsRate } from "./profileBasics";
 import { SOURCE_KINDS, type SourceKind } from "./sources";
 import { engineNowMs } from "./trace";
 import type { RetirementScenario } from "./types";
+import { employerShareBatches, isEmployerGrant, momentAfterYears } from "./vesting";
 
 const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
 
@@ -40,7 +41,7 @@ export interface LadderRung {
   usableTotal: number;
 }
 
-/** Employer shares that vest after the household retires, which the plan still counts as usable at retirement. */
+/** Employer shares that vest after the household retires, which the plan counts as usable at retirement because the grant keeps vesting after leaving. */
 export interface LateVestingShares {
   /** What they are worth at today's share price, in ILS. */
   value: number;
@@ -72,20 +73,23 @@ function yearOfMonth(household: Household, month: number): number {
   return new Date(engineNowMs() + yearsFromNow * MS_PER_YEAR).getFullYear();
 }
 
+/**
+ * Employer shares that vest after the household retires and that the owner
+ * keeps because the grant keeps vesting after leaving. Shares that would be
+ * lost are not counted by the plan, so they are not listed here.
+ */
 function lateVestingShares(profile: ProfileData, household: Household): LateVestingShares | null {
-  const retirementMs = engineNowMs() + household.retirementYears * MS_PER_YEAR;
+  const retirementMs = momentAfterYears(engineNowMs(), household.retirementYears);
   const fxRate = usdToIlsRate(profile);
   let value = 0;
   let first: { time: number; iso: string } | null = null;
   for (const holding of profile.equity.holdings) {
-    if (holding.investmentCategory !== "employerGrantedStock") continue;
+    if (!isEmployerGrant(holding) || !holding.employerGrantDetails.keepsVestingAfterLeaving) continue;
     const shareValue = (holding.currentMarketPriceUSD ?? 0) * fxRate;
-    for (const tranche of holding.employerGrantDetails.vestingTranches) {
-      const time = tranche.vestDate ? Date.parse(tranche.vestDate) : Number.NaN;
-      const quantity = tranche.quantity ?? 0;
-      if (Number.isNaN(time) || time <= retirementMs || quantity <= 0) continue;
-      value += quantity * shareValue;
-      if (first === null || time < first.time) first = { time, iso: tranche.vestDate as string };
+    for (const batch of employerShareBatches(holding)) {
+      if (batch.vestMs === null || batch.vestDate === null || batch.vestMs <= retirementMs) continue;
+      value += batch.quantity * shareValue;
+      if (first === null || batch.vestMs < first.time) first = { time: batch.vestMs, iso: batch.vestDate };
     }
   }
   return first !== null && value > 0 ? { value: Math.round(value), firstVestDate: first.iso } : null;

@@ -238,19 +238,22 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
   Section 102: the grant-date value of shares sold in retirement is taxed as
   ordinary income at the marginal rate and the growth above it at 25% (a
   sale within 24 months of the grant, or the ordinary-income track, is taxed
-  entirely as ordinary income). Phase N added health tax (and, before the
+  entirely as ordinary income; since R3 the 24 months count from the grant date, as
+  reported by the user). Phase N added health tax (and, before the
   statutory age, Bituach Leumi) on that ordinary part, and vesting batches
-  with their own 24-month periods. Not modeled: Bituach Leumi
+  (R3 made them vest-aware: unvested shares are not counted at retirement). Not modeled: Bituach Leumi
   contributions on other income, health tax on non-pension income, other credit
   points (children), tax planning between spouses (for example shifting
   withdrawals to the spouse with the lower rate), the investment-gemel annuity
   exemption from 60, the 30% rate for a 10% shareholder, options with a strike price
   and ESPP. A **Bridge Planner** (liquidity ladder, withdrawal strategies,
-  purchase lots, vest-aware retirement date) is designed, and its first two steps are built:
+  purchase lots, vest-aware retirement date) is designed, and its first three steps are built:
   the **liquidity ladder** (Projections shows when each pot of savings and each monthly
-  payment becomes available) and the **withdrawal order** (Projections compares drawing
+  payment becomes available), the **withdrawal order** (Projections compares drawing
   savings evenly, taxable money first or lowest tax first, and the user can save one, which
-  then drives the Dashboard and the timeline); the rest is not built: see
+  then drives the Dashboard and the timeline) and the **RSU vesting schedule** (a schedule
+  generator, vested and unvested shares, a "keeps vesting after I leave" flag, and a
+  "Leaving before your shares vest" card); the rest is not built: see
   [`docs/bridge-planner-design.md`](bridge-planner-design.md).
 - **Stock price data and autofill — done** (Phase T in
   [`docs/implementation-progress.md`](implementation-progress.md); design in

@@ -137,6 +137,27 @@ describe("normalizeProfile", () => {
     ]);
   });
 
+  it("turns the keeps-vesting-after-leaving flag off for grants saved before it existed and keeps it when saved", () => {
+    const profile = buildTestProfile({
+      equity: [
+        { quantity: 10, priceUSD: 5, employerGrant: {} },
+        { quantity: 20, priceUSD: 5, employerGrant: { keepsVestingAfterLeaving: true } },
+      ],
+    });
+    const holdings = profile.equity.holdings.map((holding, index) => {
+      const { keepsVestingAfterLeaving: _keeps, ...details } = holding.employerGrantDetails;
+      return index === 1 ? holding : { ...holding, employerGrantDetails: details };
+    });
+    const result = normalizeProfile({
+      ...profile,
+      equity: { holdings },
+    } as unknown as Parameters<typeof normalizeProfile>[0]);
+    expect(result.equity.holdings.map((holding) => holding.employerGrantDetails.keepsVestingAfterLeaving)).toEqual([
+      false,
+      true,
+    ]);
+  });
+
   it("adds no dollar rates to a profile saved before they existed", () => {
     const profile = buildTestProfile({
       equity: [

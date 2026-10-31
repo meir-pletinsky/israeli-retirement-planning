@@ -4,11 +4,14 @@ import { simulateDrawdownForScenario } from "./drawdown";
 import { desiredRetirementMonthly } from "./expenses";
 import { selfProfileView } from "./household";
 import {
-  aggregateCurrentNetWorth,
+  aggregateOtherBalance,
+  aggregatePensionBalance,
   realAnnualReturnRate,
   resolveCurrentAge,
 } from "./profileBasics";
+import { engineNowMs } from "./trace";
 import type { NetWorthPoint, RetirementScenario } from "./types";
+import { momentAfterYears } from "./vesting";
 
 export {
   aggregateCurrentNetWorth,
@@ -34,7 +37,10 @@ export function projectBalanceAtAge(profile: ProfileData, targetAge: number): nu
   const own = selfProfileView(profile);
   const years = Math.max(targetAge - resolveCurrentAge(own), 0);
   const rate = realAnnualReturnRate(own.assumptions);
-  const grownBalance = aggregateCurrentNetWorth(own) * Math.pow(1 + rate, years);
+  const startingBalance =
+    aggregatePensionBalance(own) +
+    aggregateOtherBalance(own, momentAfterYears(engineNowMs(), years));
+  const grownBalance = startingBalance * Math.pow(1 + rate, years);
   return (
     grownBalance + futureValueOfMonthlyContributions(totalMonthlyContribution(own), rate, years)
   );
