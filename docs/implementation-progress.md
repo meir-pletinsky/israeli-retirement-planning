@@ -996,13 +996,14 @@ describes a 0% route before 60, and the rule does not vary by fund or program.
 The 2026 deposit ceiling is ₪83,641. The app keeps treating the fund as 25% of
 the real gain at any age; the annuity route is not modeled.
 
-## Phase R — Bridge Planner (R1–R4 built; R5–R7 not started)
+## Phase R — Bridge Planner (R1–R5 built; R6–R7 not started)
 
 Proposal for the early-retirement bridge: which source to use first, what each
 costs and what leaving early does to unvested RSUs. Full design, build order
 and open questions: [`docs/bridge-planner-design.md`](bridge-planner-design.md).
-The user reviewed the design and asked to start; the open questions in section 7
-are still unanswered, so only the steps that do not depend on them (R1, R2) are built.
+The user reviewed the design and asked to start; its open questions in section 7 are asked
+one at a time, before the step that needs each (1 for R5, 2 for R4, 3 and 4 for R3). Question 5
+(R7) is still open.
 
 - [x] R1. Liquidity ladder (read-only, no new inputs). See "R1 notes" below.
 - [x] R2. Withdrawal order in `drawdown.ts`, strategy comparison card and a saved choice.
@@ -1012,7 +1013,8 @@ are still unanswered, so only the steps that do not depend on them (R1, R2) are 
       3 (forfeiture) and 4 (24 months) of the design doc are answered.
 - [x] R4. Purchase lots (private and ESPP) with an effective cost basis (rule R). See
       "R4 notes" below. Question 2 (ESPP basis) of the design doc is answered.
-- [ ] R5. Per-source cost table (tax per ₪100 net, what you give up).
+- [x] R5. Per-source cost table (tax per ₪100 net, what you give up). See "R5 notes" below.
+      Question 1 (cost definition) of the design doc is answered: two columns only.
 - [ ] R6. Stress tests (employer-stock haircut, USD/ILS move).
 - [ ] R7. Investment-gemel annuity route from 60 (rule U), if wanted.
 
@@ -1615,6 +1617,66 @@ Where it lives: `domain/purchaseLots.ts` (`holdingLots`, `isUsableLot`, `holding
       shares at $200 and two lots (6 at $100 and ₪5.00; 4 at $150 and ₪4.00) and a sale rate of
       ₪3.118: cost basis ₪5,400 and a counted gain of ₪836, as worked by hand. No bidi
       problems. The test data was removed afterwards. 1271 passed and 1 skipped in all.
+
+### R5 notes — per-source cost table (Phase R)
+
+What changed: Projections has a "What each source costs to draw on" card after the liquidity
+ladder. For each kind of money of each person it shows two columns: the **extra monthly tax to
+raise your net spending by ₪100** (with "draw ₪X to keep ₪100" under it) and **what you give up**
+(words only). Nothing else in the plan changes.
+
+Answer from the user (design question 1): **two columns only.** No single "net worth at 90 per
+source" number: it would need a plan run per source and an assumed return per source.
+
+How the tax is found (`domain/sourceCosts.ts`, `buildSourceCostTable(profile, scenario)`):
+- A group is one kind of money of one person. The groups, in table order: study fund, other
+  investments, investment provident fund, Section 102 shares, ordinary-income shares, provident
+  fund, managers insurance, pension fund.
+- The reference year of a group is the first plan year in which some account of it is unlocked.
+  The tax is worked out then, on top of the plan's own draws for that year, through the same
+  `memberTax` the Dashboard uses. Only that person's tax changes.
+- The gross draw `g` is found by bisection so that `g − (tax(g) − tax(0)) = 100`. The table shows
+  `taxPerStep = g − 100` and `drawPerStep = g`. Example: a lot worth ₪100k with a ₪70k basis (30%
+  of it gain) at a flat 25% needs about ₪108.11 drawn per ₪100 net, so the tax is ₪8.11.
+- A group's tax profile (gain share, ordinary-income share, capital-gains rate) is the average
+  over its unlocked accounts, weighted by their value at retirement.
+
+Judgement calls (mine, not yet confirmed by the user):
+1. **The tax is the marginal tax at the first year the money can be drawn**, on top of what the
+   plan already draws that year, not a lifetime average. It can be higher than the average rate.
+2. **Groups are per person and weighted by value at retirement.** A couple gets one row per
+   spouse and group, self first. The age shown is that person's own age in the reference year.
+3. **Annuity sources and sources worth less than ₪0.50 at retirement are left out**: a payment
+   is not a pot to draw on.
+4. **"What you give up" is words, not numbers.** Every source earns the same return in the
+   model, so growth does not tell them apart. The wording avoids a hard-coded rate because the
+   pooled investments use a blended rate.
+5. **The card is not in the calculation trace or the verification pack** (like the ladder, the
+   leaving-early card and the backtest). It is read-only.
+6. **The management fee is shown only if entered**, as a value-weighted average over the
+   accounts of the group that state one. It is not part of the tax.
+7. **Whole shekels in the display.** A tax under ₪0.50 shows "No tax", and the "draw" line is
+   hidden then.
+8. **Refactor with no change in numbers:** `netIncome.ts` now exports `retirementPlanYears` (the
+   plan's retirement years, the streams and the draw per holding) and `estimateNetIncomeForHousehold`
+   uses it; `sources.ts` has constants for the three investment source ids.
+
+Where it lives: `domain/sourceCosts.ts`, `domain/netIncome.ts` (`retirementPlanYears`,
+`PlanYear`), `domain/sources.ts` (`OTHER_INVESTMENTS_SOURCE_ID`, `SECTION_102_SOURCE_ID`,
+`ORDINARY_STOCK_SOURCE_ID`). UI: `components/SourceCostCard.tsx`, placed in `pages/Projections.tsx`.
+Texts: `projections.sourceCost.*` in en, he and ru (no plural keys).
+
+- [x] R5a. Domain: `retirementPlanYears` refactor, the source-id constants, `sourceCosts.ts`.
+- [x] R5b. Domain tests in `sourceCosts.test.ts` (15 cases: empty profile, study fund, the 8.11
+      investment example, no gain, investment provident fund, draw − tax = 100, pension before
+      and after the statutory age, a locked pot, annuity excluded, Section 102 and
+      ordinary-income shares, the fee, couples, the plan's net income unchanged).
+- [x] R5c. UI card and texts in en, he and ru; the locale parity test passes.
+- [x] R5d. Component tests in `Projections.test.tsx`, "source costs" (7 cases).
+- [x] R5e. Browser check in English and Hebrew in the narrow panel with the real profile (study
+      fund, other investments, provident fund and managers insurance rows, fees shown): no bidi
+      problems, the table fits. No test data was needed, so nothing to restore. 1293 passed and
+      1 skipped in all.
 
 ## Welcome page for returning visitors
 

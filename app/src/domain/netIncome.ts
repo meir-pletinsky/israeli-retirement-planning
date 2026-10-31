@@ -1,5 +1,5 @@
 import type { ProfileData } from "../types";
-import { PAYMENT_SOURCES, simulateHouseholdDrawdown } from "./drawdown";
+import { PAYMENT_SOURCES, simulateHouseholdDrawdown, type DrawdownYear } from "./drawdown";
 import {
   buildHousehold,
   resolveRetirementTiming,
@@ -7,7 +7,7 @@ import {
   type Household,
   type RetirementTiming,
 } from "./household";
-import { memberTaxDetail } from "./memberTax";
+import { memberTaxDetail, type YearDraw } from "./memberTax";
 import { recordNetIncomeTrace, type NetYearDetail } from "./netIncomeTrace";
 import { estimateHouseholdRetirementIncome } from "./retirementIncome";
 import { isTracing } from "./trace";
@@ -47,6 +47,47 @@ export interface NetIncomeEstimate {
   baseYear: number;
 }
 
+/** One retirement year of the plan: the fixed payments, the draw from savings and which holdings it comes out of. */
+export interface PlanYear {
+  row: DrawdownYear;
+  /** Fixed monthly payments (state pension and account annuities), in today's money. */
+  streamsTotal: number;
+  /** The monthly draw from savings that tops the payments up to the planned income. */
+  fromSavings: number;
+  draws: YearDraw[];
+}
+
+/**
+ * Every year from the household's retirement to the planning horizon, with the draw split over
+ * the holdings. When the last capital is used up, the previous year's split is kept.
+ */
+export function retirementPlanYears(
+  household: Household,
+  monthlyIncome: number,
+  rows: DrawdownYear[],
+): PlanYear[] {
+  const years: PlanYear[] = [];
+  let drawHoldings = rows[0].holdings;
+  for (let index = Math.ceil(household.retirementYears); index < rows.length; index += 1) {
+    const row = rows[index];
+    if (row.holdings.some((holding) => holding.capitalShare > 0)) {
+      drawHoldings = row.holdings;
+    }
+    const streamsTotal = PAYMENT_SOURCES.reduce((sum, band) => sum + row.streams[band], 0);
+    const fromSavings = Math.max(monthlyIncome - streamsTotal, 0);
+    years.push({
+      row,
+      streamsTotal,
+      fromSavings,
+      draws: drawHoldings.map((holding) => ({
+        holding,
+        amount: fromSavings * holding.capitalShare,
+      })),
+    });
+  }
+  return years;
+}
+
 /**
  * Turns the gross retirement plan of a household into net income by taxing
  * each spouse separately, year by year. The plan itself (see
@@ -81,20 +122,11 @@ export function estimateNetIncomeForHousehold(household: Household): NetIncomeEs
 
   const details: NetYearDetail[] | null = isTracing() ? [] : null;
   const years: NetIncomeYear[] = [];
-  let drawHoldings = rows[0].holdings;
-  for (let index = Math.ceil(household.retirementYears); index < rows.length; index += 1) {
-    const row = rows[index];
-    if (row.holdings.some((holding) => holding.capitalShare > 0)) {
-      drawHoldings = row.holdings;
-    }
-
-    const streamsTotal = PAYMENT_SOURCES.reduce((sum, band) => sum + row.streams[band], 0);
-    const fromSavings = Math.max(monthlyIncomeTodayMoney - streamsTotal, 0);
-    const draws = drawHoldings.map((holding) => ({
-      holding,
-      amount: fromSavings * holding.capitalShare,
-    }));
-
+  for (const { row, draws, streamsTotal, fromSavings } of retirementPlanYears(
+    household,
+    monthlyIncomeTodayMoney,
+    rows,
+  )) {
     const memberDetails = household.members.map((_member, memberIndex) =>
       memberTaxDetail(household, memberIndex, row.yearsFromNow, row.holdings, draws),
     );

@@ -157,6 +157,13 @@ src/
                     # it as the holding's taxable gain and cost basis in
                     # place of the unrealized-gain field, and the trace
                     # gets a purchaseLots table only when lots exist.
+                    # sourceCosts.ts (the "What each source costs to draw
+                    # on" card) finds, per kind of money of each person, the
+                    # extra monthly tax to raise net spending by 100 in
+                    # the first year that money can be drawn, on top of the
+                    # plan's own draws (through memberTax). It reuses
+                    # netIncome.ts retirementPlanYears, is read-only and is
+                    # outside the trace.
   history/          # bundled US stock/bond/inflation history, 1928 onward
                     # (usMarketHistory.ts) and the real-return maths
                     # (returns.ts). Extended by hand once a year.

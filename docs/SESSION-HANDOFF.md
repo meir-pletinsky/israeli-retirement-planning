@@ -63,12 +63,32 @@ and **Phase V (Monte Carlo risk analysis, the first Phase 4 piece) is done**,
 and **Phase W (household dashboard KPIs, the second Phase 4 piece) is done**,
 and **Phase X (live Israeli inflation, the third Phase 4 piece) is done**,
 and **Phase Y (historical backtest, the fourth Phase 4 piece) is done**,
-and **Phase R steps R1 (liquidity ladder), R2 (withdrawal order), R3 (RSU vesting schedule) and R4 (purchase lots) are done**.
+and **Phase R steps R1 (liquidity ladder), R2 (withdrawal order), R3 (RSU vesting schedule), R4 (purchase lots) and R5 (per-source cost table) are done**.
 Phases A–K are committed and pushed to
-`main`; Phases L, M, N, O, P, Q, S, T, V, W, X, Y, R1, R2, R3 and R4 are committed and pushed only if `git log`
+`main`; Phases L, M, N, O, P, Q, S, T, V, W, X, Y, R1, R2, R3, R4 and R5 are committed and pushed only if `git log`
 shows them.
 
-- **Phase R, step R4 (purchase lots, effective cost basis): DONE, not yet committed.** The user
+- **Phase R, step R5 (per-source cost table): DONE, not yet committed.** The user said "continue
+  with R5" and answered design question 1: **two columns only** (tax to raise ₪100 net, and what
+  you give up), with no "net worth at 90 per source" number. What was built: (a) `domain/sourceCosts.ts`
+  (`buildSourceCostTable`) works out, per kind of money of each person, the extra monthly tax if
+  net spending rises by ₪100 and all of it comes from that source, in the **first year that source
+  can be drawn, on top of the plan's own draws**, through `memberTax`; the gross draw is found
+  by bisection; (b) Projections has a "What each source costs to draw on" card after the
+  liquidity ladder (`components/SourceCostCard.tsx`): tax and "draw ₪X to keep ₪100" in one
+  column, words for what you give up in the other, and the management fee only if entered;
+  (c) `netIncome.ts` now exports `retirementPlanYears` (no change in numbers) and `sources.ts`
+  has constants for the three investment source ids. My calls, all unconfirmed: **(1) marginal
+  tax at the first drawable year, not a lifetime average; (2) groups are per person, weighted
+  by value at retirement, with the person's own age shown; (3) annuity sources are left out;
+  (4) "what you give up" is words, not numbers, because every source earns the same return in the
+  model; (5) the card is not traced and not in the verification pack; (6) the fee is shown only
+  if entered; (7) whole shekels in the display, and a tax under ₪0.50 shows "No tax"**. 1293
+  passed and 1 skipped; browser check in English and Hebrew done. **Next:** R6 (stress tests) is
+  independent; ask design question 5 (gemel annuity) before R7; R2b is deferred by the user.
+  Details: "R5 notes" in `docs/implementation-progress.md`.
+
+- **Phase R, step R4 (purchase lots, effective cost basis): DONE and pushed (`46bfbb9`).** The user
   said "let's do R4" and answered design question 2: the **ESPP discount is taxed as salary at
   purchase**, so the cost basis is the full market price that day, and **ESPP shares sit in a
   normal brokerage account** (no trustee, no 24-month lock). Both are user-reported, **not
@@ -683,16 +703,15 @@ Remaining, not yet started:
   exemption at 60. A life annuity from 60 through a paying fund is tax-free.
   No 0% route before 60 was found, and nothing varies by fund or program. The
   2026 deposit ceiling is ₪83,641. The app keeps 25% at any age.
-- **Bridge Planner: R1–R4 built, R5–R7 not started** (Phase R in
+- **Bridge Planner: R1–R5 built, R6–R7 not started** (Phase R in
   `docs/implementation-progress.md`, full design in `docs/bridge-planner-design.md`). R1, the
-  liquidity ladder, R2, the saved withdrawal order, R3, the RSU vesting schedule, and R4, the
-  purchase lots, are done (see the top of this file).
+  liquidity ladder, R2, the saved withdrawal order, R3, the RSU vesting schedule, R4, the
+  purchase lots, and R5, the per-source cost table, are done (see the top of this file).
   Optional "R2b": split cash from securities in the pooled investments source so cash can be
   drawn first; it would change existing results for holdings with their own tax rates, and the
-  user said they will consider it later. R5 (per-source cost table) and R7 (investment-gemel
-  annuity route) wait on the open questions in section 7 of the design (1 and 5), which the
-  user has not answered; ask them one at a time. Questions 2, 3 and 4 were answered for R3 and
-  R4. R6 (stress tests) is independent.
+  user said they will consider it later. R7 (investment-gemel annuity route) waits on open
+  question 5 of the design, which the user has not answered; ask it before building. Questions
+  1, 2, 3 and 4 were answered for R5, R4 and R3. R6 (stress tests) is independent.
 - Possible refinements to the contribution model (they change numbers, so
   they were deliberately left out of Phase K): real wage growth, a
   per-account salary override, and the study-fund **annual deposit** ceiling

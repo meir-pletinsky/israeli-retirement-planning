@@ -107,6 +107,11 @@ export interface RetirementSource {
   capitalGainsTaxRate: number;
 }
 
+/** Ids of the sources made of investments rather than of a pension account. */
+export const OTHER_INVESTMENTS_SOURCE_ID = "other-investments";
+export const SECTION_102_SOURCE_ID = "employer-stock-section-102";
+export const ORDINARY_STOCK_SOURCE_ID = "employer-stock-ordinary-income";
+
 /** The trace scope a source's steps are recorded under: the account, or the investment bucket. */
 export function sourceTraceScope(source: Pick<RetirementSource, "id" | "kind">): string {
   return source.kind === "otherInvestments" ? source.id : `account[${source.id}]`;
@@ -856,7 +861,7 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
     });
   sources.push(
     investment(
-      "other-investments",
+      OTHER_INVESTMENTS_SOURCE_ID,
       otherBalance,
       {
         taxTreatment: "capitalGains",
@@ -870,7 +875,7 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
   if (equity.capitalRoute.value > 0) {
     sources.push(
       investment(
-        "employer-stock-section-102",
+        SECTION_102_SOURCE_ID,
         equity.capitalRoute.value,
         {
           taxTreatment: "capitalGains",
@@ -885,7 +890,7 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
   if (equity.ordinaryValue > 0) {
     sources.push(
       investment(
-        "employer-stock-ordinary-income",
+        ORDINARY_STOCK_SOURCE_ID,
         equity.ordinaryValue,
         {
           taxTreatment: "ordinaryIncome",

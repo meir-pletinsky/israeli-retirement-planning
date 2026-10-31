@@ -12,6 +12,7 @@ import { LiquidityLadderCard } from "../components/LiquidityLadderCard";
 import { RetirementTimeline } from "../components/RetirementTimeline";
 import { RiskAnalysisCard } from "../components/RiskAnalysisCard";
 import { ScenarioComparison } from "../components/ScenarioComparison";
+import { SourceCostCard } from "../components/SourceCostCard";
 import { UnvestedSharesCard } from "../components/UnvestedSharesCard";
 import { WithdrawalStrategyCard } from "../components/WithdrawalStrategyCard";
 import {
@@ -20,6 +21,7 @@ import {
   buildLeavingEarlyCost,
   buildLiquidityLadder,
   buildRetirementTimeline,
+  buildSourceCostTable,
   compareWithdrawalStrategies,
   desiredRetirementMonthly,
   estimateIncomeBreakdown,
@@ -60,6 +62,7 @@ export function Projections() {
   const timeline = buildRetirementTimeline(incomeData);
   const ladder = useMemo(() => buildLiquidityLadder(profile, scenario), [profile, scenario]);
   const leavingEarly = useMemo(() => buildLeavingEarlyCost(profile, scenario), [profile, scenario]);
+  const sourceCosts = useMemo(() => buildSourceCostTable(profile, scenario), [profile, scenario]);
   const withdrawalComparison = useMemo(
     () => compareWithdrawalStrategies(profile, scenario),
     [profile, scenario],
@@ -198,6 +201,8 @@ export function Projections() {
       )}
 
       <LiquidityLadderCard ladder={ladder} isCouple={isCouple} />
+
+      <SourceCostCard rows={sourceCosts} isCouple={isCouple} />
 
       <UnvestedSharesCard cost={leavingEarly} />
 

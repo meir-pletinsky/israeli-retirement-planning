@@ -1,7 +1,7 @@
 # Bridge Planner — design (for review, nothing built yet)
 
-Status: **proposal, 2026-10-30; R1 (liquidity ladder) and R2 (withdrawal order) built
-since.** Written for the
+Status: **proposal, 2026-10-30; R1 (liquidity ladder), R2 (withdrawal order), R3 (RSU
+vesting), R4 (purchase lots) and R5 (per-source cost table) built since.** Written for the
 user to review before any code. Every number in this file is an invented example.
 
 ## 1. The problem
@@ -145,7 +145,7 @@ and S and invented data only.
 | R2 | Split the pooled source; withdrawal order in `drawdown.ts`; strategy comparison card (**built, with two changes: "Bridge-only" dropped because it equals pro rata, and the pooled source is not split; see "R2 notes" in `implementation-progress.md`**) | Only when a non-default strategy is chosen |
 | R3 | RSU schedule generator, "keeps vesting" flag, vest-aware retirement date and the "cost of leaving early" line (**built; the leaving-early line shows a monthly after-tax gain, and `quantity` is the whole award; see "R3 notes" in `implementation-progress.md`**) | Yes: unvested shares no longer count at retirement |
 | R4 | Purchase lots and effective cost basis (rule R); ESPP kind (**built; there is no `kind` field, the category says ESPP or private; see "R4 notes" in `implementation-progress.md`**) | Yes, for holdings with lots (lower tax when the dollar was higher at purchase) |
-| R5 | Per-source cost table ("tax to raise ₪100 net" and "what you give up") | No |
+| R5 | Per-source cost table ("tax to raise ₪100 net" and "what you give up") (**built with two columns only, as the user chose; "what you give up" is words, not numbers; see "R5 notes" in `implementation-progress.md`**) | No |
 | R6 | Stress tests: employer-stock haircut and USD/ILS move | No |
 | R7 | Investment-gemel annuity route from 60 (rule U), if wanted | Yes, for investment gemel from 60 |
 
@@ -154,10 +154,9 @@ change. R3 fixes a real overstatement: today unvested shares count in full.
 
 ## 7. Open questions for the user
 
-1. **Cost definition.** Is "two columns side by side" (tax per ₪100 net, and
-   what you give up) enough, or do you also want one number per source, such as
-   "net worth at 90 if you raise ₪100 here instead of there"? The single number
-   needs a full plan run per source and an assumed return per source.
+1. **Cost definition.** *Answered (R5):* "two columns only" (tax per ₪100 net,
+   and what you give up), with no single "net worth at 90" number per source. That
+   number would need a full plan run per source and an assumed return per source.
 2. **ESPP basis.** *Answered (R4):* the ESPP discount is taxed as salary at
    purchase, so the cost basis is the full market price that day; ESPP shares
    sit in a normal brokerage account (no trustee, no 24-month lock). User-reported,

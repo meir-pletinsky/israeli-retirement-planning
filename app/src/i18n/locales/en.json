@@ -771,6 +771,37 @@
       "howPayments": "Annuities and Bituach Leumi are monthly payments, not savings, so they are not added to the usable total.",
       "howReadOnly": "This only shows your plan. It changes none of its numbers, and early-withdrawal penalties are not modeled."
     },
+    "sourceCost": {
+      "title": "What each source costs to draw on",
+      "intro": "The extra tax when you raise your spending by {{step}} a month, in today's money, and take it from one source. Compare them to see which sources are cheapest to draw on.",
+      "sourceColumn": "Source",
+      "taxColumn": "Tax to raise {{step}} a month",
+      "giveUpColumn": "What you give up",
+      "usableFrom": "Usable from age {{age}} ({{year}})",
+      "taxAmount": "{{amount}} tax",
+      "drawAmount": "Draw {{amount}} to keep {{step}}",
+      "noTax": "No tax",
+      "managementFee": "Management fee {{percent}} a year of the balance",
+      "group": {
+        "investmentProvidentFund": "Investment provident fund",
+        "section102Shares": "Employer shares (Section 102)",
+        "ordinaryIncomeShares": "Employer shares (ordinary income)"
+      },
+      "giveUp": {
+        "studyFund": "Tax-free growth. Money you take out stops growing free of tax.",
+        "investments": "Flexibility. This money is usable at any time, and only its real gain is taxed, at a flat rate.",
+        "investmentProvidentFund": "Flexibility. Only the growth since today is taxed, at a flat rate, and this money is usable at any time.",
+        "section102Shares": "Employer shares. The grant-date value is taxed as salary at your brackets, with health tax and Bituach Leumi before the statutory retirement age; only the growth above it is taxed at a flat rate.",
+        "ordinaryIncomeShares": "All of it is taxed as salary at your brackets, with health tax and Bituach Leumi before the statutory retirement age.",
+        "pension": "Taxed as a pension. From the statutory retirement age part of it is exempt; before then it bears health tax."
+      },
+      "howTitle": "How this works",
+      "howMarginal": "Each figure is the extra tax if you raise your net spending by {{step}} a month and take all of it from that source, in the first year that source can be used, on top of what your plan already draws.",
+      "howSame": "Every source is assumed to earn the same return, so the table compares tax only, not how much each source would have grown.",
+      "howGroups": "Money of the same kind is combined and weighted by its value when you retire. Annuities and Bituach Leumi are payments, not savings, so they are not listed.",
+      "howFee": "The management fee is shown only if you entered one, and it is not part of the tax.",
+      "howReadOnly": "This only shows your plan. It changes none of its numbers. It is an estimate, not tax advice."
+    },
     "unvested": {
       "title": "Leaving before your shares vest",
       "intro": "Company shares that have not vested by your retirement date are lost, unless the grant keeps vesting after you leave. Amounts use today's share price and are before tax.",

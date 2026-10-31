@@ -763,4 +763,141 @@ describe("Projections", () => {
       expect(screen.queryByRole("region", { name: REGION })).not.toBeInTheDocument();
     });
   });
+
+  describe("source costs", () => {
+    const REGION = "What each source costs to draw on";
+    // Invisible direction marks wrap the amounts and years; text matchers look through them.
+    const BIDI_MARKS = /[\u2066\u2069]/g;
+    const reads = (pattern: RegExp) => (content: string) => pattern.test(content.replace(BIDI_MARKS, ""));
+    const retired = { age: 60, retirementAge: 60, investmentReturnPct: 4, inflationPct: 4 };
+
+    const renderCard = async (profile: ReturnType<typeof buildTestProfile>) => {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+      return screen.findByRole("region", { name: REGION });
+    };
+
+    it("shows the tax to raise ₪100 a month from each source, and what to draw to keep it", async () => {
+      const card = await renderCard(
+        buildTestProfile({
+          ...retired,
+          usdToIlsRate: { rate: 1 },
+          equity: [
+            { quantity: 1_000, priceUSD: 100, unrealizedCapitalGainUSD: 30_000, category: "personalBrokeragePurchase" },
+          ],
+          pensionBalances: [500_000],
+          pensionAccountOverrides: [{ productCategory: "studyFund" }],
+        }),
+      );
+      const rows = within(card).getAllByRole("row").slice(1);
+
+      expect(rows).toHaveLength(2);
+      expect(within(rows[0]).getByText("Study Fund")).toBeInTheDocument();
+      expect(within(rows[0]).getByText("No tax")).toBeInTheDocument();
+      expect(within(rows[0]).getByText(reads(/^Usable from age 60 \(2026\)$/))).toBeInTheDocument();
+      expect(within(rows[1]).getByText("Other Investments")).toBeInTheDocument();
+      expect(within(rows[1]).getByText(reads(/^₪8 tax$/))).toBeInTheDocument();
+      expect(within(rows[1]).getByText(reads(/^Draw ₪108 to keep ₪100$/))).toBeInTheDocument();
+      expect(within(card).getByRole("columnheader", { name: reads(/^Tax to raise ₪100 a month$/) })).toBeInTheDocument();
+      expect(within(card).queryByText(/yours/)).not.toBeInTheDocument();
+    });
+
+    it("says what each kind of money gives up, in words", async () => {
+      const card = await renderCard(
+        buildTestProfile({
+          ...retired,
+          pensionBalances: [500_000, 200_000],
+          pensionAccountOverrides: [{ productCategory: "studyFund" }, { productCategory: "comprehensivePension" }],
+        }),
+      );
+
+      expect(within(card).getByText(/^Tax-free growth\./)).toBeInTheDocument();
+      expect(within(card).getByText(/^Taxed as a pension\./)).toBeInTheDocument();
+    });
+
+    it("says whose each line is for a couple", async () => {
+      const card = await renderCard(
+        buildTestProfile({
+          age: 40,
+          retirementAge: 60,
+          maritalStatus: "married",
+          spouse: { age: 36, gender: "female", retirementAge: 55 },
+          pensionBalances: [200_000, 100_000],
+          pensionAccountOverrides: [
+            { productCategory: "comprehensivePension" },
+            { productCategory: "comprehensivePension", owner: "spouse" },
+          ],
+          investmentReturnPct: 4,
+          inflationPct: 4,
+        }),
+      );
+
+      expect(within(card).getByText("Pension Fund (yours)")).toBeInTheDocument();
+      expect(within(card).getByText("Pension Fund (your spouse's)")).toBeInTheDocument();
+    });
+
+    it("names employer shares by how their sale is taxed, and an investment provident fund on its own", async () => {
+      const card = await renderCard(
+        buildTestProfile({
+          ...retired,
+          usdToIlsRate: { rate: 1 },
+          equity: [
+            { quantity: 1_000, priceUSD: 100, employerGrant: { grantPriceUSD: 0 } },
+            { quantity: 1_000, priceUSD: 100, employerGrant: { taxTrack: "section102OrdinaryIncomeTrustee" } },
+          ],
+          pensionBalances: [200_000],
+          pensionAccountOverrides: [{ productCategory: "investmentProvidentFund" }],
+        }),
+      );
+
+      expect(within(card).getByText("Investment provident fund")).toBeInTheDocument();
+      expect(within(card).getByText("Employer shares (Section 102)")).toBeInTheDocument();
+      expect(within(card).getByText("Employer shares (ordinary income)")).toBeInTheDocument();
+      expect(within(card).getByText(/^All of it is taxed as salary/)).toBeInTheDocument();
+    });
+
+    it("shows the management fee only when one was entered", async () => {
+      const fee = (feeFromAccumulationPercent: number | null) => ({
+        investmentAndFees: {
+          investmentTrackName: "",
+          feeFromAccumulationPercent,
+          feeFromDepositPercent: null,
+          profitSharingFeePercent: null,
+          hasStateYieldGuarantee: false,
+        },
+      });
+      const card = await renderCard(
+        buildTestProfile({
+          ...retired,
+          pensionBalances: [300_000, 100_000],
+          pensionAccountOverrides: [
+            { productCategory: "studyFund", ...fee(0.5) },
+            { productCategory: "comprehensivePension", ...fee(null) },
+          ],
+        }),
+      );
+      const rows = within(card).getAllByRole("row").slice(1);
+
+      expect(within(rows[0]).getByText(reads(/^Management fee 0\.5% a year of the balance$/))).toBeInTheDocument();
+      expect(within(rows[1]).queryByText(/Management fee/)).not.toBeInTheDocument();
+    });
+
+    it("explains itself in a section that starts closed", async () => {
+      const card = await renderCard(buildTestProfile({ ...retired, otherAssets: 50_000 }));
+      const details = within(card).getByText("How this works").closest("details");
+      expect(details).not.toBeNull();
+      expect(details).not.toHaveAttribute("open");
+      expect(within(card).getByText(/not tax advice/)).toBeInTheDocument();
+    });
+
+    it("is not shown when there are no savings", async () => {
+      await saveProfileToDb(buildTestProfile({ age: 50, retirementAge: 55 }));
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      await screen.findByRole("heading", { name: "Projections" });
+      expect(screen.queryByRole("region", { name: REGION })).not.toBeInTheDocument();
+    });
+  });
 });
