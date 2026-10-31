@@ -149,7 +149,6 @@
       "householdTotal": "Household total counted in your plan:"
     },
     "summary": {
-      "pensionTitle": "Pension & savings at a glance",
       "equityCategoryTitle": {
         "employerGrantedStock": "ESOP / RSU at a glance",
         "employerEsppDiscount": "ESPP at a glance",
@@ -157,7 +156,7 @@
         "none": "Holdings without a category"
       },
       "equityTotalAllCategories": "Total across all categories",
-      "readOnlyHint": "Summary only. To add, edit or remove an item, use the cards below.",
+      "actions": "Actions",
       "total": "Total",
       "currentPriceUsd": "Current price (USD)",
       "valueUsd": "Value (USD)",
@@ -489,6 +488,7 @@
     "entryTitle": "Have a Pension Clearing House report?",
     "entryBody": "Import the consolidated pension report (zip or XML files) from the Pension Clearing House (HaMaslaka HaPensionit, swiftness.co.il) to add all your accounts at once. The files are read on this device only; nothing is uploaded.",
     "entryButton": "Import Clearing House report",
+    "entryHint": "Have a Pension Clearing House report? Import it to add all your accounts at once. The files are read on this device only.",
     "entryButtonFor": {
       "self": "Import my Clearing House report",
       "spouse": "Import my partner's Clearing House report"

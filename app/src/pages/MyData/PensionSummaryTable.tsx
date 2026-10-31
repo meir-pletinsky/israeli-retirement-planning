@@ -1,8 +1,10 @@
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { ImportedReport, PensionAccount } from "../../types";
 import { sumBalances } from "./pensionPeople";
 import { accountSourceLabel } from "./reportSource";
+import { RowActions } from "./RowActions";
 import {
   EMPTY_CELL,
   formatCurrency,
@@ -13,16 +15,33 @@ import { SummaryTable, type SummaryColumn } from "./SummaryTable";
 const FIELDS = "myData.steps.pensionSavings";
 
 interface PensionSummaryTableProps {
+  title: string;
   /** One person's accounts; the total row adds up exactly these. */
   accounts: readonly PensionAccount[];
   /** The imported reports, to say which one each account came from. */
   reports: readonly ImportedReport[];
+  /** The Add and Import buttons, above the table. */
+  toolbar: ReactNode;
+  /** Shown instead of the table while the person has no accounts. */
+  emptyMessage: ReactNode;
+  onEdit: (account: PensionAccount) => void;
+  onRemove: (account: PensionAccount) => void;
+  /** Notes shown under the table. */
+  children?: ReactNode;
 }
 
-/** Read-only overview of one person's pension and savings accounts, above the cards that edit them. */
-export function PensionSummaryTable({ accounts, reports }: PensionSummaryTableProps) {
+/** One person's pension and savings accounts, with the buttons to add, import, edit and remove them. */
+export function PensionSummaryTable({
+  title,
+  accounts,
+  reports,
+  toolbar,
+  emptyMessage,
+  onEdit,
+  onRemove,
+  children,
+}: PensionSummaryTableProps) {
   const { t } = useTranslation();
-  if (accounts.length === 0) return null;
 
   const currency = t("common.currencySymbol");
 
@@ -108,10 +127,21 @@ export function PensionSummaryTable({ accounts, reports }: PensionSummaryTablePr
   return (
     <SummaryTable
       id="pension-summary"
-      title={t("myData.summary.pensionTitle")}
+      title={title}
       rows={accounts}
       rowKey={(account) => account.id}
       columns={columns}
-    />
+      toolbar={toolbar}
+      emptyMessage={emptyMessage}
+      rowActions={(account, describedBy) => (
+        <RowActions
+          describedBy={describedBy}
+          onEdit={() => onEdit(account)}
+          onRemove={() => onRemove(account)}
+        />
+      )}
+    >
+      {children}
+    </SummaryTable>
   );
 }

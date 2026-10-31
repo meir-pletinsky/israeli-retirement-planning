@@ -35,9 +35,10 @@ describe("PensionSavingsStep — accounts repeater", () => {
     );
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    // The name and balance show on both the summary table and the card.
-    expect(await screen.findAllByText("Menora Mivtachim")).not.toHaveLength(0);
-    expect(screen.getAllByText("\u20aa150,000")).not.toHaveLength(0);
+    // The name and balance show in the table row.
+    expect(await screen.findByText("Menora Mivtachim")).toBeInTheDocument();
+    const row = () => screen.getByRole("row", { name: /Menora Mivtachim/ });
+    expect(row()).toHaveTextContent("\u20aa150,000");
     expect(screen.queryByText(/no accounts added yet/i)).not.toBeInTheDocument();
 
     // Edit it.
@@ -47,7 +48,7 @@ describe("PensionSavingsStep — accounts repeater", () => {
     await user.type(balanceInput, "175000");
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    expect(await screen.findAllByText("\u20aa175,000")).not.toHaveLength(0);
+    await waitFor(() => expect(row()).toHaveTextContent("\u20aa175,000"));
 
     // Remove it (through the confirm modal).
     await user.click(screen.getByRole("button", { name: "Remove" }));
@@ -97,7 +98,7 @@ describe("PensionSavingsStep — accounts repeater", () => {
     expect(screen.getByText("Have a Pension Clearing House report?")).toBeInTheDocument();
   });
 
-  it("saves the policy number and fund ID and shows them on the account card", async () => {
+  it("saves the policy number and fund ID and shows them in the account's table row", async () => {
     const user = userEvent.setup();
     renderWithProviders(<PensionSavingsStep />, {
       route: "/my-data/pension-savings",
@@ -109,7 +110,7 @@ describe("PensionSavingsStep — accounts repeater", () => {
     await user.type(screen.getByLabelText(/^Fund \/ program ID/), "12345");
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    expect(await screen.findAllByText("Policy CLAL-9255621 · Fund 12345")).not.toHaveLength(0);
+    expect(await screen.findByText("Policy CLAL-9255621 · Fund 12345")).toBeInTheDocument();
     await waitFor(async () => {
       const [account] = (await loadProfileFromDb())!.pensionSavings.accounts;
       expect(account).toMatchObject({ policyNumber: "CLAL-9255621", fundId: "12345" });
@@ -159,24 +160,24 @@ describe("PensionSavingsStep — accounts repeater", () => {
       });
     }
 
-    it("says a hand-typed account was added manually, on the card and in the table", async () => {
+    it("says a hand-typed account was added manually", async () => {
       await seedAccounts(null, []);
       renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
-      expect(await screen.findAllByText("Added manually")).toHaveLength(2);
+      expect(await screen.findByText("Added manually")).toBeInTheDocument();
       expect(screen.getByRole("columnheader", { name: "Source" })).toBeInTheDocument();
     });
 
     it("names the report's person and date for an imported account", async () => {
       await seedAccounts("r1");
       renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
-      expect(await screen.findAllByText("Report of Dana, age 46 \u00b7 2026-05-01")).toHaveLength(2);
+      expect(await screen.findByText("Report of Dana, age 46 \u00b7 2026-05-01")).toBeInTheDocument();
     });
 
     it("removes the report record with the last account that came from it", async () => {
       await seedAccounts("r1");
       const user = userEvent.setup();
       renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
-      await screen.findAllByText("Report of Dana, age 46 \u00b7 2026-05-01");
+      await screen.findByText("Report of Dana, age 46 \u00b7 2026-05-01");
 
       await user.click(screen.getByRole("button", { name: "Remove" }));
       await user.click(screen.getByRole("button", { name: "Confirm" }));

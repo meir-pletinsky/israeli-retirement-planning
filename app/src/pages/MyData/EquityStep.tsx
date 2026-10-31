@@ -5,8 +5,9 @@ import { useProfile } from "../../app/ProfileContext";
 import { ConfirmModal } from "../../components/ConfirmModal";
 import { FormModal } from "../../components/FormModal";
 import { createEmptyStockHolding, type StockHolding } from "../../types";
-import { EquityHoldingCard } from "./EquityHoldingCard";
 import { EquityHoldingForm } from "./EquityHoldingForm";
+import { EquitySummaryTable } from "./EquitySummaryTable";
+import { FieldLegend } from "./FieldLegend";
 import { applyHoldingChange } from "./holdingEntry";
 import { StepFooter } from "./StepFooter";
 
@@ -42,8 +43,8 @@ export function EquityStep() {
   }
 
   return (
-    <div className="flex max-w-lg flex-col gap-4">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold text-slate-700">
           {t("myData.steps.equity.holdingsTitle")}
         </h2>
@@ -57,23 +58,21 @@ export function EquityStep() {
       </div>
 
       {equity.holdings.length === 0 ? (
-        <p className="rounded-md border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+        <p className="max-w-lg rounded-md border border-dashed border-slate-300 p-4 text-sm text-slate-500">
           {t("myData.steps.equity.noHoldings")}
         </p>
       ) : (
-        <div className="flex flex-col gap-3">
-          {equity.holdings.map((holding) => (
-            <EquityHoldingCard
-              key={holding.id}
-              holding={holding}
-              onEdit={() => setEditingHolding(holding)}
-              onRemove={() => setRemovingId(holding.id)}
-            />
-          ))}
-        </div>
+        <EquitySummaryTable
+          onEdit={setEditingHolding}
+          onRemove={(holding) => setRemovingId(holding.id)}
+        />
       )}
 
-      <StepFooter currentKey="equity" />
+      <FieldLegend />
+
+      <div className="max-w-lg">
+        <StepFooter currentKey="equity" />
+      </div>
 
       <FormModal
         open={editingHolding !== null}

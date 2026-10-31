@@ -507,7 +507,7 @@ block, and uses them for three things only:
   **age at import**, the report date and the import date. Each imported account
   carries the record's `reportId`; an account added by hand has `reportId =
   null`. My Data shows "Added manually", "Report of Dana, age 46 · 2026-05-01"
-  or "Sample report (made-up data)" in a Source column and on each account card.
+  or "Sample report (made-up data)" in a Source column of the accounts table.
 
 **What is not stored:** the ID number, the family name, the birth date, the
 address and the phone number. The record is removed with the last account that

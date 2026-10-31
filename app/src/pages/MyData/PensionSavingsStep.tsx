@@ -10,7 +10,6 @@ import { aggregatePensionBalance, isHouseholdActive } from "../../domain";
 import { createEmptyPensionAccount, type PensionAccount } from "../../types";
 import { useActivePerson, type Person } from "./activePerson";
 import { FieldLegend } from "./FieldLegend";
-import { PensionAccountCard } from "./PensionAccountCard";
 import { PensionAccountForm } from "./PensionAccountForm";
 import { PensionSummaryTable } from "./PensionSummaryTable";
 import { accountsOf, sumBalances, withoutAccount } from "./pensionPeople";
@@ -88,57 +87,50 @@ export function PensionSavingsStep() {
         </p>
       )}
 
-      <PensionSummaryTable accounts={visibleAccounts} reports={pensionSavings.reports} />
-
-      <div className="flex max-w-lg flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-700">
-            {t(showPeople ? `${FIELDS}.accountsTitleFor.${person}` : `${FIELDS}.accountsTitle`)}
-          </h2>
-          <button
-            type="button"
-            onClick={() => setEditingAccount({ ...createEmptyPensionAccount(), owner: person })}
-            className="rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
-          >
-            {t(`${FIELDS}.addAccount`)}
-          </button>
-        </div>
-
-        <section
-          aria-labelledby="clearing-house-entry-title"
-          className="flex flex-col gap-2 rounded-lg border border-brand-200 bg-brand-50/60 p-3"
-        >
-          <h3 id="clearing-house-entry-title" className="text-sm font-semibold text-brand-900">
-            {t("clearingHouse.entryTitle")}
-          </h3>
-          <p className="text-xs leading-relaxed text-slate-600">{t("clearingHouse.entryBody")}</p>
-          <Link
-            to={importTarget}
-            className="self-start rounded-md border border-brand-600 bg-white px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-50"
-          >
-            {t(showPeople ? `clearingHouse.entryButtonFor.${person}` : "clearingHouse.entryButton")}
-          </Link>
-        </section>
-
-        {visibleAccounts.length === 0 ? (
-          <p className="rounded-md border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
-            {t(person === "spouse" ? `${FIELDS}.noAccountsSpouse` : `${FIELDS}.noAccounts`)}
-          </p>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {visibleAccounts.map((account) => (
-              <PensionAccountCard
-                key={account.id}
-                account={account}
-                reports={pensionSavings.reports}
-                currencySymbol={currency}
-                onEdit={() => setEditingAccount(account)}
-                onRemove={() => setRemovingId(account.id)}
-              />
-            ))}
+      <PensionSummaryTable
+        title={t(showPeople ? `${FIELDS}.accountsTitleFor.${person}` : `${FIELDS}.accountsTitle`)}
+        accounts={visibleAccounts}
+        reports={pensionSavings.reports}
+        onEdit={setEditingAccount}
+        onRemove={(account) => setRemovingId(account.id)}
+        toolbar={
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to={importTarget}
+              className="rounded-md border border-brand-600 bg-white px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-50"
+            >
+              {t(showPeople ? `clearingHouse.entryButtonFor.${person}` : "clearingHouse.entryButton")}
+            </Link>
+            <button
+              type="button"
+              onClick={() => setEditingAccount({ ...createEmptyPensionAccount(), owner: person })}
+              className="rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
+            >
+              {t(`${FIELDS}.addAccount`)}
+            </button>
           </div>
+        }
+        emptyMessage={
+          <div className="flex max-w-lg flex-col gap-3">
+            <section
+              aria-labelledby="clearing-house-entry-title"
+              className="flex flex-col gap-1 rounded-lg border border-brand-200 bg-brand-50/60 p-3"
+            >
+              <h3 id="clearing-house-entry-title" className="text-sm font-semibold text-brand-900">
+                {t("clearingHouse.entryTitle")}
+              </h3>
+              <p className="text-xs leading-relaxed text-slate-600">{t("clearingHouse.entryBody")}</p>
+            </section>
+            <p className="rounded-md border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
+              {t(person === "spouse" ? `${FIELDS}.noAccountsSpouse` : `${FIELDS}.noAccounts`)}
+            </p>
+          </div>
+        }
+      >
+        {visibleAccounts.length > 0 && (
+          <p className="mt-3 text-xs text-slate-500">{t("clearingHouse.entryHint")}</p>
         )}
-      </div>
+      </PensionSummaryTable>
     </>
   );
 

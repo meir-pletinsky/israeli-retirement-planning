@@ -5,6 +5,7 @@ import { useProfile } from "../../app/ProfileContext";
 import { holdingValueIls, usdToIlsRate } from "../../domain";
 import type { InvestmentCategory, ProfileData, StockHolding } from "../../types";
 import { CATEGORY_ORDER, entryDate, entryPriceUsd } from "./holdingEntry";
+import { RowActions } from "./RowActions";
 import { EMPTY_CELL, formatCurrency } from "./summaryFormat";
 import { SummaryTable, type SummaryColumn } from "./SummaryTable";
 
@@ -37,9 +38,11 @@ interface CategoryTableProps {
   holdings: readonly StockHolding[];
   /** Shekels per US dollar. */
   rate: number;
+  onEdit: (holding: StockHolding) => void;
+  onRemove: (holding: StockHolding) => void;
 }
 
-function CategoryTable({ category, holdings, rate }: CategoryTableProps) {
+function CategoryTable({ category, holdings, rate, onEdit, onRemove }: CategoryTableProps) {
   const { t } = useTranslation();
   const currency = t("common.currencySymbol");
   const totalUsd = sumUsd(holdings);
@@ -128,6 +131,13 @@ function CategoryTable({ category, holdings, rate }: CategoryTableProps) {
       rows={holdings}
       rowKey={(holding) => holding.id}
       columns={columns}
+      rowActions={(holding, describedBy) => (
+        <RowActions
+          describedBy={describedBy}
+          onEdit={() => onEdit(holding)}
+          onRemove={() => onRemove(holding)}
+        />
+      )}
     />
   );
 }
@@ -186,8 +196,13 @@ function UsdIlsRateControl({ equity, rate }: { equity: ProfileData["equity"]; ra
   );
 }
 
-/** Read-only overview of the equity holdings, one table per category, above the cards that edit them. */
-export function EquitySummaryTable() {
+interface EquitySummaryTableProps {
+  onEdit: (holding: StockHolding) => void;
+  onRemove: (holding: StockHolding) => void;
+}
+
+/** The equity holdings, one table per category, with the buttons to edit and remove each one. */
+export function EquitySummaryTable({ onEdit, onRemove }: EquitySummaryTableProps) {
   const { t } = useTranslation();
   const { profile } = useProfile();
   const { holdings } = profile.equity;
@@ -211,6 +226,8 @@ export function EquitySummaryTable() {
           category={group.category}
           holdings={group.holdings}
           rate={rate}
+          onEdit={onEdit}
+          onRemove={onRemove}
         />
       ))}
       <div className="flex flex-col gap-2 text-xs text-slate-500">

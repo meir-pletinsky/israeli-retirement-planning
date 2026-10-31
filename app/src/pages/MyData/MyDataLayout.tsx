@@ -2,7 +2,6 @@ import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate, Outlet } from "react-router-dom";
 
 import { Stepper } from "../../components/Stepper";
-import { EquitySummaryTable } from "./EquitySummaryTable";
 import { ActivePersonProvider } from "./ActivePersonProvider";
 import { FieldLegend } from "./FieldLegend";
 import { STEP_ORDER, type StepKey } from "./stepOrder";
@@ -35,9 +34,8 @@ export function MyDataLayout() {
           currentKey={currentKey}
           onStepClick={(key) => navigate(`/my-data/${key}`)}
         />
-        {currentKey === "equity" && <EquitySummaryTable />}
-        {/* The pension step shows its own summary, per person, above the legend. */}
-        {currentKey !== "pension-savings" && <FieldLegend />}
+        {/* The pension and equity steps show their own tables and put the legend beneath them. */}
+        {currentKey !== "pension-savings" && currentKey !== "equity" && <FieldLegend />}
         <Outlet />
       </div>
     </ActivePersonProvider>

@@ -781,7 +781,8 @@ ticks.
       *Showing where data came from:* `pensionSavings.reports` keeps one record per
       import (owner, fingerprints, **first name**, **age at import**, report date,
       import date); each account has a `reportId` (`null` = added manually). My
-      Data shows it in a Source column and on each card. The record goes when its
+      Data shows it in a Source column of the accounts table (shown on each card
+      until O12). The record goes when its
       last account does, and a re-import that replaces an earlier report's accounts
       replaces its record.
       *Not stored:* the ID, family name and birth date. *Caveat, stated in the
@@ -800,8 +801,38 @@ ticks.
       different person); verification pack privacy test covers the new fields.
       Suite: 899 passed, 1 skipped.
 
-## Phase P — Calculation trace and verification pack
+- [x] O12. **One table per list: edit, remove, add and import on the table.** My
+      Data used to show every account or holding twice: in a read-only summary
+      table and again as a card with Edit and Remove. The cards are gone
+      (`PensionAccountCard.tsx`, `EquityHoldingCard.tsx` deleted).
+      *Row actions:* `SummaryTable` takes `rowActions`, which adds a last column
+      with Edit and Remove (`RowActions.tsx`). The column stays in view when the
+      table scrolls sideways (`sticky end-0`, so it is on the left in Hebrew) and
+      has a screen-reader-only header ("Actions"). Each button names its row for
+      screen readers (`aria-describedby` points at the row's first cell), so a
+      reader hears "Edit, Menora Pension · Policy 123". `SummaryTable` also takes
+      `toolbar` (heading row) and `emptyMessage`, and the "Summary only … use the
+      cards below" hint is removed.
+      *Pension & savings:* one heading ("My accounts", "Partner's accounts" or
+      "Pension & savings accounts") with the Import link and the Add account button
+      on its right, then the table. Both buttons follow the open Me | Partner tab.
+      With no accounts the table is replaced by the Clearing House explanation and
+      the "no accounts yet" text; with accounts, one hint line under the table
+      (`clearingHouse.entryHint`) says what Import does.
+      *Equity:* the step renders its own heading and Add holding button, then the
+      per-category tables (with the actions column), the total across categories
+      and the exchange-rate control, then the legend and the Back / Next footer.
+      `MyDataLayout` no longer renders the equity table or the legend for this
+      step. The category tables keep their "at a glance" titles.
+      Removed texts: `myData.summary.pensionTitle` and `readOnlyHint` (en, he,
+      ru); new: `myData.summary.actions` and `clearingHouse.entryHint`.
+      Tests: `SummaryTables.test.tsx` (actions per row, which row an action acts
+      on, toolbar above the table, empty states, legend after the tables),
+      `PensionSavingsStep.test.tsx` (source labels now once, in the table).
+      Suite: 901 passed, 1 skipped. Behavior change: none to any calculation or
+      stored data.
 
+## Phase P — Calculation trace and verification pack
 The user asked for a way to validate the app's calculations: "traces of all
 calculation steps to be exportable for debugging and may be used validation by
 independent AI sessions offline". Design and usage: `docs/calculation-trace.md`.

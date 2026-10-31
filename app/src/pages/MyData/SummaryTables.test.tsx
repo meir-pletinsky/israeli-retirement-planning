@@ -68,7 +68,7 @@ describe("My Data summary tables — Pension & Savings", () => {
     );
     renderStep("pension-savings");
 
-    const table = await screen.findByRole("table", { name: "Pension & savings at a glance" });
+    const table = await screen.findByRole("table", { name: "Pension & savings accounts" });
     const [header, first, second, totals] = within(table).getAllByRole("row");
     expect(header).toHaveTextContent("Provider name");
     expect(header).toHaveTextContent("Total accumulated balance");
@@ -92,16 +92,60 @@ describe("My Data summary tables — Pension & Savings", () => {
     ).toBeTruthy();
   });
 
-  it("is read-only: the edit and remove buttons stay on the cards", async () => {
-    await saveProfileToDb(buildTestProfile({ age: 50, pensionBalances: [100_000] }));
+  it("puts Add and Import above the table and Edit and Remove on every row", async () => {
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 50,
+        pensionBalances: [100_000, 50_000],
+        pensionAccountOverrides: [
+          { providerName: "Acme Pension", policyNumber: "P-100" },
+          { providerName: "Beta Fund" },
+        ],
+      }),
+    );
     renderStep("pension-savings");
 
-    const table = await screen.findByRole("table", { name: "Pension & savings at a glance" });
-    expect(within(table).queryByRole("button")).not.toBeInTheDocument();
+    const table = await screen.findByRole("table", { name: "Pension & savings accounts" });
+    const [header, first, second, totals] = within(table).getAllByRole("row");
+    expect(within(header).getByRole("columnheader", { name: "Actions" })).toBeInTheDocument();
+    expect(within(first).getByRole("button", { name: "Edit" })).toHaveAccessibleDescription(/Acme Pension/);
+    expect(within(first).getByRole("button", { name: "Remove" })).toHaveAccessibleDescription(/Policy P-100/);
+    expect(within(second).getByRole("button", { name: "Edit" })).toHaveAccessibleDescription(/Beta Fund/);
+    expect(within(totals).queryByRole("button")).not.toBeInTheDocument();
     expect(within(table).queryByRole("textbox")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add account" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Import Clearing House report" })).toBeInTheDocument();
+
+    const toolbar = [
+      screen.getByRole("button", { name: "Add account" }),
+      screen.getByRole("link", { name: "Import Clearing House report" }),
+    ];
+    for (const control of toolbar) {
+      expect(control.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+    expect(screen.queryByRole("heading", { name: "Have a Pension Clearing House report?" })).not.toBeInTheDocument();
+    expect(screen.getByText(/Have a Pension Clearing House report\? Import it/)).toBeInTheDocument();
+    expect(screen.queryByText(/use the cards below/i)).not.toBeInTheDocument();
+  });
+
+  it("edits and removes the account of the row whose button was pressed", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 50,
+        pensionBalances: [100_000, 50_000],
+        pensionAccountOverrides: [{ providerName: "Acme Pension" }, { providerName: "Beta Fund" }],
+      }),
+    );
+    renderStep("pension-savings");
+
+    const table = await screen.findByRole("table", { name: "Pension & savings accounts" });
+    await user.click(within(within(table).getAllByRole("row")[2]).getByRole("button", { name: "Edit" }));
+    expect(screen.getByLabelText(/^Provider name/)).toHaveValue("Beta Fund");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    await user.click(within(within(table).getAllByRole("row")[1]).getByRole("button", { name: "Remove" }));
+    await user.click(screen.getByRole("button", { name: "Confirm" }));
+    await waitFor(() => expect(within(table).queryByText("Acme Pension")).not.toBeInTheDocument());
+    expect(within(table).getByText("Beta Fund")).toBeInTheDocument();
   });
 
   it("shows one table per person, each totalling only that person's accounts", async () => {
@@ -120,13 +164,13 @@ describe("My Data summary tables — Pension & Savings", () => {
     );
     renderStep("pension-savings");
 
-    let table = await screen.findByRole("table", { name: "Pension & savings at a glance" });
+    let table = await screen.findByRole("table", { name: "My accounts" });
     expect(within(table).getByText("My Fund")).toBeInTheDocument();
     expect(within(table).queryByText("Partner Fund")).not.toBeInTheDocument();
     expect(within(table).getAllByRole("row")[2]).toHaveTextContent(`${SHEKEL}100,000`);
 
     await user.click(screen.getByRole("tab", { name: /Partner/ }));
-    table = await screen.findByRole("table", { name: "Pension & savings at a glance" });
+    table = await screen.findByRole("table", { name: "Partner's accounts" });
     expect(within(table).getByText("Partner Fund")).toBeInTheDocument();
     expect(within(table).queryByText("My Fund")).not.toBeInTheDocument();
     expect(within(table).getAllByRole("row")[2]).toHaveTextContent(`${SHEKEL}40,000`);
@@ -146,7 +190,7 @@ describe("My Data summary tables — Pension & Savings", () => {
     );
     renderStep("pension-savings");
 
-    await screen.findByRole("table", { name: "Pension & savings at a glance" });
+    await screen.findByRole("table", { name: "My accounts" });
     expect(screen.getByText(/Household total counted in your plan:/)).toHaveTextContent(`${SHEKEL}100,000`);
     expect(screen.queryByRole("note")).not.toBeInTheDocument();
 
@@ -160,15 +204,19 @@ describe("My Data summary tables — Pension & Savings", () => {
     await saveProfileToDb(buildTestProfile({ age: 50, pensionBalances: [100_000] }));
     renderStep("pension-savings");
 
-    const table = await screen.findByRole("table", { name: "Pension & savings at a glance" });
+    const table = await screen.findByRole("table", { name: "Pension & savings accounts" });
     expect(within(table).queryByRole("columnheader", { name: "Account owner" })).not.toBeInTheDocument();
   });
 
-  it("shows no table before any account is added", async () => {
+  it("shows no table before any account is added, only the way to add or import one", async () => {
     renderStep("pension-savings");
 
     expect(await screen.findByText(/no accounts added yet/i)).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Pension & savings accounts" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Have a Pension Clearing House report?" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add account" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Import Clearing House report" })).toBeInTheDocument();
   });
 
   it("does not appear on the other steps", async () => {
@@ -312,7 +360,34 @@ describe("My Data summary tables — Equity & Investments", () => {
     expect(row).toHaveTextContent("$60");
   });
 
-  it("is read-only and keeps the Add holding action", async () => {
+  it("has Edit and Remove on every row and the Add holding action above the tables", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 50,
+        equity: [
+          { category: "employerGrantedStock", ticker: "AAA", quantity: 1, priceUSD: 10 },
+          { category: "employerGrantedStock", ticker: "BBB", quantity: 2, priceUSD: 10 },
+        ],
+      }),
+    );
+    renderStep("equity");
+
+    const table = await screen.findByRole("table", { name: "ESOP / RSU at a glance" });
+    const [header, first, second, totals] = within(table).getAllByRole("row");
+    expect(within(header).getByRole("columnheader", { name: "Actions" })).toBeInTheDocument();
+    expect(within(first).getByRole("button", { name: "Edit" })).toHaveAccessibleDescription(/AAA/);
+    expect(within(second).getByRole("button", { name: "Remove" })).toHaveAccessibleDescription(/BBB/);
+    expect(within(totals).queryByRole("button")).not.toBeInTheDocument();
+
+    const add = screen.getByRole("button", { name: "Add holding" });
+    expect(add.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    await user.click(within(second).getByRole("button", { name: "Edit" }));
+    expect(screen.getByLabelText(/^Ticker symbol/)).toHaveValue("BBB");
+  });
+
+  it("puts the field legend after the tables", async () => {
     await saveProfileToDb(
       buildTestProfile({
         age: 50,
@@ -322,9 +397,8 @@ describe("My Data summary tables — Equity & Investments", () => {
     renderStep("equity");
 
     const table = await screen.findByRole("table", { name: "ESOP / RSU at a glance" });
-    expect(within(table).queryByRole("button")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add holding" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
+    const legend = screen.getByRole("region", { name: "Which fields matter?" });
+    expect(table.compareDocumentPosition(legend) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("shows no table before any holding is added", async () => {
@@ -332,6 +406,7 @@ describe("My Data summary tables — Equity & Investments", () => {
 
     expect(await screen.findByText(/no equity holdings added yet/i)).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add holding" })).toBeInTheDocument();
   });
 });
 
