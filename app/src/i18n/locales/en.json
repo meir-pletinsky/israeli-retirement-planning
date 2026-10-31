@@ -586,7 +586,20 @@
         "inflation": "Inflation",
         "volatility": "Market volatility",
         "volatilityHelp": "How much yearly returns typically swing up or down. Used only by the risk analysis. A diversified portfolio is often 8% to 18%.",
-        "advanced": "Advanced overrides"
+        "advanced": "Advanced overrides",
+        "cpi": {
+          "title": "Israeli inflation (Central Bureau of Statistics)",
+          "subtitle": "For reference. Your plan uses the value above.",
+          "last12": "12 months to {{month}}",
+          "average": "{{years}}-year average",
+          "use": "Use",
+          "useAria": "Use {{value}} as inflation ({{label}})",
+          "inUse": "In use",
+          "statusLoading": "Loading the latest figures…",
+          "statusLive": "Live figures up to {{month}}.",
+          "statusUnavailable": "Could not reach the Bureau of Statistics. Showing built-in figures up to {{month}}.",
+          "statusOff": "Online lookup is turned off in Settings. Showing built-in figures up to {{month}}."
+        }
       }
     }
   },
@@ -877,6 +890,7 @@
       "title": "Privacy",
       "stored": "Everything you enter is saved in this browser only. There is no account and no server that holds your data.",
       "rates": "Exchange rates: the app can ask for the dollar rate, sending just the currency pair and a date. You can switch this off below.",
+      "cpi": "Inflation figures: the Assumptions page can ask the Israeli Central Bureau of Statistics for the consumer price index. Nothing about you is sent. You can switch this off below.",
       "stocks": "Stock prices: choosing a ticker loads that stock's public price file from this site. None of your amounts, dates or other details are sent.",
       "files": "Files you export or import stay with you. The app never uploads them."
     }
@@ -892,6 +906,9 @@
     "fxCurrentLoading": "Loading the current rate…",
     "fxCurrentUnavailable": "The current rate could not be loaded. It will be tried again within the hour.",
     "fxLookupPrivacy": "When on, the app asks Frankfurter (frankfurter.dev), which publishes the Bank of Israel's rates, for the dollar rate: today's rate to value your holdings, and the rate on each grant or purchase date you enter. Only the currency pair and a date are sent, with no cookies and no referrer. Turn it off to type the rates yourself. None of your other data is ever sent.",
+    "inflationData": "Inflation data",
+    "cpiLookup": "Look up Israeli inflation online",
+    "cpiLookupPrivacy": "When on, the Assumptions page asks the Central Bureau of Statistics (api.cbs.gov.il) for the Israeli consumer price index, to show recent inflation for reference. The request carries nothing about you: no cookies and no referrer. Turn it off to see the table built into the app instead.",
     "export": "Export data",
     "import": "Import data",
     "reset": "Reset all data",

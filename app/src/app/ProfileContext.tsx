@@ -11,10 +11,12 @@ import {
 
 import {
   clearAllData,
+  loadCpiLookupEnabledFromDb,
   loadFxLookupEnabledFromDb,
   loadOnboardedFromDb,
   loadProfileFromDb,
   migrateLegacyLocalStorageIfNeeded,
+  saveCpiLookupEnabledToDb,
   saveFxLookupEnabledToDb,
   saveOnboardedToDb,
   saveProfileToDb,
@@ -39,6 +41,9 @@ interface ProfileContextValue {
   /** Whether the app may ask the Frankfurter service for exchange rates; a preference, not part of the profile. */
   fxLookupEnabled: boolean;
   setFxLookupEnabled: (enabled: boolean) => void;
+  /** Whether the app may ask the Central Bureau of Statistics for the consumer price index; a preference, not part of the profile. */
+  cpiLookupEnabled: boolean;
+  setCpiLookupEnabled: (enabled: boolean) => void;
   /**
    * Sets the dollar rate that values the equity holdings. A rate with a date is the Bank of
    * Israel's; without a date it is the user's own and no lookup replaces it. Null goes back to
@@ -56,6 +61,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<ProfileData>(EMPTY_PROFILE);
   const [onboarded, setOnboarded] = useState(false);
   const [fxLookupEnabled, setFxLookupEnabled] = useState(true);
+  const [cpiLookupEnabled, setCpiLookupEnabled] = useState(true);
   const [isReady, setIsReady] = useState(false);
   const hasLoadedRef = useRef(false);
 
@@ -67,15 +73,17 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     void (async () => {
       await migrateLegacyLocalStorageIfNeeded();
-      const [storedProfile, storedOnboarded, storedFxLookup] = await Promise.all([
+      const [storedProfile, storedOnboarded, storedFxLookup, storedCpiLookup] = await Promise.all([
         loadProfileFromDb(),
         loadOnboardedFromDb(),
         loadFxLookupEnabledFromDb(),
+        loadCpiLookupEnabledFromDb(),
       ]);
       if (cancelled) return;
       if (storedProfile) setProfile(normalizeProfile(storedProfile));
       setOnboarded(storedOnboarded);
       setFxLookupEnabled(storedFxLookup);
+      setCpiLookupEnabled(storedCpiLookup);
       hasLoadedRef.current = true;
       setIsReady(true);
     })();
@@ -98,6 +106,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     if (!hasLoadedRef.current) return;
     void saveFxLookupEnabledToDb(fxLookupEnabled);
   }, [fxLookupEnabled]);
+
+  useEffect(() => {
+    if (!hasLoadedRef.current) return;
+    void saveCpiLookupEnabledToDb(cpiLookupEnabled);
+  }, [cpiLookupEnabled]);
 
   const hasData = useMemo(() => hasProfileData(profile), [profile]);
 
@@ -124,12 +137,15 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         setProfile(EMPTY_PROFILE);
         setOnboarded(false);
         setFxLookupEnabled(true);
+        setCpiLookupEnabled(true);
       },
       fxLookupEnabled,
       setFxLookupEnabled,
+      cpiLookupEnabled,
+      setCpiLookupEnabled,
       setUsdToIlsRate,
     }),
-    [profile, onboarded, hasData, fxLookupEnabled, setUsdToIlsRate],
+    [profile, onboarded, hasData, fxLookupEnabled, cpiLookupEnabled, setUsdToIlsRate],
   );
 
   if (!isReady) return null;

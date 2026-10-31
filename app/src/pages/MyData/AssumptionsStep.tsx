@@ -6,6 +6,7 @@ import { useProfile } from "../../app/ProfileContext";
 import { NumberField } from "../../components/fields/NumberField";
 import { ASSUMPTION_PRESETS, MAX_VOLATILITY_PCT, type AssumptionPreset } from "../../types";
 import { StepFooter } from "./StepFooter";
+import { InflationReference } from "./InflationReference";
 
 const PRESET_KEYS: AssumptionPreset[] = ["conservative", "base", "optimistic"];
 
@@ -74,6 +75,7 @@ export function AssumptionsStep() {
             }
             suffix="%"
           />
+          <InflationReference />
           <NumberField
             label={t("myData.steps.assumptions.volatility")}
             helperText={t("myData.steps.assumptions.volatilityHelp")}

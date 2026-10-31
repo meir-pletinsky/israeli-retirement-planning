@@ -3,7 +3,13 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resetFxCache } from "../fx/client";
-import { clearAllData, loadFxLookupEnabledFromDb, saveFxLookupEnabledToDb } from "../storage/db";
+import {
+  clearAllData,
+  loadCpiLookupEnabledFromDb,
+  loadFxLookupEnabledFromDb,
+  saveCpiLookupEnabledToDb,
+  saveFxLookupEnabledToDb,
+} from "../storage/db";
 import { renderWithProviders } from "../test/renderWithProviders";
 import { Settings } from "./Settings";
 
@@ -90,14 +96,67 @@ describe("Settings — exchange rates", () => {
   });
 });
 
+describe("Settings — inflation data", () => {
+  const cpiBox = () => screen.findByRole("checkbox", { name: "Look up Israeli inflation online" });
+
+  it("has the online lookup on by default, and says what is sent", async () => {
+    renderWithProviders(<Settings />, { route: "/settings" });
+
+    expect(await cpiBox()).toBeChecked();
+    expect(screen.getByText(/The request carries nothing about you: no cookies and no referrer/)).toBeInTheDocument();
+  });
+
+  it("is separate from the exchange rate lookup", async () => {
+    await saveFxLookupEnabledToDb(false);
+    renderWithProviders(<Settings />, { route: "/settings" });
+
+    expect(await lookupBox()).not.toBeChecked();
+    expect(await cpiBox()).toBeChecked();
+  });
+
+  it("turns the lookup off and on, and remembers the choice", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<Settings />, { route: "/settings" });
+
+    await user.click(await cpiBox());
+    expect(await cpiBox()).not.toBeChecked();
+    await waitFor(async () => expect(await loadCpiLookupEnabledFromDb()).toBe(false));
+    expect(await loadFxLookupEnabledFromDb()).toBe(true);
+
+    await user.click(await cpiBox());
+    await waitFor(async () => expect(await loadCpiLookupEnabledFromDb()).toBe(true));
+  });
+
+  it("shows a lookup that was turned off earlier as off", async () => {
+    await saveCpiLookupEnabledToDb(false);
+    renderWithProviders(<Settings />, { route: "/settings" });
+
+    expect(await cpiBox()).not.toBeChecked();
+  });
+
+  it("is turned back on when all data is cleared", async () => {
+    await saveCpiLookupEnabledToDb(false);
+    await clearAllData();
+    expect(await loadCpiLookupEnabledFromDb()).toBe(true);
+  });
+
+  it("asks for nothing on this page", async () => {
+    renderWithProviders(<Settings />, { route: "/settings" });
+    await cpiBox();
+
+    expect(fetchMock.mock.calls.every(([url]) => !String(url).includes("cbs.gov.il"))).toBe(true);
+  });
+});
+
 describe("Settings — privacy", () => {
-  it("explains what stays on the device and the two things that are requested", async () => {
+  it("explains what stays on the device and the three things that are requested", async () => {
     renderWithProviders(<Settings />, { route: "/settings" });
 
     const heading = await screen.findByRole("heading", { name: "Privacy" });
     const section = heading.closest("section") as HTMLElement;
     expect(section).toHaveTextContent("saved in this browser only");
     expect(section).toHaveTextContent("Exchange rates:");
+    expect(section).toHaveTextContent("Inflation figures:");
     expect(section).toHaveTextContent("Stock prices:");
     expect(section).toHaveTextContent("The app never uploads them.");
   });

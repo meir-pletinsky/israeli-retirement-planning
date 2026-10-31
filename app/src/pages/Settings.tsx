@@ -21,6 +21,8 @@ export function Settings() {
     resetProfile,
     fxLookupEnabled,
     setFxLookupEnabled,
+    cpiLookupEnabled,
+    setCpiLookupEnabled,
   } = useProfile();
   const { rate: latestRate, settled: rateSettled } = useLatestUsdIlsRate(fxLookupEnabled);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -60,6 +62,7 @@ export function Settings() {
         <ul className="list-disc space-y-1.5 ps-5 text-sm text-slate-600">
           <li>{t("privacy.section.stored")}</li>
           <li>{t("privacy.section.rates")}</li>
+          <li>{t("privacy.section.cpi")}</li>
           <li>{t("privacy.section.stocks")}</li>
           <li>{t("privacy.section.files")}</li>
         </ul>
@@ -95,6 +98,18 @@ export function Settings() {
           </p>
         )}
         <p className="mt-2 text-xs text-slate-500">{t("settings.fxLookupPrivacy")}</p>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 className="mb-3 text-sm font-semibold text-slate-700">
+          {t("settings.inflationData")}
+        </h2>
+        <CheckboxField
+          label={t("settings.cpiLookup")}
+          checked={cpiLookupEnabled}
+          onChange={setCpiLookupEnabled}
+        />
+        <p className="mt-2 text-xs text-slate-500">{t("settings.cpiLookupPrivacy")}</p>
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">

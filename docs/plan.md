@@ -284,8 +284,11 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
   of them, and a 10th/50th/90th percentile fan chart on Projections plus a Dashboard KPI.
   The market volatility is one editable assumption (default 12%).
 - Historical projection mode using real CPI/market-return history
-- Live external data integrations per the fetch-then-fallback strategy
-  (CPI, FX, fund performance, mortality tables, risk-free rate)
+- **Live external data integrations — partly done** (fetch-then-fallback): exchange
+  rates (live, Frankfurter), stock prices (published with the app, Phase T) and Israeli
+  inflation (live from the Central Bureau of Statistics with a bundled table, Phase X in
+  `docs/implementation-progress.md`). Still open: fund performance, mortality tables,
+  risk-free rate.
 - **Household dashboard KPIs from functional spec Section 13 — done** (Phase W in
   `docs/implementation-progress.md`): a "Retirement snapshot" row (planned spending, safe
   withdrawal rate, pension income, state benefits, funds available) and a "Could you retire

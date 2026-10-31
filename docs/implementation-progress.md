@@ -27,7 +27,8 @@ on the My Data steps as Phase Q, and the simple purchase / grant entry with
 per-category equity tables as Phase S (Phase R is the Bridge Planner design), and
 the daily stock price files with ticker suggestions and price autofill as Phase T, and the
 Monte Carlo risk analysis (the first Phase 4 piece) as Phase V, and the household dashboard
-KPIs (retirement snapshot and the retire-at checks) as Phase W.
+KPIs (retirement snapshot and the retire-at checks) as Phase W, and live Israeli inflation
+from the Central Bureau of Statistics as Phase X.
 
 ## Phase A — Project setup & infra
 
@@ -1111,8 +1112,9 @@ classes, an opt-out for lookups in Settings. All in `docs/stock-price-data-desig
 The plan assumes the same real return every year, so it can say "you are on track" while a
 bad run of markets would break it. The Monte Carlo replays the plan on 2,000 random return
 sequences and reports how often the desired retirement spending lasts to the planning
-horizon. Phase 4 has two more pieces that are not started: a historical projection mode and
-live external data. (The full dashboard KPIs were built next, as Phase W.)
+horizon. Phase 4 has more pieces: a historical projection mode (not started) and live
+external data (exchange rates and, as Phase X, Israeli inflation are done). (The full
+dashboard KPIs were built next, as Phase W.)
 
 Decisions (the user chose the first two):
 - **One volatility input.** "Market volatility" in Assumptions → Advanced, default 12%,
@@ -1230,6 +1232,62 @@ The wide `xl` five-column layout was not viewed; it reuses the top row's grid cl
 
 Known limits: the withdrawal rate is a gross first-year figure, not a stress test; the
 retire-at ages 55, 60 and 65 are fixed, not editable.
+
+## Phase X — Live Israeli inflation (Phase 4, part 3)
+
+The inflation assumption was a typed number with three presets. The Central Bureau of
+Statistics (CBS) publishes the consumer price index for free with open CORS, so Assumptions →
+Advanced now shows what inflation actually was, next to the field, and lets the user copy a
+figure into it. The plan's own inflation is still the user's number; nothing is applied
+automatically.
+
+Decisions (my judgement calls; the user has not yet confirmed the placement or the switch):
+- **Placement.** A reference block under the Inflation field in the Advanced panel, so the
+  request is made only when that panel is open.
+- **Four rows.** The latest 12-month change, and the 10, 20 and 30 year averages. An average
+  is the compound yearly rate over exactly N years (the geometric mean of the 12-month
+  changes at 12-month steps back from the latest month). A window is left out if any step
+  is missing. Windows over 30 years are not offered, because the 1980s dominate them.
+- **"Use" button.** Sets `inflationPct` to the figure rounded to one decimal and leaves the
+  preset as it is. A row whose figure equals the field shows "In use".
+- **Own switch.** Settings → Inflation data (stored under the meta key `cpiLookupOff`),
+  separate from the exchange-rate switch, so each host can be refused on its own. Settings
+  makes no request. The privacy list names the CBS.
+- **Request.** `https://api.cbs.gov.il/index/data/price?id=120010&format=json&download=false&lang=en&startPeriod=01-{year}&PageSize=1000`
+  (the API pages at 100 points unless `PageSize` is set). No cookies, no referrer, 10 s
+  timeout. A success is kept for 6 hours, a failure is retried, and concurrent callers share
+  one request. The start year is the current year minus 31.
+- **Fallback.** `src/cpi/snapshot.ts` holds the December-over-December change for 1952 to
+  2025 (generated, not edited by hand; a test compares it with the generator's output). When
+  the request fails or the switch is off, the block shows the table's averages, says "built-in
+  table" and gives its retrieval date. `useIsraelCpi(enabled)` returns `{summary, status}` with
+  status `live`, `loading`, `unavailable` or `off`, and always starts from the built-in
+  summary, so the block never flashes empty.
+
+- [x] X1. **Pure maths** (`cpi/format.ts`, `cpi/stats.ts`): month labels, 12-month change,
+      N-year averages, with the "any missing step omits the window" rule.
+- [x] X2. **Refresh script** (`scripts/cpi-data/`, `npm run cpi-data`): fetches the series,
+      checks it (`findProblem`) and writes `src/cpi/snapshot.ts`. Run it about once a year,
+      after the December figure is out in mid-January. First run: 74 years, 1952 to 2025.
+- [x] X3. **Data layer** (`cpi/builtIn.ts`, `cpi/client.ts`, `cpi/useIsraelCpi.ts`).
+- [x] X4. **Switch** (`storage/db.ts`, `ProfileContext.tsx`, `Settings.tsx`): `cpiLookupEnabled`
+      with the same plumbing as the exchange-rate switch; cleared data turns it back on.
+- [x] X5. **UI** (`pages/MyData/InflationReference.tsx`, wired into `AssumptionsStep`).
+- [x] X6. **Texts** in en, he and ru; `i18n/cpiLocales.test.ts` checks keys and
+      `{{placeholders}}`. Checked in the browser in all three languages (live data loaded:
+      12-month 1.6%, 10 years 1.9%, 20 years 1.8%, 30 years 2.2%); this showed a cramped Hebrew
+      button and a double full stop in the Russian status line, both fixed.
+- [x] X7. **Tests**: format, stats, built-in table, client (success, failure, timeout, cache,
+      shared request), hook, snapshot script, the component and the Settings switch.
+      1099 passed and 1 skipped in all.
+
+Known limits: the figures are reference only (the projection does not use the history);
+the table must be refreshed by hand once a year; one series (the general index, id 120010),
+so no housing or food sub-indices.
+
+The historical projection mode is the next Phase 4 piece. It can reuse this feed for the
+inflation half; it still needs a market-return history (US returns are bundled easily, but
+need the shekel rate and the CBS index to become real shekel returns).
 
 ## Welcome page for returning visitors
 
