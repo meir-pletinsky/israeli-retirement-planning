@@ -715,6 +715,29 @@
     "sourceStudyFund": "Study Fund",
     "sourceInvestments": "Other Investments",
     "sourceBituachLeumi": "Bituach Leumi",
+    "ladder": {
+      "title": "When your money becomes usable",
+      "intro": "What you can spend when you retire and what opens up later, in today's money. Savings are shown at their value when you retire.",
+      "whenColumn": "When",
+      "opensColumn": "What opens up",
+      "usableColumn": "Usable so far",
+      "atRetirement": "When you retire",
+      "when": "Age {{age}} ({{year}})",
+      "perMonth": "{{amount}} a month",
+      "itemOf": "{{item}} ({{member}})",
+      "member": {
+        "self": "yours",
+        "spouse": "your spouse's"
+      },
+      "annuity": "Monthly annuity",
+      "spouseSupplement": "Bituach Leumi spouse supplement",
+      "lateVesting": "Company shares worth about {{amount}} at today's price vest after you retire (the first batch on {{date}}). The plan counts them as usable from retirement, so it may be too optimistic in the first years.",
+      "howTitle": "How this works",
+      "howValues": "Savings are shown at their value when you retire. A pot that is still locked keeps growing until it opens.",
+      "howRules": "Pension funds, managers insurance and provident funds open at age {{age}}. A study fund opens when its liquidity date passes, by default {{years}} years after you joined. Investment provident funds and other savings can be used at any time.",
+      "howPayments": "Annuities and Bituach Leumi are monthly payments, not savings, so they are not added to the usable total.",
+      "howReadOnly": "This only shows your plan. It changes none of its numbers, and early-withdrawal penalties are not modeled."
+    },
     "timeline": {
       "title": "Retirement timeline",
       "intro": "Which sources pay for each stage of retirement, in today's money.",

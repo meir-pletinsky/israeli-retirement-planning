@@ -128,6 +128,11 @@ src/
                     # largest passing gross spending is found by search).
                     # historicalBacktest.ts replays the same drawdown on
                     # each start year of the bundled US history.
+                    # liquidityLadder.ts groups the household's sources
+                    # into "when does this open" rows for the Projections
+                    # ladder card. It reads the same sources and unlock
+                    # ages as retirementIncome.ts, so it changes no
+                    # numbers; it is outside the calculation trace.
   history/          # bundled US stock/bond/inflation history, 1928 onward
                     # (usMarketHistory.ts) and the real-return maths
                     # (returns.ts). Extended by hand once a year.

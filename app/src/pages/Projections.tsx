@@ -8,12 +8,14 @@ import { NetIncomeChart } from "../components/charts/NetIncomeChart";
 import { NetWorthChart } from "../components/charts/NetWorthChart";
 import { FeasibilityCard } from "../components/FeasibilityCard";
 import { HistoricalBacktestCard } from "../components/HistoricalBacktestCard";
+import { LiquidityLadderCard } from "../components/LiquidityLadderCard";
 import { RetirementTimeline } from "../components/RetirementTimeline";
 import { RiskAnalysisCard } from "../components/RiskAnalysisCard";
 import { ScenarioComparison } from "../components/ScenarioComparison";
 import {
   MAX_RETIREMENT_SEARCH_AGE,
   type IncomeBandKey,
+  buildLiquidityLadder,
   buildRetirementTimeline,
   desiredRetirementMonthly,
   estimateIncomeBreakdown,
@@ -52,6 +54,7 @@ export function Projections() {
   const netIncomeYears = estimateNetIncome(profile, scenario).years;
   const hasNetIncome = netIncomeYears.some((year) => year.grossMonthly > 0);
   const timeline = buildRetirementTimeline(incomeData);
+  const ladder = useMemo(() => buildLiquidityLadder(profile, scenario), [profile, scenario]);
   const feasibility = findEarliestFeasibleRetirementAge(profile);
   const isCouple = isHouseholdActive(profile);
   const bandLabels: Record<IncomeBandKey, string> = {
@@ -175,6 +178,8 @@ export function Projections() {
           />
         </div>
       )}
+
+      <LiquidityLadderCard ladder={ladder} isCouple={isCouple} />
 
       <RetirementTimeline
         segments={timeline}

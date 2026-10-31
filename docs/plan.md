@@ -246,7 +246,9 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
   withdrawals to the spouse with the lower rate), the investment-gemel annuity
   exemption from 60, the 30% rate for a 10% shareholder, options with a strike price
   and ESPP. A **Bridge Planner** (liquidity ladder, withdrawal strategies,
-  purchase lots, vest-aware retirement date) is designed but not built: see
+  purchase lots, vest-aware retirement date) is designed, and its first step, the
+  **liquidity ladder**, is built (Projections shows when each pot of savings and each monthly
+  payment becomes available); the rest is not built: see
   [`docs/bridge-planner-design.md`](bridge-planner-design.md).
 - **Stock price data and autofill — done** (Phase T in
   [`docs/implementation-progress.md`](implementation-progress.md); design in

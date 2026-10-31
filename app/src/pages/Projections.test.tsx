@@ -466,4 +466,100 @@ describe("Projections", () => {
       expect(within(card).queryByText(/Starting years that fund/)).not.toBeInTheDocument();
     });
   });
+
+  describe("liquidity ladder", () => {
+    // Invisible direction marks wrap the year and the date; text matchers look through them.
+    const BIDI_MARKS = /[\u2066\u2069]/g;
+    const reads = (pattern: RegExp) => (content: string) => pattern.test(content.replace(BIDI_MARKS, ""));
+
+    const renderLadder = async (profile: ReturnType<typeof buildTestProfile>) => {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+      return screen.findByRole("region", { name: "When your money becomes usable" });
+    };
+
+    it("shows what is usable at retirement and what opens later, with a running total", async () => {
+      const card = await renderLadder(
+        buildTestProfile({
+          age: 55,
+          retirementAge: 55,
+          otherAssets: 60_000,
+          pensionBalances: [600_000],
+          pensionAccountOverrides: [{ productCategory: "comprehensivePension" }],
+          investmentReturnPct: 4,
+          inflationPct: 4,
+        }),
+      );
+      const rows = within(card).getAllByRole("row").slice(1);
+
+      expect(rows).toHaveLength(2);
+      expect(within(rows[0]).getByText("When you retire")).toBeInTheDocument();
+      expect(within(rows[0]).getByText("Other Investments")).toBeInTheDocument();
+      expect(within(rows[0]).getByText("₪60,000", { selector: "span.text-slate-500" })).toBeInTheDocument();
+      expect(within(rows[1]).getByText(reads(/^Age 60 \(2031\)$/))).toBeInTheDocument();
+      expect(within(rows[1]).getByText("Pension Fund")).toBeInTheDocument();
+      expect(within(rows[1]).getByText("₪660,000")).toBeInTheDocument();
+      expect(within(card).queryByText(/yours/)).not.toBeInTheDocument();
+    });
+
+    it("says whose each line is for a couple", async () => {
+      const card = await renderLadder(
+        buildTestProfile({
+          age: 40,
+          retirementAge: 60,
+          maritalStatus: "married",
+          spouse: { age: 36, gender: "female", retirementAge: 55 },
+          pensionBalances: [200_000, 100_000],
+          pensionAccountOverrides: [
+            { productCategory: "comprehensivePension" },
+            { productCategory: "comprehensivePension", owner: "spouse" },
+          ],
+          investmentReturnPct: 4,
+          inflationPct: 4,
+        }),
+      );
+
+      expect(within(card).getByText("Pension Fund (yours)")).toBeInTheDocument();
+      expect(within(card).getByText("Pension Fund (your spouse's)")).toBeInTheDocument();
+    });
+
+    it("warns about company shares that vest after retirement", async () => {
+      const card = await renderLadder(
+        buildTestProfile({
+          age: 50,
+          retirementAge: 55,
+          otherAssets: 10_000,
+          equity: [
+            {
+              quantity: 100,
+              priceUSD: 50,
+              employerGrant: { vestingTranches: [{ vestDate: "2033-03-01", quantity: 100 }] },
+            },
+          ],
+        }),
+      );
+
+      expect(
+        within(card).getByText(reads(/^Company shares worth about ₪18,500 at today's price vest after you retire \(the first batch on 01\.03\.2033\)/)),
+      ).toBeInTheDocument();
+    });
+
+    it("explains itself in a section that starts closed", async () => {
+      const card = await renderLadder(buildTestProfile({ age: 50, retirementAge: 55, otherAssets: 10_000 }));
+      const details = within(card).getByText("How this works").closest("details");
+      expect(details).not.toBeNull();
+      expect(details).not.toHaveAttribute("open");
+      expect(within(card).getByText(/open at age 60/)).toBeInTheDocument();
+    });
+
+    it("is not shown when there are no savings", async () => {
+      await saveProfileToDb(buildTestProfile({ age: 50, retirementAge: 55 }));
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      await screen.findByRole("heading", { name: "Projections" });
+      expect(screen.queryByRole("region", { name: "When your money becomes usable" })).not.toBeInTheDocument();
+    });
+  });
 });

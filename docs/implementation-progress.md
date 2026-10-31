@@ -991,14 +991,15 @@ describes a 0% route before 60, and the rule does not vary by fund or program.
 The 2026 deposit ceiling is ₪83,641. The app keeps treating the fund as 25% of
 the real gain at any age; the annuity route is not modeled.
 
-## Phase R — Bridge Planner (design only, not started)
+## Phase R — Bridge Planner (R1 built; R2–R7 not started)
 
 Proposal for the early-retirement bridge: which source to use first, what each
 costs and what leaving early does to unvested RSUs. Full design, build order
 and open questions: [`docs/bridge-planner-design.md`](bridge-planner-design.md).
-Waiting for the user's review.
+The user reviewed the design and asked to start; the open questions in section 7
+are still unanswered, so only the step that does not depend on them (R1) is built.
 
-- [ ] R1. Liquidity ladder (read-only, no new inputs).
+- [x] R1. Liquidity ladder (read-only, no new inputs). See "R1 notes" below.
 - [ ] R2. Split the pooled investments source, withdrawal order in
       `drawdown.ts`, strategy comparison card.
 - [ ] R3. RSU schedule generator, "keeps vesting after leaving" flag, vest-aware
@@ -1362,6 +1363,51 @@ Decisions:
 Known limits: US history in US purchasing power (the shekel, Israeli inflation and Israeli
 markets are not modelled); two asset classes only; before fees and tax; overlapping windows;
 the table needs a new row each January.
+
+### R1 notes — liquidity ladder (Phase R)
+
+A "When your money becomes usable" card on Projections, just above the retirement
+timeline. It is a staircase: one row per moment something opens up, showing what opens and
+a running "usable so far" total. It complements the timeline (income by source and age) and
+the Dashboard's source-access card (one accessible/locked pair); it does not replace either.
+
+Decisions (mine, not yet confirmed by the user):
+- **It changes no numbers.** `domain/liquidityLadder.ts` (`buildLiquidityLadder`) reads the
+  same household sources and unlock ages as `estimateHouseholdRetirementIncome`. The capital
+  total matches `access.accessibleAtRetirement` to the shekel (a test checks it with
+  non-zero growth).
+- **Rows.** Month 0 is "When you retire". A pot that opens later is a row at its unlock age
+  (pension, managers insurance and provident fund at 60; a study fund at its liquidity date;
+  investment gemel and other savings at 0). Same month rule as the income estimator:
+  `max(round((years until the unlock age − years until retirement) × 12), 0)`. Pots still
+  locked at retirement are shown at their grown value (`valueAtRetirement` × catch-up
+  growth), as the engine does. Anything opening at or after age 90 is left out.
+- **Income items** (annuity, Bituach Leumi pension, the spouse supplement) are rows too, but
+  shown as "₪X a month" and **not** added to "usable so far".
+- **Couples.** Each line says "(yours)" or "(your spouse's)"; a spouse's pot is placed at the
+  primary user's age at that moment.
+- **Employer RSU batches are not rungs.** The engine counts every granted share as usable at
+  retirement, so a rung would contradict the numbers elsewhere. Instead an amber note says
+  how much company stock vests after retirement and the first vest date (at today's price).
+  R3 makes the engine vest-aware and can turn this into rungs.
+- **Not traced.** Every figure comes from values the trace already records
+  (`valueAtRetirement`, the unlock ages), and the ladder only groups them, like the
+  timeline. It is outside the verification pack on purpose; say so if you want it added.
+- **RTL.** The year and the date inside sentences are wrapped in left-to-right isolates
+  (U+2066 … U+2069) and passed as interpolation values; the sentence itself is not wrapped.
+
+- [x] R1a. Domain (`domain/liquidityLadder.ts`), 8 tests (staircase, agreement with the
+      engine under growth, income items, a spouse's pot, the horizon, an empty plan, late
+      vesting flagged and not flagged).
+- [x] R1b. Card (`components/LiquidityLadderCard.tsx`), wired into `Projections`.
+- [x] R1c. Texts in en, he and ru (`projections.ladder.*`); `i18n/ladderLocales.test.ts`
+      checks keys and `{{placeholders}}`.
+- [x] R1d. Component tests in `Projections.test.tsx` ("liquidity ladder": the staircase and
+      running total, couple labels, the late-vesting note, closed explanation, hidden
+      without savings).
+- [x] R1e. Browser check in English, Hebrew (RTL) and Russian on a saved profile, once with
+      a single "when you retire" row and once with a 55 → 60 → 65 staircase. No bidi
+      problems. 1171 passed and 1 skipped in all.
 
 ## Welcome page for returning visitors
 

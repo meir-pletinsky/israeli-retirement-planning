@@ -13,6 +13,7 @@ export * from "./historicalBacktest";
 export * from "./household";
 export * from "./incomeBreakdown";
 export * from "./inputGuidance";
+export * from "./liquidityLadder";
 export * from "./monteCarlo";
 export * from "./netIncome";
 export * from "./netWorth";

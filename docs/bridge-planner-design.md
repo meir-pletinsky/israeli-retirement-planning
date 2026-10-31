@@ -1,7 +1,7 @@
 # Bridge Planner — design (for review, nothing built yet)
 
-Status: **proposal, 2026-10-30.** Written for the user to review before any
-code. Every number in this file is an invented example.
+Status: **proposal, 2026-10-30; R1 (liquidity ladder) built since.** Written for the
+user to review before any code. Every number in this file is an invented example.
 
 ## 1. The problem
 
