@@ -117,6 +117,7 @@ export function spouseProfileView(profile: ProfileData): ProfileData {
     bituachLeumi: spouse.bituachLeumi,
     pensionSavings: {
       otherAssets: null,
+      reports: [],
       accounts: spouseAccounts(profile).map((account) => ({ ...account, owner: "self" })),
     },
     equity: EMPTY_PROFILE.equity,

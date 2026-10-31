@@ -137,6 +137,56 @@ describe("PensionSavingsStep — accounts repeater", () => {
     expect(labelOf(/^Join date/)).toHaveTextContent("Recommended");
     expect(labelOf(/^Liquidity date/)).toHaveTextContent("Recommended");
   });
+
+  describe("where an account came from", () => {
+    const REPORT = {
+      id: "r1",
+      owner: "self" as const,
+      personKeys: ["k"],
+      firstName: "Dana",
+      ageAtImport: 46,
+      reportDate: "2026-05-01",
+      importedAt: "2026-05-02",
+      sample: false,
+    };
+
+    async function seedAccounts(reportId: string | null, reports = [REPORT]) {
+      const base = buildTestProfile({ age: 46, pensionBalances: [1000] });
+      const [account] = base.pensionSavings.accounts;
+      await saveProfileToDb({
+        ...base,
+        pensionSavings: { ...base.pensionSavings, accounts: [{ ...account, reportId }], reports },
+      });
+    }
+
+    it("says a hand-typed account was added manually, on the card and in the table", async () => {
+      await seedAccounts(null, []);
+      renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
+      expect(await screen.findAllByText("Added manually")).toHaveLength(2);
+      expect(screen.getByRole("columnheader", { name: "Source" })).toBeInTheDocument();
+    });
+
+    it("names the report's person and date for an imported account", async () => {
+      await seedAccounts("r1");
+      renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
+      expect(await screen.findAllByText("Report of Dana, age 46 \u00b7 2026-05-01")).toHaveLength(2);
+    });
+
+    it("removes the report record with the last account that came from it", async () => {
+      await seedAccounts("r1");
+      const user = userEvent.setup();
+      renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
+      await screen.findAllByText("Report of Dana, age 46 \u00b7 2026-05-01");
+
+      await user.click(screen.getByRole("button", { name: "Remove" }));
+      await user.click(screen.getByRole("button", { name: "Confirm" }));
+      await waitFor(async () => {
+        const saved = (await loadProfileFromDb())!.pensionSavings;
+        expect(saved.accounts).toHaveLength(0);
+        expect(saved.reports).toHaveLength(0);
+      });
+    });
+  });
 });
 
 describe("PensionSavingsStep — account owner", () => {

@@ -1,5 +1,6 @@
 import { mapClearingHouseReport, mergeReportResults } from "./mapReport";
 import { ClearingHouseImportError } from "./errors";
+import { fingerprintPeople } from "./reportPeople";
 import { readReportFiles, type ReadOptions, type ReportSource } from "./readFiles";
 import type { ReportMapResult } from "./types";
 import { parseXmlToTree } from "./xmlTree";
@@ -7,6 +8,7 @@ import { parseXmlToTree } from "./xmlTree";
 export * from "./errors";
 export * from "./matchAndApply";
 export * from "./ownerCheck";
+export { fingerprintPeople, sharesKey } from "./reportPeople";
 export * from "./sample";
 export { annuityFieldsFor, nearestProjection, withAnnuityFields } from "./annuity";
 export { mapClearingHouseReport, mergeReportResults, parseReportDate } from "./mapReport";
@@ -38,5 +40,7 @@ export async function importClearingHouseFiles(
   options: ReadOptions & { now?: Date } = {},
 ): Promise<ParsedReport> {
   const source = await readReportFiles(files, { password: options.password });
-  return parseReportTexts(source, options.now ?? new Date());
+  const parsed = parseReportTexts(source, options.now ?? new Date());
+  const people = await fingerprintPeople(parsed.result.people);
+  return { ...parsed, result: { ...parsed.result, people } };
 }

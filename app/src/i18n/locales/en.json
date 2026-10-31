@@ -254,6 +254,7 @@
         ],
         "fields": {
           "owner": "Account owner",
+          "source": "Source",
           "providerName": "Provider name",
           "policyNumber": "Policy / account number",
           "policyNumberHelper": "As printed on your annual statement. For your own reference and cross-checking; not used in calculations.",
@@ -508,7 +509,18 @@
       "doneReminder": "These accounts are for demonstration only. Delete them from Pension & savings when you are done, or clear everything with \"Reset all data\" in Settings."
     },
     "backToAccounts": "Back to pension & savings",
-    "privacy": "Your files are read on this device only. Nothing is uploaded and the password is not stored.",
+    "source": {
+      "manual": "Added manually",
+      "sample": "Sample report (made-up data)",
+      "imported": "Imported from a report",
+      "report": "Report of {{person}} \u00b7 {{date}}",
+      "reportNoDate": "Report of {{person}}",
+      "personNameAge": "{{name}}, age {{age}}",
+      "personName": "{{name}}",
+      "personAge": "a person aged {{age}}",
+      "personUnknown": "an unnamed person"
+    },
+    "privacy": "Your files are read on this device only. Nothing is uploaded and the password is not stored. Of the customer details in the report, only the first name, the age and a one-way fingerprint are kept, to tell reports apart; the ID number, family name and birth date are not.",
     "instructions": {
       "title": "How to get your report",
       "step1": "Go to swiftness.co.il, the Pension Clearing House (HaMaslaka HaPensionit), and order the consolidated pension report. You verify your identity and pay a small fee.",
@@ -547,6 +559,8 @@
       "title": "Review before importing",
       "found": "Accounts found: {{accounts}}. Other records skipped: {{skipped}}.",
       "ignored": "Other files in the package that were ignored: {{count}}.",
+      "reportOf": "Report of {{person}}.",
+      "recognised": "This is the same person as the report you imported on {{date}}, so it is saved under the same owner.",
       "whoseTitle": "Whose report is this?",
       "whoseHelp": "A report covers one person. The accounts are saved under the owner you choose.",
       "whoseSelf": "Mine",
@@ -562,6 +576,15 @@
         "ageDiffers_spouse": "The report is for someone aged {{reportAge}}, but your partner's age is entered as {{profileAge}}.",
         "matchesOtherOwner_self": "The report matches accounts that are saved under your partner.",
         "matchesOtherOwner_spouse": "The report matches accounts that are saved under you.",
+        "samePersonOtherOwner_self": "This looks like the same person as a report you imported under your partner.",
+        "samePersonOtherOwner_spouse": "This looks like the same person as a report you imported under you.",
+        "differentPerson_self": "This report is about a different person than the report you imported earlier as yours.",
+        "differentPerson_spouse": "This report is about a different person than the report you imported earlier as your partner's.",
+        "multiplePeople": "The files are about more than one person.",
+        "titleMixed": "These files are about different people",
+        "introMixed": "Everything is saved under the owner you choose, so one person's accounts would be mixed with another's. It is better to import one person's files at a time.",
+        "confirmMixed_self": "I confirm all of these files should be saved as mine",
+        "confirmMixed_spouse": "I confirm all of these files should be saved as my partner's",
         "confirm_self": "I confirm this is my report",
         "confirm_spouse": "I confirm this is my partner's report"
       },
@@ -650,7 +673,6 @@
       "staleReport": "This report is {{months}} months old. Balances may be out of date: consider ordering a new one.",
       "newerSchemaVersion": "This report uses a newer format (version {{version}}) than the app was built for. Check the results carefully.",
       "personalConflict": "The files disagree about this detail ({{field}}), so it was not suggested.",
-      "multipleHolders": "These files are about {{count}} different people. Everything is saved under the owner you choose below, so it is better to import one person's files at a time.",
       "controlWhat": {
         "products": "products",
         "providers": "providers"

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { screen, waitFor, within } from "@testing-library/react";
+import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Route, Routes, useLocation } from "react-router-dom";
@@ -453,9 +453,89 @@ describe("whose report it is", () => {
         product({ holder: { id: "000000026" } }, activePension({ number: "7770002" })),
       ),
     );
-    await openReport(xmlFile(xml));
-    expect(screen.getByText(/These files are about 2 different people/)).toBeInTheDocument();
+    const user = await openReport(xmlFile(xml));
+    expect(screen.getByText("These files are about different people")).toBeInTheDocument();
     expect(document.body.textContent).not.toContain("000000026");
+
+    expect(screen.getByRole("button", { name: "Import selected values" })).toBeDisabled();
+    await user.click(screen.getByRole("checkbox", { name: "I confirm all of these files should be saved as mine" }));
+    expect(screen.getByRole("button", { name: "Import selected values" })).toBeEnabled();
+  });
+
+  it("shows whose report it is by first name and age, without the ID or family name", async () => {
+    const xml = toXml(
+      report({}, product({ holder: { firstName: "Dana", familyName: "Demo" } }, activePension({ number: POLICY_NUMBER }))),
+    );
+    await openReport(xmlFile(xml));
+    expect(screen.getByText("Report of Dana, age 46.")).toBeInTheDocument();
+    expect(document.body.textContent).not.toContain("Demo");
+    expect(document.body.textContent).not.toContain(HOLDER_ID);
+  });
+
+  it("keeps a record of the report with a fingerprint, not the ID or family name", async () => {
+    const xml = toXml(
+      report({}, product({ holder: { firstName: "Dana", familyName: "Demo" } }, activePension({ number: POLICY_NUMBER }))),
+    );
+    const user = await openReport(xmlFile(xml));
+    await user.click(screen.getByRole("button", { name: "Import selected values" }));
+    expect(await screen.findByText("Import complete")).toBeInTheDocument();
+
+    const saved = await waitFor(async () => {
+      const profile = await loadProfileFromDb();
+      expect(profile?.pensionSavings.reports).toHaveLength(1);
+      return profile!;
+    });
+    const [record] = saved.pensionSavings.reports;
+    expect(record).toMatchObject({ owner: "self", firstName: "Dana", ageAtImport: 46, sample: false });
+    expect(record.personKeys.length).toBeGreaterThan(0);
+    expect(saved.pensionSavings.accounts[0].reportId).toBe(record.id);
+    const stored = JSON.stringify(record);
+    expect(stored).not.toContain("Demo");
+    expect(stored).not.toContain("000000018");
+  });
+
+  async function importAndLeave(xml: string) {
+    const user = await openReport(xmlFile(xml));
+    await user.click(screen.getByRole("button", { name: "Import selected values" }));
+    expect(await screen.findByText("Import complete")).toBeInTheDocument();
+    await waitFor(async () => {
+      expect((await loadProfileFromDb())?.pensionSavings.reports.length).toBeGreaterThan(0);
+    });
+    cleanup();
+  }
+
+  it("recognises the same person when the report is imported again", async () => {
+    const xml = toXml(
+      report({}, product({ holder: { firstName: "Dana", familyName: "Demo" } }, activePension({ number: POLICY_NUMBER }))),
+    );
+    await importAndLeave(xml);
+
+    await openReport(xmlFile(xml));
+    expect(await screen.findByText(/This is the same person as the report you imported on/)).toBeInTheDocument();
+    expect(screen.queryByText("This report may be about someone else")).not.toBeInTheDocument();
+  });
+
+  it("questions a report about a different person than the one imported before", async () => {
+    await importAndLeave(
+      toXml(
+        report({}, product({ holder: { firstName: "Dana", familyName: "Demo" } }, activePension({ number: POLICY_NUMBER }))),
+      ),
+    );
+
+    const other = toXml(
+      report(
+        {},
+        product(
+          { holder: { id: "000000026", firstName: "Omer", familyName: "Other" } },
+          activePension({ number: "7770002" }),
+        ),
+      ),
+    );
+    await openReport(xmlFile(other));
+    expect(await screen.findByText("This report may be about someone else")).toBeInTheDocument();
+    expect(
+      screen.getByText("This report is about a different person than the report you imported earlier as yours."),
+    ).toBeInTheDocument();
   });
 });
 
@@ -479,7 +559,10 @@ describe("the sample report", () => {
     const result = await sampleCandidates();
     expect(result.candidates.length).toBeGreaterThan(3);
     expect(result.holderIds).toHaveLength(1);
-    expect(result.warnings.some((warning) => warning.code === "multipleHolders")).toBe(false);
+    expect(result.people).toHaveLength(1);
+    expect(result.people[0]).toMatchObject({ firstName: "דנה", age: 54 });
+    // Parsing fingerprints everyone; only the record saved for the sample drops its keys.
+    expect(result.people[0].keys.length).toBeGreaterThan(0);
     expect(result.personal.age?.value).toBe(54);
   });
 
@@ -513,6 +596,10 @@ describe("the sample report", () => {
     });
     expect(saved.pensionSavings.accounts).toHaveLength(expected);
     expect(saved.personal.age).toBe(54);
+    expect(saved.pensionSavings.reports).toEqual([
+      expect.objectContaining({ sample: true, personKeys: [], firstName: "דנה", owner: "self" }),
+    ]);
+    expect(saved.pensionSavings.accounts.every((account) => account.reportId === saved.pensionSavings.reports[0].id)).toBe(true);
   });
 
   it("needs a confirmation before it is added to a plan that already has data", async () => {

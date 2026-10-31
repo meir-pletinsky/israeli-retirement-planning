@@ -188,4 +188,57 @@ describe("normalizeProfile", () => {
       ).toBeNull();
     }
   });
+
+  it("adds an empty report list and no report link to a profile saved before reports were recorded", () => {
+    const profile = buildTestProfile({ age: 40, pensionBalances: [1000] });
+    const { reports: _reports, ...savings } = profile.pensionSavings;
+    const legacyAccount = { ...savings.accounts[0] } as Record<string, unknown>;
+    delete legacyAccount.reportId;
+    const result = normalizeProfile({
+      ...profile,
+      pensionSavings: { ...savings, accounts: [legacyAccount] },
+    } as unknown as Parameters<typeof normalizeProfile>[0]);
+    expect(result.pensionSavings.reports).toEqual([]);
+    expect(result.pensionSavings.accounts[0].reportId).toBeNull();
+  });
+
+  it("keeps well-formed report records and drops malformed ones", () => {
+    const profile = buildTestProfile({ age: 40 });
+    const good = {
+      id: "r1",
+      owner: "spouse",
+      personKeys: ["k1", "", 7, "k2"],
+      firstName: "Dana",
+      ageAtImport: 46,
+      reportDate: "2026-05-01",
+      importedAt: "2026-05-02",
+      sample: false,
+    };
+    const result = normalizeProfile({
+      ...profile,
+      pensionSavings: { ...profile.pensionSavings, reports: [good, null, "text", { owner: "self" }, { id: "" }, { id: "r2" }] },
+    } as unknown as Parameters<typeof normalizeProfile>[0]);
+    expect(result.pensionSavings.reports).toEqual([
+      { ...good, personKeys: ["k1", "k2"] },
+      {
+        id: "r2",
+        owner: "self",
+        personKeys: [],
+        firstName: null,
+        ageAtImport: null,
+        reportDate: null,
+        importedAt: "",
+        sample: false,
+      },
+    ]);
+  });
+
+  it("treats a report list that is not a list as empty", () => {
+    const profile = buildTestProfile({ age: 40 });
+    const result = normalizeProfile({
+      ...profile,
+      pensionSavings: { ...profile.pensionSavings, reports: "nope" },
+    } as unknown as Parameters<typeof normalizeProfile>[0]);
+    expect(result.pensionSavings.reports).toEqual([]);
+  });
 });

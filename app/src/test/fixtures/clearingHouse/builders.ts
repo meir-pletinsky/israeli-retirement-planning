@@ -206,6 +206,8 @@ export function policy(options: PolicyOptions = {}): XmlNode {
 
 export interface HolderOptions {
   id?: string;
+  firstName?: string | null;
+  familyName?: string | null;
   gender?: number | null;
   marital?: number | null;
   birthDate?: string | null;
@@ -219,7 +221,7 @@ export interface ProductOptions {
 
 export function product(options: ProductOptions, ...policies: XmlNode[]): XmlNode {
   const { type = 2, employer = EMPLOYER_NAME, holder = {} } = options;
-  const { id = HOLDER_ID, gender = 1, marital = 2, birthDate = "19800320" } = holder;
+  const { id = HOLDER_ID, firstName, familyName, gender = 1, marital = 2, birthDate = "19800320" } = holder;
   return el(
     "Mutzar",
     el(
@@ -228,6 +230,8 @@ export function product(options: ProductOptions, ...policies: XmlNode[]): XmlNod
       el(
         "YeshutLakoach",
         leaf("MISPAR-ZIHUY-LAKOACH", id),
+        opt("SHEM-PRATI", firstName),
+        opt("SHEM-MISHPACHA", familyName),
         leaf("MIN", gender),
         leaf("MATZAV-MISHPACHTI", marital),
         leaf("TAARICH-LEYDA", birthDate),

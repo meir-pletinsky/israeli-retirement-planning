@@ -4,6 +4,7 @@ import {
   type ImportedAccountCandidate,
   type ImportedValue,
   type ImportPlan,
+  type ImportReportInfo,
   type PersonalFieldKey,
   type PersonalSuggestions,
 } from "../../domain/clearingHouseImport";
@@ -94,6 +95,7 @@ export function buildImportPlan(
   states: Record<string, AccountReviewState>,
   personal: PersonalSuggestions,
   selectedPersonal: PersonalFieldKey[],
+  report: ImportReportInfo | null = null,
 ): ImportPlan {
   return {
     owner,
@@ -104,6 +106,7 @@ export function buildImportPlan(
     }),
     personal,
     selectedPersonal,
+    report,
   };
 }
 

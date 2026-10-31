@@ -1,9 +1,12 @@
 import { useTranslation } from "react-i18next";
 
-import type { PensionAccount } from "../../types";
+import type { ImportedReport, PensionAccount } from "../../types";
+import { accountSourceLabel } from "./reportSource";
 
 interface PensionAccountCardProps {
   account: PensionAccount;
+  /** The imported reports, to say which one the account came from. */
+  reports: readonly ImportedReport[];
   currencySymbol: string;
   onEdit: () => void;
   onRemove: () => void;
@@ -11,6 +14,7 @@ interface PensionAccountCardProps {
 
 export function PensionAccountCard({
   account,
+  reports,
   currencySymbol,
   onEdit,
   onRemove,
@@ -37,6 +41,7 @@ export function PensionAccountCard({
         </p>
         <p className="truncate text-xs text-slate-500">{categoryLabel}</p>
         {references && <p className="truncate text-xs text-slate-400">{references}</p>}
+        <p className="truncate text-xs text-slate-400">{accountSourceLabel(account, reports, t)}</p>
         {account.totalAccumulatedBalance != null && (
           <p className="mt-1 text-sm font-medium text-brand-700">
             {currencySymbol}

@@ -1,7 +1,8 @@
 import { useTranslation } from "react-i18next";
 
-import type { PensionAccount } from "../../types";
+import type { ImportedReport, PensionAccount } from "../../types";
 import { sumBalances } from "./pensionPeople";
+import { accountSourceLabel } from "./reportSource";
 import {
   EMPTY_CELL,
   formatCurrency,
@@ -14,10 +15,12 @@ const FIELDS = "myData.steps.pensionSavings";
 interface PensionSummaryTableProps {
   /** One person's accounts; the total row adds up exactly these. */
   accounts: readonly PensionAccount[];
+  /** The imported reports, to say which one each account came from. */
+  reports: readonly ImportedReport[];
 }
 
 /** Read-only overview of one person's pension and savings accounts, above the cards that edit them. */
-export function PensionSummaryTable({ accounts }: PensionSummaryTableProps) {
+export function PensionSummaryTable({ accounts, reports }: PensionSummaryTableProps) {
   const { t } = useTranslation();
   if (accounts.length === 0) return null;
 
@@ -94,6 +97,11 @@ export function PensionSummaryTable({ accounts }: PensionSummaryTableProps) {
       header: t(`${FIELDS}.fields.estimatedMonthlyAnnuity`),
       numeric: true,
       cell: (account) => formatCurrency(account.annuityParameters.estimatedMonthlyAnnuity, currency),
+    },
+    {
+      key: "source",
+      header: t(`${FIELDS}.fields.source`),
+      cell: (account) => accountSourceLabel(account, reports, t),
     },
   ];
 

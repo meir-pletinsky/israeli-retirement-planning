@@ -1,12 +1,14 @@
-import type { AccountOwner, PensionAccount, ProfileData } from "../../types";
-import { createEmptyPensionAccount } from "../../types";
+import type { AccountOwner, ImportedReport, PensionAccount, ProfileData } from "../../types";
+import { createEmptyPensionAccount, createId } from "../../types";
 import { sameIdNumber } from "./israeliId";
+import { sharesKey } from "./reportPeople";
 import {
   ACCOUNT_FIELD_KEYS,
   type AccountFieldKey,
   type ImportedAccountCandidate,
   type ImportedFieldValues,
   type PersonalSuggestions,
+  type ReportMapResult,
 } from "./types";
 
 type FieldValue = ImportedFieldValues[AccountFieldKey];
@@ -243,11 +245,56 @@ export interface ImportAccountChoice {
   selectedFields: AccountFieldKey[];
 }
 
+/** What is kept about the report an import came from; see `ImportedReport`. */
+export type ImportReportInfo = Omit<ImportedReport, "id" | "owner">;
+
 export interface ImportPlan {
   owner: AccountOwner;
   accounts: ImportAccountChoice[];
   personal: PersonalSuggestions;
   selectedPersonal: PersonalFieldKey[];
+  /** Recorded with the import so accounts can say where they came from; left out, nothing is recorded. */
+  report?: ImportReportInfo | null;
+}
+
+function isoDay(date: Date): string {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/**
+ * The record of a report that is about to be imported. Only the first name, the age and the
+ * one-way fingerprints are kept; the sample is never fingerprinted because it is nobody's.
+ */
+export function reportInfoFor(result: ReportMapResult, importedAt: Date, sample: boolean): ImportReportInfo {
+  const person = result.people[0] ?? null;
+  const dates = result.candidates.flatMap((candidate) => (candidate.valuationDate ? [candidate.valuationDate] : []));
+  return {
+    personKeys: sample ? [] : [...new Set(result.people.flatMap((entry) => entry.keys))],
+    firstName: person?.firstName ?? null,
+    ageAtImport: person?.age ?? result.personal.age?.value ?? null,
+    reportDate: dates.length > 0 ? dates.reduce((newest, date) => (date > newest ? date : newest)) : null,
+    importedAt: isoDay(importedAt),
+    sample,
+  };
+}
+
+/**
+ * Adds the new record and drops the earlier ones it replaces: reports of the same kind that no
+ * account points at any more and that are either about the same person under the same owner or
+ * cannot be recognised again anyway.
+ */
+function withRecordedReport(
+  reports: ImportedReport[],
+  record: ImportedReport,
+  accounts: PensionAccount[],
+): ImportedReport[] {
+  const referenced = new Set(accounts.map((account) => account.reportId));
+  const superseded = (report: ImportedReport) =>
+    !referenced.has(report.id) &&
+    report.sample === record.sample &&
+    (report.personKeys.length === 0 || (report.owner === record.owner && sharesKey(report.personKeys, record.personKeys)));
+  return [...reports.filter((report) => !superseded(report)), record];
 }
 
 /** The profile changes for an import plan; nothing is written until the caller applies the patch. */
@@ -255,6 +302,7 @@ export function applyImport(profile: ProfileData, plan: ImportPlan): Partial<Pro
   const byId = new Map(profile.pensionSavings.accounts.map((account) => [account.id, account]));
   const updates = new Map<string, PensionAccount>();
   const additions: PensionAccount[] = [];
+  const record: ImportedReport | null = plan.report ? { ...plan.report, id: createId(), owner: plan.owner } : null;
 
   for (const choice of plan.accounts) {
     if (choice.selectedFields.length === 0) continue;
@@ -267,19 +315,26 @@ export function applyImport(profile: ProfileData, plan: ImportPlan): Partial<Pro
       const imported = choice.candidate.fields[key];
       if (imported) account = writeField(account, key, imported.value as never);
     }
+    if (record) account = { ...account, reportId: record.id };
     if (choice.updateAccountId) updates.set(choice.updateAccountId, account);
     else additions.push(account);
   }
 
   const patch: Partial<ProfileData> = {};
-  if (updates.size > 0 || additions.length > 0) {
+  const picked = (key: PersonalFieldKey) => plan.selectedPersonal.includes(key) && plan.personal[key] !== undefined;
+  const writesAccounts = updates.size > 0 || additions.length > 0;
+  if (writesAccounts || (record && plan.selectedPersonal.some(picked))) {
+    const accounts = [
+      ...profile.pensionSavings.accounts.map((account) => updates.get(account.id) ?? account),
+      ...additions,
+    ];
     patch.pensionSavings = {
       ...profile.pensionSavings,
-      accounts: [...profile.pensionSavings.accounts.map((account) => updates.get(account.id) ?? account), ...additions],
+      accounts,
+      reports: record ? withRecordedReport(profile.pensionSavings.reports, record, accounts) : profile.pensionSavings.reports,
     };
   }
 
-  const picked = (key: PersonalFieldKey) => plan.selectedPersonal.includes(key) && plan.personal[key] !== undefined;
   if (plan.owner === "self") {
     const personal = { ...profile.personal };
     if (picked("gender")) personal.gender = plan.personal.gender!.value;

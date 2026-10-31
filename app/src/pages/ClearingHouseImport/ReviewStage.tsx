@@ -5,6 +5,7 @@ import { useProfile } from "../../app/ProfileContext";
 import {
   assessOwner,
   matchCandidates,
+  reportInfoFor,
   suggestOwner,
   withAnnuityFields,
   type ImportPlan,
@@ -13,6 +14,7 @@ import {
   type ReportMapResult,
 } from "../../domain/clearingHouseImport";
 import { hasProfileData, type AccountOwner, type PensionAccount } from "../../types";
+import { reportPersonLabel } from "../MyData/reportSource";
 import { AccountReviewCard } from "./AccountReviewCard";
 import { FieldRow } from "./FieldRow";
 import { formatPersonalValue, productKindLabel } from "./formatFieldValue";
@@ -68,6 +70,9 @@ export function ReviewStage({ parsed, sample, initialOwner = null, onApply, onSt
 
   const sampleIntoData = sample && hasProfileData(profile);
   const needsConfirmation = sampleIntoData || (assessment?.concerns.length ?? 0) > 0;
+  const mixedPeople = assessment?.concerns.includes("multiplePeople") ?? false;
+  const reportPerson = result.people.length === 1 ? result.people[0] : null;
+  const recognised = assessment?.recognisedReport?.owner === owner ? assessment.recognisedReport : null;
 
   function chooseOwner(next: AccountOwner) {
     setOwner(next);
@@ -87,6 +92,13 @@ export function ReviewStage({ parsed, sample, initialOwner = null, onApply, onSt
             skipped: result.skipped.length,
           })}
         </p>
+        {reportPerson && (reportPerson.firstName !== null || reportPerson.age !== null) && (
+          <p>
+            {t("clearingHouse.review.reportOf", {
+              person: reportPersonLabel({ firstName: reportPerson.firstName, ageAtImport: reportPerson.age }, t),
+            })}
+          </p>
+        )}
         {parsed.ignoredFiles > 0 && (
           <p>{t("clearingHouse.review.ignored", { count: parsed.ignoredFiles })}</p>
         )}
@@ -119,10 +131,21 @@ export function ReviewStage({ parsed, sample, initialOwner = null, onApply, onSt
               </label>
             ))}
           </div>
-          {suggestedSpouse && owner === "spouse" && (
+          {suggestedSpouse && owner === "spouse" && !recognised && (
             <p className="mt-2 text-xs text-slate-600">{t("clearingHouse.review.ownerSuggestedSpouse")}</p>
           )}
+          {recognised && (
+            <p role="note" className="mt-2 text-xs text-slate-600">
+              {t("clearingHouse.review.recognised", { date: recognised.importedAt })}
+            </p>
+          )}
         </fieldset>
+      )}
+
+      {!canChooseOwner && recognised && (
+        <p role="note" className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+          {t("clearingHouse.review.recognised", { date: recognised.importedAt })}
+        </p>
       )}
 
       {owner === "spouse" && profile.personal.maritalStatus !== "married" && (
@@ -139,9 +162,11 @@ export function ReviewStage({ parsed, sample, initialOwner = null, onApply, onSt
           {assessment && assessment.concerns.length > 0 ? (
             <>
               <h3 id="clearing-house-confirm-title" className="text-sm font-semibold text-amber-900">
-                {t("clearingHouse.review.ownerCheck.title")}
+                {t(mixedPeople ? "clearingHouse.review.ownerCheck.titleMixed" : "clearingHouse.review.ownerCheck.title")}
               </h3>
-              <p className="text-xs text-amber-900">{t("clearingHouse.review.ownerCheck.intro")}</p>
+              <p className="text-xs text-amber-900">
+                {t(mixedPeople ? "clearingHouse.review.ownerCheck.introMixed" : "clearingHouse.review.ownerCheck.intro")}
+              </p>
               <ul className="list-disc ps-5 text-sm text-amber-900">
                 {assessment.concerns.map((concern) => (
                   <li key={concern}>
@@ -166,7 +191,11 @@ export function ReviewStage({ parsed, sample, initialOwner = null, onApply, onSt
               onChange={(e) => setConfirmed(e.target.checked)}
               className="mt-0.5 accent-brand-600"
             />
-            {sample ? t("clearingHouse.sample.confirm") : t(`clearingHouse.review.ownerCheck.confirm`, { context: owner })}
+            {sample
+              ? t("clearingHouse.sample.confirm")
+              : mixedPeople
+                ? t("clearingHouse.review.ownerCheck.confirmMixed", { context: owner })
+                : t(`clearingHouse.review.ownerCheck.confirm`, { context: owner })}
           </label>
         </section>
       )}
@@ -220,7 +249,8 @@ function ReviewBody({ owner, result, sample, blocked, onApply, onStartOver }: Re
     sample && hasProfileData(profile) ? [] : defaultSelectedPersonal(personal, profile, owner),
   );
 
-  const plan = buildImportPlan(owner, candidates, states, personal, selectedPersonal);
+  const [report] = useState(() => reportInfoFor(result, new Date(), sample));
+  const plan = buildImportPlan(owner, candidates, states, personal, selectedPersonal, report);
   const counts = countPlan(plan);
   const personalRows = suggestedPersonal(personal, owner);
 

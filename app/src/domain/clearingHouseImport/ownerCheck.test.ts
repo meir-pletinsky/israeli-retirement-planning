@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildTestProfile } from "../../test/domainFixtures";
+import type { ImportedReport, ProfileData } from "../../types";
 import {
   activePension,
   HOLDER_ID,
@@ -126,10 +127,10 @@ describe("holder IDs", () => {
     const two = mapClearingHouseReport(report({}, product({ holder: { id: "18" } }, activePension())), { now: NOW });
     const merged = mergeReportResults([one, two]);
     expect(merged.holderIds).toHaveLength(1);
-    expect(merged.warnings.some((warning) => warning.code === "multipleHolders")).toBe(false);
+    expect(merged.people).toHaveLength(1);
   });
 
-  it("warns when the files are about more than one person", () => {
+  it("keeps the people apart when the files are about more than one person", () => {
     const one = mapClearingHouseReport(report({}, product({ holder: { id: "000000018" } }, activePension())), { now: NOW });
     const two = mapClearingHouseReport(
       report({}, product({ holder: { id: "000000026" } }, activePension({ number: "2" }))),
@@ -137,6 +138,82 @@ describe("holder IDs", () => {
     );
     const merged = mergeReportResults([one, two]);
     expect(merged.holderIds).toHaveLength(2);
-    expect(merged.warnings).toContainEqual({ code: "multipleHolders", params: { count: 2 } });
+    expect(merged.people).toHaveLength(2);
+  });
+});
+
+/** A report whose person already carries fingerprints, as after `importClearingHouseFiles`. */
+function keyedResult(keys: string[], holder: HolderOptions = {}) {
+  const result = resultFor(holder);
+  return { ...result, people: result.people.map((person) => ({ ...person, keys })) };
+}
+
+function withReports(profile: ProfileData, reports: Partial<ImportedReport>[]): ProfileData {
+  const full = reports.map((report, index) => ({
+    id: `report-${index}`,
+    owner: "self" as const,
+    personKeys: ["key-a"],
+    firstName: "Dana",
+    ageAtImport: 46,
+    reportDate: "2026-05-01",
+    importedAt: "2026-05-02",
+    sample: false,
+    ...report,
+  }));
+  return { ...profile, pensionSavings: { ...profile.pensionSavings, reports: full } };
+}
+
+describe("recognising a person from an earlier import", () => {
+  it("accepts the same person under the same owner without the age and gender questions", () => {
+    const profile = withReports(buildTestProfile({ age: 30, gender: "female" }), [{ owner: "self" }]);
+    const assessment = assessOwner(keyedResult(["key-a"]), profile, "self");
+    expect(assessment.concerns).toEqual([]);
+    expect(assessment.recognisedReport?.id).toBe("report-0");
+  });
+
+  it("questions saving the same person under the other owner", () => {
+    const profile = withReports(buildTestProfile({ maritalStatus: "married", spouse: { age: 46 } }), [{ owner: "spouse" }]);
+    const assessment = assessOwner(keyedResult(["key-a"]), profile, "self");
+    expect(assessment.concerns).toContain("samePersonOtherOwner");
+    expect(assessOwner(keyedResult(["key-a"]), profile, "spouse").concerns).toEqual([]);
+  });
+
+  it("questions a different person when the owner already has a report from someone else", () => {
+    const profile = withReports(buildTestProfile({}), [{ owner: "self", personKeys: ["key-b"] }]);
+    expect(assessOwner(keyedResult(["key-a"]), profile, "self").concerns).toEqual(["differentPerson"]);
+  });
+
+  it("does not question a first report, a report with no fingerprints or a sample", () => {
+    expect(assessOwner(keyedResult(["key-a"]), buildTestProfile({}), "self").concerns).toEqual([]);
+
+    const earlier = withReports(buildTestProfile({}), [{ owner: "self", personKeys: ["key-b"] }]);
+    expect(assessOwner(keyedResult([]), earlier, "self").concerns).toEqual([]);
+
+    const sample = withReports(buildTestProfile({}), [{ owner: "self", personKeys: [], sample: true }]);
+    expect(assessOwner(keyedResult(["key-a"]), sample, "self").concerns).toEqual([]);
+    expect(assessOwner(keyedResult(["key-a"]), sample, "self").recognisedReport).toBeNull();
+  });
+
+  it("flags files that are about more than one person", () => {
+    const one = mapClearingHouseReport(report({}, product({ holder: { id: "000000018" } }, activePension())), { now: NOW });
+    const two = mapClearingHouseReport(
+      report({}, product({ holder: { id: "000000026" } }, activePension({ number: "2" }))),
+      { now: NOW, fileIndex: 1 },
+    );
+    const assessment = assessOwner(mergeReportResults([one, two]), buildTestProfile({}), "self");
+    expect(assessment.concerns).toContain("multiplePeople");
+  });
+
+  it("suggests the owner of the recognised report", () => {
+    const profile = withReports(buildTestProfile({ maritalStatus: "married", spouse: { age: 30 } }), [
+      { owner: "spouse" },
+    ]);
+    expect(suggestOwner(keyedResult(["key-a"]), profile)).toBe("spouse");
+    expect(suggestOwner(keyedResult(["key-z"]), profile)).toBe("self");
+  });
+
+  it("keeps the user when the only earlier report is about someone else", () => {
+    const profile = withReports(buildTestProfile({}), [{ owner: "spouse", personKeys: ["key-b"] }]);
+    expect(suggestOwner(keyedResult(["key-a"]), profile)).toBe("self");
   });
 });

@@ -41,7 +41,7 @@ export interface TaxExemptionBasket {
   remainingMonthlyExemptionCap: number | null;
 }
 
-function createId(): string {
+export function createId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return crypto.randomUUID();
   }
@@ -140,6 +140,8 @@ export interface PensionAccount {
   policyNumber: string;
   /** Fund / program identifier ("mispar kupa"), for matching the account to published fund data later. Reference only. */
   fundId: string;
+  /** The imported report that last wrote to this account (see `PensionSavingsData.reports`); null = entered by hand. */
+  reportId: string | null;
   productCategory: ProductCategory | null;
   legacyPolicyModel: LegacyPolicyModel | null;
   accountStatus: AccountStatus | null;
@@ -160,6 +162,7 @@ export function createEmptyPensionAccount(): PensionAccount {
     providerName: "",
     policyNumber: "",
     fundId: "",
+    reportId: null,
     productCategory: null,
     legacyPolicyModel: null,
     accountStatus: null,
@@ -195,8 +198,33 @@ export function createEmptyPensionAccount(): PensionAccount {
   };
 }
 
+/**
+ * A Clearing House report that was imported. It lets the app say where an account came from and
+ * recognise the same person's next report. The holder's ID, family name and birth date are never
+ * kept: only a first name, an age and one-way fingerprints of the identifying details.
+ */
+export interface ImportedReport {
+  id: string;
+  /** Whose accounts the report was saved under. */
+  owner: AccountOwner;
+  /** One-way fingerprints of the person the report is about (see `reportPeople.ts`). May be empty. */
+  personKeys: string[];
+  /** The customer's first name as the report spells it; only for telling reports apart. */
+  firstName: string | null;
+  /** The person's age on the day of the import. */
+  ageAtImport: number | null;
+  /** `yyyy-mm-dd`: the newest balance date in the report. */
+  reportDate: string | null;
+  /** `yyyy-mm-dd`: the day it was imported. */
+  importedAt: string;
+  /** The bundled demonstration report. */
+  sample: boolean;
+}
+
 export interface PensionSavingsData {
   accounts: PensionAccount[];
+  /** The reports the accounts were imported from, oldest first. Accounts typed by hand are not listed here. */
+  reports: ImportedReport[];
   /** Catch-all for assets not covered above (cash, bonds, real estate, etc.). */
   otherAssets: number | null;
 }
@@ -414,7 +442,7 @@ export const EMPTY_PROFILE: ProfileData = {
     remainingMonthlyExemptionCap: null,
   },
   bituachLeumi: { ...EMPTY_BITUACH_LEUMI },
-  pensionSavings: { accounts: [], otherAssets: null },
+  pensionSavings: { accounts: [], reports: [], otherAssets: null },
   equity: { holdings: [], usdToIlsRate: null, usdToIlsRateDate: null },
   expenses: { currentMonthly: null, retirementMonthly: null },
   assumptions: { preset: "base", ...ASSUMPTION_PRESETS.base },
@@ -424,6 +452,31 @@ export const EMPTY_PROFILE: ProfileData = {
 /** An exchange rate is a positive number; anything else (missing, zero, text from a hand-edited file) is no rate. */
 function validRate(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
+}
+
+/** Keeps the well-formed report records of a possibly hand-edited or older profile and drops the rest. */
+function normalizeReports(value: unknown): ImportedReport[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry): ImportedReport[] => {
+    if (typeof entry !== "object" || entry === null) return [];
+    const report = entry as Partial<ImportedReport>;
+    if (typeof report.id !== "string" || report.id === "") return [];
+    return [
+      {
+        id: report.id,
+        owner: report.owner === "spouse" ? "spouse" : "self",
+        personKeys: Array.isArray(report.personKeys)
+          ? report.personKeys.filter((key): key is string => typeof key === "string" && key !== "")
+          : [],
+        firstName: typeof report.firstName === "string" && report.firstName !== "" ? report.firstName : null,
+        ageAtImport:
+          typeof report.ageAtImport === "number" && Number.isFinite(report.ageAtImport) ? report.ageAtImport : null,
+        reportDate: typeof report.reportDate === "string" ? report.reportDate : null,
+        importedAt: typeof report.importedAt === "string" ? report.importedAt : "",
+        sample: report.sample === true,
+      },
+    ];
+  });
 }
 
 function isComparisonAges(value: unknown): value is [number, number, number] {
@@ -474,11 +527,13 @@ export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined
         owner: account.owner === "spouse" ? "spouse" : "self",
         policyNumber: account.policyNumber ?? "",
         fundId: account.fundId ?? "",
+        reportId: typeof account.reportId === "string" ? account.reportId : null,
         contributions: {
           ...EMPTY_ACCOUNT_CONTRIBUTIONS,
           ...account.contributions,
         },
       })),
+      reports: normalizeReports(merged.pensionSavings.reports),
     };
   }
   if (!Array.isArray(merged.equity?.holdings)) {

@@ -95,8 +95,7 @@ export type ImportWarningCode =
   | "controlCountMismatch"
   | "staleReport"
   | "newerSchemaVersion"
-  | "personalConflict"
-  | "multipleHolders";
+  | "personalConflict";
 
 export interface ImportWarning {
   code: ImportWarningCode;
@@ -126,7 +125,6 @@ export const WARNING_SEVERITY: Record<ImportWarningCode, "info" | "warning"> = {
   staleReport: "warning",
   newerSchemaVersion: "info",
   personalConflict: "warning",
-  multipleHolders: "warning",
 };
 
 export type SkipReason = "noRetirementBalance" | "closedOrCancelled" | "noBalanceData";
@@ -182,6 +180,22 @@ export interface PersonalSuggestions {
   monthlyGrossSalary?: ImportedValue<number>;
 }
 
+/**
+ * The customer a report is about, as its `YeshutLakoach` block states it. The identifying parts
+ * (ID, family name, birth date) live in memory only: they are turned into `keys` and then only the
+ * first name, the age and the keys are ever stored (see `ImportedReport`).
+ */
+export interface ReportPerson {
+  idNumber: string | null;
+  firstName: string | null;
+  familyName: string | null;
+  /** `yyyy-mm-dd` */
+  birthDate: string | null;
+  age: number | null;
+  /** One-way fingerprints of the ID and of the name with birth date; empty until `fingerprintPeople` runs. */
+  keys: string[];
+}
+
 export interface ReportMapResult {
   schemaVersion: number | null;
   candidates: ImportedAccountCandidate[];
@@ -193,6 +207,8 @@ export interface ReportMapResult {
    * report against the profile: never displayed, stored or exported.
    */
   holderIds: string[];
+  /** The distinct customers the files are about; more than one means the files do not belong together. */
+  people: ReportPerson[];
 }
 
 export interface MapOptions {

@@ -30,7 +30,20 @@ function identifiedCouple(): ProfileData {
         policyNumber: `99900012${index}`,
         fundId: `77700056${index}`,
         investmentAndFees: { ...account.investmentAndFees, investmentTrackName: `Fictional Track ${index}` },
+        reportId: index === 0 ? "report-fictional-0" : account.reportId,
       })),
+      reports: [
+        {
+          id: "report-fictional-0",
+          owner: "self",
+          personKeys: ["f".repeat(40)],
+          firstName: "Fictionalname",
+          ageAtImport: 46,
+          reportDate: "2026-05-01",
+          importedAt: "2026-05-02",
+          sample: false,
+        },
+      ],
     },
     equity: {
       ...profile.equity,
@@ -51,7 +64,9 @@ const SENSITIVE_TEXT = (profile: ProfileData): string[] => [
     account.policyNumber,
     account.fundId,
     account.investmentAndFees.investmentTrackName,
+    ...(account.reportId ? [account.reportId] : []),
   ]),
+  ...profile.pensionSavings.reports.flatMap((report) => [report.id, report.firstName, ...report.personKeys]),
   ...profile.equity.holdings.flatMap((holding) => [
     holding.id,
     holding.tickerSymbol,

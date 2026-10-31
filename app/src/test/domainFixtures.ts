@@ -117,6 +117,7 @@ export function buildTestProfile(overrides: {
         providerName: "Test Provider",
         policyNumber: "",
         fundId: "",
+        reportId: null,
         productCategory: null,
         legacyPolicyModel: null,
         accountStatus: null,
@@ -151,6 +152,7 @@ export function buildTestProfile(overrides: {
         },
         ...pensionAccountOverrides[index],
       })),
+      reports: [],
       otherAssets: otherAssets ?? null,
     },
     equity: {

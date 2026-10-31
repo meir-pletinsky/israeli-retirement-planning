@@ -736,6 +736,8 @@ ticks.
       show a note that they are saved but not counted. Tests:
       `ownerCheck.test.ts` (12) and `ClearingHouseImportPage.test.tsx`
       (owner check, partner suggestion, sample, a parse of the shipped zip).
+      *(The `multipleHolders` warning and the "IDs never stored" rule were
+      replaced in O11.)*
 
 - [x] O10. **Me | Partner tabs on Personal and Pension & savings.** The two people's
       data used to share one list (with an owner chip per row) and one form. Now:
@@ -760,6 +762,43 @@ ticks.
       `summary.pensionNotCountedNote`. Tests: `PersonTabs.test.tsx` and tab-aware
       cases in `PensionSavingsStep`, `PersonalStep`, `SummaryTables` and
       `ClearingHouseImportPage` tests.
+
+- [x] O11. **Who the report is about: first name, age and a person fingerprint.**
+      The importer used to ignore the customer block (`YeshutLakoach`) entirely.
+      Now it reads the first name, family name, birth date and ID number from it,
+      in memory, for three things (analysis doc, section 6.7):
+      *One person per zip:* products whose blocks describe different people are
+      detected (`reportPeople.ts` `samePerson`: the ID decides when both have one,
+      ignoring leading zeros; otherwise name and birth date decide). The review
+      screen then asks for an explicit tick. This replaces the soft
+      `multipleHolders` warning.
+      *Recognising the person:* each person gets up to two one-way fingerprints
+      (PBKDF2-SHA-256, 100k iterations, fixed salt) of the ID and of
+      first name + family name + birth date. A later report that shares one is the
+      same person: the owner is suggested and the age, gender and "looks like the
+      other person" concerns are dropped. Reports saved under the other owner, and
+      reports of someone else, raise the existing different-person confirmation.
+      *Showing where data came from:* `pensionSavings.reports` keeps one record per
+      import (owner, fingerprints, **first name**, **age at import**, report date,
+      import date); each account has a `reportId` (`null` = added manually). My
+      Data shows it in a Source column and on each card. The record goes when its
+      last account does, and a re-import that replaces an earlier report's accounts
+      replaces its record.
+      *Not stored:* the ID, family name and birth date. *Caveat, stated in the
+      docs:* a fingerprint of a 9-digit ID is a pseudonym, not anonymisation (about
+      10^8 values), and the first name is clear text in the profile export. The
+      verification pack redacts all of it. Profiles saved before this change load
+      with no report records and no account linked to one, so their accounts read
+      "Added manually" even if they came from an import.
+      *Sample:* its record is marked `sample` with no fingerprints, so it is never
+      recognised and never counts as another person; the sample zip now carries a
+      first name and family name (דנה לדוגמה). The privacy text (en, he, ru) says
+      what is kept. Tests: `reportPeople.test.ts`, `reportSource.test.ts`,
+      `ownerCheck.test.ts` (recognition), `matchAndApply.test.ts` (record,
+      pruning), `normalizeProfile.test.ts`, `PensionSavingsStep.test.tsx` (source
+      labels) and the page tests (person line, stored record, recognition,
+      different person); verification pack privacy test covers the new fields.
+      Suite: 899 passed, 1 skipped.
 
 ## Phase P — Calculation trace and verification pack
 

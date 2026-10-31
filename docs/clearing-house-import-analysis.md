@@ -78,7 +78,9 @@ names are never kept.
   than the staleness threshold give another (`staleReport`).
 - Privacy: nothing from the holder block (ID, name, address) is carried into the
   candidates, except that a policy number which equals the holder's ID is kept
-  as the policy number (see above). The employer name is shown during review
+  as the policy number (see above). The only other use of the block is the
+  person record in 6.7: first name, age and fingerprints, kept per import, not
+  per candidate. The employer name is shown during review
   only and is not written to the profile.
 
 **Local real-file check.** `realFiles.local.test.ts` (gitignored through
@@ -169,7 +171,7 @@ Mimshak
     Mutzarim / Mutzar                (one per product)
       NetuneiMutzar
         SUG-MUTZAR                   (product type, section 4)
-        YeshutLakoach                (the customer: SENSITIVE, never import)
+        YeshutLakoach                (the customer: SENSITIVE; read only for a first name, age and a one-way fingerprint, see 6.7)
         YeshutMaasik                 (the employer: SENSITIVE, never import)
         HeshbonotOPolisot
           HeshbonOPolisa             (one per account or policy; repeats)
@@ -483,6 +485,50 @@ computed from the date of birth at import time; the date of birth itself is not
 stored. A marital-status code of 2 (married) or 6 (common-law) may also be used
 to *suggest* turning on the partner plan, but never to create partner data.
 
+**Decision changed (the user's request): the customer block is read, minimally,
+to recognise the person.** The importer now reads `SHEM-PRATI`,
+`SHEM-MISHPACHA`, `TAARICH-LEYDA` and `MISPAR-ZIHUY-LAKOACH` from the customer
+block, and uses them for three things only:
+
+- **One person per import.** Products whose blocks describe different people
+  are detected (`samePerson`: the ID number decides when both carry one,
+  ignoring leading zeros and formatting; otherwise the names and birth date
+  decide, and a part missing on either side does not count against a match).
+  The review screen says so and asks the user to confirm before importing.
+- **Recognising the person again.** Per person, up to two one-way fingerprints
+  are made: of the significant ID (`id:<digits without leading zeros>`) and of
+  the first name, family name and birth date (`nd:<first>|<family>|<birth>`).
+  Each is PBKDF2 (SHA-256, 100,000 iterations, 160 bits, hex) with a fixed
+  salt. A later report that shares a fingerprint with a saved one is the same
+  person, so the owner is suggested, and the age, gender and
+  "this looks like the other person" concerns are not repeated.
+- **Showing where data came from.** The profile keeps one `ImportedReport`
+  record per import: the owner, the fingerprints, the **first name**, the
+  **age at import**, the report date and the import date. Each imported account
+  carries the record's `reportId`; an account added by hand has `reportId =
+  null`. My Data shows "Added manually", "Report of Dana, age 46 · 2026-05-01"
+  or "Sample report (made-up data)" in a Source column and on each account card.
+
+**What is not stored:** the ID number, the family name, the birth date, the
+address and the phone number. The record is removed with the last account that
+came from it, and a re-import that replaces all the accounts of an earlier
+report replaces its record.
+
+**The fingerprint is a pseudonym, not anonymisation.** A 9-digit ID with a
+check digit has roughly 10^8 possible values, so someone with the profile
+export could test every ID against a fingerprint, even with 100,000 iterations.
+It is less sensitive than the policy number that equals the holder's ID, which
+the app already stores (6.1), and the first name is stored in clear text. Both
+are in the manual profile export, and neither is in the verification pack (the
+first name, fingerprints, report ids and dates are redacted). The import page
+states exactly what is kept.
+
+**The sample report is the exception.** Its record is marked `sample` and
+stores **no fingerprints**, so importing the sample can never be taken for the
+user's own data and is never recognised on a later import. Where the browser
+has no Web Crypto the fingerprints stay empty, and the importer falls back to
+the age and gender checks.
+
 ### 6.8 Not in the app's model (gaps)
 
 1. **Balance "as of" date.** The report states the valuation date for every
@@ -554,8 +600,11 @@ to *suggest* turning on the partner plan, but never to create partner data.
   drift): rate x salary approximates the monthly deposit within rounding;
   monthly fee x 12 approximates the annual fee; `ReshumatSgira` counts match;
   balances are non-negative; valuation date is within the last 13 months.
-- **Never store:** holder name, address, phone, e-mail, employer ID,
-  employer name, file names. The holder ID is not stored as such, but a policy
+- **Never store:** the holder's family name, ID number, birth date, address,
+  phone, e-mail, employer ID, employer name, file names. Two things from the
+  customer block **are** kept, by the user's request (section 6.7): the first
+  name and age at import, and a one-way fingerprint of the ID and of the name
+  with the birth date. The holder ID is not stored as such, but a policy
   number that equals it (section 6.1) **is** stored, locally, by the user's
   choice; it appears in the manual profile export and never in the verification
   pack. The employer *name* is arguably useful to the user
@@ -603,7 +652,9 @@ to *suggest* turning on the partner plan, but never to create partner data.
   name, employer ID or employer name in the fixtures (the one deliberate
   exception is a policy number equal to the holder's ID, which is kept and
   flagged); the verification pack contains none of them either, nor any policy
-  number.
+  number, nor the first name, fingerprints or report ids of an imported report.
+  The saved report record holds no family name and no ID number (a page test
+  reads it back from IndexedDB).
 - **Property-style test:** random shuffling of sibling elements must not change
   the result (order independence).
 - **A local, uncommitted smoke script** (outside the repo) that runs the real

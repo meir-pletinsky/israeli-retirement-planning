@@ -1,5 +1,6 @@
 import type { ProductCategory } from "../../types";
-import { sameIdNumber, isValidIsraeliId } from "./israeliId";
+import { isValidIsraeliId, sameIdNumber } from "./israeliId";
+import { addPerson, cleanFirstName, significantId } from "./reportPeople";
 import {
   DEATH_COVER_TYPES,
   DISABILITY_COVER_TYPES,
@@ -32,6 +33,7 @@ import type {
   MapOptions,
   PersonalSuggestions,
   ReportMapResult,
+  ReportPerson,
   ReportProjection,
   SkippedRecord,
 } from "./types";
@@ -57,6 +59,7 @@ export function mapClearingHouseReport(root: XmlNode, options: MapOptions): Repo
   const skipped: SkippedRecord[] = [];
   const personalEntries: PersonalSuggestions[] = [];
   const holderIds: string[] = [];
+  const people: ReportPerson[] = [];
   let productCount = 0;
   const providers = allAt(root, "YeshutYatzran");
 
@@ -74,6 +77,8 @@ export function mapClearingHouseReport(root: XmlNode, options: MapOptions): Repo
       };
       personalEntries.push(readHolder(holder, options.now));
       addHolderId(holderIds, context.holderId);
+      const person = readPerson(holder, options.now);
+      if (person) addPerson(people, person);
 
       for (const policy of allAt(product, "HeshbonotOPolisot", "HeshbonOPolisa")) {
         const outcome = mapPolicy(policy, context, `f${fileIndex}-p${candidates.length + skipped.length}`, options.now);
@@ -102,7 +107,7 @@ export function mapClearingHouseReport(root: XmlNode, options: MapOptions): Repo
   const combined = combinePersonal(personalEntries);
   warnings.push(...combined.warnings);
 
-  return { schemaVersion, candidates, skipped, personal: combined.personal, warnings, holderIds };
+  return { schemaVersion, candidates, skipped, personal: combined.personal, warnings, holderIds, people };
 }
 
 function addHolderId(ids: string[], id: string | null): void {
@@ -114,10 +119,11 @@ export function mergeReportResults(results: ReportMapResult[]): ReportMapResult 
   const combined = combinePersonal(results.map((result) => result.personal));
   const holderIds: string[] = [];
   for (const result of results) for (const id of result.holderIds) addHolderId(holderIds, id);
+  const people: ReportPerson[] = [];
+  for (const result of results) for (const person of result.people) addPerson(people, person);
   const seen = new Set<string>();
   const warnings: ImportWarning[] = [];
   const allWarnings: ImportWarning[] = [...results.flatMap((result) => result.warnings), ...combined.warnings];
-  if (holderIds.length > 1) allWarnings.push({ code: "multipleHolders", params: { count: holderIds.length } });
   for (const warning of allWarnings) {
     const id = JSON.stringify([warning.code, warning.params ?? null]);
     if (seen.has(id)) continue;
@@ -134,6 +140,7 @@ export function mergeReportResults(results: ReportMapResult[]): ReportMapResult 
     personal: combined.personal,
     warnings,
     holderIds,
+    people,
   };
 }
 
@@ -543,6 +550,24 @@ function annuityBasisFor(category: ProductCategory | null, isOldPension: boolean
     default:
       return null;
   }
+}
+
+function readPerson(holder: XmlNode | undefined, now: Date): ReportPerson | null {
+  const rawId = textAt(holder, "MISPAR-ZIHUY-LAKOACH");
+  const idNumber = significantId(rawId) === null ? null : rawId;
+  const firstName = cleanFirstName(textAt(holder, "SHEM-PRATI"));
+  const familyName = cleanFirstName(textAt(holder, "SHEM-MISHPACHA"));
+  const birthDate = parseReportDate(textAt(holder, "TAARICH-LEYDA"));
+  if (idNumber === null && firstName === null && familyName === null && birthDate === null) return null;
+  const age = birthDate ? ageOn(birthDate, now) : null;
+  return {
+    idNumber,
+    firstName,
+    familyName,
+    birthDate,
+    age: age !== null && age >= 15 && age <= 100 ? age : null,
+    keys: [],
+  };
 }
 
 function readHolder(holder: XmlNode | undefined, now: Date): PersonalSuggestions {

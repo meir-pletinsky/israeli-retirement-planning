@@ -1,13 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { EMPTY_PROFILE, createEmptyPensionAccount, type PensionAccount, type ProfileData } from "../../types";
+import {
+  EMPTY_PROFILE,
+  createEmptyPensionAccount,
+  type ImportedReport,
+  type PensionAccount,
+  type ProfileData,
+} from "../../types";
 import {
   applyImport,
   defaultSelectedFields,
   diffField,
   matchCandidates,
+  reportInfoFor,
   type ImportPlan,
+  type ImportReportInfo,
 } from "./matchAndApply";
-import type { ImportedAccountCandidate, ImportedFields } from "./types";
+import type { ImportedAccountCandidate, ImportedFields, ReportMapResult } from "./types";
 
 function candidate(key: string, fields: ImportedFields): ImportedAccountCandidate {
   return {
@@ -351,5 +359,138 @@ describe("applyImport", () => {
       selectedPersonal: ["age"],
     });
     expect(JSON.stringify(profile)).toBe(snapshot);
+  });
+});
+
+describe("recording the report an import came from", () => {
+  const info = (overrides: Partial<ImportReportInfo> = {}): ImportReportInfo => ({
+    personKeys: ["key-a"],
+    firstName: "Dana",
+    ageAtImport: 46,
+    reportDate: "2026-05-01",
+    importedAt: "2026-05-02",
+    sample: false,
+    ...overrides,
+  });
+  const choice = (updateAccountId: string | null = null) => ({
+    candidate: candidate("c1", { totalAccumulatedBalance: official(5) }),
+    updateAccountId,
+    selectedFields: ["totalAccumulatedBalance" as const],
+  });
+  const plan = (report: ImportReportInfo | null, owner: "self" | "spouse" = "self", updateId: string | null = null): ImportPlan => ({
+    owner,
+    accounts: [choice(updateId)],
+    personal: {},
+    selectedPersonal: [],
+    report,
+  });
+  const record = (id: string, overrides: Partial<ImportedReport> = {}): ImportedReport => ({
+    ...info(),
+    id,
+    owner: "self",
+    ...overrides,
+  });
+  const withReports = (accounts: PensionAccount[], reports: ImportedReport[]): ProfileData => ({
+    ...EMPTY_PROFILE,
+    pensionSavings: { ...EMPTY_PROFILE.pensionSavings, accounts, reports },
+  });
+
+  it("saves a record with the owner and points every written account at it", () => {
+    const patch = applyImport(profileWith([]), plan(info(), "spouse"));
+    const [saved] = patch.pensionSavings!.reports;
+    expect(saved).toMatchObject({ owner: "spouse", firstName: "Dana", personKeys: ["key-a"] });
+    expect(patch.pensionSavings!.accounts[0].reportId).toBe(saved.id);
+  });
+
+  it("records nothing when the plan carries no report", () => {
+    const patch = applyImport(profileWith([]), plan(null));
+    expect(patch.pensionSavings!.reports).toEqual([]);
+    expect(patch.pensionSavings!.accounts[0].reportId).toBeNull();
+  });
+
+  it("re-points an updated account at the new record and drops the report it replaces", () => {
+    const profile = withReports([account({ id: "target", reportId: "old" })], [record("old")]);
+    const patch = applyImport(profile, plan(info(), "self", "target"));
+    const reports = patch.pensionSavings!.reports;
+    expect(reports).toHaveLength(1);
+    expect(reports[0].id).not.toBe("old");
+    expect(patch.pensionSavings!.accounts[0].reportId).toBe(reports[0].id);
+  });
+
+  it("keeps an earlier report that accounts still point at", () => {
+    const profile = withReports(
+      [account({ id: "target", reportId: "old" }), account({ id: "other", reportId: "old" })],
+      [record("old")],
+    );
+    const patch = applyImport(profile, plan(info(), "self", "target"));
+    expect(patch.pensionSavings!.reports.map((report) => report.id)).toContain("old");
+    expect(patch.pensionSavings!.reports).toHaveLength(2);
+  });
+
+  it("keeps the reports of other people and the other owner", () => {
+    const profile = withReports([], [record("someone", { personKeys: ["key-b"] }), record("partner", { owner: "spouse" })]);
+    const patch = applyImport(profile, plan(info()));
+    expect(patch.pensionSavings!.reports.map((report) => report.id)).toEqual(
+      expect.arrayContaining(["someone", "partner"]),
+    );
+    expect(patch.pensionSavings!.reports).toHaveLength(3);
+  });
+
+  it("does not let a sample replace a real report, or the other way round", () => {
+    const profile = withReports([], [record("real"), record("demo", { sample: true, personKeys: [] })]);
+    expect(applyImport(profile, plan(info())).pensionSavings!.reports.map((report) => report.id)).not.toContain("real");
+    const afterSample = applyImport(profile, plan(info({ sample: true, personKeys: [] }))).pensionSavings!.reports;
+    expect(afterSample.map((report) => report.id)).toContain("real");
+    expect(afterSample.map((report) => report.id)).not.toContain("demo");
+  });
+
+  it("records the report when only personal details are picked", () => {
+    const patch = applyImport(profileWith([]), {
+      owner: "self",
+      accounts: [],
+      personal: { age: official(46) },
+      selectedPersonal: ["age"],
+      report: info(),
+    });
+    expect(patch.pensionSavings!.reports).toHaveLength(1);
+  });
+});
+
+describe("reportInfoFor", () => {
+  const person = { idNumber: "18", firstName: "Dana", familyName: "Demo", birthDate: "19800320", age: 46, keys: ["k1", "k2"] };
+  const result = (overrides: Partial<ReportMapResult> = {}): ReportMapResult => ({
+    schemaVersion: 9,
+    candidates: [
+      { ...candidate("c1", {}), valuationDate: "2026-04-30" },
+      { ...candidate("c2", {}), valuationDate: "2026-05-31" },
+    ],
+    skipped: [],
+    personal: {},
+    warnings: [],
+    holderIds: ["18"],
+    people: [person],
+    ...overrides,
+  });
+
+  it("keeps the first name, age, newest valuation date and fingerprints, and nothing else about the person", () => {
+    const info = reportInfoFor(result(), new Date(2026, 5, 3), false);
+    expect(info).toEqual({
+      personKeys: ["k1", "k2"],
+      firstName: "Dana",
+      ageAtImport: 46,
+      reportDate: "2026-05-31",
+      importedAt: "2026-06-03",
+      sample: false,
+    });
+    expect(JSON.stringify(info)).not.toContain("Demo");
+  });
+
+  it("never keeps fingerprints for the sample", () => {
+    expect(reportInfoFor(result(), new Date(2026, 5, 3), true)).toMatchObject({ personKeys: [], sample: true });
+  });
+
+  it("copes with a report that names nobody and has no dates", () => {
+    const info = reportInfoFor(result({ people: [], candidates: [], personal: { age: official(52) } }), new Date(2026, 5, 3), false);
+    expect(info).toMatchObject({ firstName: null, ageAtImport: 52, reportDate: null, personKeys: [] });
   });
 });

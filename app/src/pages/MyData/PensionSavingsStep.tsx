@@ -13,7 +13,7 @@ import { FieldLegend } from "./FieldLegend";
 import { PensionAccountCard } from "./PensionAccountCard";
 import { PensionAccountForm } from "./PensionAccountForm";
 import { PensionSummaryTable } from "./PensionSummaryTable";
-import { accountsOf, sumBalances } from "./pensionPeople";
+import { accountsOf, sumBalances, withoutAccount } from "./pensionPeople";
 import { PersonTabs, type PersonTab } from "./PersonTabs";
 import { StepFooter } from "./StepFooter";
 import { formatCurrency } from "./summaryFormat";
@@ -60,7 +60,7 @@ export function PensionSavingsStep() {
   }
 
   function handleRemove(id: string) {
-    saveAccounts(accounts.filter((a) => a.id !== id));
+    updateProfile({ pensionSavings: withoutAccount(pensionSavings, id) });
     setRemovingId(null);
   }
 
@@ -88,7 +88,7 @@ export function PensionSavingsStep() {
         </p>
       )}
 
-      <PensionSummaryTable accounts={visibleAccounts} />
+      <PensionSummaryTable accounts={visibleAccounts} reports={pensionSavings.reports} />
 
       <div className="flex max-w-lg flex-col gap-4">
         <div className="flex items-center justify-between">
@@ -130,6 +130,7 @@ export function PensionSavingsStep() {
               <PensionAccountCard
                 key={account.id}
                 account={account}
+                reports={pensionSavings.reports}
                 currencySymbol={currency}
                 onEdit={() => setEditingAccount(account)}
                 onRemove={() => setRemovingId(account.id)}
