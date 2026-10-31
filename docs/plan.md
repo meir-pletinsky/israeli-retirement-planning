@@ -316,7 +316,9 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
   at…?" card for now, 55, 60 and 65.
 - Statement import: the **Pension Clearing House route is built** (zip or XML
   files, password prompt, review before apply; see
-  `docs/clearing-house-import-analysis.md`). No other import route is planned.
+  `docs/clearing-house-import-analysis.md`). No other pension-statement import route is
+  planned. A **CSV import of stock purchases and grants** (ESPP, EOSP, private) is
+  **designed but not built**: `docs/stock-lots-csv-import-design.md`.
 
 ## Non-Functional Requirements (all phases)
 

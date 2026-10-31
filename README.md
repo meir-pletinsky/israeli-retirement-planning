@@ -70,6 +70,9 @@ fuller cross-machine setup/resume guide.
 - [`docs/stock-price-data-design.md`](docs/stock-price-data-design.md) — the
   daily job that publishes S&P 500 price files with the app, and how the stock
   dialog uses them to suggest tickers and fill prices.
+- [`docs/stock-lots-csv-import-design.md`](docs/stock-lots-csv-import-design.md)
+  — proposal (not built) for loading ESPP, EOSP and private stock lots from a
+  CSV file: minimum columns, how rows map to holdings, price and rate autofill.
 - [`app/`](app) — the application (evolved from the original click-through
   prototype; same stack, now with real persistence and calculations).
 

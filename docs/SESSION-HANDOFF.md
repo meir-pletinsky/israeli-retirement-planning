@@ -68,8 +68,19 @@ Phases A–K are committed and pushed to
 `main`; Phases L, M, N, O, P, Q, S, T, V, W, X, Y, R1, R2, R3, R4, R5, R6 and R7 are committed and pushed only if `git log`
 shows them.
 
-- **Phase R, step R7 (investment provident fund as a life annuity from 60): DONE, not yet
-  committed.** The user answered design question 5 with "yes", then asked for it to be **the
+- **Stock lots CSV import: designed 2026-10-31, NOT built** (the user said documentation only
+  for now). The user asked what the minimum row is for a bulk CSV load of ESPP, EOSP and private
+  purchases and grants. Answer, in `docs/stock-lots-csv-import-design.md`: `type, symbol, date,
+  quantity` are required; the price is optional only when the app can fill it (S&P 500 symbols,
+  from the price files), and a blank price is not harmless: on ESPP and private lots the lot is
+  ignored and the tax is too low, and a blank EOSP price at grant counts as 0. Two engine gaps
+  found while checking (not fixed): an ESPP holding with no usable lot has **no taxable gain**
+  (the engine reads only a personal-purchase field the ESPP form does not show, and
+  `esppDetails.capitalGainsOnGrowthUSD` is read by nothing), and a blank grant price counts as 0.
+  Five open questions for the user are listed in section 10.2 of the design.
+
+- **Phase R, step R7 (investment provident fund as a life annuity from 60): DONE and pushed
+  (`3c26e0f`).** The user answered design question 5 with "yes", then asked for it to be **the
   user's decision in the UI, but only for relevant funds**. What was built: (a) a tick box
   "Take as a life annuity from age 60" in My Data > Pension & Savings, shown **only for the
   Investment provident fund category** (`PensionAccount.lifeAnnuityFrom60`, default false;
@@ -755,6 +766,10 @@ Remaining, not yet started:
 - Using the reference-only fields (policy number, fund ID, fees, annuity tax
   type, ...) in calculations, or matching `fundId` to published fund data
   (Phase 4, external data).
+- **Stock lots CSV import: designed, not built** (`docs/stock-lots-csv-import-design.md`):
+  steps S1 (pure parser and mapping), S2 (review page), S3 (price and rate autofill), S4 (later:
+  sell rows with FIFO, broker presets). Ask the design's section 10.2 questions before S1.
+  Possible small follow-up: a data-completeness warning for a holding with no usable cost basis.
 - **Statement import.** The **Pension Clearing House route is built** (Phase O):
   the user picks the consolidated report's zip (or its XML files), types the
   password from the email when asked, reviews what was found and ticks what to
