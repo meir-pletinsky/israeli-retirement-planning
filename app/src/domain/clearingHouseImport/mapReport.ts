@@ -56,6 +56,7 @@ export function mapClearingHouseReport(root: XmlNode, options: MapOptions): Repo
   const candidates: ImportedAccountCandidate[] = [];
   const skipped: SkippedRecord[] = [];
   const personalEntries: PersonalSuggestions[] = [];
+  const holderIds: string[] = [];
   let productCount = 0;
   const providers = allAt(root, "YeshutYatzran");
 
@@ -72,6 +73,7 @@ export function mapClearingHouseReport(root: XmlNode, options: MapOptions): Repo
         employerName: textAt(details, "YeshutMaasik", "SHEM-MAASIK"),
       };
       personalEntries.push(readHolder(holder, options.now));
+      addHolderId(holderIds, context.holderId);
 
       for (const policy of allAt(product, "HeshbonotOPolisot", "HeshbonOPolisa")) {
         const outcome = mapPolicy(policy, context, `f${fileIndex}-p${candidates.length + skipped.length}`, options.now);
@@ -100,15 +102,23 @@ export function mapClearingHouseReport(root: XmlNode, options: MapOptions): Repo
   const combined = combinePersonal(personalEntries);
   warnings.push(...combined.warnings);
 
-  return { schemaVersion, candidates, skipped, personal: combined.personal, warnings };
+  return { schemaVersion, candidates, skipped, personal: combined.personal, warnings, holderIds };
+}
+
+function addHolderId(ids: string[], id: string | null): void {
+  if (id && !ids.some((known) => sameIdNumber(known, id))) ids.push(id);
 }
 
 /** Merges the results of several files into one session-wide result. */
 export function mergeReportResults(results: ReportMapResult[]): ReportMapResult {
   const combined = combinePersonal(results.map((result) => result.personal));
+  const holderIds: string[] = [];
+  for (const result of results) for (const id of result.holderIds) addHolderId(holderIds, id);
   const seen = new Set<string>();
   const warnings: ImportWarning[] = [];
-  for (const warning of [...results.flatMap((result) => result.warnings), ...combined.warnings]) {
+  const allWarnings: ImportWarning[] = [...results.flatMap((result) => result.warnings), ...combined.warnings];
+  if (holderIds.length > 1) allWarnings.push({ code: "multipleHolders", params: { count: holderIds.length } });
+  for (const warning of allWarnings) {
     const id = JSON.stringify([warning.code, warning.params ?? null]);
     if (seen.has(id)) continue;
     seen.add(id);
@@ -123,6 +133,7 @@ export function mergeReportResults(results: ReportMapResult[]): ReportMapResult 
     skipped: results.flatMap((result) => result.skipped),
     personal: combined.personal,
     warnings,
+    holderIds,
   };
 }
 

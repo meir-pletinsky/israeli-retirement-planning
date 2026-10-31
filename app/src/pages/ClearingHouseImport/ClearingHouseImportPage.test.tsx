@@ -1,8 +1,17 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Route, Routes } from "react-router-dom";
 
+import {
+  importClearingHouseFiles,
+  SAMPLE_REPORT_DATE,
+  SAMPLE_REPORT_FILE_NAME,
+  SAMPLE_REPORT_PATH,
+} from "../../domain/clearingHouseImport";
 import { clearAllData, loadProfileFromDb, saveProfileToDb } from "../../storage/db";
 import { buildTestProfile } from "../../test/domainFixtures";
 import {
@@ -23,6 +32,10 @@ const POLICY_NUMBER = "7770001";
 
 beforeEach(async () => {
   await clearAllData();
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 function xmlFile(text: string, name = "report.xml"): File {
@@ -284,5 +297,233 @@ describe("ClearingHouseImportPage", () => {
     await user.upload(await screen.findByLabelText("Choose zip or XML files"), xmlFile(REPORT_XML));
     await screen.findByText("Review before importing");
     expect(document.body.textContent).not.toContain(HOLDER_ID);
+  });
+});
+
+describe("whose report it is", () => {
+  async function openReport(file: File = xmlFile(REPORT_XML)) {
+    const user = userEvent.setup();
+    renderPage();
+    await user.upload(await screen.findByLabelText("Choose zip or XML files"), file);
+    await screen.findByText("Review before importing");
+    return user;
+  }
+
+  it("asks for confirmation before a report that does not fit the profile is imported", async () => {
+    await saveProfileToDb(buildTestProfile({ age: 30, gender: "female" }));
+    const user = await openReport();
+
+    expect(screen.getByText("This report may be about someone else")).toBeInTheDocument();
+    expect(screen.getByText("The gender in the report differs from the one in your details.")).toBeInTheDocument();
+    expect(screen.getByText("The report is for someone aged 46, but your age is entered as 30.")).toBeInTheDocument();
+    const apply = screen.getByRole("button", { name: "Import selected values" });
+    expect(apply).toBeDisabled();
+    expect(screen.getByText("Tick the confirmation above to continue.")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("checkbox", { name: "I confirm this is my report" }));
+    expect(apply).toBeEnabled();
+    await user.click(apply);
+
+    expect(await screen.findByText("Import complete")).toBeInTheDocument();
+    const saved = await waitFor(async () => {
+      const profile = await loadProfileFromDb();
+      expect(profile?.pensionSavings.accounts).toHaveLength(1);
+      return profile!;
+    });
+    expect(saved.pensionSavings.accounts[0].owner).toBe("self");
+  });
+
+  it("does not ask when the report fits the profile", async () => {
+    await saveProfileToDb(buildTestProfile({ age: 45, gender: "male" }));
+    await openReport();
+    expect(screen.queryByText("This report may be about someone else")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Import selected values" })).toBeEnabled();
+  });
+
+  it("sets the owner to the partner when the report fits the partner's details", async () => {
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 30,
+        gender: "female",
+        maritalStatus: "married",
+        spouse: { age: 46, gender: "male" },
+      }),
+    );
+    const user = await openReport();
+
+    expect(screen.getByRole("radio", { name: "My partner's" })).toBeChecked();
+    expect(screen.getByText(/set to your partner because the report fits/)).toBeInTheDocument();
+    expect(screen.queryByText("This report may be about someone else")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Import selected values" }));
+    expect(await screen.findByText("Import complete")).toBeInTheDocument();
+    const saved = await waitFor(async () => {
+      const profile = await loadProfileFromDb();
+      expect(profile?.pensionSavings.accounts).toHaveLength(1);
+      return profile!;
+    });
+    expect(saved.pensionSavings.accounts[0].owner).toBe("spouse");
+    expect(saved.personal.age).toBe(30);
+  });
+
+  it("asks again when the owner is changed to someone the report does not fit", async () => {
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 46,
+        gender: "male",
+        maritalStatus: "married",
+        spouse: { age: 30, gender: "female" },
+      }),
+    );
+    const user = await openReport();
+    expect(screen.queryByText("This report may be about someone else")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: "My partner's" }));
+    expect(screen.getByText("This report may be about someone else")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Import selected values" })).toBeDisabled();
+    await user.click(screen.getByRole("checkbox", { name: "I confirm this is my partner's report" }));
+    expect(screen.getByRole("button", { name: "Import selected values" })).toBeEnabled();
+
+    // Going back to the owner it does fit removes the question and the old confirmation.
+    await user.click(screen.getByRole("radio", { name: "Mine" }));
+    expect(screen.queryByText("This report may be about someone else")).not.toBeInTheDocument();
+  });
+
+  it("says a partner's accounts are not counted until the household is set up", async () => {
+    await saveProfileToDb(buildTestProfile({ age: 30, gender: "female" }));
+    const user = await openReport();
+    expect(screen.queryByText(/will be saved but not counted in your plan/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: "My partner's" }));
+    expect(screen.getByText(/will be saved but not counted in your plan/)).toBeInTheDocument();
+    expect(screen.getByText("About your partner")).toBeInTheDocument();
+  });
+
+  it("warns when the files are about more than one person", async () => {
+    const xml = toXml(
+      report(
+        {},
+        product({}, activePension({ number: POLICY_NUMBER })),
+        product({ holder: { id: "000000026" } }, activePension({ number: "7770002" })),
+      ),
+    );
+    await openReport(xmlFile(xml));
+    expect(screen.getByText(/These files are about 2 different people/)).toBeInTheDocument();
+    expect(document.body.textContent).not.toContain("000000026");
+  });
+});
+
+describe("the sample report", () => {
+  const SAMPLE_ZIP = resolve(process.cwd(), "public", SAMPLE_REPORT_PATH);
+
+  function stubSampleFetch(ok = true) {
+    const fetchMock = vi.fn(async () =>
+      ok ? new Response(readFileSync(SAMPLE_ZIP), { status: 200 }) : new Response(null, { status: 404 }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  }
+
+  async function sampleCandidates() {
+    const file = new File([readFileSync(SAMPLE_ZIP)], SAMPLE_REPORT_FILE_NAME, { type: "application/zip" });
+    return (await importClearingHouseFiles([file], { now: SAMPLE_REPORT_DATE })).result;
+  }
+
+  it("ships a readable report for one made-up person", async () => {
+    const result = await sampleCandidates();
+    expect(result.candidates.length).toBeGreaterThan(3);
+    expect(result.holderIds).toHaveLength(1);
+    expect(result.warnings.some((warning) => warning.code === "multipleHolders")).toBe(false);
+    expect(result.personal.age?.value).toBe(54);
+  });
+
+  it("is offered on the first screen and marked as a sample", async () => {
+    renderPage();
+    expect(await screen.findByText("Want to see how it works first?")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try the sample report" })).toBeEnabled();
+  });
+
+  it("loads into an empty plan with a clear sample banner and no confirmation needed", async () => {
+    const fetchMock = stubSampleFetch();
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Try the sample report" }));
+    expect(await screen.findByText("Review before importing")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining(SAMPLE_REPORT_PATH));
+    expect(screen.getByText("Sample report: made-up data")).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: /made-up accounts to the plan/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Import selected values" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Add sample accounts to my plan" }));
+    expect(await screen.findByText("Sample accounts added")).toBeInTheDocument();
+    expect(screen.getByText(/for demonstration only/)).toBeInTheDocument();
+
+    const expected = (await sampleCandidates()).candidates.length;
+    const saved = await waitFor(async () => {
+      const profile = await loadProfileFromDb();
+      expect(profile?.pensionSavings.accounts.length).toBeGreaterThan(0);
+      return profile!;
+    });
+    expect(saved.pensionSavings.accounts).toHaveLength(expected);
+    expect(saved.personal.age).toBe(54);
+  });
+
+  it("needs a confirmation before it is added to a plan that already has data", async () => {
+    stubSampleFetch();
+    await saveProfileToDb(buildTestProfile({ age: 30, gender: "female", pensionBalances: [50000] }));
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Try the sample report" }));
+    await screen.findByText("Review before importing");
+    const apply = screen.getByRole("button", { name: "Add sample accounts to my plan" });
+    expect(apply).toBeDisabled();
+    expect(screen.getByText("Tick the confirmation above to continue.")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("checkbox", { name: /made-up accounts to the plan/ }));
+    expect(apply).toBeEnabled();
+    await user.click(apply);
+    expect(await screen.findByText("Sample accounts added")).toBeInTheDocument();
+
+    const expected = (await sampleCandidates()).candidates.length;
+    const saved = await waitFor(async () => {
+      const profile = await loadProfileFromDb();
+      expect(profile?.pensionSavings.accounts.length).toBeGreaterThan(1);
+      return profile!;
+    });
+    // Added beside the real account; nothing of the person's own was replaced.
+    expect(saved.pensionSavings.accounts).toHaveLength(expected + 1);
+    expect(saved.pensionSavings.accounts[0].totalAccumulatedBalance).toBe(50000);
+    expect(saved.personal.age).toBe(30);
+    expect(saved.personal.gender).toBe("female");
+  });
+
+  it("never offers to update an account the user already has", async () => {
+    stubSampleFetch();
+    const [first] = (await sampleCandidates()).candidates;
+    const base = buildTestProfile({ pensionBalances: [50000] });
+    await saveProfileToDb({
+      ...base,
+      pensionSavings: {
+        accounts: [{ ...base.pensionSavings.accounts[0], policyNumber: first.fields.policyNumber!.value }],
+      },
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Try the sample report" }));
+    await screen.findByText("Review before importing");
+    expect(screen.queryByText("This looks like an account you already entered.")).not.toBeInTheDocument();
+  });
+
+  it("explains when the sample cannot be loaded", async () => {
+    stubSampleFetch(false);
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Try the sample report" }));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("The sample report could not be loaded"));
+    expect(screen.getByRole("button", { name: "Try the sample report" })).toBeEnabled();
   });
 });

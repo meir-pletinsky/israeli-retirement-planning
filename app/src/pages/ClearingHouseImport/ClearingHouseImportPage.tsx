@@ -7,6 +7,9 @@ import {
   applyImport,
   ClearingHouseImportError,
   importClearingHouseFiles,
+  SAMPLE_REPORT_DATE,
+  SAMPLE_REPORT_FILE_NAME,
+  SAMPLE_REPORT_PATH,
   type ImportPlan,
   type ParsedReport,
 } from "../../domain/clearingHouseImport";
@@ -14,12 +17,13 @@ import { PasswordPrompt } from "./PasswordPrompt";
 import { PickStage } from "./PickStage";
 import { countPlan } from "./reviewState";
 import { ReviewStage } from "./ReviewStage";
+import { SampleBadge } from "./SampleBanner";
 
 type Stage =
   | { name: "pick" }
   | { name: "password"; files: File[]; wrongPassword: boolean }
-  | { name: "review"; parsed: ParsedReport }
-  | { name: "done"; accounts: number; personal: number };
+  | { name: "review"; parsed: ParsedReport; sample: boolean }
+  | { name: "done"; accounts: number; personal: number; sample: boolean };
 
 const ACCOUNTS_ROUTE = "/my-data/pension-savings";
 
@@ -36,7 +40,7 @@ export function ClearingHouseImportPage() {
     setErrorCode(null);
     try {
       const parsed = await importClearingHouseFiles(files, { password });
-      setStage({ name: "review", parsed });
+      setStage({ name: "review", parsed, sample: false });
     } catch (error) {
       if (
         error instanceof ClearingHouseImportError &&
@@ -52,15 +56,33 @@ export function ClearingHouseImportPage() {
     }
   }
 
+  async function loadSample() {
+    setBusy(true);
+    setErrorCode(null);
+    try {
+      const response = await fetch(`${import.meta.env.BASE_URL}${SAMPLE_REPORT_PATH}`);
+      if (!response.ok) throw new ClearingHouseImportError("sampleUnavailable");
+      const file = new File([await response.arrayBuffer()], SAMPLE_REPORT_FILE_NAME, { type: "application/zip" });
+      const parsed = await importClearingHouseFiles([file], { now: SAMPLE_REPORT_DATE });
+      setStage({ name: "review", parsed, sample: true });
+    } catch {
+      setErrorCode("sampleUnavailable");
+      setStage({ name: "pick" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function startOver() {
     setErrorCode(null);
     setStage({ name: "pick" });
   }
 
   function apply(plan: ImportPlan) {
+    if (stage.name !== "review") return;
     const counts = countPlan(plan);
     updateProfile(applyImport(profile, plan));
-    setStage({ name: "done", accounts: counts.accounts, personal: counts.personal });
+    setStage({ name: "done", accounts: counts.accounts, personal: counts.personal, sample: stage.sample });
   }
 
   return (
@@ -72,6 +94,7 @@ export function ClearingHouseImportPage() {
           busy={busy}
           errorMessage={errorCode ? t(`clearingHouse.errors.${errorCode}`) : null}
           onFiles={(files) => void load(files)}
+          onSample={() => void loadSample()}
         />
       )}
 
@@ -85,16 +108,26 @@ export function ClearingHouseImportPage() {
       )}
 
       {stage.name === "review" && (
-        <ReviewStage parsed={stage.parsed} onApply={apply} onStartOver={startOver} />
+        <ReviewStage parsed={stage.parsed} sample={stage.sample} onApply={apply} onStartOver={startOver} />
       )}
 
       {stage.name === "done" && (
         <section className="flex flex-col gap-3 rounded-xl border border-brand-200 bg-brand-50 p-4">
-          <h2 className="text-sm font-semibold text-brand-900">{t("clearingHouse.done.title")}</h2>
+          <div className="flex items-center gap-2">
+            {stage.sample && <SampleBadge />}
+            <h2 className="text-sm font-semibold text-brand-900">
+              {t(stage.sample ? "clearingHouse.sample.doneTitle" : "clearingHouse.done.title")}
+            </h2>
+          </div>
           <p className="text-sm text-brand-900">
-            {t("clearingHouse.done.summary", { accounts: stage.accounts, personal: stage.personal })}
+            {t(stage.sample ? "clearingHouse.sample.doneSummary" : "clearingHouse.done.summary", {
+              accounts: stage.accounts,
+              personal: stage.personal,
+            })}
           </p>
-          <p className="text-xs text-brand-800">{t("clearingHouse.done.reminder")}</p>
+          <p className="text-xs text-brand-800">
+            {t(stage.sample ? "clearingHouse.sample.doneReminder" : "clearingHouse.done.reminder")}
+          </p>
           <div>
             <button
               type="button"

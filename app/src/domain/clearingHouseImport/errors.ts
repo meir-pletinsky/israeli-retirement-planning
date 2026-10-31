@@ -8,7 +8,8 @@ export type ClearingHouseImportErrorCode =
   | "unreadableArchive"
   | "invalidXml"
   | "notClearingHouseReport"
-  | "noAccounts";
+  | "noAccounts"
+  | "sampleUnavailable";
 
 /** A failure the import page explains to the user in their language. */
 export class ClearingHouseImportError extends Error {

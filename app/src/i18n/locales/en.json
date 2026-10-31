@@ -465,7 +465,23 @@
   },
   "clearingHouse": {
     "title": "Import from the Pension Clearing House",
-    "entryButton": "Import report",
+    "entryTitle": "Have a Pension Clearing House report?",
+    "entryBody": "Import the consolidated pension report (zip or XML files) from the Pension Clearing House (HaMaslaka HaPensionit, swiftness.co.il) to add all your accounts at once. The files are read on this device only; nothing is uploaded.",
+    "entryButton": "Import Clearing House report",
+    "sample": {
+      "badge": "Sample",
+      "title": "Want to see how it works first?",
+      "body": "Try a sample report for a made-up person. It shows what an import looks like with realistic data. Nothing is added to your plan unless you choose to add it.",
+      "button": "Try the sample report",
+      "bannerTitle": "Sample report: made-up data",
+      "bannerBody": "This report is for a fictional person and is here only to show how the import works. It is not your data.",
+      "apply": "Add sample accounts to my plan",
+      "confirm": "I understand this adds made-up accounts to the plan I already have",
+      "confirmHelp": "Your plan already has data. The sample accounts would be added next to it and would change your results. The sample never updates your existing accounts.",
+      "doneTitle": "Sample accounts added",
+      "doneSummary": "Made-up accounts added: {{accounts}}. Profile details filled in: {{personal}}.",
+      "doneReminder": "These accounts are for demonstration only. Delete them from Pension & savings when you are done, or clear everything with \"Reset all data\" in Settings."
+    },
     "backToAccounts": "Back to pension & savings",
     "privacy": "Your files are read on this device only. Nothing is uploaded and the password is not stored.",
     "instructions": {
@@ -499,6 +515,7 @@
       "invalidXml": "One of the XML files could not be read. Use the files exactly as they came from the Pension Clearing House.",
       "notClearingHouseReport": "These files do not look like a Pension Clearing House report.",
       "noAccounts": "The report does not contain any pension or savings accounts.",
+      "sampleUnavailable": "The sample report could not be loaded. Check your connection and try again.",
       "unknown": "Something went wrong while reading the files."
     },
     "review": {
@@ -509,6 +526,20 @@
       "whoseHelp": "A report covers one person. The accounts are saved under the owner you choose.",
       "whoseSelf": "Mine",
       "whoseSpouse": "My partner's",
+      "ownerSuggestedSpouse": "This is set to your partner because the report fits your partner's details better than yours. Change it if that is wrong.",
+      "partnerNotCounted": "Your partner's accounts will be saved but not counted in your plan until your marital status is Married and your partner's age is entered.",
+      "ownerCheck": {
+        "title": "This report may be about someone else",
+        "intro": "It does not match what is already in your profile. Saving it under the wrong person would add accounts to them and could overwrite their details. If it belongs to the other person, change the owner above.",
+        "genderDiffers_self": "The gender in the report differs from the one in your details.",
+        "genderDiffers_spouse": "The gender in the report differs from the one in your partner's details.",
+        "ageDiffers_self": "The report is for someone aged {{reportAge}}, but your age is entered as {{profileAge}}.",
+        "ageDiffers_spouse": "The report is for someone aged {{reportAge}}, but your partner's age is entered as {{profileAge}}.",
+        "matchesOtherOwner_self": "The report matches accounts that are saved under your partner.",
+        "matchesOtherOwner_spouse": "The report matches accounts that are saved under you.",
+        "confirm_self": "I confirm this is my report",
+        "confirm_spouse": "I confirm this is my partner's report"
+      },
       "personalTitleSelf": "About you",
       "personalTitleSpouse": "About your partner",
       "personalHelp": "The report also holds a few personal details. Tick the ones to copy to your profile.",
@@ -563,6 +594,7 @@
       },
       "warningsTitle": "Notes about the report",
       "nothingSelected": "Tick at least one value to import.",
+      "confirmFirst": "Tick the confirmation above to continue.",
       "apply": "Import selected values",
       "startOver": "Start over"
     },
@@ -593,6 +625,7 @@
       "staleReport": "This report is {{months}} months old. Balances may be out of date: consider ordering a new one.",
       "newerSchemaVersion": "This report uses a newer format (version {{version}}) than the app was built for. Check the results carefully.",
       "personalConflict": "The files disagree about this detail ({{field}}), so it was not suggested.",
+      "multipleHolders": "These files are about {{count}} different people. Everything is saved under the owner you choose below, so it is better to import one person's files at a time.",
       "controlWhat": {
         "products": "products",
         "providers": "providers"

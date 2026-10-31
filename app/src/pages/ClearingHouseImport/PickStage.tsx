@@ -1,15 +1,18 @@
 import { useState, type ChangeEvent, type DragEvent } from "react";
 import { useTranslation } from "react-i18next";
 
+import { SampleBadge } from "./SampleBanner";
+
 const SITE_URL = "https://swiftness.co.il";
 
 interface PickStageProps {
   busy: boolean;
   errorMessage: string | null;
   onFiles: (files: File[]) => void;
+  onSample: () => void;
 }
 
-export function PickStage({ busy, errorMessage, onFiles }: PickStageProps) {
+export function PickStage({ busy, errorMessage, onFiles, onSample }: PickStageProps) {
   const { t } = useTranslation();
   const [dragging, setDragging] = useState(false);
 
@@ -74,6 +77,27 @@ export function PickStage({ busy, errorMessage, onFiles }: PickStageProps) {
         </label>
         <p className="text-xs text-slate-500">{t("clearingHouse.pick.drop")}</p>
       </div>
+
+      <section
+        aria-labelledby="clearing-house-sample-title"
+        className="flex flex-col items-start gap-2 rounded-xl border-2 border-dashed border-amber-300 bg-amber-50/60 p-4"
+      >
+        <div className="flex items-center gap-2">
+          <SampleBadge />
+          <h2 id="clearing-house-sample-title" className="text-sm font-semibold text-amber-900">
+            {t("clearingHouse.sample.title")}
+          </h2>
+        </div>
+        <p className="text-sm text-amber-900">{t("clearingHouse.sample.body")}</p>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={onSample}
+          className="rounded-md border border-amber-500 bg-white px-4 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {t("clearingHouse.sample.button")}
+        </button>
+      </section>
 
       {busy && (
         <p role="status" className="text-sm text-slate-600">

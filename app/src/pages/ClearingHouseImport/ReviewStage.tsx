@@ -1,16 +1,18 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useProfile } from "../../app/ProfileContext";
 import {
+  assessOwner,
   matchCandidates,
+  suggestOwner,
   withAnnuityFields,
   type ImportPlan,
   type ParsedReport,
   type PersonalFieldKey,
   type ReportMapResult,
 } from "../../domain/clearingHouseImport";
-import type { AccountOwner } from "../../types";
+import { hasProfileData, type AccountOwner, type PensionAccount } from "../../types";
 import { AccountReviewCard } from "./AccountReviewCard";
 import { FieldRow } from "./FieldRow";
 import { formatPersonalValue, productKindLabel } from "./formatFieldValue";
@@ -25,26 +27,54 @@ import {
   targetRetirementAge,
   type AccountReviewState,
 } from "./reviewState";
+import { SampleBanner } from "./SampleBanner";
 import { WarningList } from "./WarningList";
+
+const NO_ACCOUNTS: PensionAccount[] = [];
 
 interface ReviewStageProps {
   parsed: ParsedReport;
+  /** The bundled demonstration report: matched against nothing, and confirmed before it joins real data. */
+  sample: boolean;
   onApply: (plan: ImportPlan) => void;
   onStartOver: () => void;
 }
 
-export function ReviewStage({ parsed, onApply, onStartOver }: ReviewStageProps) {
+export function ReviewStage({ parsed, sample, onApply, onStartOver }: ReviewStageProps) {
   const { t } = useTranslation();
   const { profile } = useProfile();
-  const [owner, setOwner] = useState<AccountOwner>("self");
+  const { result } = parsed;
+  const [owner, setOwner] = useState<AccountOwner>(() => (sample ? "self" : suggestOwner(result, profile)));
+  const [suggestedSpouse] = useState(owner === "spouse");
+  const [confirmed, setConfirmed] = useState(false);
+
+  const selfConcerns = useMemo(
+    () => (sample ? [] : assessOwner(result, profile, "self").concerns),
+    [sample, result, profile],
+  );
+  const assessment = useMemo(
+    () => (sample ? null : assessOwner(result, profile, owner)),
+    [sample, result, profile, owner],
+  );
   const canChooseOwner =
+    owner === "spouse" ||
+    selfConcerns.length > 0 ||
     profile.personal.maritalStatus === "married" ||
     profile.pensionSavings.accounts.some((account) => account.owner === "spouse");
-  const { result } = parsed;
+
+  const sampleIntoData = sample && hasProfileData(profile);
+  const needsConfirmation = sampleIntoData || (assessment?.concerns.length ?? 0) > 0;
+
+  function chooseOwner(next: AccountOwner) {
+    setOwner(next);
+    if (!sample) setConfirmed(false);
+  }
 
   return (
     <div className="flex flex-col gap-4">
       <h2 className="text-base font-semibold text-slate-900">{t("clearingHouse.review.title")}</h2>
+
+      {sample && <SampleBanner />}
 
       <div className="text-sm text-slate-600">
         <p>
@@ -78,17 +108,74 @@ export function ReviewStage({ parsed, onApply, onStartOver }: ReviewStageProps) 
                   type="radio"
                   name="clearing-house-owner"
                   checked={owner === value}
-                  onChange={() => setOwner(value)}
-                                    className="accent-brand-600"
+                  onChange={() => chooseOwner(value)}
+                  className="accent-brand-600"
                 />
                 {t(value === "self" ? "clearingHouse.review.whoseSelf" : "clearingHouse.review.whoseSpouse")}
               </label>
             ))}
           </div>
+          {suggestedSpouse && owner === "spouse" && (
+            <p className="mt-2 text-xs text-slate-600">{t("clearingHouse.review.ownerSuggestedSpouse")}</p>
+          )}
         </fieldset>
       )}
 
-      <ReviewBody key={owner} owner={owner} result={result} onApply={onApply} onStartOver={onStartOver} />
+      {owner === "spouse" && profile.personal.maritalStatus !== "married" && (
+        <p role="note" className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+          {t("clearingHouse.review.partnerNotCounted")}
+        </p>
+      )}
+
+      {needsConfirmation && (
+        <section
+          aria-labelledby="clearing-house-confirm-title"
+          className="flex flex-col gap-2 rounded-xl border border-amber-300 bg-amber-50 p-4"
+        >
+          {assessment && assessment.concerns.length > 0 ? (
+            <>
+              <h3 id="clearing-house-confirm-title" className="text-sm font-semibold text-amber-900">
+                {t("clearingHouse.review.ownerCheck.title")}
+              </h3>
+              <p className="text-xs text-amber-900">{t("clearingHouse.review.ownerCheck.intro")}</p>
+              <ul className="list-disc ps-5 text-sm text-amber-900">
+                {assessment.concerns.map((concern) => (
+                  <li key={concern}>
+                    {t(`clearingHouse.review.ownerCheck.${concern}`, {
+                      context: owner,
+                      reportAge: assessment.reportAge,
+                      profileAge: assessment.profileAge,
+                    })}
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p id="clearing-house-confirm-title" className="text-xs text-amber-900">
+              {t("clearingHouse.sample.confirmHelp")}
+            </p>
+          )}
+          <label className="flex items-start gap-2 text-sm font-medium text-amber-900">
+            <input
+              type="checkbox"
+              checked={confirmed}
+              onChange={(e) => setConfirmed(e.target.checked)}
+              className="mt-0.5 accent-brand-600"
+            />
+            {sample ? t("clearingHouse.sample.confirm") : t(`clearingHouse.review.ownerCheck.confirm`, { context: owner })}
+          </label>
+        </section>
+      )}
+
+      <ReviewBody
+        key={owner}
+        owner={owner}
+        result={result}
+        sample={sample}
+        blocked={needsConfirmation && !confirmed}
+        onApply={onApply}
+        onStartOver={onStartOver}
+      />
     </div>
   );
 }
@@ -96,17 +183,21 @@ export function ReviewStage({ parsed, onApply, onStartOver }: ReviewStageProps) 
 interface ReviewBodyProps {
   owner: AccountOwner;
   result: ReportMapResult;
+  sample: boolean;
+  /** An unconfirmed warning stands between the user and importing. */
+  blocked: boolean;
   onApply: (plan: ImportPlan) => void;
   onStartOver: () => void;
 }
 
 /** Remounted when the owner changes, so the matches and starting ticks are recomputed. */
-function ReviewBody({ owner, result, onApply, onStartOver }: ReviewBodyProps) {
+function ReviewBody({ owner, result, sample, blocked, onApply, onStartOver }: ReviewBodyProps) {
   const { t } = useTranslation();
   const { profile } = useProfile();
   const currency = t("common.currencySymbol");
   const { personal, skipped } = result;
-  const accounts = profile.pensionSavings.accounts;
+  // The sample is made up, so it must never update (or be mistaken for) one of the user's real accounts.
+  const accounts = sample ? NO_ACCOUNTS : profile.pensionSavings.accounts;
   const retirementAge = targetRetirementAge(profile, owner);
 
   const [candidates] = useState(() => withAnnuityFields(result.candidates, retirementAge));
@@ -120,8 +211,9 @@ function ReviewBody({ owner, result, onApply, onStartOver }: ReviewBodyProps) {
       }),
     ),
   );
+  // Made-up personal details are never pre-ticked into a profile that already holds real ones.
   const [selectedPersonal, setSelectedPersonal] = useState<PersonalFieldKey[]>(() =>
-    defaultSelectedPersonal(personal, profile, owner),
+    sample && hasProfileData(profile) ? [] : defaultSelectedPersonal(personal, profile, owner),
   );
 
   const plan = buildImportPlan(owner, candidates, states, personal, selectedPersonal);
@@ -203,17 +295,19 @@ function ReviewBody({ owner, result, onApply, onStartOver }: ReviewBodyProps) {
       )}
 
       <div className="flex flex-col gap-2">
-        {counts.values === 0 && (
-          <p className="text-xs text-slate-500">{t("clearingHouse.review.nothingSelected")}</p>
+        {blocked ? (
+          <p className="text-xs text-amber-800">{t("clearingHouse.review.confirmFirst")}</p>
+        ) : (
+          counts.values === 0 && <p className="text-xs text-slate-500">{t("clearingHouse.review.nothingSelected")}</p>
         )}
         <div className="flex flex-wrap gap-3">
           <button
             type="button"
-            disabled={counts.values === 0}
+            disabled={blocked || counts.values === 0}
             onClick={() => onApply(plan)}
             className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
-            {t("clearingHouse.review.apply")}
+            {t(sample ? "clearingHouse.sample.apply" : "clearingHouse.review.apply")}
           </button>
           <button
             type="button"

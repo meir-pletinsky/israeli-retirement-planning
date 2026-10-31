@@ -101,7 +101,7 @@ describe("My Data summary tables — Pension & Savings", () => {
     expect(within(table).queryByRole("textbox")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add account" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Import report" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Import Clearing House report" })).toBeInTheDocument();
   });
 
   it("leaves a spouse's account out of the total until the spouse's age is entered", async () => {

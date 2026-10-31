@@ -89,10 +89,11 @@ describe("PensionSavingsStep — accounts repeater", () => {
       route: "/my-data/pension-savings",
     });
 
-    expect(await screen.findByRole("link", { name: "Import report" })).toHaveAttribute(
+    expect(await screen.findByRole("link", { name: "Import Clearing House report" })).toHaveAttribute(
       "href",
       "/import/clearing-house",
     );
+    expect(screen.getByText("Have a Pension Clearing House report?")).toBeInTheDocument();
   });
 
   it("saves the policy number and fund ID and shows them on the account card", async () => {

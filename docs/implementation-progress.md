@@ -716,6 +716,27 @@ ticks.
       separate `fundId` and the plan name are still not imported. Tests in
       `mapReport.test.ts` and `matchAndApply.test.ts`; texts in en, he and ru.
 
+- [x] O9. **Sample report and "whose report is it" check.**
+      *Sample:* `public/sample/sample-clearing-house-report.zip` (six invented
+      XML files for one made-up person, no password) ships with the app. A
+      "Try the sample report" button on the first screen loads it; the review
+      and done screens carry an amber **SAMPLE** banner. It is parsed as of a
+      fixed date so the age does not drift, never matches or updates the
+      user's own accounts, and when the plan already has data it is added only
+      after a confirmation tick, with no personal field pre-ticked.
+      *Different person:* `ownerCheck.ts` compares the report's gender and age
+      (tolerance 2 years) with the chosen owner's details, and checks whether
+      the report's policies are already saved under the other person. Any
+      mismatch shows an amber panel and keeps Apply disabled until the user
+      ticks "I confirm this is my report" (or "my partner's"). When the report
+      fits the partner better than the user, the owner starts as the partner.
+      Several holder IDs in one report give a soft `multipleHolders` warning.
+      Holder IDs are compared in memory only and are never shown, stored or
+      exported. A partner's accounts imported while the user is not married
+      show a note that they are saved but not counted. Tests:
+      `ownerCheck.test.ts` (12) and `ClearingHouseImportPage.test.tsx`
+      (owner check, partner suggestion, sample, a parse of the shipped zip).
+
 ## Phase P — Calculation trace and verification pack
 
 The user asked for a way to validate the app's calculations: "traces of all

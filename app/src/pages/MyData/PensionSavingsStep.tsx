@@ -58,22 +58,30 @@ export function PensionSavingsStep() {
         <h2 className="text-sm font-semibold text-slate-700">
           {t("myData.steps.pensionSavings.accountsTitle")}
         </h2>
-        <div className="flex items-center gap-2">
-          <Link
-            to="/import/clearing-house"
-            className="rounded-md border border-brand-600 px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-50"
-          >
-            {t("clearingHouse.entryButton")}
-          </Link>
-          <button
-            type="button"
-            onClick={() => setEditingAccount(createEmptyPensionAccount())}
-            className="rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
-          >
-            {t("myData.steps.pensionSavings.addAccount")}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setEditingAccount(createEmptyPensionAccount())}
+          className="rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
+        >
+          {t("myData.steps.pensionSavings.addAccount")}
+        </button>
       </div>
+
+      <section
+        aria-labelledby="clearing-house-entry-title"
+        className="flex flex-col gap-2 rounded-lg border border-brand-200 bg-brand-50/60 p-3"
+      >
+        <h3 id="clearing-house-entry-title" className="text-sm font-semibold text-brand-900">
+          {t("clearingHouse.entryTitle")}
+        </h3>
+        <p className="text-xs leading-relaxed text-slate-600">{t("clearingHouse.entryBody")}</p>
+        <Link
+          to="/import/clearing-house"
+          className="self-start rounded-md border border-brand-600 bg-white px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-50"
+        >
+          {t("clearingHouse.entryButton")}
+        </Link>
+      </section>
 
       {pensionSavings.accounts.length === 0 ? (
         <p className="rounded-md border border-dashed border-slate-300 p-4 text-sm text-slate-500">

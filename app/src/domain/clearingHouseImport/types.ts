@@ -95,7 +95,8 @@ export type ImportWarningCode =
   | "controlCountMismatch"
   | "staleReport"
   | "newerSchemaVersion"
-  | "personalConflict";
+  | "personalConflict"
+  | "multipleHolders";
 
 export interface ImportWarning {
   code: ImportWarningCode;
@@ -125,6 +126,7 @@ export const WARNING_SEVERITY: Record<ImportWarningCode, "info" | "warning"> = {
   staleReport: "warning",
   newerSchemaVersion: "info",
   personalConflict: "warning",
+  multipleHolders: "warning",
 };
 
 export type SkipReason = "noRetirementBalance" | "closedOrCancelled" | "noBalanceData";
@@ -186,6 +188,11 @@ export interface ReportMapResult {
   skipped: SkippedRecord[];
   personal: PersonalSuggestions;
   warnings: ImportWarning[];
+  /**
+   * The distinct ID numbers of the people the files are about. Held in memory only, to check the
+   * report against the profile: never displayed, stored or exported.
+   */
+  holderIds: string[];
 }
 
 export interface MapOptions {

@@ -6,6 +6,8 @@ import { parseXmlToTree } from "./xmlTree";
 
 export * from "./errors";
 export * from "./matchAndApply";
+export * from "./ownerCheck";
+export * from "./sample";
 export { annuityFieldsFor, nearestProjection, withAnnuityFields } from "./annuity";
 export { mapClearingHouseReport, mergeReportResults, parseReportDate } from "./mapReport";
 export { readReportFiles } from "./readFiles";
