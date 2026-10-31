@@ -99,6 +99,31 @@
       "successProbability": "סיכוי להצלחה",
       "yearsToRetirement": "\u05e9\u05e0\u05d9\u05dd \u05e2\u05d3 \u05d4\u05e4\u05e8\u05d9\u05e9\u05d4"
     },
+    "snapshot": {
+      "title": "תמונת מצב לפרישה",
+      "subtitle": "הסכומים החודשיים בכסף של היום; ההכנסה לפני מס.",
+      "plannedSpending": "הוצאה חודשית מתוכננת",
+      "noSpending": "טרם הוזנה",
+      "withdrawalRate": "שיעור משיכה בטוח",
+      "withdrawalRateNote": "חלק מהכספים הזמינים שנמשך בשנה הראשונה, לפני מס",
+      "pension": "הכנסה חודשית מפנסיה",
+      "stateBenefits": "קצבאות חודשיות מהמדינה",
+      "availableFunds": "כספים זמינים בפרישה",
+      "fromAge": "מגיל {{age}}",
+      "none": "לא כלול בתחזית",
+      "lockedNote": "עוד {{amount}} ייפתחו בגיל {{age}}"
+    },
+    "retireChecks": {
+      "title": "האם אפשר לפרוש בגיל…?",
+      "subtitle": "האם התכנית מכסה את ההוצאה המתוכננת אם תפרשו בגיל הזה. בן או בת הזוג פורשים באותו זמן.",
+      "now": "עכשיו (גיל {{age}})",
+      "atAge": "בגיל {{age}}",
+      "onTrack": "בדרך הנכונה",
+      "shortfall": "חסר",
+      "surplus": "עודף של {{amount}} לחודש",
+      "short": "חסרים {{amount}} לחודש",
+      "spouseAge": "בן או בת הזוג בגיל {{age}}"
+    },
     "statusOnTrack": "\u05d0\u05ea\u05d4 \u05d1\u05d3\u05e8\u05da \u05d4\u05e0\u05db\u05d5\u05e0\u05d4 \u05dc\u05d4\u05e9\u05d2\u05d0\u05ea \u05d9\u05e2\u05d3 \u05d4\u05e4\u05e8\u05d9\u05e9\u05d4 \u05e9\u05dc\u05da.",
     "statusShortfall": "\u05d9\u05d9\u05ea\u05db\u05df \u05e9\u05ea\u05d9\u05d3\u05e8\u05e9 \u05d7\u05d9\u05e1\u05db\u05d5\u05df \u05e0\u05d5\u05e1\u05e3 \u05db\u05d3\u05d9 \u05dc\u05d4\u05e9\u05d9\u05d2 \u05d0\u05ea \u05d9\u05e2\u05d3 \u05d4\u05e4\u05e8\u05d9\u05e9\u05d4 \u05e9\u05dc\u05da.",
     "chartTitle": "\u05ea\u05d7\u05d6\u05d9\u05ea \u05e9\u05d5\u05d5\u05d9 \u05e0\u05e7\u05d9",

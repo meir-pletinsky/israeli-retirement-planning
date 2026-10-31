@@ -78,6 +78,13 @@ export interface DrawdownYear {
    * cover in a drawing year; 0 before drawing starts and whenever the spending is funded.
    */
   unmet: number;
+  /**
+   * Capital that could be spent this year before the draw (unlocked, not annuitised), in today's
+   * money. Every year, not only drawing years.
+   */
+  spendable: number;
+  /** What was drawn from that capital this year (per year, today's money); 0 before drawing starts. */
+  drawn: number;
 }
 
 /** Ways to run the simulation other than the household's own constant return. */
@@ -87,7 +94,7 @@ export interface DrawdownOptions {
    * the list uses the household's rate. Contributions earn that year's return too.
    */
   yearlyRates?: readonly number[];
-  /** Leaves out the shares and holdings the tax layer reads; balances, streams and `unmet` are still filled. */
+  /** Leaves out the shares and holdings the tax layer reads; balances, streams, `unmet`, `spendable` and `drawn` are still filled. */
   lean?: boolean;
 }
 
@@ -386,6 +393,8 @@ function simulate(
       capitalShare,
       holdings,
       unmet,
+      spendable: unlockedTotal,
+      drawn,
     });
   }
 

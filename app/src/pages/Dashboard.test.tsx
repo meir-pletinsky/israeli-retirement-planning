@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   aggregateCurrentNetWorth,
   calculateFundingGap,
+  calculateRetirementKpis,
+  checkRetirementAges,
   estimateNetIncome,
   estimateRetirementIncome,
   yearsToRetirement,
@@ -49,8 +51,9 @@ describe("Dashboard", () => {
 
     renderWithProviders(<Dashboard />);
 
+    const netWorthKpi = (await screen.findByText("Net Worth Today")).parentElement as HTMLElement;
     expect(
-      await screen.findByText(`\u20aa${netWorthToday.toLocaleString()}`),
+      within(netWorthKpi).getByText(`\u20aa${netWorthToday.toLocaleString()}`),
     ).toBeInTheDocument();
     const incomeKpi = screen.getByText("Projected Monthly Income After Tax").parentElement;
     expect(
@@ -413,7 +416,8 @@ describe("Dashboard", () => {
 
       const netWorthToday = Math.round(aggregateCurrentNetWorth(profile));
       expect(netWorthToday).toBe(100_000);
-      expect(await screen.findByText(`\u20aa${netWorthToday.toLocaleString()}`)).toBeInTheDocument();
+      const netWorthKpi = (await screen.findByText("Net Worth Today")).parentElement as HTMLElement;
+      expect(within(netWorthKpi).getByText(`\u20aa${netWorthToday.toLocaleString()}`)).toBeInTheDocument();
     });
   });
 
@@ -783,6 +787,180 @@ describe("Dashboard", () => {
       expect(screen.queryByRole("heading", { name: "You" })).not.toBeInTheDocument();
       expect(screen.queryByText("Each pension starts at its owner's own age.")).not.toBeInTheDocument();
       expect(screen.queryByText(/supplement for a spouse/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe("retirement snapshot", () => {
+    const shekel = (amount: number) => `\u20aa${Math.round(amount).toLocaleString()}`;
+    const plan = {
+      age: 40,
+      retirementAge: 67,
+      gender: "male" as const,
+      monthlyGrossSalary: 20_000,
+      investmentReturnPct: 5,
+      inflationPct: 2,
+      pensionBalances: [900_000, 300_000],
+      retirementMonthlyExpenses: 9_000,
+    };
+
+    async function renderSnapshot(profile: ReturnType<typeof buildTestProfile>) {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+      const heading = await screen.findByRole("heading", { name: "Retirement snapshot" });
+      const section = heading.closest("section") as HTMLElement;
+      const card = (label: string) =>
+        within(section).getByText(label).parentElement as HTMLElement;
+      return { section, card };
+    }
+
+    it("shows the planned spending, withdrawal rate, pension income and available funds", async () => {
+      const profile = buildTestProfile(plan);
+      const { withdrawalRate, pension, access } = calculateRetirementKpis(profile);
+      const { card } = await renderSnapshot(profile);
+
+      expect(within(card("Planned monthly spending")).getByText(shekel(9_000))).toBeInTheDocument();
+      const rate = withdrawalRate!.toLocaleString(undefined, {
+        style: "percent",
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      });
+      expect(within(card("Safe withdrawal rate")).getByText(rate)).toBeInTheDocument();
+      expect(
+        within(card("Safe withdrawal rate")).getByText(/first year, before tax/),
+      ).toBeInTheDocument();
+      expect(within(card("Monthly pension income")).getByText(shekel(pension.monthly))).toBeInTheDocument();
+      expect(within(card("Monthly pension income")).getByText("From age 67")).toBeInTheDocument();
+      expect(
+        within(card("Funds available at retirement")).getByText(shekel(access.accessibleAtRetirement)),
+      ).toBeInTheDocument();
+    });
+
+    it("says the state pension is not in the projection when it is left out", async () => {
+      const { card } = await renderSnapshot(buildTestProfile(plan));
+
+      const stateCard = card("Monthly state benefits");
+      expect(within(stateCard).getByText("—")).toBeInTheDocument();
+      expect(within(stateCard).getByText("Not in your projection")).toBeInTheDocument();
+    });
+
+    it("shows the state pension and the age it starts once it is included", async () => {
+      const { card } = await renderSnapshot(
+        buildTestProfile({
+          ...plan,
+          bituachLeumi: { includeInProjection: true, monthlyPensionOverride: 3_000 },
+        }),
+      );
+
+      const stateCard = card("Monthly state benefits");
+      expect(within(stateCard).getByText(shekel(3_000))).toBeInTheDocument();
+      expect(within(stateCard).getByText("From age 67")).toBeInTheDocument();
+    });
+
+    it("notes how much of the savings is still locked at retirement", async () => {
+      const { card } = await renderSnapshot(
+        buildTestProfile({
+          ...plan,
+          retirementAge: 55,
+          otherAssets: 400_000,
+          pensionAccountOverrides: [
+            { productCategory: "comprehensivePension" },
+            { productCategory: "comprehensivePension" },
+          ],
+        }),
+      );
+
+      expect(
+        within(card("Funds available at retirement")).getByText(/more unlocks at age 60/),
+      ).toBeInTheDocument();
+    });
+
+    it("asks for spending instead of showing a number when none is entered", async () => {
+      const { card } = await renderSnapshot(
+        buildTestProfile({ ...plan, retirementMonthlyExpenses: undefined }),
+      );
+
+      const spendingCard = card("Planned monthly spending");
+      expect(within(spendingCard).getByText("—")).toBeInTheDocument();
+      expect(within(spendingCard).getByText("Not entered yet")).toBeInTheDocument();
+    });
+  });
+
+  describe("could-you-retire-at card", () => {
+    const plan = {
+      age: 40,
+      retirementAge: 67,
+      gender: "male" as const,
+      monthlyGrossSalary: 20_000,
+      investmentReturnPct: 5,
+      inflationPct: 2,
+      pensionBalances: [900_000, 300_000],
+      retirementMonthlyExpenses: 9_000,
+    };
+
+    async function renderChecks(profile: ReturnType<typeof buildTestProfile>) {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+      await screen.findByText("Net Worth Today");
+      return screen.queryByRole("heading", { name: "Could you retire at\u2026?" })?.closest("section") ?? null;
+    }
+
+    it("is hidden until retirement spending is entered", async () => {
+      const section = await renderChecks(
+        buildTestProfile({ ...plan, retirementMonthlyExpenses: undefined }),
+      );
+      expect(section).toBeNull();
+    });
+
+    it("shows now and each of 55, 60 and 65 with the plan's status for it", async () => {
+      const profile = buildTestProfile(plan);
+      const section = (await renderChecks(profile)) as HTMLElement;
+
+      const items = within(section).getAllByRole("listitem");
+      const checks = checkRetirementAges(profile)!;
+      expect(items).toHaveLength(4);
+      expect(items[0]).toHaveTextContent("Now (age 40)");
+      expect(items[1]).toHaveTextContent("At age 55");
+      expect(items[2]).toHaveTextContent("At age 60");
+      expect(items[3]).toHaveTextContent("At age 65");
+      checks.forEach((check, index) => {
+        expect(items[index]).toHaveTextContent(check.status === "onTrack" ? "On track" : "Shortfall");
+        expect(items[index]).toHaveTextContent(
+          `\u20aa${Math.abs(Math.round(check.monthlyGap)).toLocaleString()} per month`,
+        );
+      });
+    });
+
+    it("leaves out the ages the user has already passed", async () => {
+      const section = (await renderChecks(buildTestProfile({ ...plan, age: 58 }))) as HTMLElement;
+
+      const items = within(section).getAllByRole("listitem");
+      expect(items.map((item) => item.querySelector("p")?.textContent)).toEqual([
+        "Now (age 58)",
+        "At age 60",
+        "At age 65",
+      ]);
+    });
+
+    it("shows the spouse's age for each check in a couple", async () => {
+      const section = (await renderChecks(
+        buildTestProfile({
+          ...plan,
+          maritalStatus: "married",
+          spouse: { age: 36, gender: "female" },
+        }),
+      )) as HTMLElement;
+
+      const items = within(section).getAllByRole("listitem");
+      expect(items[0]).toHaveTextContent("Your spouse is 36");
+      expect(items[1]).toHaveTextContent("Your spouse is 51");
+      expect(items[3]).toHaveTextContent("Your spouse is 61");
+    });
+
+    it("does not mention a spouse for a single person", async () => {
+      const section = (await renderChecks(buildTestProfile(plan))) as HTMLElement;
+      expect(within(section).queryByText(/Your spouse/)).not.toBeInTheDocument();
     });
   });
 });

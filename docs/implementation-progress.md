@@ -26,7 +26,8 @@ with its offline verification pack as Phase P, the read-only summary tables
 on the My Data steps as Phase Q, and the simple purchase / grant entry with
 per-category equity tables as Phase S (Phase R is the Bridge Planner design), and
 the daily stock price files with ticker suggestions and price autofill as Phase T, and the
-Monte Carlo risk analysis (the first Phase 4 piece) as Phase V.
+Monte Carlo risk analysis (the first Phase 4 piece) as Phase V, and the household dashboard
+KPIs (retirement snapshot and the retire-at checks) as Phase W.
 
 ## Phase A — Project setup & infra
 
@@ -1110,8 +1111,8 @@ classes, an opt-out for lookups in Settings. All in `docs/stock-price-data-desig
 The plan assumes the same real return every year, so it can say "you are on track" while a
 bad run of markets would break it. The Monte Carlo replays the plan on 2,000 random return
 sequences and reports how often the desired retirement spending lasts to the planning
-horizon. Phase 4 has three more pieces that are not started: a historical projection mode,
-live external data and the full dashboard KPIs.
+horizon. Phase 4 has two more pieces that are not started: a historical projection mode and
+live external data. (The full dashboard KPIs were built next, as Phase W.)
 
 Decisions (the user chose the first two):
 - **One volatility input.** "Market volatility" in Assumptions → Advanced, default 12%,
@@ -1176,6 +1177,59 @@ Known limits: one volatility for every source (no equity/bond split, no correlat
 sequence-of-inflation risk; no tax per path; the market model is lognormal, so it has no
 crashes beyond what the volatility implies; a historical mode (real return history) would
 replace the random draws and is the next Phase 4 piece.
+
+## Phase W — Dashboard retirement KPIs (Phase 4, part 2)
+
+The Dashboard's top row had five KPIs. Functional spec Section 13 also lists planned
+spending, the safe withdrawal rate, projected pension income, state benefits, the funds
+available at retirement, and "can I retire now / at 55 / 60 / 65". This phase adds them in
+two places, with no new inputs and no external data.
+
+Decisions (my judgement calls; the user has not yet reviewed them):
+- **Same engines as the charts.** `calculateRetirementKpis` reads the household income
+  estimate, the drawdown and the income breakdown, so the numbers agree with Projections.
+- **Safe withdrawal rate** = the plan's first-year draw ÷ the spendable (unlocked, not
+  annuitised) capital in that year. The plan's income is the largest the savings can
+  sustain to the horizon, so it is the rate they can support, before tax. It is not the
+  user's planned rate and not a share of total net worth: capital that already pays an
+  annuity is outside the pool, and the note says "available funds" to match the
+  neighbouring "Funds available at retirement" card. A state pension that starts at
+  retirement leaves it unchanged; one that starts later raises it, because the savings
+  carry the gap years.
+- **Pension income** = pension fund + provident fund + managers insurance bands at the
+  first age they are above 0, with that age. Study fund and other investments are left out.
+- **State benefits** = the largest Bituach Leumi band over retirement and the age it first
+  appears; a dash with "Not in your projection" when it is excluded.
+- **Funds available** = `access.accessibleAtRetirement`, with the locked amount and the
+  unlock age in a note.
+- **Retire-at checks** use `calculateFundingGapAtAge` for "now" (the soonest whole age, as
+  in the earliest-feasible-age search) and for each of 55, 60 and 65 the user has not
+  reached. A couple retires together and the spouse's age is shown. The card appears only
+  when planned retirement spending is entered; the Feasibility card already carries the
+  "add expenses" prompt.
+
+- [x] W1. **Engine** (`domain/drawdown.ts`): `DrawdownYear.spendable` (unlocked, not
+      annuitised capital before the draw) and `drawn` (the year's draw), filled in lean
+      mode too. Tests in `drawdown.test.ts`.
+- [x] W2. **Domain** (`domain/dashboardKpis.ts`): `calculateRetirementKpis`,
+      `checkRetirementAges`, `EARLY_RETIREMENT_CHECK_AGES`. Tests in `dashboardKpis.test.ts`
+      (withdrawal rate against income ÷ net worth, state pension timing, locked accounts,
+      ages for 40/55/58/66/70, couples, agreement with the funding gap).
+- [x] W3. **UI**: `RetirementSnapshot` (five `KpiCard`s, which gained an optional `note`),
+      `RetireAgeChecksCard`, `useFormatAge` (shared with `SourceAccessCard`), wired into
+      `Dashboard` after the status banner and after the Feasibility card. The checks are
+      memoised with the snapshot because they run the funding-gap model several times.
+- [x] W4. **Texts** in en, he and ru (`dashboard.snapshot.*`, `dashboard.retireChecks.*`);
+      `i18n/dashboardLocales.test.ts` checks keys and `{{placeholders}}`.
+- [x] W5. **Component tests** in `Dashboard.test.tsx`. Two older tests looked up a net-worth
+      amount across the whole page; with 0% real return the new "Funds available" card shows
+      the same amount, so they now look inside the "Net Worth Today" card.
+
+Checked in the browser on a real saved profile (narrow viewport, English and Hebrew RTL).
+The wide `xl` five-column layout was not viewed; it reuses the top row's grid classes.
+
+Known limits: the withdrawal rate is a gross first-year figure, not a stress test; the
+retire-at ages 55, 60 and 65 are fixed, not editable.
 
 ## Welcome page for returning visitors
 

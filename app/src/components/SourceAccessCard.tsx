@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 
 import { ACCESS_RULES, type RetirementAccessSummary } from "../domain";
+import { useFormatAge } from "./useFormatAge";
 
 interface SourceAccessCardProps {
   access: RetirementAccessSummary;
@@ -20,6 +21,7 @@ function hasAccessNotes(access: RetirementAccessSummary): boolean {
 
 export function SourceAccessCard({ access }: SourceAccessCardProps) {
   const { t } = useTranslation();
+  const formatAge = useFormatAge();
   const currencySymbol = t("common.currencySymbol");
 
   if (!hasAccessNotes(access)) {
@@ -27,13 +29,6 @@ export function SourceAccessCard({ access }: SourceAccessCardProps) {
   }
 
   const money = (amount: number) => `${currencySymbol}${Math.round(amount).toLocaleString()}`;
-  const formatAge = (age: number) => {
-    const years = Math.floor(age + 1e-9);
-    const months = Math.round((age - years) * 12);
-    return months === 0
-      ? t("dashboard.sourceAccess.ageYears", { years })
-      : t("dashboard.sourceAccess.ageYearsMonths", { years, months });
-  };
 
   return (
     <section

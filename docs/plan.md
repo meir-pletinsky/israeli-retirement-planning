@@ -286,7 +286,10 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
 - Historical projection mode using real CPI/market-return history
 - Live external data integrations per the fetch-then-fallback strategy
   (CPI, FX, fund performance, mortality tables, risk-free rate)
-- Household dashboard KPIs from functional spec Section 13 in full
+- **Household dashboard KPIs from functional spec Section 13 — done** (Phase W in
+  `docs/implementation-progress.md`): a "Retirement snapshot" row (planned spending, safe
+  withdrawal rate, pension income, state benefits, funds available) and a "Could you retire
+  at…?" card for now, 55, 60 and 65.
 - Statement import: the **Pension Clearing House route is built** (zip or XML
   files, password prompt, review before apply; see
   `docs/clearing-house-import-analysis.md`). No other import route is planned.

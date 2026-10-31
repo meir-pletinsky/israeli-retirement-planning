@@ -99,6 +99,31 @@
       "successProbability": "Probability of Success",
       "yearsToRetirement": "Years to Retirement"
     },
+    "snapshot": {
+      "title": "Retirement snapshot",
+      "subtitle": "Monthly amounts are in today's money; income is before tax.",
+      "plannedSpending": "Planned monthly spending",
+      "noSpending": "Not entered yet",
+      "withdrawalRate": "Safe withdrawal rate",
+      "withdrawalRateNote": "Share of your available funds drawn in the first year, before tax",
+      "pension": "Monthly pension income",
+      "stateBenefits": "Monthly state benefits",
+      "availableFunds": "Funds available at retirement",
+      "fromAge": "From age {{age}}",
+      "none": "Not in your projection",
+      "lockedNote": "{{amount}} more unlocks at age {{age}}"
+    },
+    "retireChecks": {
+      "title": "Could you retire at\u2026?",
+      "subtitle": "Whether your plan covers your planned spending if you retire at that age. A spouse retires at the same time.",
+      "now": "Now (age {{age}})",
+      "atAge": "At age {{age}}",
+      "onTrack": "On track",
+      "shortfall": "Shortfall",
+      "surplus": "{{amount}} per month to spare",
+      "short": "{{amount}} per month short",
+      "spouseAge": "Your spouse is {{age}}"
+    },
     "statusOnTrack": "You're on track to meet your retirement goal.",
     "statusShortfall": "You may need additional savings to meet your retirement goal.",
     "chartTitle": "Net Worth Projection",

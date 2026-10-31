@@ -32,6 +32,50 @@ describe("simulateDrawdown unmet spending", () => {
   });
 });
 
+describe("simulateDrawdown spendable capital and draw", () => {
+  const profile = buildTestProfile({
+    age: 60,
+    retirementAge: 60,
+    investmentReturnPct: 4,
+    inflationPct: 4,
+    pensionBalances: [120_000],
+  });
+
+  it("draws the spending from the capital each year it is available", () => {
+    const rows = simulateDrawdown(profile, 60, 300);
+    expect(rows[0].drawn).toBe(0);
+    expect(rows[1].spendable).toBeCloseTo(120_000, 6);
+    expect(rows[1].drawn).toBeCloseTo(300 * 12, 6);
+    expect(rows[2].spendable).toBeCloseTo(120_000 - 300 * 12, 6);
+  });
+
+  it("never draws more than the spendable capital", () => {
+    const rows = simulateDrawdown(profile, 60, 2_000);
+    expect(rows.every((row) => row.drawn <= row.spendable + 1e-6)).toBe(true);
+    expect(rows[rows.length - 1].drawn).toBeCloseTo(0, 6);
+  });
+
+  it("shows capital but no draw before the retirement year", () => {
+    const rows = simulateDrawdown({ ...profile, personal: { ...profile.personal, age: 50 } }, 60, 300);
+    expect(rows.slice(0, 10).every((row) => row.drawn === 0 && row.spendable > 0)).toBe(true);
+  });
+
+  it("leaves out capital that is still locked", () => {
+    const locked = buildTestProfile({
+      age: 50,
+      retirementAge: 55,
+      investmentReturnPct: 4,
+      inflationPct: 4,
+      pensionBalances: [100_000],
+      pensionAccountOverrides: [{ productCategory: "providentFund" }],
+    });
+    const rows = simulateDrawdown(locked, 60, 300);
+    // Before 60 the provident fund is locked, so nothing is spendable and nothing is drawn.
+    expect(rows[6].spendable).toBe(0);
+    expect(rows[6].drawn).toBe(0);
+  });
+});
+
 describe("simulateDrawdown holdings", () => {
   const investmentFund = [{ productCategory: "investmentProvidentFund" as const }];
 

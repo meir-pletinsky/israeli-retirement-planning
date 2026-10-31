@@ -9,6 +9,8 @@ import { DataGapsCard } from "../components/DataGapsCard";
 import { EmptyState } from "../components/EmptyState";
 import { FeasibilityCard } from "../components/FeasibilityCard";
 import { KpiCard } from "../components/KpiCard";
+import { RetireAgeChecksCard } from "../components/RetireAgeChecksCard";
+import { RetirementSnapshot } from "../components/RetirementSnapshot";
 import { formatSuccessPercent } from "../components/riskFormat";
 import { SourceAccessCard } from "../components/SourceAccessCard";
 import { StatusBanner } from "../components/StatusBanner";
@@ -17,6 +19,8 @@ import {
   MAX_RETIREMENT_SEARCH_AGE,
   aggregateCurrentNetWorth,
   calculateFundingGap,
+  calculateRetirementKpis,
+  checkRetirementAges,
   estimateNetIncome,
   estimateRetirementIncome,
   findDataGaps,
@@ -38,8 +42,16 @@ export function Dashboard() {
     () => runMonteCarlo(profile, "standard", { findConfidentSpending: false }),
     [profile],
   );
+  // The retire-at checks run the funding-gap model several times, so they are computed once per profile.
+  const snapshot = useMemo(
+    () =>
+      onboarded
+        ? { kpis: calculateRetirementKpis(profile), ageChecks: checkRetirementAges(profile) }
+        : null,
+    [onboarded, profile],
+  );
 
-  if (!onboarded) {
+  if (!onboarded || !snapshot) {
     return (
       <EmptyState
         title={t("dashboard.emptyTitle")}
@@ -106,12 +118,16 @@ export function Dashboard() {
         />
       )}
 
+      <RetirementSnapshot kpis={snapshot.kpis} />
+
       <DataGapsCard gaps={gaps} />
 
       <FeasibilityCard
         feasibility={feasibility}
         maxSearchAge={MAX_RETIREMENT_SEARCH_AGE}
       />
+
+      {snapshot.ageChecks && <RetireAgeChecksCard checks={snapshot.ageChecks} />}
 
       <SourceAccessCard access={access} />
 
