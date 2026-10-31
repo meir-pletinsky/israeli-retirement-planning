@@ -23,6 +23,7 @@ export * from "./retirementIncome";
 export * from "./scenarioComparison";
 export * from "./sources";
 export * from "./sourceCosts";
+export * from "./stressTests";
 export * from "./tax";
 export * from "./taxRates";
 export { resolveCurrentAge } from "./profileBasics";

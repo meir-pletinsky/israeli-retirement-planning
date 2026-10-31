@@ -164,6 +164,12 @@ src/
                     # plan's own draws (through memberTax). It reuses
                     # netIncome.ts retirementPlanYears, is read-only and is
                     # outside the trace.
+                    # stressTests.ts (the "If things go wrong" card) runs the
+                    # whole plan again on a copy of the profile with the
+                    # employer shares' price and/or the dollar rate cut, and
+                    # reports the savings at retirement and the lowest net
+                    # monthly income for each. It is read-only and outside
+                    # the trace.
   history/          # bundled US stock/bond/inflation history, 1928 onward
                     # (usMarketHistory.ts) and the real-return maths
                     # (returns.ts). Extended by hand once a year.

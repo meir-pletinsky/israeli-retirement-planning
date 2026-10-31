@@ -247,7 +247,7 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
   withdrawals to the spouse with the lower rate), the investment-gemel annuity
   exemption from 60, the 30% rate for a 10% shareholder, options with a strike price
   and the ESPP gain without purchase lots (an ESPP with lots is modeled since R4). A **Bridge Planner** (liquidity ladder, withdrawal strategies,
-  purchase lots, vest-aware retirement date) is designed, and its first five steps are built:
+  purchase lots, vest-aware retirement date) is designed, and its first six steps are built:
   the **liquidity ladder** (Projections shows when each pot of savings and each monthly
   payment becomes available), the **withdrawal order** (Projections compares drawing
   savings evenly, taxable money first or lowest tax first, and the user can save one, which
@@ -257,7 +257,9 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
   can list its purchases; each is taxed on the lower of the shekel gain and the dollar gain,
   so the tax falls when the dollar was higher at purchase) and a **per-source cost table**
   (Projections shows, for each kind of savings, the extra monthly tax to raise spending by ₪100
-  and what you give up by using it); the rest is not built: see
+  and what you give up by using it) and **stress tests** (Projections re-runs the plan with the
+  employer shares down 30% or 50% and the dollar down 10% or 20%, and shows the savings and
+  income each leaves); the rest is not built: see
   [`docs/bridge-planner-design.md`](bridge-planner-design.md).
 - **Stock price data and autofill — done** (Phase T in
   [`docs/implementation-progress.md`](implementation-progress.md); design in

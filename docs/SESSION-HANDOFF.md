@@ -63,12 +63,29 @@ and **Phase V (Monte Carlo risk analysis, the first Phase 4 piece) is done**,
 and **Phase W (household dashboard KPIs, the second Phase 4 piece) is done**,
 and **Phase X (live Israeli inflation, the third Phase 4 piece) is done**,
 and **Phase Y (historical backtest, the fourth Phase 4 piece) is done**,
-and **Phase R steps R1 (liquidity ladder), R2 (withdrawal order), R3 (RSU vesting schedule), R4 (purchase lots) and R5 (per-source cost table) are done**.
+and **Phase R steps R1 (liquidity ladder), R2 (withdrawal order), R3 (RSU vesting schedule), R4 (purchase lots), R5 (per-source cost table) and R6 (stress tests) are done**.
 Phases A–K are committed and pushed to
-`main`; Phases L, M, N, O, P, Q, S, T, V, W, X, Y, R1, R2, R3, R4 and R5 are committed and pushed only if `git log`
+`main`; Phases L, M, N, O, P, Q, S, T, V, W, X, Y, R1, R2, R3, R4, R5 and R6 are committed and pushed only if `git log`
 shows them.
 
-- **Phase R, step R5 (per-source cost table): DONE, not yet committed.** The user said "continue
+- **Phase R, step R6 (stress tests): DONE, not yet committed.** The user said "do R6" and chose
+  **fixed rows**: employer shares −30% and −50%, the dollar −10% and −20%, plus one row with both
+  (employer −50%, dollar −20%). What was built: (a) `domain/stressTests.ts` (`buildStressTest`)
+  copies the profile with the employer shares' price and/or the USD/ILS rate cut and runs the
+  whole plan for each, giving the **savings at retirement** and the **lowest net monthly income**
+  (the Dashboard figure) plus the change from the plan and the gap to the desired spending;
+  (b) Projections has an "If things go wrong" card after "Leaving before your shares vest"
+  (`components/StressTestCard.tsx`), hidden with no dollar holdings, with only the dollar rows
+  when none of the shares are the employer's. My calls, all unconfirmed: **(1) ESPP counts as
+  employer stock, privately bought shares do not; (2) the "both" row is the two harshest
+  together; (3) only adverse moves; (4) not traced and not in the verification pack; (5) on a
+  holding without lots the stated dollar gain falls with the price so the tax follows; (6) the
+  measures are savings at retirement and the lowest net monthly income; (7) a lot with no stored
+  rate follows the sale rate**. 1321 passed and 1 skipped; browser check in English and Hebrew
+  done. **Next:** ask design question 5 (gemel annuity) before R7; R2b is deferred by the user.
+  Details: "R6 notes" in `docs/implementation-progress.md`.
+
+- **Phase R, step R5 (per-source cost table): DONE and pushed (`04156b3`).** The user said "continue
   with R5" and answered design question 1: **two columns only** (tax to raise ₪100 net, and what
   you give up), with no "net worth at 90 per source" number. What was built: (a) `domain/sourceCosts.ts`
   (`buildSourceCostTable`) works out, per kind of money of each person, the extra monthly tax if
@@ -703,15 +720,15 @@ Remaining, not yet started:
   exemption at 60. A life annuity from 60 through a paying fund is tax-free.
   No 0% route before 60 was found, and nothing varies by fund or program. The
   2026 deposit ceiling is ₪83,641. The app keeps 25% at any age.
-- **Bridge Planner: R1–R5 built, R6–R7 not started** (Phase R in
+- **Bridge Planner: R1–R6 built, R7 not started** (Phase R in
   `docs/implementation-progress.md`, full design in `docs/bridge-planner-design.md`). R1, the
   liquidity ladder, R2, the saved withdrawal order, R3, the RSU vesting schedule, R4, the
-  purchase lots, and R5, the per-source cost table, are done (see the top of this file).
+  purchase lots, R5, the per-source cost table, and R6, the stress tests, are done (see the top of this file).
   Optional "R2b": split cash from securities in the pooled investments source so cash can be
   drawn first; it would change existing results for holdings with their own tax rates, and the
   user said they will consider it later. R7 (investment-gemel annuity route) waits on open
   question 5 of the design, which the user has not answered; ask it before building. Questions
-  1, 2, 3 and 4 were answered for R5, R4 and R3. R6 (stress tests) is independent.
+  1, 2, 3 and 4 were answered for R5, R4 and R3. R6 (stress tests) needed no question.
 - Possible refinements to the contribution model (they change numbers, so
   they were deliberately left out of Phase K): real wage growth, a
   per-account salary override, and the study-fund **annual deposit** ceiling

@@ -996,7 +996,7 @@ describes a 0% route before 60, and the rule does not vary by fund or program.
 The 2026 deposit ceiling is ₪83,641. The app keeps treating the fund as 25% of
 the real gain at any age; the annuity route is not modeled.
 
-## Phase R — Bridge Planner (R1–R5 built; R6–R7 not started)
+## Phase R — Bridge Planner (R1–R6 built; R7 not started)
 
 Proposal for the early-retirement bridge: which source to use first, what each
 costs and what leaving early does to unvested RSUs. Full design, build order
@@ -1015,7 +1015,8 @@ one at a time, before the step that needs each (1 for R5, 2 for R4, 3 and 4 for 
       "R4 notes" below. Question 2 (ESPP basis) of the design doc is answered.
 - [x] R5. Per-source cost table (tax per ₪100 net, what you give up). See "R5 notes" below.
       Question 1 (cost definition) of the design doc is answered: two columns only.
-- [ ] R6. Stress tests (employer-stock haircut, USD/ILS move).
+- [x] R6. Stress tests (employer-stock haircut, USD/ILS move). See "R6 notes" below. The sizes
+      are fixed rows, as the user chose; there is no open question in the design doc for it.
 - [ ] R7. Investment-gemel annuity route from 60 (rule U), if wanted.
 
 ## Phase S — Simple purchase / grant entry and per-category summary tables
@@ -1677,6 +1678,59 @@ Texts: `projections.sourceCost.*` in en, he and ru (no plural keys).
       fund, other investments, provident fund and managers insurance rows, fees shown): no bidi
       problems, the table fits. No test data was needed, so nothing to restore. 1293 passed and
       1 skipped in all.
+
+### R6 notes — stress tests (Phase R)
+
+What changed: Projections has an "If things go wrong" card after "Leaving before your shares
+vest". It runs the plan again with one thing going wrong and shows, for each, the **savings when
+you start drawing** and the **monthly income after tax (lowest year)**, with the change from the
+plan as it is and whether the income still covers the desired spending. Nothing else in the plan
+changes.
+
+Answer from the user: **fixed rows.** Employer shares fall 30% and 50%, the dollar falls 10% and
+20%, plus one row with both. Order: the plan now, employer rows, dollar rows, the "both" row.
+
+How it works (`domain/stressTests.ts`, `buildStressTest(profile, scenario)`):
+- Each stress copies the profile with a change and runs the whole plan: `buildHousehold`, then
+  `estimateHouseholdRetirementIncome` (savings at retirement) and `estimateNetIncomeForHousehold`
+  (the lowest year's net income, the Dashboard figure). The gap is the net income minus the
+  desired monthly spending, or null when none is entered.
+- **Employer shares fall:** the price of company grants and ESPP shares is scaled down. A holding
+  that states its gain in dollars (no purchase lots) has that gain reduced by the dollars lost per
+  share, so the tax follows; lots and grants work the gain out from the price.
+- **The dollar falls:** `equity.usdToIlsRate` is scaled down (built-in 3.7 when none is set). Values
+  and the taxed gain follow through rule R; a lot with no stored rate follows the sale rate. Only
+  equity is in dollars; pensions and other assets are in shekels.
+- **Exposure:** the card says how much of the savings at retirement is in dollars and how much of
+  that is employer shares, at today's price and rate. Shares that would be forfeited (unvested
+  and not kept after leaving) are left out, as in the plan.
+- The card is hidden with no dollar holdings. Without employer shares only the two dollar rows
+  show. About 4 ms for all six runs (a couple with several pensions), memoised in the page.
+
+Judgement calls (mine, not yet confirmed by the user):
+1. **ESPP counts as employer stock.** Shares bought privately do not, even in the same company.
+2. **The "both" row is employer −50% and dollar −20%**, the two harshest rows together.
+3. **Only adverse moves are shown.** A stronger dollar is not a stress.
+4. **Not in the calculation trace or the verification pack** (like R5 and the leaving-early card).
+5. **The gain adjustment** for holdings without lots (above) so a price fall also lowers the tax.
+6. **The two measures are savings at retirement and the lowest net monthly income.**
+7. **Lots without a stored rate follow the sale rate** when the dollar falls.
+
+Where it lives: `domain/stressTests.ts` (the constants, `StressTest`, `StressRow`,
+`isEmployerStock`). UI: `components/StressTestCard.tsx`, placed in `pages/Projections.tsx` after
+`UnvestedSharesCard`. Texts: `projections.stress.*` in en, he and ru (no plural keys).
+
+- [x] R6a. Domain: `stressTests.ts`.
+- [x] R6b. Domain tests in `stressTests.test.ts` (20 cases: empty, employer and dollar rows, the
+      base equals the net income estimate, no gap without spending, shekel savings untouched,
+      ESPP, own shares, the combined row, built-in rate, unvested shares lost or kept, the gain
+      adjustment, scenarios, no change to the profile).
+- [x] R6c. UI card and texts in en, he and ru; the locale parity test passes.
+- [x] R6d. Component tests in `Projections.test.tsx`, "stress tests" (8 cases).
+- [x] R6e. Browser check in English and Hebrew in the narrow panel with the real profile plus two
+      temporary dollar holdings (an employer grant and a private holding): all rows, the covers
+      line and the change lines read correctly, no bidi problems. The profile and the language
+      were restored afterwards. 1321 passed and 1 skipped in all.
 
 ## Welcome page for returning visitors
 

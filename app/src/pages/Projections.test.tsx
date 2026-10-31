@@ -900,4 +900,107 @@ describe("Projections", () => {
       expect(screen.queryByRole("region", { name: REGION })).not.toBeInTheDocument();
     });
   });
+
+  describe("stress tests", () => {
+    const REGION = "If things go wrong";
+    const BIDI_MARKS = /[\u2066\u2069]/g;
+    const reads = (pattern: RegExp) => (content: string) => pattern.test(content.replace(BIDI_MARKS, ""));
+    const retired = { age: 60, retirementAge: 60, investmentReturnPct: 4, inflationPct: 4, usdToIlsRate: { rate: 1 } };
+    const employerShares = { quantity: 1_000, priceUSD: 100, employerGrant: {} };
+    const ownShares = { quantity: 1_000, priceUSD: 100, category: "personalBrokeragePurchase" as const };
+
+    const renderCard = async (profile: ReturnType<typeof buildTestProfile>) => {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+      return screen.findByRole("region", { name: REGION });
+    };
+
+    it("runs the plan again with the employer shares and the dollar falling", async () => {
+      const card = await renderCard(buildTestProfile({ ...retired, equity: [employerShares] }));
+      const rows = within(card).getAllByRole("row").slice(1);
+
+      expect(rows).toHaveLength(6);
+      expect(within(rows[0]).getByText("Your plan now")).toBeInTheDocument();
+      expect(within(rows[0]).getByText(reads(/^₪100,000$/))).toBeInTheDocument();
+      expect(within(rows[1]).getByText(reads(/^Employer shares fall 30%$/))).toBeInTheDocument();
+      expect(within(rows[1]).getByText(reads(/^₪70,000$/))).toBeInTheDocument();
+      expect(within(rows[1]).getByText(reads(/^-₪30,000 \(-30%\)$/))).toBeInTheDocument();
+      expect(within(rows[2]).getByText(reads(/^Employer shares fall 50%$/))).toBeInTheDocument();
+      expect(within(rows[3]).getByText(reads(/^The dollar falls 10% against the shekel$/))).toBeInTheDocument();
+      expect(within(rows[4]).getByText(reads(/^The dollar falls 20% against the shekel$/))).toBeInTheDocument();
+      expect(within(rows[4]).getByText(reads(/^₪80,000$/))).toBeInTheDocument();
+      expect(
+        within(rows[5]).getByText(reads(/^Both: employer shares fall 50% and the dollar falls 20%$/)),
+      ).toBeInTheDocument();
+      expect(within(rows[5]).getByText(reads(/^₪40,000$/))).toBeInTheDocument();
+      expect(
+        within(card).getByRole("columnheader", { name: "Monthly income after tax (lowest year)" }),
+      ).toBeInTheDocument();
+    });
+
+    it("says how much of the savings is in dollars and how much of that is employer shares", async () => {
+      const card = await renderCard(buildTestProfile({ ...retired, equity: [employerShares, ownShares] }));
+
+      expect(
+        within(card).getByText(
+          reads(/^₪200,000 of your savings when you start drawing are held in dollars\. Of that, ₪100,000 is employer shares\.$/),
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it("shows only the dollar when none of the shares are the employer's", async () => {
+      const card = await renderCard(buildTestProfile({ ...retired, equity: [ownShares] }));
+      const rows = within(card).getAllByRole("row").slice(1);
+
+      expect(rows).toHaveLength(3);
+      expect(within(card).queryByText(/Employer shares fall/)).not.toBeInTheDocument();
+      expect(within(card).queryByText(/Both:/)).not.toBeInTheDocument();
+      expect(within(card).queryByText(/is employer shares/)).not.toBeInTheDocument();
+      expect(within(rows[1]).getByText(reads(/^The dollar falls 10% against the shekel$/))).toBeInTheDocument();
+    });
+
+    it("says whether the income still covers the desired spending", async () => {
+      const covered = await renderCard(
+        buildTestProfile({ ...retired, retirementMonthlyExpenses: 1, equity: [employerShares] }),
+      );
+      expect(within(covered).getAllByText("Covers your desired spending")).toHaveLength(6);
+      expect(within(covered).queryByText(/Short of your desired spending/)).not.toBeInTheDocument();
+    });
+
+    it("says how far short the income falls of the desired spending", async () => {
+      const card = await renderCard(
+        buildTestProfile({ ...retired, retirementMonthlyExpenses: 1_000_000, equity: [employerShares] }),
+      );
+
+      expect(
+        within(card).getAllByText(reads(/^Short of your desired spending by ₪[\d,]+ a month$/)),
+      ).toHaveLength(6);
+      expect(within(card).queryByText("Covers your desired spending")).not.toBeInTheDocument();
+    });
+
+    it("does not say anything about spending when none is entered", async () => {
+      const card = await renderCard(buildTestProfile({ ...retired, equity: [employerShares] }));
+
+      expect(within(card).queryByText(/desired spending/)).not.toBeInTheDocument();
+    });
+
+    it("explains itself in a section that starts closed", async () => {
+      const card = await renderCard(buildTestProfile({ ...retired, equity: [employerShares] }));
+      const details = within(card).getByText("How this works").closest("details");
+
+      expect(details).not.toBeNull();
+      expect(details).not.toHaveAttribute("open");
+      expect(within(card).getByText(/not a forecast/)).toBeInTheDocument();
+    });
+
+    it("is not shown when there are no dollar holdings", async () => {
+      await saveProfileToDb(buildTestProfile({ ...retired, otherAssets: 50_000 }));
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      await screen.findByRole("heading", { name: "Projections" });
+      expect(screen.queryByRole("region", { name: REGION })).not.toBeInTheDocument();
+    });
+  });
 });
