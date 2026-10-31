@@ -151,6 +151,12 @@ src/
                     # and the monthly after-tax gain. It is outside the
                     # trace; the vest-aware engine itself is traced through
                     # the employerVesting and employerLots tables.
+                    # purchaseLots.ts applies the foreign-currency rule
+                    # (rule R) to the purchase lots of an ESPP or private
+                    # holding. sources.ts (otherInvestmentsTaxProfile) uses
+                    # it as the holding's taxable gain and cost basis in
+                    # place of the unrealized-gain field, and the trace
+                    # gets a purchaseLots table only when lots exist.
   history/          # bundled US stock/bond/inflation history, 1928 onward
                     # (usMarketHistory.ts) and the real-return maths
                     # (returns.ts). Extended by hand once a year.

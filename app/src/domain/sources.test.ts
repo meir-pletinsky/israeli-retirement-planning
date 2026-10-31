@@ -310,6 +310,59 @@ describe("buildSources", () => {
       expect(other.costBasis).toBe(0);
     });
 
+    describe("with purchase lots", () => {
+      const withLots = (
+        lots: { quantity: number; priceUSD: number; usdToIlsRate?: number }[],
+        extra: { category?: "personalBrokeragePurchase" | "employerEsppDiscount"; unrealizedCapitalGainUSD?: number } = {},
+      ) =>
+        buildSources(
+          buildTestProfile({
+            age: 50,
+            usdToIlsRate: { rate: 3 },
+            equity: [
+              {
+                quantity: 1,
+                priceUSD: 200,
+                category: extra.category ?? "personalBrokeragePurchase",
+                unrealizedCapitalGainUSD: extra.unrealizedCapitalGainUSD,
+                purchaseLots: lots,
+              },
+            ],
+            ...zeroReal,
+          }),
+          60,
+        )[0];
+
+      it("taxes the lower of the shekel and the dollar gain: $100 bought at 5.00, $200 now at 3.00", () => {
+        const other = withLots([{ quantity: 1, priceUSD: 100, usdToIlsRate: 5 }]);
+        // Worth 600; the taxable gain is 100, so 500 is basis.
+        expect(other.balance).toBeCloseTo(600, 6);
+        expect(other.costBasis).toBeCloseTo(500, 6);
+      });
+
+      it("gives the same basis as the old dollar gain when a lot has no rate", () => {
+        const other = withLots([{ quantity: 1, priceUSD: 120 }]);
+        expect(other.costBasis).toBeCloseTo(120 * 3, 6);
+      });
+
+      it("lets lots replace the entered unrealized gain", () => {
+        const other = withLots([{ quantity: 1, priceUSD: 100, usdToIlsRate: 5 }], { unrealizedCapitalGainUSD: 100 });
+        expect(other.costBasis).toBeCloseTo(500, 6);
+      });
+
+      it("works for an ESPP holding, which had no taxable gain before", () => {
+        const plain = withLots([], { category: "employerEsppDiscount" });
+        expect(plain.costBasis).toBeCloseTo(600, 6);
+        const other = withLots([{ quantity: 1, priceUSD: 100 }], { category: "employerEsppDiscount" });
+        expect(other.costBasis).toBeCloseTo(300, 6);
+      });
+
+      it("leaves a holding without a usable lot on its entered unrealized gain", () => {
+        const other = withLots([{ quantity: 0, priceUSD: 100 }], { unrealizedCapitalGainUSD: 40 });
+        expect(other.costBasis).toBeCloseTo(600 - 40 * 3, 6);
+      });
+    });
+
     it("blends the tax rate of each holding by its value", () => {
       const [other] = buildSources(
         buildTestProfile({

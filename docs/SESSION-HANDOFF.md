@@ -63,12 +63,40 @@ and **Phase V (Monte Carlo risk analysis, the first Phase 4 piece) is done**,
 and **Phase W (household dashboard KPIs, the second Phase 4 piece) is done**,
 and **Phase X (live Israeli inflation, the third Phase 4 piece) is done**,
 and **Phase Y (historical backtest, the fourth Phase 4 piece) is done**,
-and **Phase R steps R1 (liquidity ladder), R2 (withdrawal order) and R3 (RSU vesting schedule) are done**.
+and **Phase R steps R1 (liquidity ladder), R2 (withdrawal order), R3 (RSU vesting schedule) and R4 (purchase lots) are done**.
 Phases A–K are committed and pushed to
-`main`; Phases L, M, N, O, P, Q, S, T, V, W, X, Y, R1, R2 and R3 are committed and pushed only if `git log`
+`main`; Phases L, M, N, O, P, Q, S, T, V, W, X, Y, R1, R2, R3 and R4 are committed and pushed only if `git log`
 shows them.
 
-- **Phase R, step R3 (RSU vesting schedule): DONE, not yet committed.** The user said "We will
+- **Phase R, step R4 (purchase lots, effective cost basis): DONE, not yet committed.** The user
+  said "let's do R4" and answered design question 2: the **ESPP discount is taxed as salary at
+  purchase**, so the cost basis is the full market price that day, and **ESPP shares sit in a
+  normal brokerage account** (no trustee, no 24-month lock). Both are user-reported, **not
+  checked against the Ordinance** (logged in `docs/constants-to-verify.md`). What was built:
+  (a) `domain/purchaseLots.ts` applies rule R per lot (the lower of the nominal and the
+  currency-adjusted gain; the smaller loss when both are losses; 0 when they disagree), and
+  `sources.ts` (`otherInvestmentsTaxProfile`) uses it for ESPP and private holdings in place of
+  `unrealizedCapitalGainUSD`; (b) `StockHolding.purchaseLots` (`PurchaseLot`: date, quantity,
+  priceUSD, usdToIlsRate), normalised in `normalizeProfile`; (c) My Data → Equity has a
+  purchases editor in the ESPP and private "More details" (a card per purchase, a Bank of Israel
+  rate autofill per lot, a "Start from the purchase above" button, a summary of cost basis and
+  gain counted, and notes when lots exceed the quantity or are incomplete); (d) the trace gets a
+  `purchaseLots` table only when lots exist, and the verification pack aliases lot ids
+  (`lot1`, `lot2`, …), so nothing changes for holdings without lots. My calls, all unconfirmed:
+  **(1) no `kind` field** (the category says ESPP or private); **(2) lots partition the
+  quantity**: shares in no lot have no gain, and lots above the quantity are scaled down;
+  **(3) a lot without a rate uses the sale rate**; **(4) the sale rate is the profile's fixed
+  rate** (fallback 3.7); **(5) losses are netted inside a holding but the holding's gain is never
+  below zero**, with nothing carried over; **(6) lots replace the unrealized-gain field** while at
+  least one lot is usable; **(7) ESPP without lots still has a zero gain**; **(8) lots count only
+  for ESPP and private** (a grant ignores them, they stay in the data); **(9) no price autofill
+  for lots** (the bundled prices are dividend-adjusted); **(10) the main entry's dollar rate is
+  still not used by the tax**. 1271 passed and 1 skipped; browser check in English and Hebrew
+  done. **Next:** ask the design doc's open questions one at a time before R5 (cost display) and
+  R7 (gemel annuity); R6 (stress tests) is independent; R2b is deferred by the user. Details:
+  "R4 notes" in `docs/implementation-progress.md`.
+
+- **Phase R, step R3 (RSU vesting schedule): DONE and pushed (`3ac9136`).** The user said "We will
   consider R2b later. Let's do R3" and answered two design questions. **24 months:** for RSUs
   held by an ESOP in Israel the 24 months count from the **original grant date of the award**,
   not from each quarterly vest date (user-reported, **not checked against the Ordinance**; rows
@@ -641,32 +669,30 @@ Remaining, not yet started:
   option strike prices (the user kept both out of scope). Also finish the
   constants check: read the Tax Authority's own tables for rows 1-9 and
   check row 17 (`docs/constants-to-verify.md`).
-- **Foreign-stock capital gains in a personal brokerage account: researched,
-  not built** (2026-10-30; the user chose to record the rules only). Rules R-T
+- **Foreign-stock capital gains in a personal brokerage account: researched
+  2026-10-30, built in Bridge Planner R4** (see the top of this file). Rules R-T
   in `docs/constants-to-verify.md`: the taxable gain is the lower of the
   nominal shekel gain and the USD gain × the sale-date rate, which equals
   value − USD cost × max(purchase rate, sale rate); FIFO order for lots; old
-  purchases (before 2012) may have transitional rates (unresolved). The model
-  uses only the USD gain × 3.7, so it overstates tax when the dollar was higher
-  at purchase. If the user asks to build it: per-holding purchase lots (date,
-  shares, USD price, rate at purchase), an effective cost basis in
-  `otherInvestmentsTaxProfile` and its trace, tests from the vectors in rule R;
-  FIFO inside the drawdown is optional and changes timing only.
+  purchases (before 2012) may have transitional rates (unresolved). Holdings
+  without purchase lots still use only the USD gain × 3.7, so they overstate tax when the
+  dollar was higher at purchase. FIFO inside the drawdown is not built and would change
+  timing only.
 - **Investment gemel: researched, not built** (2026-10-30). Rule U in
   `docs/constants-to-verify.md`. Lump sum: 25% of the real gain at any age, no
   exemption at 60. A life annuity from 60 through a paying fund is tax-free.
   No 0% route before 60 was found, and nothing varies by fund or program. The
   2026 deposit ceiling is ₪83,641. The app keeps 25% at any age.
-- **Bridge Planner: R1, R2 and R3 built, R4–R7 not started** (Phase R in
+- **Bridge Planner: R1–R4 built, R5–R7 not started** (Phase R in
   `docs/implementation-progress.md`, full design in `docs/bridge-planner-design.md`). R1, the
-  liquidity ladder, R2, the saved withdrawal order, and R3, the RSU vesting schedule, are done
-  (see the top of this file).
+  liquidity ladder, R2, the saved withdrawal order, R3, the RSU vesting schedule, and R4, the
+  purchase lots, are done (see the top of this file).
   Optional "R2b": split cash from securities in the pooled investments source so cash can be
   drawn first; it would change existing results for holdings with their own tax rates, and the
-  user said they will consider it later. R4 (purchase lots,
-  ESPP), R5 (per-source cost table) and R7 (investment-gemel annuity route) wait on the open
-  questions in section 7 of the design (2, 1 and 5), which the user has not answered; ask them
-  one at a time. Questions 3 and 4 were answered for R3. R6 (stress tests) is independent.
+  user said they will consider it later. R5 (per-source cost table) and R7 (investment-gemel
+  annuity route) wait on the open questions in section 7 of the design (1 and 5), which the
+  user has not answered; ask them one at a time. Questions 2, 3 and 4 were answered for R3 and
+  R4. R6 (stress tests) is independent.
 - Possible refinements to the contribution model (they change numbers, so
   they were deliberately left out of Phase K): real wage growth, a
   per-account salary override, and the study-fund **annual deposit** ceiling

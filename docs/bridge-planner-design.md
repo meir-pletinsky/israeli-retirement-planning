@@ -111,9 +111,11 @@ leaving?" (default: no) covers plans with retirement vesting.
 
 ## 5. Data model additions
 
-- **Purchase lot** on a stock holding: `date`, `quantity`, `priceUSD`,
-  `fxAtPurchase` (optional, defaults to the fallback rate), `kind`
-  (`purchase` or `espp`). With lots, the effective cost basis is
+- **Purchase lot** on a stock holding (*built in R4, with two changes: there is no `kind`
+  field because the holding's category already says ESPP or private, and the rate field is
+  `usdToIlsRate`; see "R4 notes" in `implementation-progress.md`*): `date`, `quantity`,
+  `priceUSD`, `usdToIlsRate` (optional, defaults to the sale rate). With lots, the effective
+  cost basis is
   Σ quantity × priceUSD × max(fxAtPurchase, sale rate) (rule R), and it
   replaces `unrealizedCapitalGainUSD`. Without lots the current field is used,
   so existing data keeps working. `averageCostBasisUSD` and `purchaseDate`
@@ -142,7 +144,7 @@ and S and invented data only.
 | R1 | Liquidity ladder (read-only, from existing sources) | No |
 | R2 | Split the pooled source; withdrawal order in `drawdown.ts`; strategy comparison card (**built, with two changes: "Bridge-only" dropped because it equals pro rata, and the pooled source is not split; see "R2 notes" in `implementation-progress.md`**) | Only when a non-default strategy is chosen |
 | R3 | RSU schedule generator, "keeps vesting" flag, vest-aware retirement date and the "cost of leaving early" line (**built; the leaving-early line shows a monthly after-tax gain, and `quantity` is the whole award; see "R3 notes" in `implementation-progress.md`**) | Yes: unvested shares no longer count at retirement |
-| R4 | Purchase lots and effective cost basis (rule R); ESPP kind | Yes, for holdings with lots (lower tax when the dollar was higher at purchase) |
+| R4 | Purchase lots and effective cost basis (rule R); ESPP kind (**built; there is no `kind` field, the category says ESPP or private; see "R4 notes" in `implementation-progress.md`**) | Yes, for holdings with lots (lower tax when the dollar was higher at purchase) |
 | R5 | Per-source cost table ("tax to raise ₪100 net" and "what you give up") | No |
 | R6 | Stress tests: employer-stock haircut and USD/ILS move | No |
 | R7 | Investment-gemel annuity route from 60 (rule U), if wanted | Yes, for investment gemel from 60 |
@@ -156,9 +158,10 @@ change. R3 fixes a real overstatement: today unvested shares count in full.
    what you give up) enough, or do you also want one number per source, such as
    "net worth at 90 if you raise ₪100 here instead of there"? The single number
    needs a full plan run per source and an assumed return per source.
-2. **ESPP basis.** Is the ESPP discount taxed on your payslip at purchase? Are
-   ESPP shares held under a Section 102 trustee or in a normal brokerage
-   account? (Rule P and the 24-month period depend on it.)
+2. **ESPP basis.** *Answered (R4):* the ESPP discount is taxed as salary at
+   purchase, so the cost basis is the full market price that day; ESPP shares
+   sit in a normal brokerage account (no trustee, no 24-month lock). User-reported,
+   not checked against the Ordinance.
 3. **RSU forfeiture.** *Answered (R3):* every unvested unit is lost when the
    owner leaves; there is no retirement clause. The per-grant flag exists and
    defaults to off.

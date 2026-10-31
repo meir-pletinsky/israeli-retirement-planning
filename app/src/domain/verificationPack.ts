@@ -102,7 +102,7 @@ export class VerificationPackLeakError extends Error {
 }
 
 const PRIVACY_REDACTED = [
-  "Account, holding and vesting ids are replaced by aliases (acct1, holding1, tranche1).",
+  "Account, holding, vesting and purchase-lot ids are replaced by aliases (acct1, holding1, tranche1, lot1).",
   "Provider names, policy numbers, fund ids, investment-track names, tickers, company names, brokers, the first name and fingerprint kept from an imported report, and any other free text are replaced by [redacted].",
   "Enums (product type, status, tax track, gender, marital status) and dates are kept, as are all numbers.",
 ];

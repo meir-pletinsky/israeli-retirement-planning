@@ -59,6 +59,8 @@ export function buildTestProfile(overrides: {
     entry?: { date?: string; priceUSD?: number; usdToIlsRate?: number };
     unrealizedCapitalGainUSD?: number;
     capitalGainsTaxRatePercent?: number;
+    /** Purchases of an ESPP or private holding; their cost replaces the unrealized gain. */
+    purchaseLots?: { date?: string; quantity: number; priceUSD: number; usdToIlsRate?: number }[];
     /** Makes the holding an employer grant, with these details. */
     employerGrant?: {
       taxTrack?: TaxTrack;
@@ -228,6 +230,13 @@ export function buildTestProfile(overrides: {
             unrealizedCapitalGainUSD: holding.unrealizedCapitalGainUSD ?? null,
             capitalGainsTaxRatePercent: holding.capitalGainsTaxRatePercent ?? null,
           },
+          purchaseLots: (holding.purchaseLots ?? []).map((lot, lotIndex) => ({
+            id: `test-lot-${index}-${lotIndex}`,
+            purchaseDate: lot.date ?? null,
+            quantity: lot.quantity,
+            priceUSD: lot.priceUSD,
+            usdToIlsRate: lot.usdToIlsRate ?? null,
+          })),
         };
       }),
     },

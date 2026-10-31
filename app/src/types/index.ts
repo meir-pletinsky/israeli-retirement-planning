@@ -347,6 +347,25 @@ export interface PersonalPurchaseDetails {
   capitalGainsTaxRatePercent: number | null;
 }
 
+/**
+ * One purchase of a private or ESPP holding's shares: when, how many, at what
+ * price, and at which shekel rate. The lots are the holding's cost basis for
+ * the capital gains tax; they are part of `StockHolding.quantity`.
+ */
+export interface PurchaseLot {
+  id: string;
+  purchaseDate: string | null;
+  quantity: number | null;
+  /** Price per share paid on the purchase date. For an ESPP, the market price that day (the discount was taxed as salary). */
+  priceUSD: number | null;
+  /** Shekels per US dollar on the purchase date; null = the rate used to value the holding. */
+  usdToIlsRate: number | null;
+}
+
+export function createEmptyPurchaseLot(): PurchaseLot {
+  return { id: createId(), purchaseDate: null, quantity: null, priceUSD: null, usdToIlsRate: null };
+}
+
 export interface StockHolding {
   id: string;
   investmentCategory: InvestmentCategory | null;
@@ -358,6 +377,11 @@ export interface StockHolding {
   employerGrantDetails: EmployerGrantDetails;
   esppDetails: EsppDetails;
   personalPurchaseDetails: PersonalPurchaseDetails;
+  /**
+   * Purchases that make up an ESPP or private holding. When any has a
+   * quantity and a price, their cost replaces `unrealizedCapitalGainUSD`.
+   */
+  purchaseLots: PurchaseLot[];
 }
 
 export function createEmptyStockHolding(): StockHolding {
@@ -386,6 +410,7 @@ export function createEmptyStockHolding(): StockHolding {
       unrealizedCapitalGainUSD: null,
       capitalGainsTaxRatePercent: 25,
     },
+    purchaseLots: [],
   };
 }
 
@@ -714,6 +739,13 @@ export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined
           ...holding.personalPurchaseDetails,
           usdToIlsRateAtPurchase: validRate(holding.personalPurchaseDetails?.usdToIlsRateAtPurchase),
         },
+        purchaseLots: Array.isArray(holding.purchaseLots)
+          ? holding.purchaseLots.map((lot) => ({
+              ...createEmptyPurchaseLot(),
+              ...lot,
+              usdToIlsRate: validRate(lot?.usdToIlsRate),
+            }))
+          : [],
       })),
       usdToIlsRate: validRate(merged.equity.usdToIlsRate),
       usdToIlsRateDate:

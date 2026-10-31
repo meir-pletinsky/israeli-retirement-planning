@@ -52,6 +52,15 @@ function identifiedCouple(): ProfileData {
         tickerSymbol: `ZQXW${index}`,
         companyName: `Fictional Company ${index}`,
         custodianOrBroker: `Fictional Broker ${index}`,
+        ...(index === 0
+          ? {
+              investmentCategory: "personalBrokeragePurchase" as const,
+              purchaseLots: [
+                { id: "lot-fictional-0", purchaseDate: "2021-03-01", quantity: 60, priceUSD: 30, usdToIlsRate: 3.3 },
+                { id: "lot-fictional-1", purchaseDate: "2024-03-01", quantity: 40, priceUSD: 45, usdToIlsRate: null },
+              ],
+            }
+          : {}),
       })),
     },
   };
@@ -73,6 +82,7 @@ const SENSITIVE_TEXT = (profile: ProfileData): string[] => [
     holding.companyName,
     holding.custodianOrBroker,
     ...holding.employerGrantDetails.vestingTranches.map((tranche) => tranche.id),
+    ...holding.purchaseLots.map((lot) => lot.id),
   ]),
 ];
 

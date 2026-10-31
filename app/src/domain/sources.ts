@@ -20,6 +20,7 @@ import {
   resolveCurrentAge,
   usdToIlsRate,
 } from "./profileBasics";
+import { holdingLots } from "./purchaseLots";
 import { TAX_RATES } from "./taxRates";
 import {
   engineNowMs,
@@ -158,9 +159,10 @@ function fxRateOrigin(profile: ProfileData): string {
  * Cost basis and tax rate of the non-pension investments bucket. Without
  * declared unrealized gains the whole balance counts as basis, so no gain is
  * taxed; entered equity gains are carved out of it, and each holding's own
- * tax rate is blended in by market value. Section 3(i) employer shares have
- * the value at grant as their basis (that part was already taxed as income)
- * and are taxed at the statutory rate.
+ * tax rate is blended in by market value. A holding with purchase lots has its
+ * gain worked out from them (rule R) instead of from its entered unrealized
+ * gain. Section 3(i) employer shares have the value at grant as their basis
+ * (that part was already taxed as income) and are taxed at the statutory rate.
  */
 function otherInvestmentsTaxProfile(
   profile: ProfileData,
@@ -176,10 +178,10 @@ function otherInvestmentsTaxProfile(
   for (const holding of holdings) {
     const holdingValue = holdingValueIls(holding, fxRate);
     const details = holding.personalPurchaseDetails;
-    gains += Math.min(
-      Math.max(details.unrealizedCapitalGainUSD ?? 0, 0) * fxRate,
-      holdingValue,
-    );
+    const lots = holdingLots(holding, fxRate);
+    gains += lots
+      ? lots.gainIls
+      : Math.min(Math.max(details.unrealizedCapitalGainUSD ?? 0, 0) * fxRate, holdingValue);
     weightedRate +=
       holdingValue *
       (typeof details.capitalGainsTaxRatePercent === "number"
@@ -967,6 +969,37 @@ function recordOtherInvestmentsSteps(
       note: `valueIls = quantity × currentMarketPriceUSD × ${fxRate} (${fxRateOrigin(profile)}). It counts the whole quantity of an employer grant, including shares that have not vested; the employerVesting and employerLots tables show what is kept at retirement.`,
     }));
   }
+  const lotRows = holdings.flatMap((holding) =>
+    (holdingLots(holding, fxRate)?.lots ?? []).map((lot) => [
+      holding.id,
+      lot.purchaseDate,
+      lot.quantity,
+      lot.priceUSD,
+      lot.purchaseRate,
+      lot.valueIls,
+      lot.nominalGainIls,
+      lot.adjustedGainIls,
+      lot.recognisedGainIls,
+    ]),
+  );
+  if (lotRows.length > 0) {
+    recordTable("purchaseLots", () => ({
+      title: "Purchase lots of ESPP and private holdings and their taxable gain",
+      columns: [
+        "holdingId",
+        "purchaseDate",
+        "quantity",
+        "priceUSD",
+        "purchaseRate",
+        "valueIls",
+        "nominalGainIls",
+        "adjustedGainIls",
+        "recognisedGainIls",
+      ],
+      rows: lotRows,
+      note: `Rule R, lot by lot. quantity is the lot's shares, scaled down when the lots of a holding exceed its quantity. purchaseRate is the lot's own dollar rate, or ${fxRate} (${fxRateOrigin(profile)}) when it has none. valueIls = quantity × currentMarketPriceUSD × ${fxRate}. nominalGainIls = valueIls - quantity × priceUSD × purchaseRate; adjustedGainIls = valueIls - quantity × priceUSD × ${fxRate}. recognisedGainIls is the lower of the two when both are gains, 0 when one is a gain and the other a loss, and the smaller loss when both are losses. A holding's taxable gain is the sum of its lots' recognisedGainIls, never below 0; the shares in no lot have no gain. For these holdings it replaces the unrealizedCapitalGainUSD column of the holdings table.`,
+    }));
+  }
   const balanceId = recordStep("balance", () => ({
     title: "Balance of the non-pension investments bucket",
     formula: "other assets + Section 3(i) employer shares + every holding that is not employer-granted",
@@ -993,7 +1026,11 @@ function recordOtherInvestmentsSteps(
       balance: input(tax.value, fromStep(balanceId)),
       gains: input(
         tax.gains,
-        fromDerived("Section 3(i) growth + holdings table: min(unrealizedCapitalGainUSD × FX, valueIls)"),
+        fromDerived(
+          lotRows.length > 0
+            ? "Section 3(i) growth + holdings table: min(unrealizedCapitalGainUSD × FX, valueIls), or for holdings in the purchaseLots table the sum of recognisedGainIls, not below 0"
+            : "Section 3(i) growth + holdings table: min(unrealizedCapitalGainUSD × FX, valueIls)",
+        ),
       ),
     },
     output: tax.costBasis,

@@ -158,6 +158,36 @@ describe("normalizeProfile", () => {
     ]);
   });
 
+  it("adds an empty lot list to holdings saved before purchase lots, keeps saved lots and drops a bad lot rate", () => {
+    const profile = buildTestProfile({
+      equity: [
+        { category: "personalBrokeragePurchase", quantity: 10, priceUSD: 5 },
+        {
+          category: "employerEsppDiscount",
+          quantity: 20,
+          priceUSD: 5,
+          purchaseLots: [
+            { date: "2024-01-01", quantity: 7, priceUSD: 3, usdToIlsRate: 3.6 },
+            { quantity: 3, priceUSD: 4, usdToIlsRate: -1 },
+          ],
+        },
+      ],
+    });
+    const holdings = profile.equity.holdings.map((holding, index) => {
+      const { purchaseLots: _lots, ...rest } = holding;
+      return index === 1 ? holding : rest;
+    });
+    const result = normalizeProfile({
+      ...profile,
+      equity: { holdings },
+    } as unknown as Parameters<typeof normalizeProfile>[0]);
+    expect(result.equity.holdings[0].purchaseLots).toEqual([]);
+    expect(result.equity.holdings[1].purchaseLots).toEqual([
+      { id: "test-lot-1-0", purchaseDate: "2024-01-01", quantity: 7, priceUSD: 3, usdToIlsRate: 3.6 },
+      { id: "test-lot-1-1", purchaseDate: null, quantity: 3, priceUSD: 4, usdToIlsRate: null },
+    ]);
+  });
+
   it("adds no dollar rates to a profile saved before they existed", () => {
     const profile = buildTestProfile({
       equity: [

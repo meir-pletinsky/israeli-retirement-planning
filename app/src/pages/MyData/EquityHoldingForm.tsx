@@ -6,6 +6,7 @@ import { DateField } from "../../components/fields/DateField";
 import { NumberField } from "../../components/fields/NumberField";
 import { SelectField } from "../../components/fields/SelectField";
 import { TextField } from "../../components/fields/TextField";
+import { holdingTakesLots, isUsableLot } from "../../domain";
 import type {
   InvestmentCategory,
   StockHolding,
@@ -24,6 +25,7 @@ import {
   type HoldingChange,
 } from "./holdingEntry";
 import { VestingTranchesEditor } from "./VestingTranchesEditor";
+import { PurchaseLotsEditor } from "./PurchaseLotsEditor";
 import { useEntryRateAutofill } from "./useEntryRateAutofill";
 import { useStockPriceAutofill } from "./useStockPriceAutofill";
 
@@ -56,6 +58,7 @@ export function EquityHoldingForm({
   const detailsOpen = hasAdvancedDetails(holding);
   const { suggestions, hint } = useStockPriceAutofill(holding, onChange);
   const rateHint = useEntryRateAutofill(holding, onChange);
+  const lotsActive = holdingTakesLots(holding) && holding.purchaseLots.some(isUsableLot);
 
   const entryFields = {
     employerGrantedStock: {
@@ -320,6 +323,7 @@ export function EquityHoldingForm({
             suffix="$"
             min={0}
           />
+          <PurchaseLotsEditor holding={holding} onChange={onChange} />
         </CollapsibleSection>
       )}
 
@@ -330,6 +334,7 @@ export function EquityHoldingForm({
         >
           <NumberField
             label={f("unrealizedCapitalGainUSD")}
+            helperText={lotsActive ? f("unrealizedIgnoredWithLots") : undefined}
             value={personalPurchaseDetails.unrealizedCapitalGainUSD}
             onChange={(v) =>
               onChange({
@@ -357,6 +362,7 @@ export function EquityHoldingForm({
             min={0}
             max={100}
           />
+          <PurchaseLotsEditor holding={holding} onChange={onChange} />
         </CollapsibleSection>
       )}
     </div>

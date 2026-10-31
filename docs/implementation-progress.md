@@ -996,7 +996,7 @@ describes a 0% route before 60, and the rule does not vary by fund or program.
 The 2026 deposit ceiling is ₪83,641. The app keeps treating the fund as 25% of
 the real gain at any age; the annuity route is not modeled.
 
-## Phase R — Bridge Planner (R1, R2 and R3 built; R4–R7 not started)
+## Phase R — Bridge Planner (R1–R4 built; R5–R7 not started)
 
 Proposal for the early-retirement bridge: which source to use first, what each
 costs and what leaving early does to unvested RSUs. Full design, build order
@@ -1010,7 +1010,8 @@ are still unanswered, so only the steps that do not depend on them (R1, R2) are 
 - [x] R3. RSU schedule generator, "keeps vesting after leaving" flag, vest-aware
       retirement date and "cost of leaving early". See "R3 notes" below. Questions
       3 (forfeiture) and 4 (24 months) of the design doc are answered.
-- [ ] R4. Purchase lots (private and ESPP) with an effective cost basis (rule R).
+- [x] R4. Purchase lots (private and ESPP) with an effective cost basis (rule R). See
+      "R4 notes" below. Question 2 (ESPP basis) of the design doc is answered.
 - [ ] R5. Per-source cost table (tax per ₪100 net, what you give up).
 - [ ] R6. Stress tests (employer-stock haircut, USD/ILS move).
 - [ ] R7. Investment-gemel annuity route from 60 (rule U), if wanted.
@@ -1542,6 +1543,78 @@ trace), `profileBasics.ts`, `netWorth.ts`, `liquidityLadder.ts`. UI:
       quarterly batches). Retiring on 31.10.2027 loses 900 shares (about ₪280,620); one more
       month would keep 100 shares. With the flag on the card disappears and the ladder note
       shows the same value. No bidi problems. 1240 passed and 1 skipped in all.
+
+### R4 notes — purchase lots and the effective cost basis (Phase R)
+
+What changed: an ESPP or private holding can list its purchases (date, shares, market price
+that day, dollar rate that day). Their cost replaces the single "unrealized capital gain"
+number, and the tax is worked out per purchase by rule R. Holdings with no lot are exactly as
+before.
+
+Answers from the user (design question 2):
+- **ESPP discount.** It is taxed as salary at purchase, so the cost basis is the **full market
+  price that day**.
+- **Where ESPP shares sit.** In a normal brokerage account: no trustee and no 24-month lock.
+  They take the ordinary capital-gains route, the same as private shares. Both answers are the
+  user's report, not checked against the Ordinance (see the log in `constants-to-verify.md`).
+
+Rule R per lot (`saleRate` is the profile's fixed dollar rate, `purchaseRate` the lot's own):
+- `value = quantity × current price × saleRate`.
+- `nominal = value − quantity × price × purchaseRate`; `adjusted = value − quantity × price × saleRate`.
+- The lot's recognised gain is the lower of the two when both are gains, the smaller loss when
+  both are losses, and 0 when they disagree in sign. A holding's gain is the sum over its lots,
+  never below zero. Test vectors: $100 bought at ₪5.00, now $200 at ₪3.00 gives a taxable ₪100;
+  $150 bought at ₪4.00, now $100 at ₪3.50 gives a loss, so the engine gain is 0.
+
+Judgement calls (mine, not yet confirmed by the user):
+1. **No `kind` field on a lot.** The holding's category already says ESPP or private.
+2. **Lots partition the quantity.** Shares in no lot have no gain (basis = value). Lots that add
+   up to more than the quantity are scaled down to fit, and the form warns.
+3. **A lot without a rate uses the sale rate**, so only its dollar gain counts. That is the
+   old "dollar gain at the sale rate" behaviour.
+4. **The sale rate is the profile's fixed rate** (fallback 3.7), not a forecast.
+5. **Losses are netted inside a holding but never carried to another holding or year.**
+6. **Lots replace the unrealized-gain field** while at least one lot has shares and a price
+   (`isUsableLot`; a price of 0 is allowed). The form says so under that field. An incomplete lot
+   is left out and the form says how many.
+7. **ESPP without lots still has a zero gain** (as before R4): its old fields never fed the tax.
+8. **Lots count only for the ESPP and private categories.** A grant, or no category, ignores
+   them. Switching a holding to a grant keeps the lots in the data, unused.
+9. **No price autofill for lots.** The bundled prices are adjusted for dividends and splits, so
+   they are not the price paid. The dollar rate of each lot is filled in from the Bank of
+   Israel (as for the main entry), and a typed value wins.
+10. **The lot table is traced only when lots exist** (`purchaseLots`, plus a different
+    `costBasis` note), so existing traces and the verification pack are unchanged for holdings
+    without lots. In the pack, lot ids are aliased `lot1`, `lot2`, … and dates are kept.
+11. **"Start from the purchase above"** (a button shown while there are no lots) copies the
+    entry's date, price, rate and the holding's quantity into a first lot. It is a click, never
+    automatic.
+12. **The main entry's dollar rate is still not used by the tax.** Only the rate of each lot is.
+    The hint under the form says so.
+
+Where it lives: `domain/purchaseLots.ts` (`holdingLots`, `isUsableLot`, `holdingTakesLots`,
+`incompleteLotCount`), `sources.ts` (`otherInvestmentsTaxProfile`, `recordOtherInvestmentsSteps`),
+`types/index.ts` (`PurchaseLot`, `normalizeProfile`), `verificationRedaction.ts`. UI:
+`pages/MyData/PurchaseLotsEditor.tsx`, `useDatedRateAutofill.ts` (shared with
+`useEntryRateAutofill.ts`), `EquityHoldingForm.tsx`, `holdingEntry.ts` (`hasAdvancedDetails`).
+
+- [x] R4a. Types, `normalizeProfile` (lots default to `[]`, the rate is validated), fixture
+      option `purchaseLots`.
+- [x] R4b. `domain/purchaseLots.ts` with tests (the two rule R vectors, netting, scaling, no
+      rate, categories, unusable lots).
+- [x] R4c. Engine: `otherInvestmentsTaxProfile`, the lot trace, the redaction aliases and the
+      guide text; tests in `sources.test.ts`, `tracePipeline.test.ts`, `verificationPack.test.ts`.
+- [x] R4d. UI: the purchases editor in both "More details" sections, the per-lot rate autofill,
+      the summary line (cost basis and gain counted), the "exceeds" and "left out" notes, the
+      unrealized-gain note, `hasAdvancedDetails`.
+- [x] R4e. Texts in en, he and ru (`myData.steps.equity.lots.*`,
+      `fields.unrealizedIgnoredWithLots`, a new `fields.rateHint`, the two section titles); the
+      locale parity test passes. No plural keys.
+- [x] R4f. Component tests in `PurchaseLotsEditor.test.tsx` (11 cases).
+- [x] R4g. Browser check at about 485 px in English and Hebrew with an ESPP holding of 10
+      shares at $200 and two lots (6 at $100 and ₪5.00; 4 at $150 and ₪4.00) and a sale rate of
+      ₪3.118: cost basis ₪5,400 and a counted gain of ₪836, as worked by hand. No bidi
+      problems. The test data was removed afterwards. 1271 passed and 1 skipped in all.
 
 ## Welcome page for returning visitors
 

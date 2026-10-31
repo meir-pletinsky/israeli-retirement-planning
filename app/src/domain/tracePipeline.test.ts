@@ -124,6 +124,46 @@ describe("calculation trace of the income pipeline", () => {
       expect(report.issues).toEqual([]);
     });
   });
+
+  describe("with purchase lots", () => {
+    const lotted = buildTestProfile({
+      age: 50,
+      gender: "male",
+      retirementAge: 60,
+      monthlyGrossSalary: 25_000,
+      investmentReturnPct: 5,
+      inflationPct: 2,
+      pensionBalances: [900_000],
+      usdToIlsRate: { rate: 3 },
+      equity: [
+        {
+          category: "personalBrokeragePurchase",
+          quantity: 1,
+          priceUSD: 200,
+          purchaseLots: [{ date: "2020-01-01", quantity: 1, priceUSD: 100, usdToIlsRate: 5 }],
+        },
+      ],
+    });
+
+    it("records the lots and still checks out", () => {
+      const lottedTiming = resolveRetirementTiming(lotted, "standard");
+      const { log } = runTraced(() => estimateRetirementIncomeForTiming(lotted, lottedTiming), {
+        evaluatedAt: EVALUATED_AT,
+      });
+      const table = log.tables.find((entry) => entry.id.endsWith("purchaseLots"));
+      expect(table?.columns).toContain("recognisedGainIls");
+      expect(table?.rows).toHaveLength(1);
+      const report = checkTrace(log, { profile: lotted, constants: constantsSnapshot() });
+      expect(report.issues).toEqual([]);
+    });
+
+    it("records no lot table for holdings without lots", () => {
+      const { log } = runTraced(() => estimateRetirementIncomeForTiming(profile, timing), {
+        evaluatedAt: EVALUATED_AT,
+      });
+      expect(log.tables.some((entry) => entry.id.endsWith("purchaseLots"))).toBe(false);
+    });
+  });
 });
 
 describe("calculation trace of the funding gap", () => {

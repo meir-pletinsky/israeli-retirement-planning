@@ -184,11 +184,13 @@ export function hasAdvancedDetails(holding: StockHolding): boolean {
         espp.discountPercentage !== null ||
         espp.purchasePriceUSD !== null ||
         espp.taxedDiscountValueUSD !== null ||
-        espp.capitalGainsOnGrowthUSD !== null
+        espp.capitalGainsOnGrowthUSD !== null ||
+        holding.purchaseLots.length > 0
       );
     case "personalBrokeragePurchase":
       return (
         personal.unrealizedCapitalGainUSD !== null ||
+        holding.purchaseLots.length > 0 ||
         (personal.capitalGainsTaxRatePercent !== null &&
           personal.capitalGainsTaxRatePercent !== DEFAULT_CAPITAL_GAINS_RATE_PERCENT)
       );
