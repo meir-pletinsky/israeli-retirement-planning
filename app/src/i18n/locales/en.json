@@ -96,6 +96,7 @@
       "monthlyIncome": "Projected Monthly Income After Tax",
       "netWorth": "Net Worth Today",
       "fundingGap": "Funding Gap",
+      "successProbability": "Probability of Success",
       "yearsToRetirement": "Years to Retirement"
     },
     "statusOnTrack": "You're on track to meet your retirement goal.",
@@ -558,6 +559,8 @@
         "optimistic": "Optimistic",
         "investmentReturn": "Investment return",
         "inflation": "Inflation",
+        "volatility": "Market volatility",
+        "volatilityHelp": "How much yearly returns typically swing up or down. Used only by the risk analysis. A diversified portfolio is often 8% to 18%.",
         "advanced": "Advanced overrides"
       }
     }
@@ -577,6 +580,33 @@
     "householdNote": "The plan covers your whole household and ages are yours. Early and delayed scenarios move both retirement dates.",
     "viewTable": "Show as table",
     "viewChart": "Show as chart",
+    "risk": {
+      "title": "Risk analysis",
+      "intro": "Markets don't return the same amount every year. This replays your plan on {{paths}} random market histories to see how often your desired spending lasts.",
+      "noTarget": "Enter your expected monthly retirement expenses (in My Data) to test them against market ups and downs.",
+      "noTargetCta": "Add expenses",
+      "noYears": "There are no retirement years to test before age {{age}}.",
+      "successLabel": "Chance your desired spending lasts to age {{age}}",
+      "band": {
+        "strong": "High confidence: most market histories fund your spending.",
+        "fair": "Moderate confidence: some market histories run short.",
+        "weak": "Low confidence: many market histories run short."
+      },
+      "confidentLabel": "Monthly spending that holds up in {{percent}}% of histories",
+      "confidentHint": "After tax, in today's money. Your goal is {{target}} a month.",
+      "shortfallAge": "In the histories that fall short, the spending usually goes unfunded from about age {{age}}.",
+      "chartTitle": "Net worth across market histories",
+      "bandLabel": "Middle 80% of outcomes",
+      "medianLabel": "Typical outcome (median)",
+      "howTitle": "How this works",
+      "howRandom": "Each year's market return is random, with a typical swing of {{volatility}}% (your market volatility assumption). Nothing else varies.",
+      "howMedian": "The typical (median) line is built on your projection's return, so it stays close to the projection above.",
+      "howFixed": "Bituach Leumi, annuity payments and other fixed income do not vary. Every investment earns the same return in a given year, which is cautious.",
+      "howTax": "Your desired spending is after tax, so it is converted to {{gross}} a month before tax using your plan's tax rate ({{percent}}%). Tax is not recalculated for each history.",
+      "howSeed": "The same random histories are used every time, so the same inputs always give the same result.",
+      "notForecast": "A model, not a forecast. Real markets can do worse than any of these histories.",
+      "changeVolatility": "Change market volatility"
+    },
     "compare": {
       "title": "Compare retirement ages",
       "intro": "Pick any three ages at which you could retire to see how your income and savings change. Per month, in today's money.",

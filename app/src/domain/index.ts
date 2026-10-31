@@ -11,6 +11,7 @@ export * from "./fundingGap";
 export * from "./household";
 export * from "./incomeBreakdown";
 export * from "./inputGuidance";
+export * from "./monteCarlo";
 export * from "./netIncome";
 export * from "./netWorth";
 export * from "./retirementIncome";

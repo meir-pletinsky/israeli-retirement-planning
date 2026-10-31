@@ -3,6 +3,35 @@ import { describe, expect, it } from "vitest";
 import { buildTestProfile } from "../test/domainFixtures";
 import { simulateDrawdown } from "./drawdown";
 
+describe("simulateDrawdown unmet spending", () => {
+  const profile = buildTestProfile({
+    age: 60,
+    retirementAge: 60,
+    investmentReturnPct: 4,
+    inflationPct: 4,
+    pensionBalances: [120_000],
+  });
+
+  it("is zero every year when the spending is funded to the horizon", () => {
+    const rows = simulateDrawdown(profile, 60, 300);
+    expect(rows.every((row) => row.unmet === 0)).toBe(true);
+  });
+
+  it("appears once the capital runs out, and then covers the whole spending", () => {
+    const rows = simulateDrawdown(profile, 60, 2_000);
+    const firstShort = rows.findIndex((row) => row.unmet > 0);
+    expect(firstShort).toBeGreaterThan(0);
+    expect(rows.slice(0, firstShort).every((row) => row.unmet === 0)).toBe(true);
+    expect(rows.slice(firstShort).every((row) => row.unmet > 0)).toBe(true);
+    expect(rows[rows.length - 1].unmet).toBeCloseTo(2_000 * 12, 6);
+  });
+
+  it("is zero before the drawing starts", () => {
+    const rows = simulateDrawdown({ ...profile, personal: { ...profile.personal, age: 50 } }, 60, 2_000);
+    expect(rows.slice(0, 10).every((row) => row.unmet === 0)).toBe(true);
+  });
+});
+
 describe("simulateDrawdown holdings", () => {
   const investmentFund = [{ productCategory: "investmentProvidentFund" as const }];
 

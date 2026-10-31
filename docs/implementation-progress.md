@@ -25,7 +25,8 @@ batches, a constants check) as Phase N, the Pension Clearing House import
 with its offline verification pack as Phase P, the read-only summary tables
 on the My Data steps as Phase Q, and the simple purchase / grant entry with
 per-category equity tables as Phase S (Phase R is the Bridge Planner design), and
-the daily stock price files with ticker suggestions and price autofill as Phase T.
+the daily stock price files with ticker suggestions and price autofill as Phase T, and the
+Monte Carlo risk analysis (the first Phase 4 piece) as Phase V.
 
 ## Phase A — Project setup & infra
 
@@ -1103,6 +1104,78 @@ later without touching the app.
 Open: the dataset's license for republishing, a source with real closes, coverage beyond
 the S&P 500 (Israeli-employer stocks such as CHKP and WIX), ticker spelling for share
 classes, an opt-out for lookups in Settings. All in `docs/stock-price-data-design.md`.
+
+## Phase V — Monte Carlo risk analysis (Phase 4, part 1)
+
+The plan assumes the same real return every year, so it can say "you are on track" while a
+bad run of markets would break it. The Monte Carlo replays the plan on 2,000 random return
+sequences and reports how often the desired retirement spending lasts to the planning
+horizon. Phase 4 has three more pieces that are not started: a historical projection mode,
+live external data and the full dashboard KPIs.
+
+Decisions (the user chose the first two):
+- **One volatility input.** "Market volatility" in Assumptions → Advanced, default 12%,
+  0 to 50. It is saved in `assumptions.volatilityPct`; older saved profiles and imports
+  fall back to 12 (`normalizeAssumptions`).
+- **Placement.** A "Risk analysis" card on Projections (success chance, the spending that
+  holds up in 90% of histories, a p10/p50/p90 net-worth fan chart, a collapsed "How this
+  works") and one Dashboard KPI, "Probability of Success".
+- **Only the return is random.** `ln(1 + r_t) = ln(1 + r) + σ·z`, so the median path stays on
+  the deterministic projection and success at the deterministic sustainable level is about
+  50%. The same return applies to every source (cautious). Bituach Leumi, annuities and
+  other fixed streams do not vary.
+- **Success** means that in every drawing year the streams and unlocked capital cover the
+  spending (`DrawdownYear.unmet` ≤ ₪1). The median first-shortfall age of the failing
+  paths is reported.
+- **Tax.** The desired spending is after tax, so it is grossed up with the plan's effective
+  tax rate (its lowest net-income year, clamped to 0–90%). Tax is not recomputed on each
+  path.
+- **Reproducible.** A fixed seed, with the random shocks generated once and reused for every
+  spending level, so the same inputs always give the same answer and the success rate only
+  falls as spending rises (which is what makes the search below work).
+- **Not in the verification pack.** Monte Carlo never runs under a trace and has no trace
+  steps; the pack covers the deterministic plan only.
+
+- [x] V1. **Engine hooks** (`domain/drawdown.ts`): `DrawdownYear.unmet`, `DrawdownOptions`
+      (`yearlyRates` overrides the constant rate, `lean` skips holdings and capital share),
+      and the trace start call guarded by `isTracing()`. A constant `yearlyRates` run equals
+      the normal simulation (tested).
+- [x] V2. **Assumption** (`types/index.ts`, `AssumptionsStep`): `volatilityPct`,
+      `DEFAULT_VOLATILITY_PCT`, `MAX_VOLATILITY_PCT`, `normalizeAssumptions`; a volatility
+      field with help text. Fixed on the way: choosing a preset in `AssumptionsStep` now
+      keeps the volatility.
+- [x] V3. **Domain** (`domain/monteCarlo.ts`): seeded generator (mulberry32), Box-Muller
+      shocks, `quantile`, `runMonteCarlo(profile, scenario, options)`, `successBand`
+      (strong at 90% and above, fair at 70% and above, otherwise weak) and `successPercent`
+      (rounded down, so 99.9% never shows as 100%). `confidentNetMonthly` is the largest
+      spending that succeeds on at least 90% of paths, found by doubling then halving a
+      bracket until it is within 0.5% (or ₪10); a probe stops as soon as more paths than
+      the limit have failed. Returns null with no desired spending or no drawing years.
+- [x] V4. **UI** (`RiskAnalysisCard`, `charts/MonteCarloFanChart`, `riskFormat.ts`,
+      `Projections`, `Dashboard`): the card (with a "no expenses yet" state that links to
+      the Expenses tab), the fan chart with a marker at the first drawing year, the KPI
+      (a dash without a result; green, neutral or red by band). On Projections the result
+      is computed from a deferred scenario, so the scenario buttons answer first and the
+      card fades while it updates. The Dashboard KPI skips the confident-spending search.
+      The Dashboard KPI row is three columns from `lg` and five from `xl`.
+- [x] V5. **Texts** in en, he and ru; `i18n/riskLocales.test.ts` checks that every risk
+      key exists in all three and that the `{{placeholders}}` match.
+- [x] V6. **Tests**: `monteCarlo.test.ts` (generator, shocks, quantiles, reproducibility,
+      fan invariants, median against the deterministic projection, zero volatility,
+      monotonicity in spending and volatility, the 90% property of the confident spending,
+      scenarios, legacy profiles), `unmet` tests in `drawdown.test.ts`, `volatilityPct`
+      tests in `normalizeProfile.test.ts`, and Projections and Dashboard component tests.
+
+Measured (browser, a real saved profile with 36 drawing years): the success run alone
+takes about 90 ms, the run with the confident-spending search about 430 ms (it was
+760 ms before the early exit and the 0.5% stop; the figure moved by ₪10). The fixed test
+plan (age 40, retiring at 67, ₪1.2M saved, ₪9,000 a month wanted) gives 65% success, a
+confident spending of ₪4,750 and a median shortfall at 82.
+
+Known limits: one volatility for every source (no equity/bond split, no correlation); no
+sequence-of-inflation risk; no tax per path; the market model is lognormal, so it has no
+crashes beyond what the volatility implies; a historical mode (real return history) would
+replace the random draws and is the next Phase 4 piece.
 
 ## Welcome page for returning visitors
 

@@ -117,6 +117,11 @@ src/
                     # Dashboard's "Improve your estimate" card. Policy
                     # number, fund ID and the other reference-only fields
                     # are saved and exported but no domain code reads them.
+                    # monteCarlo.ts replays the household's drawdown
+                    # (simulateHouseholdDrawdown with yearlyRates) on
+                    # seeded random real returns for the Projections risk
+                    # card and the Dashboard KPI. It is outside the
+                    # calculation trace and the verification pack.
   data/             # static fallback datasets (rates, tables), external data clients
   storage/          # Dexie schema, repositories, export/import
   i18n/             # translation resources (en, ru, he) + setup

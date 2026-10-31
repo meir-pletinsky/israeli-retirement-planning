@@ -18,8 +18,7 @@ import type { FundingGapResult, RetirementScenario } from "./types";
  * at the given ages, against the household's desired retirement monthly
  * expenses. A non-negative gap means the projected balance can cover (or
  * exceed) the desired spending; negative means a shortfall. This is
- * deterministic — no probability of success (that's the Phase 4 Monte Carlo
- * scope per docs/plan.md).
+ * deterministic — no probability of success (that lives in monteCarlo.ts).
  */
 export function calculateFundingGapForTiming(
   profile: ProfileData,

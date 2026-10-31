@@ -58,12 +58,24 @@ batches, constants check) is done**, and **Phase O (Pension Clearing House
 import) is done**, and **Phase P (calculation trace and offline verification
 pack) is done**, and **Phase Q (read-only summary tables on My Data) is done**,
 and **Phase S (simple purchase / grant entry, per-category equity tables) is done**,
-and **Phase T (stock price files, ticker suggestions and price autofill) is done**.
+and **Phase T (stock price files, ticker suggestions and price autofill) is done**,
+and **Phase V (Monte Carlo risk analysis, the first Phase 4 piece) is done**.
 Phases A–K are committed and pushed to
-`main`; Phases L, M, N, O, P, Q, S and T are committed and pushed only if `git log` shows
+`main`; Phases L, M, N, O, P, Q, S, T and V are committed and pushed only if `git log` shows
 them.
 
-- **Expenses tab (O14): DONE, not yet committed.** Only spending *in retirement* is
+- **Phase V (Monte Carlo risk analysis): DONE, not yet committed.** The plan is replayed on
+  2,000 seeded random real-return sequences (`domain/monteCarlo.ts`, `runMonteCarlo`).
+  Projections has a "Risk analysis" card (success chance, the spending that holds up in 90%
+  of histories, a p10/p50/p90 fan chart); the Dashboard has a "Probability of Success" KPI.
+  One new assumption: `assumptions.volatilityPct` (default 12, max 50, Assumptions →
+  Advanced; old profiles fall back to 12 through `normalizeAssumptions`). Only the market
+  return is random; tax is grossed up once, not recomputed per path. It never runs under a
+  trace and is not in the verification pack. The engine gained `DrawdownYear.unmet` and
+  `DrawdownOptions {yearlyRates, lean}` in `drawdown.ts`. Details and measured timings: Phase
+  V in `docs/implementation-progress.md`.
+
+- **Expenses tab (O14): DONE and pushed (`cb25349`).** Only spending *in retirement* is
   asked for; today's spending and `currentMonthly` are gone (old saved values are
   dropped by `normalizeExpenses`). A "One total | Itemised list" switch sets
   `expenses.mode`. Itemised mode: `ExpenseItem`s (one amount, frequency incl. every N
@@ -469,7 +481,7 @@ them.
   - D3: live deploy verified (done as a side effect of A7).
 - 396 tests total, all green; lint/typecheck/build all green.
 
-(Counts moved on later: 645 passed and 1 skipped after Phase Q; 664 passed and 1 skipped after Phase S; 712 passed and 1 skipped after Phase T; 720 passed and 1 skipped after the returning-visitor change; 723 passed and 1 skipped after the logo and colour change.)
+(Counts moved on later: 645 passed and 1 skipped after Phase Q; 664 passed and 1 skipped after Phase S; 712 passed and 1 skipped after Phase T; 720 passed and 1 skipped after the returning-visitor change; 723 passed and 1 skipped after the logo and colour change; 998 passed and 1 skipped after Phase V; 1000 passed and 1 skipped after the Assumptions legend removal.)
 
 ## Where to go next
 
@@ -477,9 +489,18 @@ Phase 1, the Phase 2 modules (Bituach Leumi, per-source model,
 couples/household), the Phase 3 tax module and scenario comparison, the
 Phase K input guidance, the Phase L tax refinements, the Phase M
 Section 102 employer stock tax and its Phase N follow-ups, the Phase O
-clearing-house import, the Phase P calculation trace and the Phase Q summary
-tables are complete.
+clearing-house import, the Phase P calculation trace, the Phase Q summary
+tables and the Phase V Monte Carlo risk analysis are complete.
 Remaining, not yet started:
+
+- **Rest of Phase 4** (Monte Carlo is done): a **historical projection mode** (real CPI and
+  market-return history instead of random draws; the Monte Carlo's `yearlyRates` hook
+  in `simulateHouseholdDrawdown` takes any per-year return list), **live external data**
+  (CPI, FX, fund performance, mortality tables, risk-free rate), and the **full household
+  dashboard KPIs** from functional spec section 13. Possible Monte Carlo follow-ups: an
+  equity/bond split with correlation, inflation risk, tax recomputed per path, and moving
+  the run into a Web Worker if it ever feels slow (it takes about 430 ms in the browser
+  with the confident-spending search, 90 ms without).
 
 - **Use the verification pack.** Export one from Settings, give it to an
   independent AI session with the prompt inside the pack, and fix whatever it

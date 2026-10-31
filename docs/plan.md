@@ -279,7 +279,10 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
 
 ## Phase 4 — Advanced Projection & External Data
 
-- Monte Carlo simulation (10th/50th/90th percentile, success probability)
+- **Monte Carlo simulation — done** (Phase V in `docs/implementation-progress.md`): 2,000
+  seeded random return sequences, success probability, the spending that holds up in 90%
+  of them, and a 10th/50th/90th percentile fan chart on Projections plus a Dashboard KPI.
+  The market volatility is one editable assumption (default 12%).
 - Historical projection mode using real CPI/market-return history
 - Live external data integrations per the fetch-then-fallback strategy
   (CPI, FX, fund performance, mortality tables, risk-free rate)

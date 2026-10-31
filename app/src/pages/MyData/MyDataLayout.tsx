@@ -8,9 +8,14 @@ import { STEP_ORDER, type StepKey } from "./stepOrder";
 
 /**
  * The pension and equity steps show the legend inside their account and holding forms. Expenses
- * has at most one tagged field, whose helper text already explains it.
+ * has at most one tagged field, whose helper text already explains it, and Assumptions has none.
  */
-const STEPS_WITHOUT_LEGEND: readonly StepKey[] = ["pension-savings", "equity", "expenses"];
+const STEPS_WITHOUT_LEGEND: readonly StepKey[] = [
+  "pension-savings",
+  "equity",
+  "expenses",
+  "assumptions",
+];
 
 function toCamelCase(key: string): string {
   return key.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());

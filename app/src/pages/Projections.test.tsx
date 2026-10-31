@@ -272,10 +272,79 @@ describe("Projections", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Projections />);
 
-      expect(await screen.findByRole("link", { name: "Add expenses" })).toHaveAttribute(
+      const card = await screen.findByRole("region", { name: "Earliest Feasible Retirement" });
+      expect(within(card).getByRole("link", { name: "Add expenses" })).toHaveAttribute(
         "href",
         "/my-data/expenses",
       );
+    });
+  });
+
+  describe("risk analysis", () => {
+    const plan = (retirementMonthlyExpenses: number) =>
+      buildTestProfile({
+        age: 40,
+        retirementAge: 67,
+        gender: "male",
+        monthlyGrossSalary: 20_000,
+        investmentReturnPct: 5,
+        inflationPct: 2,
+        pensionBalances: [900_000, 300_000],
+        retirementMonthlyExpenses,
+      });
+    const planned = plan(4_000);
+
+    it("shows the chance the desired spending lasts and the spending that holds up", async () => {
+      await saveProfileToDb(planned);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      const card = await screen.findByRole("region", { name: "Risk analysis" });
+      expect(within(card).getByText("Chance your desired spending lasts to age 90")).toBeInTheDocument();
+      expect(within(card).getByText(/^\d+%$|^<1%$/)).toBeInTheDocument();
+      expect(
+        within(card).getByText("Monthly spending that holds up in 90% of histories"),
+      ).toBeInTheDocument();
+      expect(within(card).getByText(/Your goal is ₪4,000 a month/)).toBeInTheDocument();
+      expect(within(card).getByText("How this works")).toBeInTheDocument();
+    });
+
+    it("explains the model in a section that starts closed", async () => {
+      await saveProfileToDb(planned);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      const card = await screen.findByRole("region", { name: "Risk analysis" });
+      const details = within(card).getByText("How this works").closest("details");
+      expect(details).not.toBeNull();
+      expect(details).not.toHaveAttribute("open");
+    });
+
+    it("shows high confidence for modest spending and low confidence for lavish spending", async () => {
+      await saveProfileToDb(plan(1_500));
+      await saveOnboardedToDb(true);
+      const modest = renderWithProviders(<Projections />);
+      const modestCard = await screen.findByRole("region", { name: "Risk analysis" });
+      expect(within(modestCard).getByText(/^High confidence/)).toBeInTheDocument();
+      modest.unmount();
+
+      await saveProfileToDb(plan(25_000));
+      renderWithProviders(<Projections />);
+      const lavishCard = await screen.findByRole("region", { name: "Risk analysis" });
+      expect(within(lavishCard).getByText(/^Low confidence/)).toBeInTheDocument();
+    });
+
+    it("links to Expenses when there is no target", async () => {
+      await saveProfileToDb(buildTestProfile({ age: 55, retirementAge: 65 }));
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      const card = await screen.findByRole("region", { name: "Risk analysis" });
+      expect(within(card).getByRole("link", { name: "Add expenses" })).toHaveAttribute(
+        "href",
+        "/my-data/expenses",
+      );
+      expect(within(card).queryByText(/Chance your desired spending lasts/)).not.toBeInTheDocument();
     });
   });
 });

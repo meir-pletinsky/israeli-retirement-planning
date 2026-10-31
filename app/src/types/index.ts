@@ -8,7 +8,15 @@ export interface Assumptions {
   preset: AssumptionPreset;
   investmentReturnPct: number;
   inflationPct: number;
+  /** Standard deviation of the yearly investment return; drives the Monte Carlo spread. */
+  volatilityPct: number;
 }
+
+/** A typical mix of Israeli pension funds and global shares. */
+export const DEFAULT_VOLATILITY_PCT = 12;
+
+/** The highest volatility the Monte Carlo accepts; beyond this, yearly returns stop being credible. */
+export const MAX_VOLATILITY_PCT = 50;
 
 export const ASSUMPTION_PRESETS: Record<
   AssumptionPreset,
@@ -505,7 +513,7 @@ export const EMPTY_PROFILE: ProfileData = {
   pensionSavings: { accounts: [], reports: [], otherAssets: null },
   equity: { holdings: [], usdToIlsRate: null, usdToIlsRateDate: null },
   expenses: { mode: "totals", retirementMonthly: null, items: [] },
-  assumptions: { preset: "base", ...ASSUMPTION_PRESETS.base },
+  assumptions: { preset: "base", ...ASSUMPTION_PRESETS.base, volatilityPct: DEFAULT_VOLATILITY_PCT },
   comparisonAges: null,
 };
 
@@ -579,6 +587,12 @@ function normalizeExpenses(value: unknown): ExpensesData {
   };
 }
 
+/** Older profiles have no volatility, and a hand-edited one may hold text; both get the default. */
+function normalizeAssumptions(value: Partial<Assumptions> | undefined): Assumptions {
+  const merged = { ...EMPTY_PROFILE.assumptions, ...value };
+  return { ...merged, volatilityPct: finiteOrNull(merged.volatilityPct) ?? DEFAULT_VOLATILITY_PCT };
+}
+
 function isComparisonAges(value: unknown): value is [number, number, number] {
   return (
     Array.isArray(value) &&
@@ -609,7 +623,7 @@ export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined
     },
     bituachLeumi: { ...EMPTY_PROFILE.bituachLeumi, ...parsed?.bituachLeumi },
     expenses: normalizeExpenses(parsed?.expenses),
-    assumptions: { ...EMPTY_PROFILE.assumptions, ...parsed?.assumptions },
+    assumptions: normalizeAssumptions(parsed?.assumptions),
     comparisonAges: isComparisonAges(parsed?.comparisonAges) ? parsed.comparisonAges : null,
   };
   // Guard against the pre-schema-expansion shape (plain numeric fields

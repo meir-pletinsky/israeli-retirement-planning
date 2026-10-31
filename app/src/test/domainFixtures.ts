@@ -40,7 +40,8 @@ export function buildTestProfile(overrides: {
   bituachLeumi?: Partial<BituachLeumiData>;
   investmentReturnPct?: number;
   inflationPct?: number;
-  pensionBalances?: number[];
+  /** Standard deviation of yearly returns for the Monte Carlo; defaults to the app's default. */
+  volatilityPct?: number;
   /** Index-aligned with `pensionBalances`; merged onto each generated account. */
   pensionAccountOverrides?: Partial<PensionAccount>[];
   otherAssets?: number;
@@ -86,6 +87,7 @@ export function buildTestProfile(overrides: {
     bituachLeumi,
     investmentReturnPct,
     inflationPct,
+    volatilityPct,
     pensionBalances = [],
     pensionAccountOverrides = [],
     otherAssets,
@@ -232,6 +234,7 @@ export function buildTestProfile(overrides: {
       preset: "base",
       investmentReturnPct: investmentReturnPct ?? EMPTY_PROFILE.assumptions.investmentReturnPct,
       inflationPct: inflationPct ?? EMPTY_PROFILE.assumptions.inflationPct,
+      volatilityPct: volatilityPct ?? EMPTY_PROFILE.assumptions.volatilityPct,
     },
     comparisonAges: comparisonAges ?? null,
   };

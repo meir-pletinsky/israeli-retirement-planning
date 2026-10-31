@@ -312,6 +312,51 @@ describe("Dashboard", () => {
       expect(within(gapKpi).queryByText("—")).not.toBeInTheDocument();
     });
 
+    it("shows the probability of success only once spending is entered", async () => {
+      await seed(buildTestProfile({ age: 40, retirementAge: 67, pensionBalances: [100_000], ...zeroRealReturn }));
+
+      const { unmount } = renderWithProviders(<Dashboard />);
+
+      const emptyKpi = (await screen.findByText("Probability of Success")).parentElement as HTMLElement;
+      expect(within(emptyKpi).getByText("—")).toBeInTheDocument();
+      unmount();
+
+      await seed(
+        buildTestProfile({
+          age: 40,
+          retirementAge: 67,
+          gender: "male",
+          monthlyGrossSalary: 20_000,
+          retirementMonthlyExpenses: 1_500,
+          pensionBalances: [900_000, 300_000],
+          investmentReturnPct: 5,
+          inflationPct: 2,
+        }),
+      );
+      renderWithProviders(<Dashboard />);
+
+      const kpi = (await screen.findByText("Probability of Success")).parentElement as HTMLElement;
+      expect(within(kpi).getByText(/^\d+%$/)).toBeInTheDocument();
+      expect(within(kpi).queryByText("—")).not.toBeInTheDocument();
+    });
+
+    it("shows a near-zero probability when the spending is out of reach", async () => {
+      await seed(
+        buildTestProfile({
+          age: 40,
+          retirementAge: 67,
+          retirementMonthlyExpenses: 1_000_000,
+          pensionBalances: [100_000],
+          ...zeroRealReturn,
+        }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      const kpi = (await screen.findByText("Probability of Success")).parentElement as HTMLElement;
+      expect(within(kpi).getByText("0%")).toBeInTheDocument();
+    });
+
     it("asks about the spouse only when the household has one", async () => {
       await seed(
         buildTestProfile({ age: 40, retirementAge: 67, maritalStatus: "married", ...zeroRealReturn }),

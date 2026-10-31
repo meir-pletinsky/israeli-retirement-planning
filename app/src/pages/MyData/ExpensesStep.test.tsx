@@ -27,6 +27,32 @@ const planned = () => screen.getByRole("region", { name: "Planned monthly spendi
 /** The large figure at the top of the box: the whole itemised total. */
 const plannedTotal = () => planned().querySelector("p span")?.textContent;
 
+describe("MyDataLayout — field legend", () => {
+  function renderAt(route: string) {
+    return renderWithProviders(
+      <Routes>
+        <Route path="/my-data" element={<MyDataLayout />}>
+          <Route path="personal" element={<p>personal step</p>} />
+          <Route path="assumptions" element={<p>assumptions step</p>} />
+        </Route>
+      </Routes>,
+      { route },
+    );
+  }
+
+  it("shows the legend on the personal step", async () => {
+    renderAt("/my-data/personal");
+    await screen.findByText("personal step");
+    expect(screen.getByRole("region", { name: "Which fields matter?" })).toBeInTheDocument();
+  });
+
+  it("leaves it off the assumptions step, which has no tagged fields", async () => {
+    renderAt("/my-data/assumptions");
+    await screen.findByText("assumptions step");
+    expect(screen.queryByRole("region", { name: "Which fields matter?" })).not.toBeInTheDocument();
+  });
+});
+
 describe("ExpensesStep — one total", () => {
   it("has no field legend on the page, and the mode question sits above the switch", async () => {
     renderWithProviders(

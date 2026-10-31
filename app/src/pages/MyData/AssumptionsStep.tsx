@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { useProfile } from "../../app/ProfileContext";
 import { NumberField } from "../../components/fields/NumberField";
-import { ASSUMPTION_PRESETS, type AssumptionPreset } from "../../types";
+import { ASSUMPTION_PRESETS, MAX_VOLATILITY_PCT, type AssumptionPreset } from "../../types";
 import { StepFooter } from "./StepFooter";
 
 const PRESET_KEYS: AssumptionPreset[] = ["conservative", "base", "optimistic"];
@@ -16,7 +16,7 @@ export function AssumptionsStep() {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   function selectPreset(preset: AssumptionPreset) {
-    updateProfile({ assumptions: { preset, ...ASSUMPTION_PRESETS[preset] } });
+    updateProfile({ assumptions: { ...assumptions, preset, ...ASSUMPTION_PRESETS[preset] } });
   }
 
   return (
@@ -70,6 +70,19 @@ export function AssumptionsStep() {
             onChange={(v) =>
               updateProfile({
                 assumptions: { ...assumptions, inflationPct: v ?? 0 },
+              })
+            }
+            suffix="%"
+          />
+          <NumberField
+            label={t("myData.steps.assumptions.volatility")}
+            helperText={t("myData.steps.assumptions.volatilityHelp")}
+            value={assumptions.volatilityPct}
+            min={0}
+            max={MAX_VOLATILITY_PCT}
+            onChange={(v) =>
+              updateProfile({
+                assumptions: { ...assumptions, volatilityPct: v ?? 0 },
               })
             }
             suffix="%"

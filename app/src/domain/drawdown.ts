@@ -73,6 +73,22 @@ export interface DrawdownYear {
   capitalShare: Record<SourceKind, number>;
   /** The same position per source and owner, in the order of the household's members and sources. */
   holdings: DrawdownHolding[];
+  /**
+   * Spending (per year, today's money) that the fixed streams and the unlocked capital could not
+   * cover in a drawing year; 0 before drawing starts and whenever the spending is funded.
+   */
+  unmet: number;
+}
+
+/** Ways to run the simulation other than the household's own constant return. */
+export interface DrawdownOptions {
+  /**
+   * The real return of each year from now (index 0 is the first year). A year beyond the end of
+   * the list uses the household's rate. Contributions earn that year's return too.
+   */
+  yearlyRates?: readonly number[];
+  /** Leaves out the shares and holdings the tax layer reads; balances, streams and `unmet` are still filled. */
+  lean?: boolean;
 }
 
 const emptyByKind = (): Record<SourceKind, number> => ({
@@ -118,8 +134,9 @@ interface SourceState {
 export function simulateHouseholdDrawdown(
   household: Household,
   monthlySpending: number,
+  options: DrawdownOptions = {},
 ): DrawdownYear[] {
-  return withScope("drawdown", () => simulate(household, monthlySpending));
+  return withScope("drawdown", () => simulate(household, monthlySpending, options));
 }
 
 /** Records the starting state of the simulation: the spending, the yearly deposits and one row per source. */
@@ -227,8 +244,13 @@ function recordDrawdownStart(
   }));
 }
 
-function simulate(household: Household, monthlySpending: number): DrawdownYear[] {
+function simulate(
+  household: Household,
+  monthlySpending: number,
+  options: DrawdownOptions,
+): DrawdownYear[] {
   const { rate, members, retirementYears, horizonYears } = household;
+  const { yearlyRates, lean = false } = options;
   const annualSpending = monthlySpending * 12;
   const primary = members[0];
 
@@ -243,17 +265,23 @@ function simulate(household: Household, monthlySpending: number): DrawdownYear[]
       annualContribution: futureValueOfMonthlyContributions(source.monthlyContribution, rate, 1),
     })),
   );
-  recordDrawdownStart(household, monthlySpending, state);
+  if (isTracing()) {
+    recordDrawdownStart(household, monthlySpending, state);
+  }
   const traceRows: TraceScalar[][] | null = isTracing() ? [] : null;
 
   const rows: DrawdownYear[] = [];
   for (let years = 0; years <= horizonYears; years += 1) {
     if (years > 0) {
+      const yearRate = yearlyRates?.[years - 1] ?? rate;
       for (const entry of state) {
         const age = entry.member.currentAge + years;
-        entry.balance *= 1 + rate;
+        entry.balance *= 1 + yearRate;
         if (age <= entry.member.retirementAge) {
-          entry.balance += entry.annualContribution;
+          entry.balance +=
+            yearRate === rate
+              ? entry.annualContribution
+              : futureValueOfMonthlyContributions(entry.source.monthlyContribution, yearRate, 1);
           entry.basis += entry.source.monthlyContribution * 12;
         }
         if (entry.source.annuity && age >= entry.source.annuity.startAge) {
@@ -291,47 +319,54 @@ function simulate(household: Household, monthlySpending: number): DrawdownYear[]
     );
     const unlockedTotal = unlocked.reduce((sum, entry) => sum + entry.balance, 0);
     const capitalShare = emptyByKind();
-    if (unlockedTotal > 0) {
+    if (!lean && unlockedTotal > 0) {
       for (const entry of unlocked) {
         capitalShare[entry.source.kind] += entry.balance / unlockedTotal;
       }
     }
     const unlockedSet = new Set(unlocked);
-    const holdings: DrawdownHolding[] = state.map((entry) => {
-      const { annuity, taxTreatment } = entry.source;
-      const capitalGains = taxTreatment === "capitalGains" && entry.balance > 0;
-      const ordinaryFraction =
-        taxTreatment === "ordinaryIncome"
-          ? 1
-          : capitalGains
-            ? Math.min(entry.ordinaryLayer / entry.balance, 1)
-            : 0;
-      return {
-        memberIndex: entry.memberIndex,
-        treatment: taxTreatment,
-        capitalGainsTaxRate: entry.source.capitalGainsTaxRate,
-        annuityMonthly:
-          annuity && entry.member.currentAge + years >= annuity.startAge ? annuity.monthly : 0,
-        capitalShare:
-          unlockedTotal > 0 && unlockedSet.has(entry) ? entry.balance / unlockedTotal : 0,
-        gainFraction: capitalGains
-          ? Math.max(1 - entry.basis / entry.balance - ordinaryFraction, 0)
-          : 0,
-        ordinaryFraction,
-      };
-    });
+    const holdings: DrawdownHolding[] = lean
+      ? []
+      : state.map((entry) => {
+          const { annuity, taxTreatment } = entry.source;
+          const capitalGains = taxTreatment === "capitalGains" && entry.balance > 0;
+          const ordinaryFraction =
+            taxTreatment === "ordinaryIncome"
+              ? 1
+              : capitalGains
+                ? Math.min(entry.ordinaryLayer / entry.balance, 1)
+                : 0;
+          return {
+            memberIndex: entry.memberIndex,
+            treatment: taxTreatment,
+            capitalGainsTaxRate: entry.source.capitalGainsTaxRate,
+            annuityMonthly:
+              annuity && entry.member.currentAge + years >= annuity.startAge ? annuity.monthly : 0,
+            capitalShare:
+              unlockedTotal > 0 && unlockedSet.has(entry) ? entry.balance / unlockedTotal : 0,
+            gainFraction: capitalGains
+              ? Math.max(1 - entry.basis / entry.balance - ordinaryFraction, 0)
+              : 0,
+            ordinaryFraction,
+          };
+        });
 
     let drawn = 0;
-    if (years > 0 && years >= retirementYears && unlockedTotal > 0) {
+    let unmet = 0;
+    if (years > 0 && years >= retirementYears) {
       const streamsAnnual = PAYMENT_SOURCES.reduce((sum, band) => sum + streams[band], 0) * 12;
-      const draw = Math.min(Math.max(annualSpending - streamsAnnual, 0), unlockedTotal);
+      const needed = Math.max(annualSpending - streamsAnnual, 0);
+      const draw = Math.min(needed, unlockedTotal);
       drawn = draw;
-      for (const entry of unlocked) {
-        if (entry.balance <= 0) continue;
-        const taken = (draw * entry.balance) / unlockedTotal;
-        entry.basis -= (entry.basis * taken) / entry.balance;
-        entry.ordinaryLayer -= (entry.ordinaryLayer * taken) / entry.balance;
-        entry.balance -= taken;
+      unmet = needed - draw;
+      if (unlockedTotal > 0) {
+        for (const entry of unlocked) {
+          if (entry.balance <= 0) continue;
+          const taken = (draw * entry.balance) / unlockedTotal;
+          entry.basis -= (entry.basis * taken) / entry.balance;
+          entry.ordinaryLayer -= (entry.ordinaryLayer * taken) / entry.balance;
+          entry.balance -= taken;
+        }
       }
     }
 
@@ -350,6 +385,7 @@ function simulate(household: Household, monthlySpending: number): DrawdownYear[]
       streams,
       capitalShare,
       holdings,
+      unmet,
     });
   }
 

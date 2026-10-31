@@ -1,9 +1,35 @@
 import { describe, expect, it } from "vitest";
 
 import { buildTestProfile } from "../test/domainFixtures";
-import { EMPTY_BITUACH_LEUMI, EMPTY_SPOUSE, normalizeProfile } from "./index";
+import {
+  DEFAULT_VOLATILITY_PCT,
+  EMPTY_BITUACH_LEUMI,
+  EMPTY_PROFILE,
+  EMPTY_SPOUSE,
+  normalizeProfile,
+} from "./index";
 
 describe("normalizeProfile", () => {
+  it("gives a profile saved before the Monte Carlo the default market volatility", () => {
+    const { volatilityPct: _volatility, ...legacyAssumptions } = EMPTY_PROFILE.assumptions;
+    const result = normalizeProfile({
+      assumptions: { ...legacyAssumptions, investmentReturnPct: 6 },
+    } as unknown as Parameters<typeof normalizeProfile>[0]);
+    expect(result.assumptions.volatilityPct).toBe(DEFAULT_VOLATILITY_PCT);
+    expect(result.assumptions.investmentReturnPct).toBe(6);
+  });
+
+  it("keeps a saved volatility, including zero, and replaces one that is not a number", () => {
+    const withVolatility = (volatilityPct: unknown) =>
+      normalizeProfile({
+        assumptions: { ...EMPTY_PROFILE.assumptions, volatilityPct },
+      } as unknown as Parameters<typeof normalizeProfile>[0]).assumptions.volatilityPct;
+    expect(withVolatility(18)).toBe(18);
+    expect(withVolatility(0)).toBe(0);
+    expect(withVolatility("lots")).toBe(DEFAULT_VOLATILITY_PCT);
+    expect(withVolatility(null)).toBe(DEFAULT_VOLATILITY_PCT);
+  });
+
   it("adds an empty spouse to a profile saved before couples were supported", () => {
     const { spouse: _spouse, ...legacy } = buildTestProfile({ age: 40 });
     const result = normalizeProfile(legacy);

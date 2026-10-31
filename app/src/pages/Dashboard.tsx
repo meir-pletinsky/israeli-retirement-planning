@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
@@ -8,6 +9,7 @@ import { DataGapsCard } from "../components/DataGapsCard";
 import { EmptyState } from "../components/EmptyState";
 import { FeasibilityCard } from "../components/FeasibilityCard";
 import { KpiCard } from "../components/KpiCard";
+import { formatSuccessPercent } from "../components/riskFormat";
 import { SourceAccessCard } from "../components/SourceAccessCard";
 import { StatusBanner } from "../components/StatusBanner";
 import { TaxCard } from "../components/TaxCard";
@@ -20,13 +22,22 @@ import {
   findDataGaps,
   findEarliestFeasibleRetirementAge,
   projectNetWorth,
+  runMonteCarlo,
+  successBand,
   yearsToRetirement,
 } from "../domain";
+
+const SUCCESS_STATUS = { strong: "positive", fair: "neutral", weak: "negative" } as const;
 
 export function Dashboard() {
   const { t } = useTranslation();
   const { onboarded, profile } = useProfile();
   const currencySymbol = t("common.currencySymbol");
+  // Only the success rate is shown here, so the search for a dependable spending level is skipped.
+  const risk = useMemo(
+    () => runMonteCarlo(profile, "standard", { findConfidentSpending: false }),
+    [profile],
+  );
 
   if (!onboarded) {
     return (
@@ -59,7 +70,7 @@ export function Dashboard() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <KpiCard
           label={t("dashboard.kpi.monthlyIncome")}
           value={`${currencySymbol}${netIncome.netMonthlyIncome.toLocaleString()}`}
@@ -72,6 +83,11 @@ export function Dashboard() {
           label={t("dashboard.kpi.fundingGap")}
           value={hasTarget ? `${currencySymbol}${fundingGap.monthlyGap.toLocaleString()}` : "—"}
           status={hasTarget ? (isShortfall ? "negative" : "positive") : "neutral"}
+        />
+        <KpiCard
+          label={t("dashboard.kpi.successProbability")}
+          value={risk ? formatSuccessPercent(risk.successProbability) : "—"}
+          status={risk ? SUCCESS_STATUS[successBand(risk.successProbability)] : "neutral"}
         />
         <KpiCard
           label={t("dashboard.kpi.yearsToRetirement")}

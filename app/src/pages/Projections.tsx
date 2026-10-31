@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useProfile } from "../app/ProfileContext";
@@ -8,16 +8,19 @@ import { NetIncomeChart } from "../components/charts/NetIncomeChart";
 import { NetWorthChart } from "../components/charts/NetWorthChart";
 import { FeasibilityCard } from "../components/FeasibilityCard";
 import { RetirementTimeline } from "../components/RetirementTimeline";
+import { RiskAnalysisCard } from "../components/RiskAnalysisCard";
 import { ScenarioComparison } from "../components/ScenarioComparison";
 import {
   MAX_RETIREMENT_SEARCH_AGE,
   type IncomeBandKey,
   buildRetirementTimeline,
+  desiredRetirementMonthly,
   estimateIncomeBreakdown,
   estimateNetIncome,
   findEarliestFeasibleRetirementAge,
   isHouseholdActive,
   projectNetWorth,
+  runMonteCarlo,
   spouseAgeAt,
 } from "../domain";
 import type { RetirementScenario } from "../types";
@@ -34,6 +37,14 @@ export function Projections() {
   const [scenario, setScenario] = useState<RetirementScenario>("standard");
   const [view, setView] = useState<"chart" | "table">("chart");
   const currencySymbol = t("common.currencySymbol");
+
+  // The simulation is the slowest calculation here, so it only reruns when the plan or scenario
+  // changes, and a deferred scenario lets the scenario buttons answer before it finishes.
+  const riskScenario = useDeferredValue(scenario);
+  const riskAnalysis = useMemo(() => runMonteCarlo(profile, riskScenario), [profile, riskScenario]);
+  const riskUpdating = riskScenario !== scenario;
+  const desiredMonthly = desiredRetirementMonthly(profile.expenses);
+  const hasTarget = desiredMonthly !== null && desiredMonthly > 0;
 
   const netWorthData = projectNetWorth(profile, scenario);
   const incomeData = estimateIncomeBreakdown(profile, scenario);
@@ -133,6 +144,8 @@ export function Projections() {
           </div>
         )}
       </div>
+
+      <RiskAnalysisCard result={riskAnalysis} hasTarget={hasTarget} updating={riskUpdating} />
 
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <h2 className="mb-2 text-sm font-semibold text-slate-700">
