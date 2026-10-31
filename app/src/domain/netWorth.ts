@@ -1,6 +1,7 @@
 import type { ProfileData } from "../types";
 import { futureValueOfMonthlyContributions, totalMonthlyContribution } from "./contributions";
 import { simulateDrawdownForScenario } from "./drawdown";
+import { desiredRetirementMonthly } from "./expenses";
 import { selfProfileView } from "./household";
 import {
   aggregateCurrentNetWorth,
@@ -59,7 +60,7 @@ export function projectNetWorth(
   profile: ProfileData,
   scenario: RetirementScenario = "standard",
 ): NetWorthPoint[] {
-  return simulateDrawdownForScenario(profile, scenario, profile.expenses.retirementMonthly ?? 0).map(
+  return simulateDrawdownForScenario(profile, scenario, desiredRetirementMonthly(profile.expenses) ?? 0).map(
     ({ age, netWorth }) => ({ age, netWorth: Math.round(netWorth) }),
   );
 }

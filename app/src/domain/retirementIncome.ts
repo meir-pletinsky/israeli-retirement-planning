@@ -55,8 +55,8 @@ interface Spendable {
  * that a household's projected savings can provide from the moment the later
  * spouse retires, fully amortized through the planning horizon. A single
  * person is a household of one. This is independent of the user's desired
- * expenses — see `fundingGap.ts` for the comparison against
- * `expenses.retirementMonthly`.
+ * expenses — see `fundingGap.ts` for the comparison against the desired
+ * retirement spending (`desiredRetirementMonthly`).
  *
  * Uses the standard annuity/amortization formula so the balance reaches
  * (approximately) zero at the end of the planning horizon, rather than a

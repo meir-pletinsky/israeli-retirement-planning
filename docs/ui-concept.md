@@ -101,8 +101,14 @@ Steps, each its own screen on mobile / tab on desktop:
    unrealized gain, capital-gains tax rate). The category selector drives
    which detail section is shown; total value is always derived from
    quantity × current price, never stored redundantly.
-4. **Expenses** — current monthly living expenses, expected retirement
-   monthly expenses (default = same as current, editable).
+4. **Expenses** — what the user expects to spend each month in retirement
+   (in today's money). Today's spending is not asked for: the plan only uses
+   the retirement figure. A switch picks "One total" (a single monthly figure)
+   or "Itemised list" (each expense with an amount, how often it is paid and
+   whether it is essential or discretionary; bills that come every few months
+   or years are spread into a monthly amount). The itemised view shows the
+   planned total, the essential-only "minimum budget", per-category tables and
+   a "Choose from suggestions" picker with about 60 common Israeli expenses.
 5. **Assumptions** — investment return & inflation: three preset chips
    (Conservative/Base/Optimistic) plus an "advanced" expand to override the
    raw percentages.

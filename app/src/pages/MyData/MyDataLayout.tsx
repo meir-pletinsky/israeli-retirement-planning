@@ -6,6 +6,12 @@ import { ActivePersonProvider } from "./ActivePersonProvider";
 import { FieldLegend } from "./FieldLegend";
 import { STEP_ORDER, type StepKey } from "./stepOrder";
 
+/**
+ * The pension and equity steps show the legend inside their account and holding forms. Expenses
+ * has at most one tagged field, whose helper text already explains it.
+ */
+const STEPS_WITHOUT_LEGEND: readonly StepKey[] = ["pension-savings", "equity", "expenses"];
+
 function toCamelCase(key: string): string {
   return key.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
 }
@@ -34,8 +40,7 @@ export function MyDataLayout() {
           currentKey={currentKey}
           onStepClick={(key) => navigate(`/my-data/${key}`)}
         />
-        {/* The pension and equity steps show the legend inside their account and holding forms. */}
-        {currentKey !== "pension-savings" && currentKey !== "equity" && <FieldLegend />}
+        {!STEPS_WITHOUT_LEGEND.includes(currentKey) && <FieldLegend />}
         <Outlet />
       </div>
     </ActivePersonProvider>

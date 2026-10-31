@@ -1,5 +1,6 @@
 import type { PensionAccount, ProfileData } from "../types";
 import { contributionSalaryBase } from "./contributions";
+import { desiredRetirementMonthly } from "./expenses";
 import {
   accountsInPlan,
   aggregateCurrentNetWorth,
@@ -65,7 +66,7 @@ export function findDataGaps(profile: ProfileData): DataGap[] {
   const ownSalary = profile.personal.monthlyGrossSalary ?? 0;
   const spouseSalary = profile.spouse.monthlyGrossSalary ?? 0;
 
-  if ((profile.expenses.retirementMonthly ?? 0) <= 0) add("retirementSpending", "expenses");
+  if ((desiredRetirementMonthly(profile.expenses) ?? 0) <= 0) add("retirementSpending", "expenses");
   if (aggregateCurrentNetWorth(profile) <= 0) add("noSavings", "pension-savings");
   if (profile.personal.maritalStatus === "married" && !isCouple) add("spouseMissing", "personal");
 

@@ -1,5 +1,6 @@
 import type {
   BituachLeumiData,
+  ExpenseItem,
   Gender,
   InvestmentCategory,
   MaritalStatus,
@@ -9,7 +10,12 @@ import type {
   TaxExemptionBasket,
   TaxTrack,
 } from "../types";
-import { EMPTY_ACCOUNT_CONTRIBUTIONS, EMPTY_PROFILE, EMPTY_SPOUSE } from "../types";
+import {
+  EMPTY_ACCOUNT_CONTRIBUTIONS,
+  EMPTY_PROFILE,
+  EMPTY_SPOUSE,
+  createEmptyExpenseItem,
+} from "../types";
 
 /**
  * Builds a `ProfileData` for domain-engine tests, starting from
@@ -61,8 +67,10 @@ export function buildTestProfile(overrides: {
       vestingTranches?: { vestDate?: string; quantity: number; grantPriceUSD?: number }[];
     };
   }[];
-  currentMonthlyExpenses?: number;
+  /** Typed monthly spending in retirement (totals mode). */
   retirementMonthlyExpenses?: number;
+  /** Itemised retirement expenses; setting any switches the profile to detailed mode. */
+  expenseItems?: Partial<ExpenseItem>[];
   /** The retirement ages saved from the Projections comparison. */
   comparisonAges?: [number, number, number];
 }): ProfileData {
@@ -83,8 +91,8 @@ export function buildTestProfile(overrides: {
     otherAssets,
     usdToIlsRate,
     equity = [],
-    currentMonthlyExpenses,
     retirementMonthlyExpenses,
+    expenseItems,
     comparisonAges,
   } = overrides;
 
@@ -216,8 +224,9 @@ export function buildTestProfile(overrides: {
       }),
     },
     expenses: {
-      currentMonthly: currentMonthlyExpenses ?? null,
+      mode: expenseItems ? "detailed" : "totals",
       retirementMonthly: retirementMonthlyExpenses ?? null,
+      items: (expenseItems ?? []).map((item) => ({ ...createEmptyExpenseItem(), ...item })),
     },
     assumptions: {
       preset: "base",

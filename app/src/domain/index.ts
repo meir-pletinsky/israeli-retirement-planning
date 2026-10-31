@@ -4,6 +4,8 @@ export * from "./bituachLeumiRates";
 export * from "./constants";
 export * from "./contributions";
 export * from "./drawdown";
+export * from "./expenseCatalog";
+export * from "./expenses";
 export * from "./feasibility";
 export * from "./fundingGap";
 export * from "./household";

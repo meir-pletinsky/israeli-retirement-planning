@@ -1,5 +1,6 @@
 import type { ProfileData } from "../types";
 import { MAX_RETIREMENT_SEARCH_AGE } from "./constants";
+import { desiredRetirementMonthly } from "./expenses";
 import { calculateFundingGapAtAge } from "./fundingGap";
 import { spouseAgeAt } from "./household";
 import { isHouseholdActive, resolveCurrentAge } from "./profileBasics";
@@ -19,11 +20,11 @@ import type { RetirementFeasibility } from "./types";
  * real return, waiting erodes balances), so a linear scan is the only way to
  * be sure the answer is truly the earliest.
  *
- * Without a positive `expenses.retirementMonthly` there is no target to
+ * Without a positive desired retirement spending (`desiredRetirementMonthly`) there is no target to
  * solve against, so the result is `noTarget` instead of a meaningless "now".
  */
 export function findEarliestFeasibleRetirementAge(profile: ProfileData): RetirementFeasibility {
-  const desiredMonthlyExpenses = profile.expenses.retirementMonthly ?? 0;
+  const desiredMonthlyExpenses = desiredRetirementMonthly(profile.expenses) ?? 0;
   if (desiredMonthlyExpenses <= 0) {
     return { status: "noTarget", earliestAge: null, yearsFromNow: null };
   }

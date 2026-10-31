@@ -17,7 +17,7 @@ describe("hasProfileData", () => {
   it("is true for a spouse, an expense, a changed assumption or comparison ages", () => {
     expect(hasProfileData({ ...EMPTY_PROFILE, spouse: { ...EMPTY_PROFILE.spouse, age: 41 } })).toBe(true);
     expect(
-      hasProfileData({ ...EMPTY_PROFILE, expenses: { ...EMPTY_PROFILE.expenses, currentMonthly: 9000 } }),
+      hasProfileData({ ...EMPTY_PROFILE, expenses: { ...EMPTY_PROFILE.expenses, retirementMonthly: 9000 } }),
     ).toBe(true);
     expect(
       hasProfileData({

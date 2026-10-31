@@ -241,4 +241,83 @@ describe("normalizeProfile", () => {
     } as unknown as Parameters<typeof normalizeProfile>[0]);
     expect(result.pensionSavings.reports).toEqual([]);
   });
+
+  describe("expenses", () => {
+    const withExpenses = (expenses: unknown) =>
+      normalizeProfile({
+        ...buildTestProfile({ age: 40 }),
+        expenses,
+      } as unknown as Parameters<typeof normalizeProfile>[0]).expenses;
+
+    it("opens a profile saved before itemised expenses in one-total mode and drops today's figure", () => {
+      expect(withExpenses({ currentMonthly: 20_000, retirementMonthly: 15_000 })).toEqual({
+        mode: "totals",
+        retirementMonthly: 15_000,
+        items: [],
+      });
+    });
+
+    it("gives a profile with no expenses at all the empty ones", () => {
+      expect(withExpenses(undefined)).toEqual({ mode: "totals", retirementMonthly: null, items: [] });
+    });
+
+    it("keeps a well-formed itemised list", () => {
+      const item = {
+        id: "e1",
+        catalogKey: "arnona",
+        name: "Arnona",
+        category: "housing",
+        amount: 1_800,
+        frequency: "bimonthly",
+        everyYears: null,
+        necessity: "essential",
+        notes: "Tel Aviv",
+      };
+      expect(withExpenses({ mode: "detailed", retirementMonthly: 9_000, items: [item] })).toEqual({
+        mode: "detailed",
+        retirementMonthly: 9_000,
+        items: [item],
+      });
+    });
+
+    it("repairs bad item fields and drops entries that are not items", () => {
+      const { items, mode } = withExpenses({
+        mode: "whatever",
+        items: [
+          null,
+          "text",
+          { name: "no id" },
+          {
+            id: "e2",
+            catalogKey: 5,
+            name: 7,
+            category: "nonsense",
+            amount: "12",
+            frequency: "weekly",
+            everyYears: -2,
+            necessity: "maybe",
+            notes: null,
+          },
+        ],
+      });
+      expect(mode).toBe("totals");
+      expect(items).toEqual([
+        {
+          id: "e2",
+          catalogKey: null,
+          name: "",
+          category: "other",
+          amount: null,
+          frequency: "monthly",
+          everyYears: null,
+          necessity: "essential",
+          notes: "",
+        },
+      ]);
+    });
+
+    it("treats a list that is not a list as empty", () => {
+      expect(withExpenses({ mode: "detailed", items: "nope" }).items).toEqual([]);
+    });
+  });
 });

@@ -242,6 +242,57 @@ describe("verification pack", () => {
   });
 });
 
+describe("verification pack for itemised expenses", () => {
+  const profile = buildTestProfile({
+    age: 40,
+    retirementAge: 65,
+    pensionBalances: [],
+    expenseItems: [
+      { name: "Zorblax Haven rent", notes: "Quibble Street flat", amount: 5_000, category: "housing" },
+      { name: "Glimmerwick gala", amount: 24_000, frequency: "yearly", necessity: "discretionary" },
+    ],
+  });
+  const { pack, redactionKey } = buildVerificationPack({
+    profile,
+    target: { kind: "scenario", scenario: "standard" },
+    evaluatedAt: EVALUATED_AT,
+  });
+  const text = serializeVerificationPack(pack);
+
+  it("holds no item names or notes, and shows the item ids only as aliases", () => {
+    for (const sensitive of ["Zorblax Haven rent", "Quibble Street flat", "Glimmerwick gala"]) {
+      expect(text, sensitive).not.toContain(sensitive);
+    }
+    for (const { id } of profile.expenses.items) expect(text, id).not.toContain(id);
+    const inputs = pack.inputs as ProfileData;
+    expect(inputs.expenses.items.map((item) => item.id)).toEqual(["expense1", "expense2"]);
+    expect(inputs.expenses.items[0].name).toBe(REDACTED_TEXT);
+    expect(inputs.expenses.items[0].notes).toBe(REDACTED_TEXT);
+  });
+
+  it("keeps the numbers and the kinds that set the monthly total", () => {
+    const [rent, gala] = (pack.inputs as ProfileData).expenses.items;
+    expect(rent).toMatchObject({ amount: 5_000, frequency: "monthly", category: "housing", necessity: "essential" });
+    expect(gala).toMatchObject({ amount: 24_000, frequency: "yearly", necessity: "discretionary" });
+    expect((pack.inputs as ProfileData).expenses.mode).toBe("detailed");
+  });
+
+  it("lets the key resolve each alias to the real item", () => {
+    const keyed = new Map(redactionKey.entries.map((entry) => [entry.alias, entry]));
+    expect(keyed.get("expense1")?.id).toBe(profile.expenses.items[0].id);
+    expect(keyed.get("expense1")?.details.name).toBe("Zorblax Haven rent");
+    expect(keyed.get("expense2")?.details.name).toBe("Glimmerwick gala");
+  });
+
+  it("re-checks cleanly and shows the itemised total as the desired spending", () => {
+    expect(pack.selfCheck.issues).toEqual([]);
+    expect(pack.displayed.fundingGap.desiredMonthlyExpenses).toBe(7_000);
+    const step = pack.trace.steps.find((candidate) => candidate.id === "fundingGap/monthlyGap");
+    expect(step?.inputs.desiredMonthlyExpenses.value).toBe(7_000);
+    expect(step?.inputs.desiredMonthlyExpenses.from).toMatch(/^derived:/);
+  });
+});
+
 describe("verification pack for other targets", () => {
   it("traces the primary user retiring at an age, with the spouse moved by the same years", () => {
     const profile = buildTraceCouple();

@@ -154,7 +154,7 @@ Inputs:
 - Current pension fund (Keren Pensia) balance
 - Current Keren Hishtalmut balance
 - Other investment assets (lump sum)
-- Monthly living expenses (current/retirement)
+- Expected monthly spending in retirement (one total, or an itemised list)
 - Assumption set: investment return & inflation (conservative/base/optimistic
   presets, user-editable)
 

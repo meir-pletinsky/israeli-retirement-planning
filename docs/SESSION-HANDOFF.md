@@ -63,6 +63,17 @@ Phases A–K are committed and pushed to
 `main`; Phases L, M, N, O, P, Q, S and T are committed and pushed only if `git log` shows
 them.
 
+- **Expenses tab (O14): DONE, not yet committed.** Only spending *in retirement* is
+  asked for; today's spending and `currentMonthly` are gone (old saved values are
+  dropped by `normalizeExpenses`). A "One total | Itemised list" switch sets
+  `expenses.mode`. Itemised mode: `ExpenseItem`s (one amount, frequency incl. every N
+  years, essential or discretionary, 63 catalog suggestions with no amounts). The
+  plan reads `desiredRetirementMonthly(profile)` (`domain/expenses.ts`), **never
+  `expenses.retirementMonthly` directly**; in itemised mode that is the full itemised
+  total and an empty list gives null. A suggested item keeps an empty `name` so the
+  catalog name follows the active language. Deferred: expenses limited to an age range.
+  Details: O14 in `docs/implementation-progress.md`.
+
 - **Welcome page only for new visitors.** `useProfile().onboarded` is true when the
   saved flag is set **or** the profile differs from `EMPTY_PROFILE` (`hasProfileData`), so
   returning visitors with saved data land on the Dashboard. See "Welcome page for returning
@@ -257,7 +268,7 @@ them.
     field component and `CollapsibleSection` take an `importance` prop); a
     "Which fields matter?" legend (`pages/MyData/FieldLegend.tsx`) heads each
     My Data step (inside the account and holding forms on the Pension and
-    Equity steps, since O13). Untagged fields are optional refinements with a default.
+    Equity steps since O13; not shown on Expenses since O14). Untagged fields are optional refinements with a default.
     The full tier list is in `docs/implementation-progress.md` → Phase K.
   - New data: `PensionAccount.policyNumber` and `fundId` (reference only,
     backfilled `""` in `normalizeProfile()`), and `ProfileData.comparisonAges`

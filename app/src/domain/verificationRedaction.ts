@@ -33,6 +33,10 @@ const ENUM_KEYS = new Set([
   "gender",
   "maritalStatus",
   "preset",
+  "mode",
+  "category",
+  "frequency",
+  "necessity",
 ]);
 
 /** Text fields that hold a calendar date. */
@@ -51,7 +55,7 @@ function keepsText(key: string, value: string): boolean {
   return false;
 }
 
-/** Real id to alias: `acct1`, `holding1`, `tranche1`, numbered in the order they appear in the inputs. */
+/** Real id to alias: `acct1`, `holding1`, `tranche1`, `expense1`, numbered in the order they appear in the inputs. */
 export function buildIdAliases(profile: ProfileData): Map<string, string> {
   const aliases = new Map<string, string>();
   const add = (id: string, prefix: string, counter: number): number => {
@@ -62,6 +66,7 @@ export function buildIdAliases(profile: ProfileData): Map<string, string> {
   let accounts = 1;
   let holdings = 1;
   let tranches = 1;
+  let expenses = 1;
   for (const account of profile.pensionSavings.accounts) {
     accounts = add(account.id, "acct", accounts);
   }
@@ -70,6 +75,9 @@ export function buildIdAliases(profile: ProfileData): Map<string, string> {
     for (const tranche of holding.employerGrantDetails.vestingTranches) {
       tranches = add(tranche.id, "tranche", tranches);
     }
+  }
+  for (const item of profile.expenses.items) {
+    expenses = add(item.id, "expense", expenses);
   }
   return aliases;
 }
@@ -132,7 +140,7 @@ export function redactLog(log: TraceLog, aliases: ReadonlyMap<string, string>): 
 
 export interface RedactionKeyEntry {
   alias: string;
-  kind: "account" | "holding" | "tranche";
+  kind: "account" | "holding" | "tranche" | "expense";
   id: string;
   /** What was redacted for this item: provider, policy number, and so on. Empty when nothing was set. */
   details: Record<string, string>;
@@ -186,6 +194,9 @@ export function buildRedactionKey(
   for (const holding of profile.equity.holdings) {
     add("holding", holding.id, holdingDetails(holding));
     for (const tranche of holding.employerGrantDetails.vestingTranches) add("tranche", tranche.id, {});
+  }
+  for (const item of profile.expenses.items) {
+    add("expense", item.id, present({ name: item.name, notes: item.notes }));
   }
   return {
     format: "retirement-planning-redaction-key",

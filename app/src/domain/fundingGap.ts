@@ -1,4 +1,5 @@
 import type { ProfileData } from "../types";
+import { desiredRetirementMonthly } from "./expenses";
 import { resolveRetirementTiming, retirementTimingAtAge, type RetirementTiming } from "./household";
 import { estimateNetIncomeForTiming } from "./netIncome";
 import {
@@ -28,7 +29,8 @@ export function calculateFundingGapForTiming(
     profile,
     timing,
   );
-  const desiredMonthlyExpenses = profile.expenses.retirementMonthly ?? 0;
+  const desiredSpending = desiredRetirementMonthly(profile.expenses);
+  const desiredMonthlyExpenses = desiredSpending ?? 0;
   const monthlyGap = Math.round(netMonthlyIncome - desiredMonthlyExpenses);
   const status = monthlyGap >= 0 ? "onTrack" : "shortfall";
 
@@ -44,9 +46,13 @@ export function calculateFundingGapForTiming(
         ),
         desiredMonthlyExpenses: input(
           desiredMonthlyExpenses,
-          profile.expenses.retirementMonthly === null
+          desiredSpending === null
             ? fromDerived("no retirement spending entered, counted as 0")
-            : fromProfile("expenses.retirementMonthly"),
+            : profile.expenses.mode === "detailed"
+              ? fromDerived(
+                  "sum of the itemised retirement expenses (amount ÷ months between payments), rounded to a whole shekel",
+                )
+              : fromProfile("expenses.retirementMonthly"),
         ),
       },
       output: monthlyGap,

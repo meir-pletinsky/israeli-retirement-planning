@@ -1,5 +1,6 @@
 import type { ProfileData } from "../types";
 import { MAX_RETIREMENT_SEARCH_AGE } from "./constants";
+import { desiredRetirementMonthly } from "./expenses";
 import { buildHousehold, retirementTimingShiftedTo } from "./household";
 import { estimateNetIncomeForHousehold } from "./netIncome";
 import { resolveCurrentAge, resolveRetirementAge } from "./profileBasics";
@@ -82,7 +83,7 @@ export function compareRetirementAge(profile: ProfileData, age: number): Retirem
   const household = buildHousehold(profile, timing);
   const income = estimateHouseholdRetirementIncome(household);
   const net = estimateNetIncomeForHousehold(household);
-  const desiredMonthlyExpenses = profile.expenses.retirementMonthly ?? 0;
+  const desiredMonthlyExpenses = desiredRetirementMonthly(profile.expenses) ?? 0;
   const hasTarget = desiredMonthlyExpenses > 0;
   const monthlyGap = hasTarget ? Math.round(net.netMonthlyIncome - desiredMonthlyExpenses) : null;
 

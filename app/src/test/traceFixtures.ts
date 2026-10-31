@@ -88,7 +88,6 @@ export function buildTraceCouple(): ProfileData {
         },
       },
     ],
-    currentMonthlyExpenses: 25_000,
     retirementMonthlyExpenses: 18_000,
   });
 }

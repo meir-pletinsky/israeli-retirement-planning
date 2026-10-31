@@ -367,9 +367,69 @@ export interface EquityData {
   usdToIlsRateDate: string | null;
 }
 
+/** Where a household expense belongs, for grouping the itemised list. */
+export const EXPENSE_CATEGORIES = [
+  "housing",
+  "food",
+  "transport",
+  "health",
+  "communication",
+  "lifestyle",
+  "travel",
+  "family",
+  "financial",
+  "other",
+] as const;
+export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
+
+/** How often an expense is paid. `everyYears` uses the item's `everyYears` count. */
+export const EXPENSE_FREQUENCIES = ["monthly", "bimonthly", "quarterly", "yearly", "everyYears"] as const;
+export type ExpenseFrequency = (typeof EXPENSE_FREQUENCIES)[number];
+
+/** Essential items make the minimum budget; discretionary ones are added on top for the desired budget. */
+export type ExpenseNecessity = "essential" | "discretionary";
+
+/** One line of the itemised retirement budget. */
+export interface ExpenseItem {
+  id: string;
+  /** Key of the built-in suggestion this item came from; null for items the user made up. */
+  catalogKey: string | null;
+  name: string;
+  category: ExpenseCategory;
+  /** What one payment is expected to cost in retirement, in today's money. */
+  amount: number | null;
+  frequency: ExpenseFrequency;
+  /** Years between payments; used only when `frequency` is `everyYears`. */
+  everyYears: number | null;
+  necessity: ExpenseNecessity;
+  notes: string;
+}
+
+export function createEmptyExpenseItem(): ExpenseItem {
+  return {
+    id: createId(),
+    catalogKey: null,
+    name: "",
+    category: "other",
+    amount: null,
+    frequency: "monthly",
+    everyYears: null,
+    necessity: "essential",
+    notes: "",
+  };
+}
+
+/**
+ * `totals`: the user types one monthly figure. `detailed`: the figure is the sum of `items`, each
+ * converted to a monthly amount. The figure typed for `totals` is kept when the user switches.
+ */
+export type ExpensesMode = "totals" | "detailed";
+
 export interface ExpensesData {
-  currentMonthly: number | null;
+  mode: ExpensesMode;
+  /** The typed monthly spending in retirement, in today's money. Used only in `totals` mode. */
   retirementMonthly: number | null;
+  items: ExpenseItem[];
 }
 
 /** Inputs for the Bituach Leumi (National Insurance) old-age pension estimate. */
@@ -444,7 +504,7 @@ export const EMPTY_PROFILE: ProfileData = {
   bituachLeumi: { ...EMPTY_BITUACH_LEUMI },
   pensionSavings: { accounts: [], reports: [], otherAssets: null },
   equity: { holdings: [], usdToIlsRate: null, usdToIlsRateDate: null },
-  expenses: { currentMonthly: null, retirementMonthly: null },
+  expenses: { mode: "totals", retirementMonthly: null, items: [] },
   assumptions: { preset: "base", ...ASSUMPTION_PRESETS.base },
   comparisonAges: null,
 };
@@ -479,6 +539,46 @@ function normalizeReports(value: unknown): ImportedReport[] {
   });
 }
 
+function finiteOrNull(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function oneOf<T extends string>(options: readonly T[], value: unknown, fallback: T): T {
+  return options.includes(value as T) ? (value as T) : fallback;
+}
+
+/**
+ * Reads the expenses of a possibly hand-edited or older profile. Anything unknown is dropped, which
+ * also discards the "current monthly" figure that older profiles saved and nothing reads.
+ */
+function normalizeExpenses(value: unknown): ExpensesData {
+  const saved = typeof value === "object" && value !== null ? (value as Partial<ExpensesData>) : {};
+  const items = Array.isArray(saved.items) ? saved.items : [];
+  return {
+    mode: saved.mode === "detailed" ? "detailed" : "totals",
+    retirementMonthly: finiteOrNull(saved.retirementMonthly),
+    items: items.flatMap((entry): ExpenseItem[] => {
+      if (typeof entry !== "object" || entry === null) return [];
+      const item = entry as Partial<ExpenseItem>;
+      if (typeof item.id !== "string" || item.id === "") return [];
+      const everyYears = finiteOrNull(item.everyYears);
+      return [
+        {
+          id: item.id,
+          catalogKey: typeof item.catalogKey === "string" && item.catalogKey !== "" ? item.catalogKey : null,
+          name: typeof item.name === "string" ? item.name : "",
+          category: oneOf(EXPENSE_CATEGORIES, item.category, "other"),
+          amount: finiteOrNull(item.amount),
+          frequency: oneOf(EXPENSE_FREQUENCIES, item.frequency, "monthly"),
+          everyYears: everyYears !== null && everyYears > 0 ? everyYears : null,
+          necessity: item.necessity === "discretionary" ? "discretionary" : "essential",
+          notes: typeof item.notes === "string" ? item.notes : "",
+        },
+      ];
+    }),
+  };
+}
+
 function isComparisonAges(value: unknown): value is [number, number, number] {
   return (
     Array.isArray(value) &&
@@ -508,7 +608,7 @@ export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined
       ...parsed?.taxExemptionBasket,
     },
     bituachLeumi: { ...EMPTY_PROFILE.bituachLeumi, ...parsed?.bituachLeumi },
-    expenses: { ...EMPTY_PROFILE.expenses, ...parsed?.expenses },
+    expenses: normalizeExpenses(parsed?.expenses),
     assumptions: { ...EMPTY_PROFILE.assumptions, ...parsed?.assumptions },
     comparisonAges: isComparisonAges(parsed?.comparisonAges) ? parsed.comparisonAges : null,
   };

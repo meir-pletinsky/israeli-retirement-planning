@@ -8,6 +8,7 @@ import {
   COMPARISON_MIN_AGE,
   type RetirementAgeOutcome,
   compareRetirementAge,
+  desiredRetirementMonthly,
   initialComparisonAges,
   isHouseholdActive,
   isValidComparisonAge,
@@ -48,7 +49,8 @@ export function ScenarioComparison({ profile }: ScenarioComparisonProps) {
     age,
     outcome: isValidComparisonAge(profile, age) ? compareRetirementAge(profile, age) : null,
   }));
-  const noTarget = (profile.expenses.retirementMonthly ?? 0) <= 0;
+  const desiredMonthly = desiredRetirementMonthly(profile.expenses);
+  const noTarget = (desiredMonthly ?? 0) <= 0;
   const chartData = columns.flatMap(({ outcome }, index) =>
     outcome && columns.findIndex((column) => column.age === outcome.retirementAge) === index
       ? [{ age: outcome.retirementAge, netMonthly: outcome.netMonthlyIncome }]
@@ -203,7 +205,7 @@ export function ScenarioComparison({ profile }: ScenarioComparisonProps) {
         <div className="mt-4">
           <ComparisonChart
             data={chartData}
-            target={noTarget ? null : (profile.expenses.retirementMonthly ?? null)}
+            target={noTarget ? null : desiredMonthly}
             planAge={planAge}
             currencySymbol={currencySymbol}
             netLabel={t("projections.compare.net")}

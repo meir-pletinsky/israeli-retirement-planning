@@ -849,8 +849,49 @@ ticks.
       Data steps (Personal, Expenses, Assumptions) keep the card under the
       stepper. No new texts. Tests: `SummaryTables.test.tsx` (no legend on the
       step page, folded by default, opens and closes, outside the scrolling part,
-      closed again on reopening; both forms). Behavior change: none to any
       calculation or stored data.
+
+- [x] O14. **Expenses tab: retirement spending, as one total or an itemised
+      list.** The user decided that today's spending is not needed, only what
+      they expect to spend in retirement ("I don't think we need today expenses
+      for calculations"). Research input: `israel_retirement_household_expenses.md`.
+      *Model:* `ExpensesData = { mode: "totals" | "detailed", retirementMonthly,
+      items }`. The old `currentMonthly` field is gone from the type and the
+      screen; `normalizeExpenses` drops it from old saved profiles and repairs
+      bad items. An `ExpenseItem` has id, optional `catalogKey`, name, category
+      (10), one amount (expected cost in retirement, today's money), frequency
+      (monthly, bimonthly, quarterly, yearly, every N years), `everyYears`,
+      necessity (essential or discretionary) and notes.
+      *Domain:* `domain/expenses.ts` (`monthsBetweenPayments`,
+      `monthlyEquivalent`, `expenseTotals` = essential + discretionary + total,
+      `desiredRetirementMonthly`). Totals mode uses `retirementMonthly`; detailed
+      mode uses the full itemised total (essential + discretionary), rounded; an
+      empty list gives null and does NOT fall back to the typed figure. The
+      essential-only total is shown as the "minimum budget" for information
+      only. All consumers (`feasibility`, `fundingGap`, `scenarioComparison`,
+      `netWorth`, `inputGuidance`, `ScenarioComparison`) now call
+      `desiredRetirementMonthly`. `domain/expenseCatalog.ts` holds 63
+      suggestions with no amounts (typical frequency and necessity) and
+      `itemFromSuggestion`; a suggested item keeps an empty name, so the screen
+      shows the catalog name in the active language (typing a name overrides it).
+      *UI:* `ExpensesStep` (mode switch; totals field, or the planned-spending
+      box, toolbar and per-category `ExpenseItemsTable`s), `ExpenseItemForm`,
+      `ExpenseSuggestionsModal` (tick rows, optional amount, items already in
+      the list are disabled), `expenseLabels.ts`. The typed total is kept when
+      switching modes and ignored in itemised mode. The step shows no "Which fields
+      matter?" card (it has at most one tagged field, explained by its helper text),
+      and the mode question is a block label above the switch. Not done (deferred): items
+      that only apply in an age range.
+      *Verification pack:* item names and notes are redacted (aliases
+      `expense1…`); `catalogKey` is redacted too; the funding-gap trace input
+      comes from `fromDerived` in itemised mode.
+      Texts: `myData.steps.expenses.*` in en, he and ru (plural forms for
+      "every N years"); `currentMonthly` removed.
+      Tests: `expenses.test.ts`, `expenseLocales.test.ts` (catalog and enum keys
+      exist in all three languages), `normalizeProfile.test.ts`,
+      `verificationPack.test.ts`, `ExpensesStep.test.tsx`. Suite: 955 passed, 1
+      skipped. Behavior change: the plan no longer reads the old current-expenses
+      figure (it was only used as a fallback before).
 
 ## Phase P — Calculation trace and verification pack
 The user asked for a way to validate the app's calculations: "traces of all
