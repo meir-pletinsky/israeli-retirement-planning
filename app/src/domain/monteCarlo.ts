@@ -1,8 +1,5 @@
 import { DEFAULT_VOLATILITY_PCT, MAX_VOLATILITY_PCT, type ProfileData } from "../types";
-import { simulateHouseholdDrawdown } from "./drawdown";
-import { desiredRetirementMonthly } from "./expenses";
-import { buildHousehold, resolveRetirementTiming, type Household } from "./household";
-import { estimateNetIncomeForHousehold } from "./netIncome";
+import { evaluatePaths, findLargestGrossSpending, prepareSpendingTest } from "./spendingTest";
 import type { RetirementScenario } from "./types";
 
 /**
@@ -47,16 +44,6 @@ export function successBand(probability: number): SuccessBand {
 export function successPercent(probability: number): number {
   return Math.floor(Math.min(Math.max(probability, 0), 1) * 100 + 1e-9);
 }
-
-/** Unfunded spending below this (shekels a year, today's money) is rounding, not a shortfall. */
-const UNMET_TOLERANCE = 1;
-
-const BISECTION_STEPS = 14;
-const MAX_DOUBLINGS = 8;
-const MIN_SEARCH_CEILING = 1000;
-/** The search stops once the bracket is this narrow (0.5%, or ₪10 a month). */
-const SEARCH_PRECISION = 0.005;
-const MIN_SEARCH_GAP = 10;
 
 /** Mulberry32: a small, fast seeded generator of numbers in [0, 1). */
 export function createRandom(seed: number): () => number {
@@ -162,85 +149,6 @@ export interface MonteCarloOptions {
   findConfidentSpending?: boolean;
 }
 
-interface Evaluation {
-  successes: number;
-  /** The primary user's age at each failing path's first shortfall. */
-  shortfallAges: number[];
-  /** Net worth by year, then by path; only when asked for. */
-  netWorth: Float64Array[] | null;
-}
-
-/**
- * Replays the plan at `grossMonthly` on every path. With `maxFailures` it
- * stops as soon as more paths than that have failed, so the counts are then
- * partial; only the search uses that, and only to compare against the limit.
- */
-function evaluate(
-  household: Household,
-  grossMonthly: number,
-  ratesByPath: readonly (readonly number[])[],
-  keepNetWorth: boolean,
-  maxFailures = Number.POSITIVE_INFINITY,
-): Evaluation {
-  const years = Math.floor(household.horizonYears) + 1;
-  const netWorth = keepNetWorth
-    ? Array.from({ length: years }, () => new Float64Array(ratesByPath.length))
-    : null;
-  const shortfallAges: number[] = [];
-  let successes = 0;
-
-  for (let path = 0; path < ratesByPath.length && shortfallAges.length <= maxFailures; path += 1) {
-    const rows = simulateHouseholdDrawdown(household, grossMonthly, {
-      yearlyRates: ratesByPath[path],
-      lean: true,
-    });
-    let shortfallAge: number | null = null;
-    for (const row of rows) {
-      if (shortfallAge === null && row.unmet > UNMET_TOLERANCE) shortfallAge = row.age;
-      if (netWorth) netWorth[row.yearsFromNow][path] = row.netWorth;
-    }
-    if (shortfallAge === null) successes += 1;
-    else shortfallAges.push(shortfallAge);
-  }
-
-  return { successes, shortfallAges, netWorth };
-}
-
-/**
- * The largest gross monthly spending that succeeds on at least
- * `MONTE_CARLO_CONFIDENCE` of the paths. Success only falls as spending
- * rises, so the search halves a bracket around it.
- */
-function findConfidentGrossSpending(
-  household: Household,
-  ratesByPath: readonly (readonly number[])[],
-  startingCeiling: number,
-): number {
-  const paths = ratesByPath.length;
-  let maxFailures = paths;
-  while (maxFailures > 0 && (paths - maxFailures) / paths < MONTE_CARLO_CONFIDENCE) maxFailures -= 1;
-
-  const confident = (gross: number) =>
-    evaluate(household, gross, ratesByPath, false, maxFailures).shortfallAges.length <= maxFailures;
-
-  let low = 0;
-  let high = Math.max(startingCeiling, MIN_SEARCH_CEILING);
-  for (let doublings = 0; doublings < MAX_DOUBLINGS && confident(high); doublings += 1) {
-    low = high;
-    high *= 2;
-  }
-  for (
-    let step = 0;
-    step < BISECTION_STEPS && high - low > Math.max(low * SEARCH_PRECISION, MIN_SEARCH_GAP);
-    step += 1
-  ) {
-    const middle = (low + high) / 2;
-    if (confident(middle)) low = middle;
-    else high = middle;
-  }
-  return low;
-}
-
 /**
  * Runs the Monte Carlo for the household that retires as `scenario` says.
  * Returns null when there is nothing to test: no desired retirement spending
@@ -252,22 +160,15 @@ export function runMonteCarlo(
   options: MonteCarloOptions = {},
 ): MonteCarloResult | null {
   const { paths = MONTE_CARLO_PATHS, seed = MONTE_CARLO_SEED, findConfidentSpending = true } = options;
-  const targetNetMonthly = desiredRetirementMonthly(profile.expenses);
-  if (targetNetMonthly === null || targetNetMonthly <= 0) return null;
-
-  const household = buildHousehold(profile, resolveRetirementTiming(profile, scenario));
-  const horizonYears = Math.floor(household.horizonYears);
-  if (household.retirementYears >= horizonYears) return null;
-
-  const net = estimateNetIncomeForHousehold(household);
-  const taxShare = Math.min(Math.max(net.effectiveTaxRate, 0), 0.9);
-  const targetGrossMonthly = targetNetMonthly / (1 - taxShare);
+  const test = prepareSpendingTest(profile, scenario);
+  if (!test) return null;
+  const { household, horizonYears, targetNetMonthly, targetGrossMonthly, taxShare } = test;
 
   const volatility = resolveVolatility(profile.assumptions.volatilityPct);
   const shocks = standardNormalShocks(paths, horizonYears, seed);
   const ratesByPath = shocks.map((row) => yearlyRatesFromShocks(row, household.rate, volatility));
 
-  const { successes, shortfallAges, netWorth } = evaluate(household, targetGrossMonthly, ratesByPath, true);
+  const { successes, shortfallAges, netWorth } = evaluatePaths(household, targetGrossMonthly, ratesByPath, true);
 
   const primaryAge = household.members[0].currentAge;
   const fan = (netWorth ?? []).map((column, yearsFromNow): MonteCarloFanPoint => {
@@ -283,10 +184,11 @@ export function runMonteCarlo(
 
   let confidentNetMonthly: number | null = null;
   if (findConfidentSpending) {
-    const gross = findConfidentGrossSpending(
+    const gross = findLargestGrossSpending(
       household,
       ratesByPath,
-      Math.max(targetGrossMonthly, net.grossMonthlyIncome) * 2,
+      test.searchCeiling,
+      MONTE_CARLO_CONFIDENCE,
     );
     confidentNetMonthly = Math.floor((gross * (1 - taxShare)) / 10) * 10;
   }

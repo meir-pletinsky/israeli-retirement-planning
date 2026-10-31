@@ -347,4 +347,123 @@ describe("Projections", () => {
       expect(within(card).queryByText(/Chance your desired spending lasts/)).not.toBeInTheDocument();
     });
   });
+
+  describe("historical backtest", () => {
+    const plan = (retirementMonthlyExpenses: number) =>
+      buildTestProfile({
+        age: 40,
+        retirementAge: 67,
+        gender: "male",
+        monthlyGrossSalary: 20_000,
+        investmentReturnPct: 5,
+        inflationPct: 2,
+        pensionBalances: [900_000, 300_000],
+        retirementMonthlyExpenses,
+      });
+
+    async function renderBacktest(retirementMonthlyExpenses: number) {
+      await saveProfileToDb(plan(retirementMonthlyExpenses));
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+      return screen.findByRole("region", { name: "Historical backtest" });
+    }
+
+    const fundedOf = (card: HTMLElement) => {
+      const match = within(card)
+        .getByText(/^\d+ of \d+$/)
+        .textContent!.match(/^(\d+) of (\d+)$/)!;
+      return { funded: Number(match[1]), total: Number(match[2]) };
+    };
+
+    // Year ranges are wrapped in invisible direction marks; text matchers look through them.
+    const BIDI_MARKS = /[\u2066\u2069]/g;
+    const reads = (pattern: RegExp) => (content: string) => pattern.test(content.replace(BIDI_MARKS, ""));
+
+    it("counts the starting years that fund the desired spending and finds the spending they all fund", async () => {
+      const card = await renderBacktest(4_000);
+      expect(within(card).getByText("Starting years that fund your spending to age 90")).toBeInTheDocument();
+      expect(within(card).getByText("49 of 49")).toBeInTheDocument();
+      expect(within(card).getByText("No starting year ran short.")).toBeInTheDocument();
+      expect(
+        within(card).getByText("Monthly spending that every starting year could fund"),
+      ).toBeInTheDocument();
+      expect(within(card).getByText(/Your goal is ₪4,000 a month/)).toBeInTheDocument();
+      expect(
+        within(card).getByText(reads(/^Hardest start: \d{4}, replaying \d{4}–\d{4}\. It still left ₪/)),
+      ).toBeInTheDocument();
+    });
+
+    it("lists the starting years that ran short and when the money first runs out", async () => {
+      const card = await renderBacktest(20_000);
+      expect(within(card).getByText(reads(/^Starting years that ran short: 19\d\d/))).toBeInTheDocument();
+      expect(within(card).getByText(/Spending first goes unfunded at age \d+\./)).toBeInTheDocument();
+      expect(fundedOf(card).funded).toBeLessThan(fundedOf(card).total);
+    });
+
+    it("explains itself in a section that starts closed and says it is US history", async () => {
+      const card = await renderBacktest(4_000);
+      const details = within(card).getByText("How this works").closest("details");
+      expect(details).not.toBeNull();
+      expect(details).not.toHaveAttribute("open");
+      expect(within(card).getByText(/This is US history in US purchasing power/)).toBeInTheDocument();
+      expect(within(card).getByText(/Aswath Damodaran/)).toBeInTheDocument();
+    });
+
+    it("starts at 60% stocks and replays again when the mix changes", async () => {
+      const user = userEvent.setup();
+      const card = await renderBacktest(20_000);
+      const mix = within(card).getByLabelText("Stocks in the portfolio") as HTMLSelectElement;
+      expect(mix.value).toBe("60");
+      expect(within(card).getByRole("option", { name: "60% stocks, 40% bonds" })).toBeInTheDocument();
+      const before = fundedOf(card).funded;
+
+      await user.selectOptions(mix, "0");
+      await waitFor(() => expect(fundedOf(card).funded).not.toBe(before));
+      expect(within(card).getByText(/replaying/)).toBeInTheDocument();
+    });
+
+    it("can replay the history shifted to the plan's own return, which is lower here", async () => {
+      const user = userEvent.setup();
+      const card = await renderBacktest(14_000);
+      const asHappened = within(card).getByRole("radio", { name: /As they happened/ });
+      const matched = within(card).getByRole("radio", { name: /Matched to my plan/ });
+      expect(asHappened).toBeChecked();
+      const before = fundedOf(card).funded;
+
+      await user.click(matched);
+      await waitFor(() => expect(matched).toBeChecked());
+      await waitFor(() => expect(fundedOf(card).funded).toBeLessThan(before));
+    });
+
+    it("compares the plan's return with what the mix returned", async () => {
+      const card = await renderBacktest(4_000);
+      expect(
+        within(card).getByText(
+          reads(/Your plan assumes \d+\.\d% a year after inflation\. This portfolio averaged \d+\.\d% over 1928–20\d\d\./),
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it("keeps each year range reading left to right inside a sentence", async () => {
+      const card = await renderBacktest(20_000);
+      const sentence = within(card).getByText(/^Starting years that ran short/).textContent!;
+      expect(sentence).toMatch(/\u2066\d{4}(–\d{4})?\u2069/);
+      const comparison = within(card).getByText(/This portfolio averaged/).textContent!;
+      expect(comparison).toMatch(/\u20661928–20\d\d\u2069/);
+    });
+
+    it("links to Expenses when there is no target", async () => {
+      await saveProfileToDb(buildTestProfile({ age: 55, retirementAge: 65 }));
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      const card = await screen.findByRole("region", { name: "Historical backtest" });
+      expect(within(card).getByRole("link", { name: "Add expenses" })).toHaveAttribute(
+        "href",
+        "/my-data/expenses",
+      );
+      expect(within(card).queryByLabelText("Stocks in the portfolio")).not.toBeInTheDocument();
+      expect(within(card).queryByText(/Starting years that fund/)).not.toBeInTheDocument();
+    });
+  });
 });

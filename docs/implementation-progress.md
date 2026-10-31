@@ -28,7 +28,8 @@ per-category equity tables as Phase S (Phase R is the Bridge Planner design), an
 the daily stock price files with ticker suggestions and price autofill as Phase T, and the
 Monte Carlo risk analysis (the first Phase 4 piece) as Phase V, and the household dashboard
 KPIs (retirement snapshot and the retire-at checks) as Phase W, and live Israeli inflation
-from the Central Bureau of Statistics as Phase X.
+from the Central Bureau of Statistics as Phase X, and the historical backtest (US market
+history replayed on the plan) as Phase Y.
 
 ## Phase A — Project setup & infra
 
@@ -1112,7 +1113,7 @@ classes, an opt-out for lookups in Settings. All in `docs/stock-price-data-desig
 The plan assumes the same real return every year, so it can say "you are on track" while a
 bad run of markets would break it. The Monte Carlo replays the plan on 2,000 random return
 sequences and reports how often the desired retirement spending lasts to the planning
-horizon. Phase 4 has more pieces: a historical projection mode (not started) and live
+horizon. Phase 4 has more pieces: a historical projection mode (done as Phase Y) and live
 external data (exchange rates and, as Phase X, Israeli inflation are done). (The full
 dashboard KPIs were built next, as Phase W.)
 
@@ -1177,8 +1178,8 @@ confident spending of ₪4,750 and a median shortfall at 82.
 
 Known limits: one volatility for every source (no equity/bond split, no correlation); no
 sequence-of-inflation risk; no tax per path; the market model is lognormal, so it has no
-crashes beyond what the volatility implies; a historical mode (real return history) would
-replace the random draws and is the next Phase 4 piece.
+crashes beyond what the volatility implies; the historical mode (real return history) is
+the separate Phase Y card.
 
 ## Phase W — Dashboard retirement KPIs (Phase 4, part 2)
 
@@ -1285,9 +1286,82 @@ Known limits: the figures are reference only (the projection does not use the hi
 the table must be refreshed by hand once a year; one series (the general index, id 120010),
 so no housing or food sub-indices.
 
-The historical projection mode is the next Phase 4 piece. It can reuse this feed for the
-inflation half; it still needs a market-return history (US returns are bundled easily, but
-need the shekel rate and the CBS index to become real shekel returns).
+The historical projection mode was the next Phase 4 piece; it is now Phase Y, below. It used
+the US market history instead of this feed, so the CBS index is still reference only.
+
+## Phase Y — Historical backtest (Phase 4, part 4)
+
+The Monte Carlo draws random returns. This card instead replays the plan on what US stocks and
+bonds actually returned, starting in every year from 1928, so the user sees real histories such
+as the 1929 crash, the 1966–1981 stagnation and 2008. It sits on Projections right after the
+risk analysis.
+
+The user chose the data: **US stocks and bonds, 1928–2025, in real terms** (over a
+shekel-converted history from 1961). Everything else below is my judgement call and the user
+has not yet confirmed it.
+
+Decisions:
+- **Source.** Aswath Damodaran's `histretSP` table (S&P 500 with dividends, 10-year US
+  Treasury, yearly, with the US CPI inflation). Bundled as 98 rows in
+  `src/history/usMarketHistory.ts`: `[year, stocks %, bonds %, inflation %]`. No request is
+  made. There is no refresh script (that would need a spreadsheet reader as a dependency),
+  so the file is extended by hand once a year, in January: append one row.
+- **Real return** = `(1 + nominal) / (1 + inflation) − 1`, per year, for the chosen mix.
+- **Mix.** Stocks in 10% steps from 0 to 100, default 60%, rebalanced every year. It is card
+  state, not saved in the profile.
+- **Windows.** A window starts in each year that has a full run of history. For a plan that
+  draws to 90 from age 40 (50 years) there are 98 − 50 + 1 = 49 windows (1928–1976 starts).
+  Year 1 of the plan gets the start year's return, year 2 the next, and so on, to the same
+  planning horizon as everywhere else (age 90, at most 72 years, so at least 27 windows; the
+  code still refuses fewer than 10).
+- **Two bases.** "As they happened" uses the history as it was. "Matched to my plan" shifts
+  every year by one constant so the history's average equals the plan's own real return; it
+  keeps the ups and downs and isolates the order of returns (sequence risk) from the level.
+- **Success** is the Monte Carlo's test: every drawing year's unmet spending is at most ₪1.
+  The shared code moved to `domain/spendingTest.ts` (`prepareSpendingTest`, `evaluatePaths`,
+  `findLargestGrossSpending`); `monteCarlo.ts` now imports it and its tests are unchanged.
+- **Survivable spending** = the largest monthly spending that every window funds, found
+  with the Monte Carlo's search at confidence 100%, converted to after tax and floored to
+  ₪10. It can differ by about ₪30 between target levels because the search bracket depends on
+  the starting ceiling.
+- **Result is "what happened", not a probability.** Neighbouring windows share most of their
+  years, so the card shows "X of N starting years" and lists the failed ranges ("1929–1937,
+  1965–1969"), the hardest start, and the plan's return against the history's average.
+- **Chart.** One thin line per start year (blue when funded, red when short), the hardest
+  start thick and dark red, and a dashed line at the retirement age. No tooltip.
+- **RTL.** Year ranges inserted into sentences are wrapped in left-to-right isolates
+  (U+2066 … U+2069) so Hebrew shows 1946–1981, not 1981–1946. The "X of N" figure is left to
+  flow naturally, because a left-to-right wrapper around a Hebrew word moves the word to the
+  end.
+
+- [x] Y1. **Shared test** (`domain/spendingTest.ts`), extracted from `monteCarlo.ts` with no
+      behaviour change (`monteCarlo.test.ts` and `dashboardKpis.test.ts` still pass).
+- [x] Y2. **Data and maths** (`history/usMarketHistory.ts`, `history/returns.ts`): the
+      bundled table, `realReturn`, `realReturnsForMix`, `geometricMean`, `rebaseReturns`.
+      14 tests (no gaps from 1928, plausible percentages, the 1931, 1974 and 2022 bad years,
+      the real-return formula, the mix, the geometric mean and the rebasing).
+- [x] Y3. **Domain** (`domain/historicalBacktest.ts`): `runHistoricalBacktest`,
+      `groupConsecutiveYears`. 19 tests (window count, a window against a direct
+      simulation, success counts as spending rises, both bases, the worst window, the
+      survivable spending, no target and no drawing years). Couples are not tested here; the
+      engines underneath are covered by the household and Monte Carlo tests.
+- [x] Y4. **UI** (`HistoricalBacktestCard`, `charts/BacktestChart`, `charts/backtestColours`),
+      wired into `Projections` after `RiskAnalysisCard`. The three inputs (scenario, mix,
+      basis) are deferred separately, like the risk card.
+- [x] Y5. **Texts** in en, he and ru (`projections.history.*`);
+      `i18n/historyLocales.test.ts` checks keys and `{{placeholders}}`.
+- [x] Y6. **Component tests** in `Projections.test.tsx` (funded count, survivable spending,
+      failed years, the mix and basis controls, closed explanation, isolated ranges, the
+      no-target prompt).
+- [x] Y7. **Browser check** on a real saved profile in English, Hebrew (RTL) and Russian.
+      It found two Hebrew problems, both fixed: "63 מתוך 63" had its word pushed to the end,
+      and the year ranges read backwards. An "100% Your spending held up…" line was also
+      dropped as redundant. The wide two-column layout was not viewed; it reuses the risk
+      card's grid classes. 1149 passed and 1 skipped in all.
+
+Known limits: US history in US purchasing power (the shekel, Israeli inflation and Israeli
+markets are not modelled); two asset classes only; before fees and tax; overlapping windows;
+the table needs a new row each January.
 
 ## Welcome page for returning visitors
 

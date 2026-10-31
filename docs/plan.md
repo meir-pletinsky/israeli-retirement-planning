@@ -283,7 +283,11 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
   seeded random return sequences, success probability, the spending that holds up in 90%
   of them, and a 10th/50th/90th percentile fan chart on Projections plus a Dashboard KPI.
   The market volatility is one editable assumption (default 12%).
-- Historical projection mode using real CPI/market-return history
+- **Historical backtest — done** (Phase Y in `docs/implementation-progress.md`): the plan is
+  replayed on US stock and bond returns in real terms from every start year since 1928 (a
+  60% stock mix by default, "as they happened" or shifted to the plan's own return), on
+  Projections. The data is a bundled table, so no request is made. Israeli (shekel)
+  market history is not modelled.
 - **Live external data integrations — partly done** (fetch-then-fallback): exchange
   rates (live, Frankfurter), stock prices (published with the app, Phase T) and Israeli
   inflation (live from the Central Bureau of Statistics with a bundled table, Phase X in

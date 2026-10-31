@@ -61,12 +61,31 @@ and **Phase S (simple purchase / grant entry, per-category equity tables) is don
 and **Phase T (stock price files, ticker suggestions and price autofill) is done**,
 and **Phase V (Monte Carlo risk analysis, the first Phase 4 piece) is done**,
 and **Phase W (household dashboard KPIs, the second Phase 4 piece) is done**,
-and **Phase X (live Israeli inflation, the third Phase 4 piece) is done**.
+and **Phase X (live Israeli inflation, the third Phase 4 piece) is done**,
+and **Phase Y (historical backtest, the fourth Phase 4 piece) is done**.
 Phases A–K are committed and pushed to
-`main`; Phases L, M, N, O, P, Q, S, T, V, W and X are committed and pushed only if `git log`
+`main`; Phases L, M, N, O, P, Q, S, T, V, W, X and Y are committed and pushed only if `git log`
 shows them.
 
-- **Phase X (live Israeli inflation): DONE, not yet committed.** Assumptions → Advanced shows
+- **Phase Y (historical backtest): DONE, not yet committed.** Projections has a "Historical
+  backtest" card right after the risk analysis. It replays the plan on real US stock and bond
+  returns (S&P 500 with dividends, 10-year Treasuries, after US inflation, 1928–2025) starting
+  in each year that has a full run of history (49 windows for a 40-year-old), and shows "X of N
+  starting years fund your spending", the monthly spending every start year could fund, the
+  failed start-year ranges, the hardest start, and a net-worth line per start year. Controls
+  (unsaved card state): stock share 0–100% in 10% steps (default 60%) and "as they happened"
+  or "matched to my plan" (the same ups and downs shifted to the plan's own real return).
+  Domain: `domain/historicalBacktest.ts`; the pass/fail test and the spending search moved to
+  `domain/spendingTest.ts`, which the Monte Carlo now shares (its behaviour is unchanged).
+  Data: `src/history/usMarketHistory.ts` (98 rows, bundled, no request; **append one row each
+  January by hand**) and `src/history/returns.ts`. The user chose the data (US stocks and
+  bonds, real terms); the 60% default, the unsaved controls, the matched-to-plan toggle and
+  the placement are my calls and unconfirmed. Limits: US purchasing power (no shekel or Israeli
+  inflation), overlapping windows (it shows what happened, not a probability), before fees and
+  tax. Year ranges in sentences use left-to-right isolates (U+2066/U+2069) so Hebrew reads
+  1946–1981. Details: Phase Y in `docs/implementation-progress.md`.
+
+- **Phase X (live Israeli inflation): DONE and pushed (`4b42b91`).** Assumptions → Advanced shows
   a reference block under the Inflation field: the latest 12-month change and the 10, 20 and
   30 year averages, from the Central Bureau of Statistics (`app/src/cpi/`, series 120010).
   A "Use" button copies a figure into the field; nothing is applied automatically. When the
@@ -76,7 +95,7 @@ shows them.
   not yet confirmed the placement (Advanced panel), the Use buttons or the separate switch.
   Details: Phase X in `docs/implementation-progress.md`.
 
-- **Phase W (Dashboard retirement KPIs): DONE, not yet committed.** The Dashboard has a
+- **Phase W (Dashboard retirement KPIs): DONE and pushed (`5879515`).** The Dashboard has a
   "Retirement snapshot" row under the status banner (planned monthly spending, safe
   withdrawal rate, monthly pension income and the age it starts, monthly state benefits,
   funds available at retirement with the locked part in a note) and a "Could you retire
@@ -505,7 +524,7 @@ shows them.
   - D3: live deploy verified (done as a side effect of A7).
 - 396 tests total, all green; lint/typecheck/build all green.
 
-(Counts moved on later: 645 passed and 1 skipped after Phase Q; 664 passed and 1 skipped after Phase S; 712 passed and 1 skipped after Phase T; 720 passed and 1 skipped after the returning-visitor change; 723 passed and 1 skipped after the logo and colour change; 998 passed and 1 skipped after Phase V; 1000 passed and 1 skipped after the Assumptions legend removal; 1039 passed and 1 skipped after Phase W; 1099 passed and 1 skipped after Phase X.)
+(Counts moved on later: 645 passed and 1 skipped after Phase Q; 664 passed and 1 skipped after Phase S; 712 passed and 1 skipped after Phase T; 720 passed and 1 skipped after the returning-visitor change; 723 passed and 1 skipped after the logo and colour change; 998 passed and 1 skipped after Phase V; 1000 passed and 1 skipped after the Assumptions legend removal; 1039 passed and 1 skipped after Phase W; 1099 passed and 1 skipped after Phase X; 1149 passed and 1 skipped after Phase Y.)
 
 ## Where to go next
 
@@ -514,22 +533,20 @@ couples/household), the Phase 3 tax module and scenario comparison, the
 Phase K input guidance, the Phase L tax refinements, the Phase M
 Section 102 employer stock tax and its Phase N follow-ups, the Phase O
 clearing-house import, the Phase P calculation trace, the Phase Q summary
-tables, the Phase V Monte Carlo risk analysis, the Phase W dashboard KPIs and the Phase X
-live inflation figures are complete.
+tables, the Phase V Monte Carlo risk analysis, the Phase W dashboard KPIs, the Phase X
+live inflation figures and the Phase Y historical backtest are complete.
 Remaining, not yet started:
 
-- **Rest of Phase 4** (Monte Carlo, the dashboard KPIs and live inflation are done): a
-  **historical projection mode** (real CPI and market-return history instead of random
-  draws; the Monte Carlo's `yearlyRates` hook in `simulateHouseholdDrawdown` takes any
-  per-year return list; it needs a bundled market-return history, for example Damodaran's
-  US returns, converted to shekels with the World Bank exchange rate and the CBS index) and
-  the rest of the **live external data** (fund performance, mortality tables, risk-free
-  rate; exchange rates, stock prices and CPI are done, and the Bank of Israel API address
-  I tried returned 404). Possible Phase W follow-ups: editable retire-at ages, and a withdrawal-rate
-  definition the user prefers. Possible Monte Carlo follow-ups: an
+- **Rest of Phase 4** (Monte Carlo, the dashboard KPIs, live inflation and the historical
+  backtest are done): the rest of the **live external data** (fund performance, mortality
+  tables, risk-free rate; exchange rates, stock prices and CPI are done, and the Bank of
+  Israel API address I tried returned 404). Possible Phase W follow-ups: editable retire-at
+  ages, and a withdrawal-rate definition the user prefers. Possible Monte Carlo follow-ups: an
   equity/bond split with correlation, inflation risk, tax recomputed per path, and moving
   the run into a Web Worker if it ever feels slow (it takes about 430 ms in the browser
-  with the confident-spending search, 90 ms without).
+  with the confident-spending search, 90 ms without). Possible Phase Y follow-ups: a
+  shekel-converted history from 1961 (US returns converted with the exchange rate and the
+  CBS index), and a Dashboard KPI for the backtest.
 
 - **Use the verification pack.** Export one from Settings, give it to an
   independent AI session with the prompt inside the pack, and fix whatever it

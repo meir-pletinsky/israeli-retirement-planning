@@ -7,6 +7,7 @@ import { IncomeBreakdownChart } from "../components/charts/IncomeBreakdownChart"
 import { NetIncomeChart } from "../components/charts/NetIncomeChart";
 import { NetWorthChart } from "../components/charts/NetWorthChart";
 import { FeasibilityCard } from "../components/FeasibilityCard";
+import { HistoricalBacktestCard } from "../components/HistoricalBacktestCard";
 import { RetirementTimeline } from "../components/RetirementTimeline";
 import { RiskAnalysisCard } from "../components/RiskAnalysisCard";
 import { ScenarioComparison } from "../components/ScenarioComparison";
@@ -146,6 +147,8 @@ export function Projections() {
       </div>
 
       <RiskAnalysisCard result={riskAnalysis} hasTarget={hasTarget} updating={riskUpdating} />
+
+      <HistoricalBacktestCard profile={profile} scenario={scenario} hasTarget={hasTarget} />
 
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <h2 className="mb-2 text-sm font-semibold text-slate-700">
