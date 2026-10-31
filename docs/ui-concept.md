@@ -115,7 +115,8 @@ tabs instead of a forced wizard.
 **Which fields matter.** Only the current age and the desired retirement
 age (and a spouse's retirement age once a spouse age is entered) block the
 plan. Every other label carries a badge, and a "Which fields matter?" legend
-heads each step:
+heads each step (on the Pension & savings and Equity steps it sits folded
+inside the account and holding forms instead):
 
 - **Required** — the plan cannot be computed without it.
 - **Recommended** — optional, but the result changes noticeably (salary,
@@ -176,7 +177,8 @@ per entry.
   only badge on every field label and section title, and the legend that
   explains them
 - `DataGapsCard` — the Dashboard's "Improve your estimate" card
-- `FormModal` — large scrollable modal shell (header, body, footer) used
+- `FormModal` — large modal shell (header, an optional pinned note, scrolling
+  body, footer) used
   to add/edit a single repeater entry (pension account, equity holding)
 - `ProjectionLineChart`, `IncomeStackedBarChart`
 - `ConfirmModal` (used for destructive actions, including repeater-entry

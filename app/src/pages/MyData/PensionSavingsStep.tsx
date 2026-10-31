@@ -9,7 +9,7 @@ import { NumberField } from "../../components/fields/NumberField";
 import { aggregatePensionBalance, isHouseholdActive } from "../../domain";
 import { createEmptyPensionAccount, type PensionAccount } from "../../types";
 import { useActivePerson, type Person } from "./activePerson";
-import { FieldLegend } from "./FieldLegend";
+import { CollapsibleFieldLegend } from "./FieldLegend";
 import { PensionAccountForm } from "./PensionAccountForm";
 import { PensionSummaryTable } from "./PensionSummaryTable";
 import { accountsOf, sumBalances, withoutAccount } from "./pensionPeople";
@@ -153,8 +153,6 @@ export function PensionSavingsStep() {
         <div className="flex flex-col gap-4">{panel}</div>
       )}
 
-      <FieldLegend />
-
       <div className="flex max-w-lg flex-col gap-4">
         <NumberField
           label={t(`${FIELDS}.otherAssets`)}
@@ -180,6 +178,7 @@ export function PensionSavingsStep() {
         }
         closeLabel={t("common.close")}
         onClose={() => setEditingAccount(null)}
+        note={<CollapsibleFieldLegend />}
         footer={
           <>
             <button

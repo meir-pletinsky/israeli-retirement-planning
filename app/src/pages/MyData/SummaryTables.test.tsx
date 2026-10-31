@@ -30,7 +30,7 @@ beforeEach(async () => {
 });
 
 describe("My Data summary tables — Pension & Savings", () => {
-  it("lists every account with a balance total, above the field legend", async () => {
+  it("lists every account with a balance total", async () => {
     await saveProfileToDb(
       buildTestProfile({
         age: 50,
@@ -85,11 +85,48 @@ describe("My Data summary tables — Pension & Savings", () => {
     expect(second).toHaveTextContent("\u2014");
     expect(totals).toHaveTextContent("Total");
     expect(totals).toHaveTextContent(`${SHEKEL}150,000`);
+  });
 
+  it("keeps the field legend out of the page and folded inside the account form", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 50,
+        pensionBalances: [100_000],
+        pensionAccountOverrides: [{ providerName: "Acme Pension" }],
+      }),
+    );
+    renderStep("pension-savings");
+
+    const table = await screen.findByRole("table", { name: "Pension & savings accounts" });
+    expect(screen.queryByRole("region", { name: "Which fields matter?" })).not.toBeInTheDocument();
+
+    await user.click(within(within(table).getAllByRole("row")[1]).getByRole("button", { name: "Edit" }));
     const legend = screen.getByRole("region", { name: "Which fields matter?" });
+    const toggle = within(legend).getByRole("button", { name: /Which fields matter\?/ });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText(/Needed to build your plan/)).not.toBeInTheDocument();
+
+    // Pinned above the form, not inside the part that scrolls.
+    expect(legend.closest(".overflow-y-auto")).toBeNull();
+    expect(screen.getByLabelText(/^Provider name/).closest(".overflow-y-auto")).not.toBeNull();
+
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(within(legend).getByText(/Needed to build your plan/)).toBeInTheDocument();
+    expect(within(legend).getByText(/Fields with no tag are optional refinements/)).toBeInTheDocument();
+
+    await user.click(toggle);
+    expect(within(legend).queryByText(/Needed to build your plan/)).not.toBeInTheDocument();
+
+    await user.click(toggle);
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await user.click(screen.getByRole("button", { name: "Add account" }));
     expect(
-      table.compareDocumentPosition(legend) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+      within(screen.getByRole("region", { name: "Which fields matter?" })).getByRole("button", {
+        name: /Which fields matter\?/,
+      }),
+    ).toHaveAttribute("aria-expanded", "false");
   });
 
   it("puts Add and Import above the table and Edit and Remove on every row", async () => {
@@ -229,7 +266,7 @@ describe("My Data summary tables — Pension & Savings", () => {
 });
 
 describe("My Data summary tables — Equity & Investments", () => {
-  it("shows one table per category with its own totals, above the field legend", async () => {
+  it("shows one table per category with its own totals", async () => {
     await saveProfileToDb(
       buildTestProfile({
         age: 50,
@@ -302,11 +339,6 @@ describe("My Data summary tables — Equity & Investments", () => {
     ).toHaveTextContent(`Total across all categories: $2,610 / ${SHEKEL}9,657`);
     expect(screen.getByLabelText("Shekels per US dollar")).toHaveValue(3.7);
     expect(screen.getByText(/A rough built-in rate/)).toBeInTheDocument();
-
-    const legend = screen.getByRole("region", { name: "Which fields matter?" });
-    expect(
-      esop.compareDocumentPosition(legend) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
   });
 
   it("lists several holdings of one category in a single table", async () => {
@@ -387,18 +419,28 @@ describe("My Data summary tables — Equity & Investments", () => {
     expect(screen.getByLabelText(/^Ticker symbol/)).toHaveValue("BBB");
   });
 
-  it("puts the field legend after the tables", async () => {
+  it("keeps the field legend out of the page and folded inside the holding form", async () => {
+    const user = userEvent.setup();
     await saveProfileToDb(
       buildTestProfile({
         age: 50,
-        equity: [{ category: "employerGrantedStock", quantity: 1, priceUSD: 10 }],
+        equity: [{ category: "employerGrantedStock", ticker: "AAA", quantity: 1, priceUSD: 10 }],
       }),
     );
     renderStep("equity");
 
-    const table = await screen.findByRole("table", { name: "ESOP / RSU at a glance" });
+    await screen.findByRole("table", { name: "ESOP / RSU at a glance" });
+    expect(screen.queryByRole("region", { name: "Which fields matter?" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Edit" }));
     const legend = screen.getByRole("region", { name: "Which fields matter?" });
-    expect(table.compareDocumentPosition(legend) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const toggle = within(legend).getByRole("button", { name: /Which fields matter\?/ });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(legend.closest(".overflow-y-auto")).toBeNull();
+    expect(screen.getByLabelText(/^Ticker symbol/).closest(".overflow-y-auto")).not.toBeNull();
+
+    await user.click(toggle);
+    expect(within(legend).getByText(/Needed to build your plan/)).toBeInTheDocument();
   });
 
   it("shows no table before any holding is added", async () => {

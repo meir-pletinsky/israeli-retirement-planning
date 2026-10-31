@@ -34,7 +34,7 @@ export function MyDataLayout() {
           currentKey={currentKey}
           onStepClick={(key) => navigate(`/my-data/${key}`)}
         />
-        {/* The pension and equity steps show their own tables and put the legend beneath them. */}
+        {/* The pension and equity steps show the legend inside their account and holding forms. */}
         {currentKey !== "pension-savings" && currentKey !== "equity" && <FieldLegend />}
         <Outlet />
       </div>

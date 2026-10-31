@@ -7,6 +7,8 @@ interface FormModalProps {
   onClose: () => void;
   children: ReactNode;
   footer: ReactNode;
+  /** Pinned under the title, outside the scrolling form. */
+  note?: ReactNode;
 }
 
 export function FormModal({
@@ -16,6 +18,7 @@ export function FormModal({
   onClose,
   children,
   footer,
+  note,
 }: FormModalProps) {
   if (!open) return null;
 
@@ -33,6 +36,7 @@ export function FormModal({
             &#x2715;
           </button>
         </div>
+        {note && <div className="border-b border-slate-200 px-6 py-3">{note}</div>}
         <div className="flex-1 overflow-y-auto px-6 py-4">{children}</div>
         <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
           {footer}

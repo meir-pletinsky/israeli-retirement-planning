@@ -821,16 +821,36 @@ ticks.
       (`clearingHouse.entryHint`) says what Import does.
       *Equity:* the step renders its own heading and Add holding button, then the
       per-category tables (with the actions column), the total across categories
-      and the exchange-rate control, then the legend and the Back / Next footer.
+      and the exchange-rate control, then the Back / Next footer (O13 moved the
+      legend into the forms).
       `MyDataLayout` no longer renders the equity table or the legend for this
       step. The category tables keep their "at a glance" titles.
       Removed texts: `myData.summary.pensionTitle` and `readOnlyHint` (en, he,
       ru); new: `myData.summary.actions` and `clearingHouse.entryHint`.
       Tests: `SummaryTables.test.tsx` (actions per row, which row an action acts
-      on, toolbar above the table, empty states, legend after the tables),
+      on, toolbar above the table, empty states),
       `PensionSavingsStep.test.tsx` (source labels now once, in the table).
       Suite: 901 passed, 1 skipped. Behavior change: none to any calculation or
       stored data.
+
+- [x] O13. **The field legend moves into the account and holding forms.** The
+      "Which fields matter?" card no longer sits under the Pension & savings and
+      Equity tables. Each form (`PensionAccountForm`, `EquityHoldingForm`) shows
+      it instead, as one folded line pinned under the form title and outside the
+      scrolling part, so it stays in view while the user scrolls the fields. The
+      line reads "Which fields matter?" with the three badges and a chevron (the
+      badges are hidden on a narrow screen); a click opens the full explanation
+      and it is closed again each time a form opens. It is drawn as a tinted
+      callout (light-blue fill and border, an "i" icon, white badge pills,
+      `ImportanceBadge onTint`) so it stands apart from the white fields below.
+      `FormModal` takes an optional
+      `note` for such a pinned line; `FieldLegend.tsx` gains
+      `CollapsibleFieldLegend` and shares the list with the card. The other My
+      Data steps (Personal, Expenses, Assumptions) keep the card under the
+      stepper. No new texts. Tests: `SummaryTables.test.tsx` (no legend on the
+      step page, folded by default, opens and closes, outside the scrolling part,
+      closed again on reopening; both forms). Behavior change: none to any
+      calculation or stored data.
 
 ## Phase P — Calculation trace and verification pack
 The user asked for a way to validate the app's calculations: "traces of all

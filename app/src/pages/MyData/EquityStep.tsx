@@ -7,7 +7,7 @@ import { FormModal } from "../../components/FormModal";
 import { createEmptyStockHolding, type StockHolding } from "../../types";
 import { EquityHoldingForm } from "./EquityHoldingForm";
 import { EquitySummaryTable } from "./EquitySummaryTable";
-import { FieldLegend } from "./FieldLegend";
+import { CollapsibleFieldLegend } from "./FieldLegend";
 import { applyHoldingChange } from "./holdingEntry";
 import { StepFooter } from "./StepFooter";
 
@@ -68,8 +68,6 @@ export function EquityStep() {
         />
       )}
 
-      <FieldLegend />
-
       <div className="max-w-lg">
         <StepFooter currentKey="equity" />
       </div>
@@ -79,6 +77,7 @@ export function EquityStep() {
         title={t("myData.steps.equity.holdingFormTitle")}
         closeLabel={t("common.close")}
         onClose={() => setEditingHolding(null)}
+        note={<CollapsibleFieldLegend />}
         footer={
           <>
             <button

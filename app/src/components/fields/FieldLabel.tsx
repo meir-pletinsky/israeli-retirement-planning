@@ -16,13 +16,26 @@ const BADGE_CLASSES: Record<FieldImportance, string> = {
   reference: "bg-slate-100 text-slate-500",
 };
 
-export function ImportanceBadge({ importance }: { importance: FieldImportance }) {
+// On a tinted background the light fills would vanish, so the pill turns white.
+const BADGE_ON_TINT_CLASSES: Record<FieldImportance, string> = {
+  required: "bg-white text-rose-700",
+  recommended: "bg-white text-brand-700",
+  reference: "bg-white text-slate-500",
+};
+
+export function ImportanceBadge({
+  importance,
+  onTint = false,
+}: {
+  importance: FieldImportance;
+  onTint?: boolean;
+}) {
   const { t } = useTranslation();
   return (
     <span
       className={clsx(
         "inline-block rounded-full px-1.5 py-0.5 align-middle text-[10px] font-semibold leading-none",
-        BADGE_CLASSES[importance],
+        (onTint ? BADGE_ON_TINT_CLASSES : BADGE_CLASSES)[importance],
       )}
     >
       {t(`myData.importance.${importance}`)}

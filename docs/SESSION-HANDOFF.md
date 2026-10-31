@@ -256,7 +256,8 @@ them.
     **Reference only** badge (`components/fields/FieldLabel.tsx`; every
     field component and `CollapsibleSection` take an `importance` prop); a
     "Which fields matter?" legend (`pages/MyData/FieldLegend.tsx`) heads each
-    My Data step. Untagged fields are optional refinements with a default.
+    My Data step (inside the account and holding forms on the Pension and
+    Equity steps, since O13). Untagged fields are optional refinements with a default.
     The full tier list is in `docs/implementation-progress.md` → Phase K.
   - New data: `PensionAccount.policyNumber` and `fundId` (reference only,
     backfilled `""` in `normalizeProfile()`), and `ProfileData.comparisonAges`
