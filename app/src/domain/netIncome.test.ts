@@ -254,6 +254,59 @@ describe("estimateNetIncome", () => {
       expect(growing.effectiveTaxRate).toBeGreaterThan(0);
       expect(growing.effectiveTaxRate).toBeLessThan(0.25);
     });
+
+    describe("investment provident fund taken as a life annuity (rule U)", () => {
+      const annuityParameters = {
+        hasGuaranteedFactor: false,
+        conversionFactor: 200,
+        estimatedMonthlyAnnuity: null,
+        annuityTaxType: null,
+        guaranteedPaymentMonths: null,
+      } as const;
+      const plan = (lifeAnnuityFrom60: boolean, real: object) =>
+        estimateNetIncome(
+          buildTestProfile({
+            age: 50,
+            retirementAge: 62,
+            ...real,
+            pensionBalances: [1_000_000],
+            pensionAccountOverrides: [
+              { productCategory: "investmentProvidentFund", lifeAnnuityFrom60, annuityParameters },
+            ],
+          }),
+        );
+
+      it("pays the converted balance as a monthly income with no tax", () => {
+        const net = plan(true, zeroReal);
+        // 1,000,000 / 200 = 5,000 a month from 62 for life.
+        expect(net.grossMonthlyIncome).toBe(5_000);
+        expect(net.taxMonthly).toBe(0);
+        expect(net.netMonthlyIncome).toBe(5_000);
+      });
+
+      it("pays no tax on the growth, which the lump sum does", () => {
+        const growth = { investmentReturnPct: 7, inflationPct: 3 };
+        const lump = plan(false, growth);
+        const annuity = plan(true, growth);
+        expect(lump.taxMonthly).toBeGreaterThan(0);
+        expect(annuity.taxMonthly).toBe(0);
+        expect(annuity.netMonthlyIncome).toBe(annuity.grossMonthlyIncome);
+      });
+
+      it("leaves the lump-sum result unchanged when the choice is off", () => {
+        const growth = { investmentReturnPct: 7, inflationPct: 3 };
+        const plain = estimateNetIncome(
+          buildTestProfile({
+            age: 50,
+            retirementAge: 62,
+            ...growth,
+            pensionBalances: [1_000_000],
+            pensionAccountOverrides: [{ productCategory: "investmentProvidentFund" }],
+          }),
+        );
+        expect(plan(false, growth)).toEqual(plain);
+      });
+    });
   });
 
   describe("employer stock under Section 102", () => {

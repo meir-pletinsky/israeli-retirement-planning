@@ -994,16 +994,17 @@ sum pays 25% of the real gain at any age, with no exemption at 60. Only a
 monthly life annuity taken from 60 through a paying fund is tax-free. No source
 describes a 0% route before 60, and the rule does not vary by fund or program.
 The 2026 deposit ceiling is ₪83,641. The app keeps treating the fund as 25% of
-the real gain at any age; the annuity route is not modeled.
+the real gain at any age; the annuity route was not modeled then. Bridge Planner R7 now models
+it as an opt-in per account (see "R7 notes").
 
-## Phase R — Bridge Planner (R1–R6 built; R7 not started)
+## Phase R — Bridge Planner (R1–R7 built; R2b deferred)
 
 Proposal for the early-retirement bridge: which source to use first, what each
 costs and what leaving early does to unvested RSUs. Full design, build order
 and open questions: [`docs/bridge-planner-design.md`](bridge-planner-design.md).
 The user reviewed the design and asked to start; its open questions in section 7 are asked
-one at a time, before the step that needs each (1 for R5, 2 for R4, 3 and 4 for R3). Question 5
-(R7) is still open.
+one at a time, before the step that needs each (1 for R5, 2 for R4, 3 and 4 for R3, 5 for R7).
+All of them are answered.
 
 - [x] R1. Liquidity ladder (read-only, no new inputs). See "R1 notes" below.
 - [x] R2. Withdrawal order in `drawdown.ts`, strategy comparison card and a saved choice.
@@ -1017,7 +1018,9 @@ one at a time, before the step that needs each (1 for R5, 2 for R4, 3 and 4 for 
       Question 1 (cost definition) of the design doc is answered: two columns only.
 - [x] R6. Stress tests (employer-stock haircut, USD/ILS move). See "R6 notes" below. The sizes
       are fixed rows, as the user chose; there is no open question in the design doc for it.
-- [ ] R7. Investment-gemel annuity route from 60 (rule U), if wanted.
+- [x] R7. Investment-gemel annuity route from 60 (rule U), as an opt-in tick box per
+      investment-provident-fund account. See "R7 notes" below. Question 5 of the design doc is
+      answered.
 
 ## Phase S — Simple purchase / grant entry and per-category summary tables
 
@@ -1731,6 +1734,67 @@ Where it lives: `domain/stressTests.ts` (the constants, `StressTest`, `StressRow
       temporary dollar holdings (an employer grant and a private holding): all rows, the covers
       line and the change lines read correctly, no bidi problems. The profile and the language
       were restored afterwards. 1321 passed and 1 skipped in all.
+
+### R7 notes — investment provident fund as a life annuity (Phase R)
+
+What changed: My Data > Pension & Savings, for an account whose product category is
+**Investment provident fund** only, has a tick box "Take as a life annuity from age 60". Ticked,
+the fund is no longer a lump sum taxed at 25% of its real gain: from 60 it pays a monthly annuity
+that is tax-free (rule U). Everything else is as before; an account that is not ticked, and every
+other category, is unchanged, and profiles saved earlier load with the box off.
+
+Answer from the user: **yes, model it, and make it the user's choice in the UI, but only for the
+relevant funds.** Rule U is the same for every fund and track, so "relevant" can only mean the
+investment-provident-fund category.
+
+How it works (`domain/sources.ts`, `takesGemelAnnuity`, `buildAnnuity`):
+- The flag is `PensionAccount.lifeAnnuityFrom60` (default false; `normalizeProfile` turns anything
+  but `true` into false). `takesGemelAnnuity(account)` is true for the category plus the flag.
+- **The amount comes from the user.** There is no built-in conversion factor
+  (`accessRules.ts` says defaults are never hard-coded). The annuity is the balance at the start
+  age ÷ the conversion factor the user entered (the paying fund's own factor; the "guaranteed"
+  tick is not needed), or the user's own monthly estimate, which wins. With neither, no annuity is
+  modeled, the fund stays as a lump sum and the form shows an amber hint.
+- **Start age** is `max(retirement age, 60)` (`ACCESS_RULES.investmentGemelAnnuityAge`). A
+  "paying annuity" account status does not move it earlier. The balance grows at the real rate
+  until then, then it becomes a fixed monthly stream for life, like the pension annuities.
+- **Tax:** the source keeps its capital-gains treatment, so `memberIncome` (which counts only
+  pension-type annuities) leaves the stream out of taxable income: it is tax-free by
+  construction, and the notes in the trace say so. The Section 9A exemption is not used.
+- **No drawing as capital** while the annuity is modeled, even before 60 (the engine treats any
+  source with an annuity as locked). The unlock age stays 0, so without an annuity the fund is
+  still capital as before.
+- The stream is added to the provident-fund band of the income breakdown. The liquidity ladder,
+  the source-cost table, the withdrawal strategies and the stress tests skip annuity sources
+  already, so they needed no change.
+- **In the trace and the verification pack** (unlike R5 and R6): R7 changes numbers. The start-age
+  step shows `max(retirementAge, investmentGemelAnnuityAge)`, the constant is in the constants
+  snapshot, and the monthly-annuity step carries the tax-free note. `checkTrace` finds no issues.
+
+Judgement calls (mine, not yet confirmed by the user):
+1. **Only the investment-provident-fund category** offers the choice (see above).
+2. **No default conversion factor.** The user must enter a factor or an estimate.
+3. **Locked from today once ticked,** even before 60, as pension funds are.
+4. **Life-long, tax-free, no 9A exemption used.** Heirs, the loan against the balance and
+   Amendment 190 are not modeled.
+5. **The rule is unconfirmed:** secondary sources only; medium-high confidence for the 0% route,
+   low for the legal basis. The form's helper text says so; see rule U in `constants-to-verify.md`.
+
+Where it lives: `types/index.ts`, `domain/accessRules.ts`, `domain/sources.ts`,
+`domain/memberTax.ts` and `domain/netIncomeTrace.ts` (notes), `pages/MyData/PensionAccountForm.tsx`.
+Texts: `myData.steps.pensionSavings.fields.lifeAnnuityFrom60*` in en, he and ru.
+
+- [x] R7a. Domain: the flag, `takesGemelAnnuity`, the annuity and the trace steps.
+- [x] R7b. Tests: `sources.test.ts` (8 cases), `netIncome.test.ts` (3: tax-free, no tax on growth,
+      unchanged when off), `normalizeProfile.test.ts` (1), `tracePipeline.test.ts` (1, with
+      `checkTrace`), `PensionSavingsStep.test.tsx` (2: shown only for the category, hint and save).
+- [x] R7c. Form tick box, helper and hint in en, he and ru; the locale parity test passes.
+- [x] R7d. Browser check in English and Hebrew with the real profile (one provident fund switched
+      to an investment provident fund, ticked, factor 200): the box shows only for that category,
+      the hint goes away once a factor is entered, and the Dashboard moves the fund out of
+      "locked until 60" and into the monthly pension income. Hebrew reads correctly right to
+      left. The profile and the language were restored afterwards. 1336 passed and 1 skipped in
+      all.
 
 ## Welcome page for returning visitors
 

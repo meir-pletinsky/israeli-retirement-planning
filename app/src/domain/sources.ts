@@ -411,10 +411,21 @@ export function accountUnlockAge(account: PensionAccount, currentAge: number): n
   }
 }
 
-/** Only pension-like products convert into a monthly annuity. */
-function canAnnuitize(kind: SourceKind): boolean {
-  return kind === "pensionFund" || kind === "managersInsurance";
+/**
+ * An investment provident fund whose owner chose to take it as a life annuity from age 60 (rule U).
+ * The choice is ignored for every other product category.
+ */
+export function takesGemelAnnuity(account: PensionAccount): boolean {
+  return account.productCategory === "investmentProvidentFund" && account.lifeAnnuityFrom60 === true;
 }
+
+/** Pension-like products convert into a monthly annuity, and so does an investment provident fund whose owner chose it. */
+function canAnnuitize(kind: SourceKind, gemelAnnuity: boolean): boolean {
+  return kind === "pensionFund" || kind === "managersInsurance" || gemelAnnuity;
+}
+
+const GEMEL_ANNUITY_NOTE =
+  "Investment provident fund taken as a life annuity from age 60 (rule U, not confirmed): the balance moves to a paying fund and the annuity is tax-free, so no tax is charged on it here.";
 
 /** Step ids and the profile-path helper an account's trace steps refer back to. */
 interface AccountTraceRefs {
@@ -434,7 +445,8 @@ function buildAnnuity(
   rate: number,
   refs: AccountTraceRefs | null,
 ): SourceAnnuity | null {
-  if (!canAnnuitize(kind)) {
+  const gemelAnnuity = takesGemelAnnuity(account);
+  if (!canAnnuitize(kind, gemelAnnuity)) {
     recordStep("annuity", () => ({
       title: "Monthly annuity",
       formula: "only pension funds and managers insurance convert into a monthly annuity",
@@ -447,21 +459,45 @@ function buildAnnuity(
   const { estimatedMonthlyAnnuity, hasGuaranteedFactor, conversionFactor } =
     account.annuityParameters;
   // An account that already pays an annuity does so from the retirement age
-  // regardless of the product's earliest-access age.
-  const paying = account.accountStatus === "payingAnnuity";
-  const startAge = paying ? retirementAge : Math.max(retirementAge, unlockAge);
-  const startAgeId = recordStep("annuityStartAge", () => ({
-    title: "Age the annuity starts",
-    formula: paying
-      ? "an account already paying an annuity pays from the retirement age"
-      : "the later of the retirement age and the earliest access age",
-    expr: paying ? "retirementAge" : "max(retirementAge, unlockAge)",
-    inputs: {
-      retirementAge: input(retirementAge, fromStep(refs?.retirementAge ?? "")),
-      ...(paying ? {} : { unlockAge: input(unlockAge, fromStep(refs?.unlockAge ?? "")) }),
-    },
-    output: startAge,
-  }));
+  // regardless of the product's earliest-access age. An investment provident
+  // fund never starts before 60: that is when the money can move to a paying fund.
+  const paying = account.accountStatus === "payingAnnuity" && !gemelAnnuity;
+  const startAge = gemelAnnuity
+    ? Math.max(retirementAge, ACCESS_RULES.investmentGemelAnnuityAge)
+    : paying
+      ? retirementAge
+      : Math.max(retirementAge, unlockAge);
+  const startAgeId = recordStep("annuityStartAge", (): TraceStepBody =>
+    gemelAnnuity
+      ? {
+          title: "Age the annuity starts",
+          formula:
+            "investment provident fund taken as an annuity: the later of the retirement age and the earliest age it can move to a paying fund",
+          expr: "max(retirementAge, investmentGemelAnnuityAge)",
+          inputs: {
+            retirementAge: input(retirementAge, fromStep(refs?.retirementAge ?? "")),
+            investmentGemelAnnuityAge: input(
+              ACCESS_RULES.investmentGemelAnnuityAge,
+              fromConst("ACCESS_RULES.investmentGemelAnnuityAge"),
+            ),
+            lifeAnnuityFrom60: input(true, refs?.field("lifeAnnuityFrom60") ?? ""),
+          },
+          output: startAge,
+        }
+      : {
+          title: "Age the annuity starts",
+          formula: paying
+            ? "an account already paying an annuity pays from the retirement age"
+            : "the later of the retirement age and the earliest access age",
+          expr: paying ? "retirementAge" : "max(retirementAge, unlockAge)",
+          inputs: {
+            retirementAge: input(retirementAge, fromStep(refs?.retirementAge ?? "")),
+            ...(paying ? {} : { unlockAge: input(unlockAge, fromStep(refs?.unlockAge ?? "")) }),
+          },
+          output: startAge,
+        },
+  );
+  const annuityNote = gemelAnnuity ? GEMEL_ANNUITY_NOTE : undefined;
 
   if (estimatedMonthlyAnnuity !== null && estimatedMonthlyAnnuity > 0) {
     recordStep("annuityMonthly", () => ({
@@ -475,13 +511,16 @@ function buildAnnuity(
         ),
       },
       output: estimatedMonthlyAnnuity,
+      note: annuityNote,
     }));
     return { monthly: estimatedMonthlyAnnuity, startAge, origin: "override" };
   }
   // A pension fund's factor is the fund's own and applies whether or not the
   // statement calls it guaranteed; managers insurance may use a different one
   // at retirement, so its factor counts only when the user marks it guaranteed.
-  const factorApplies = hasGuaranteedFactor || kind === "pensionFund";
+  // An investment provident fund has no factor of its own: the one entered is
+  // the paying fund's, so it counts as soon as the user chose the annuity.
+  const factorApplies = hasGuaranteedFactor || kind === "pensionFund" || gemelAnnuity;
   if (factorApplies && conversionFactor !== null && conversionFactor > 0) {
     const balanceAtStart = valueAtRetirement * Math.pow(1 + rate, Math.max(startAge - retirementAge, 0));
     const balanceAtStartId = recordStep("annuityBalanceAtStart", () => ({
@@ -505,6 +544,7 @@ function buildAnnuity(
         conversionFactor: input(conversionFactor, refs?.field("annuityParameters.conversionFactor") ?? ""),
       },
       output: balanceAtStart / conversionFactor,
+      note: annuityNote,
     }));
     return { monthly: balanceAtStart / conversionFactor, startAge, origin: "factor" };
   }
@@ -523,7 +563,9 @@ function buildAnnuity(
       ),
     },
     output: "none",
-    note: "No annuity is modelled: the account is drawn down as capital.",
+    note: gemelAnnuity
+      ? "No annuity is modelled yet: enter a conversion factor or a monthly annuity estimate. Until then the fund stays available as capital and its real gain is taxed."
+      : "No annuity is modelled: the account is drawn down as capital.",
   }));
   return null;
 }

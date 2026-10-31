@@ -112,6 +112,22 @@ describe("normalizeProfile", () => {
     ]);
   });
 
+  it("turns the life-annuity choice off for accounts saved before it existed and keeps it when saved", () => {
+    const profile = buildTestProfile({
+      pensionBalances: [1, 2],
+      pensionAccountOverrides: [{}, { productCategory: "investmentProvidentFund", lifeAnnuityFrom60: true }],
+    });
+    const accounts = profile.pensionSavings.accounts.map((account, index) => {
+      const { lifeAnnuityFrom60: _lifeAnnuityFrom60, ...rest } = account;
+      return index === 1 ? account : rest;
+    });
+    const result = normalizeProfile({
+      ...profile,
+      pensionSavings: { ...profile.pensionSavings, accounts },
+    } as Parameters<typeof normalizeProfile>[0]);
+    expect(result.pensionSavings.accounts.map((account) => account.lifeAnnuityFrom60)).toEqual([false, true]);
+  });
+
   it("adds an empty tranche list to employer holdings saved before vesting tranches and keeps saved ones", () => {
     const profile = buildTestProfile({
       equity: [

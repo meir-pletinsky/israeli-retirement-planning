@@ -49,6 +49,8 @@ export function memberIncome(
     shareOrdinary: 0,
   };
   for (const holding of annuities) {
+    // Only a pension holding's annuity is taxed as a pension. The annuity of an investment
+    // provident fund taken as a life annuity (rule U) is tax-free, so it adds no taxable income.
     if (holding.memberIndex === memberIndex && holding.treatment === "pension") {
       income.pensionMonthly += holding.annuityMonthly;
       income.annuityPension += holding.annuityMonthly;

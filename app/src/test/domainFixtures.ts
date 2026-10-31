@@ -138,6 +138,7 @@ export function buildTestProfile(overrides: {
         productCategory: null,
         legacyPolicyModel: null,
         accountStatus: null,
+        lifeAnnuityFrom60: false,
         joinDate: null,
         liquidityDate: null,
         totalAccumulatedBalance: balance,

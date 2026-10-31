@@ -63,12 +63,30 @@ and **Phase V (Monte Carlo risk analysis, the first Phase 4 piece) is done**,
 and **Phase W (household dashboard KPIs, the second Phase 4 piece) is done**,
 and **Phase X (live Israeli inflation, the third Phase 4 piece) is done**,
 and **Phase Y (historical backtest, the fourth Phase 4 piece) is done**,
-and **Phase R steps R1 (liquidity ladder), R2 (withdrawal order), R3 (RSU vesting schedule), R4 (purchase lots), R5 (per-source cost table) and R6 (stress tests) are done**.
+and **Phase R steps R1 (liquidity ladder), R2 (withdrawal order), R3 (RSU vesting schedule), R4 (purchase lots), R5 (per-source cost table), R6 (stress tests) and R7 (investment-gemel annuity) are done**.
 Phases A–K are committed and pushed to
-`main`; Phases L, M, N, O, P, Q, S, T, V, W, X, Y, R1, R2, R3, R4, R5 and R6 are committed and pushed only if `git log`
+`main`; Phases L, M, N, O, P, Q, S, T, V, W, X, Y, R1, R2, R3, R4, R5, R6 and R7 are committed and pushed only if `git log`
 shows them.
 
-- **Phase R, step R6 (stress tests): DONE, not yet committed.** The user said "do R6" and chose
+- **Phase R, step R7 (investment provident fund as a life annuity from 60): DONE, not yet
+  committed.** The user answered design question 5 with "yes", then asked for it to be **the
+  user's decision in the UI, but only for relevant funds**. What was built: (a) a tick box
+  "Take as a life annuity from age 60" in My Data > Pension & Savings, shown **only for the
+  Investment provident fund category** (`PensionAccount.lifeAnnuityFrom60`, default false;
+  `normalizeProfile` fixes old profiles); (b) `sources.ts` (`takesGemelAnnuity`, `buildAnnuity`):
+  ticked, the balance at `max(retirement age, 60)` ÷ the user's conversion factor (or the user's
+  own monthly estimate) becomes a **tax-free** monthly life annuity, and the balance is not drawn
+  as capital; (c) it is in the trace and the verification pack (`ACCESS_RULES.investmentGemelAnnuityAge`
+  and a tax-free note), since it changes numbers. My calls, all unconfirmed: **(1) "relevant" means
+  the investment-provident-fund category only, because rule U is the same for every fund and
+  track; (2) no default conversion factor: the user must enter a factor or an estimate, otherwise
+  the fund stays a lump sum and the form shows a hint; (3) once ticked and modeled, the money is
+  locked from today, even before 60; (4) life-long and tax-free, no Section 9A exemption used,
+  heirs/loan/Amendment 190 not modeled; (5) the rule itself is from secondary sources**. 1336
+  passed and 1 skipped; browser check in English and Hebrew done. **Next:** the Bridge Planner is
+  complete except the deferred R2b. Details: "R7 notes" in `docs/implementation-progress.md`.
+
+- **Phase R, step R6 (stress tests): DONE and pushed (`baf8c09`).** The user said "do R6" and chose
   **fixed rows**: employer shares −30% and −50%, the dollar −10% and −20%, plus one row with both
   (employer −50%, dollar −20%). What was built: (a) `domain/stressTests.ts` (`buildStressTest`)
   copies the profile with the employer shares' price and/or the USD/ILS rate cut and runs the
@@ -82,8 +100,7 @@ shows them.
   holding without lots the stated dollar gain falls with the price so the tax follows; (6) the
   measures are savings at retirement and the lowest net monthly income; (7) a lot with no stored
   rate follows the sale rate**. 1321 passed and 1 skipped; browser check in English and Hebrew
-  done. **Next:** ask design question 5 (gemel annuity) before R7; R2b is deferred by the user.
-  Details: "R6 notes" in `docs/implementation-progress.md`.
+  done. Details: "R6 notes" in `docs/implementation-progress.md`.
 
 - **Phase R, step R5 (per-source cost table): DONE and pushed (`04156b3`).** The user said "continue
   with R5" and answered design question 1: **two columns only** (tax to raise ₪100 net, and what
@@ -702,7 +719,7 @@ Remaining, not yet started:
   Section 102 shares (for example early retirees' non-pension income), health tax
   exceptions and non-pension income, a credit-points breakdown helper,
   tax-aware withdrawal splitting between spouses (needs a drawdown rework),
-  the investment-gemel annuity exemption from 60 (rule U), the 30% rate for a 10%+ holder, ESPP and
+  the death-before-conversion, loan and Amendment 190 side rules of the investment gemel (rule U; the annuity from 60 itself is built, R7), the 30% rate for a 10%+ holder, ESPP and
   option strike prices (the user kept both out of scope). Also finish the
   constants check: read the Tax Authority's own tables for rows 1-9 and
   check row 17 (`docs/constants-to-verify.md`).
@@ -715,20 +732,22 @@ Remaining, not yet started:
   without purchase lots still use only the USD gain × 3.7, so they overstate tax when the
   dollar was higher at purchase. FIFO inside the drawdown is not built and would change
   timing only.
-- **Investment gemel: researched, not built** (2026-10-30). Rule U in
+- **Investment gemel: researched 2026-10-30, annuity route built in Bridge Planner R7.** Rule U in
   `docs/constants-to-verify.md`. Lump sum: 25% of the real gain at any age, no
   exemption at 60. A life annuity from 60 through a paying fund is tax-free.
   No 0% route before 60 was found, and nothing varies by fund or program. The
-  2026 deposit ceiling is ₪83,641. The app keeps 25% at any age.
-- **Bridge Planner: R1–R6 built, R7 not started** (Phase R in
+  2026 deposit ceiling is ₪83,641. By default the app keeps 25% at any age; the
+  user can tick "Take as a life annuity from age 60" on an investment provident fund
+  (needs a conversion factor or an estimate; unconfirmed rule).
+- **Bridge Planner: R1–R7 built** (Phase R in
   `docs/implementation-progress.md`, full design in `docs/bridge-planner-design.md`). R1, the
   liquidity ladder, R2, the saved withdrawal order, R3, the RSU vesting schedule, R4, the
-  purchase lots, R5, the per-source cost table, and R6, the stress tests, are done (see the top of this file).
+  purchase lots, R5, the per-source cost table, R6, the stress tests, and R7, the
+  investment-gemel annuity, are done (see the top of this file).
   Optional "R2b": split cash from securities in the pooled investments source so cash can be
   drawn first; it would change existing results for holdings with their own tax rates, and the
-  user said they will consider it later. R7 (investment-gemel annuity route) waits on open
-  question 5 of the design, which the user has not answered; ask it before building. Questions
-  1, 2, 3 and 4 were answered for R5, R4 and R3. R6 (stress tests) needed no question.
+  user said they will consider it later. All five design questions were answered (1 for R5, 2
+  for R4, 3 and 4 for R3, 5 for R7). R6 (stress tests) needed no question.
 - Possible refinements to the contribution model (they change numbers, so
   they were deliberately left out of Phase K): real wage growth, a
   per-account salary override, and the study-fund **annual deposit** ceiling

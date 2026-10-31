@@ -26,6 +26,13 @@ export const ACCESS_RULES = {
    * penalty. The same for men and women.
    */
   earliestAnnuityAge: 60,
+  /**
+   * Earliest age an investment provident fund (gemel le-hashkaa) can be moved into a paying fund
+   * and taken as a tax-free life annuity (rule U, `docs/constants-to-verify.md`). Taking the
+   * money as a lump sum at any age stays possible and is taxed on its real gain. The legal basis
+   * is not confirmed: the rule comes from secondary sources.
+   */
+  investmentGemelAnnuityAge: 60,
   /** Years from the first deposit until a study fund (keren hishtalmut) is liquid. */
   studyFundLiquidityYears: 6,
   /**

@@ -170,6 +170,13 @@ src/
                     # reports the savings at retirement and the lowest net
                     # monthly income for each. It is read-only and outside
                     # the trace.
+                    # sources.ts (takesGemelAnnuity, buildAnnuity) turns an
+                    # investment provident fund the owner ticked ("Take as
+                    # a life annuity from age 60") into an annuity source
+                    # from max(retirement age, 60): the user's conversion
+                    # factor or estimate, tax-free because memberTax counts
+                    # only pension holdings' annuities. It changes numbers,
+                    # so it is in the trace and the verification pack.
   history/          # bundled US stock/bond/inflation history, 1928 onward
                     # (usMarketHistory.ts) and the real-return maths
                     # (returns.ts). Extended by hand once a year.

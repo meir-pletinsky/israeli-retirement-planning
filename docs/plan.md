@@ -111,7 +111,9 @@ btl.gov.il before Phase H.
      money can be taken from **age 60**, men and women alike (high
      confidence for pension and gemel; medium for managers insurance).
    - Investment provident fund (*gemel le-hashkaa*): accessible at any
-     time (high confidence).
+     time (high confidence). Optional, per account: take it as a tax-free life
+     annuity from age 60 (Bridge Planner R7; needs the user's conversion factor
+     or estimate; the rule is unconfirmed, see rule U in `constants-to-verify.md`).
    - Study fund: liquid **6 years after the first deposit** (high
      confidence).
    - Managers insurance: monthly annuity = balance ÷ conversion factor
@@ -244,10 +246,10 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
   (R3 made them vest-aware: unvested shares are not counted at retirement). Not modeled: Bituach Leumi
   contributions on other income, health tax on non-pension income, other credit
   points (children), tax planning between spouses (for example shifting
-  withdrawals to the spouse with the lower rate), the investment-gemel annuity
-  exemption from 60, the 30% rate for a 10% shareholder, options with a strike price
+  withdrawals to the spouse with the lower rate), the death, loan and Amendment 190 rules of the
+  investment gemel, the 30% rate for a 10% shareholder, options with a strike price
   and the ESPP gain without purchase lots (an ESPP with lots is modeled since R4). A **Bridge Planner** (liquidity ladder, withdrawal strategies,
-  purchase lots, vest-aware retirement date) is designed, and its first six steps are built:
+  purchase lots, vest-aware retirement date) is designed, and its first seven steps are built:
   the **liquidity ladder** (Projections shows when each pot of savings and each monthly
   payment becomes available), the **withdrawal order** (Projections compares drawing
   savings evenly, taxable money first or lowest tax first, and the user can save one, which
@@ -259,7 +261,9 @@ Fund/Managers Insurance nuance beyond basic balance+growth.
   (Projections shows, for each kind of savings, the extra monthly tax to raise spending by ₪100
   and what you give up by using it) and **stress tests** (Projections re-runs the plan with the
   employer shares down 30% or 50% and the dollar down 10% or 20%, and shows the savings and
-  income each leaves); the rest is not built: see
+  income each leaves) and the **investment-gemel annuity** (an investment provident fund can be
+  ticked in My Data to be taken as a tax-free life annuity from 60, using the user's own
+  conversion factor or estimate; the rule is unconfirmed); the rest is not built: see
   [`docs/bridge-planner-design.md`](bridge-planner-design.md).
 - **Stock price data and autofill — done** (Phase T in
   [`docs/implementation-progress.md`](implementation-progress.md); design in

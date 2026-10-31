@@ -236,6 +236,76 @@ describe("buildSources", () => {
     });
   });
 
+  describe("investment provident fund taken as an annuity (rule U)", () => {
+    const factor200 = {
+      hasGuaranteedFactor: false,
+      conversionFactor: 200,
+      estimatedMonthlyAnnuity: null,
+      annuityTaxType: null,
+      guaranteedPaymentMonths: null,
+    };
+    const gemel = (overrides: Partial<PensionAccount>, age = 45, retirementAge = 55) =>
+      buildSources(
+        buildTestProfile({
+          age,
+          retirementAge,
+          pensionBalances: [1_000_000],
+          pensionAccountOverrides: [
+            { productCategory: "investmentProvidentFund", lifeAnnuityFrom60: true, ...overrides },
+          ],
+          ...zeroReal,
+        }),
+        retirementAge,
+      )[0];
+
+    it("stays a lump sum unless the owner chose the annuity", () => {
+      expect(gemel({ lifeAnnuityFrom60: false, annuityParameters: factor200 }).annuity).toBeNull();
+    });
+
+    it("converts the balance at 60 with the entered factor, even when retiring earlier", () => {
+      // The factor is the paying fund's, so it counts without the guaranteed tick.
+      expect(gemel({ annuityParameters: factor200 }).annuity).toEqual({
+        monthly: 5000,
+        startAge: 60,
+        origin: "factor",
+      });
+    });
+
+    it("starts at the retirement age when that is later than 60", () => {
+      expect(gemel({ annuityParameters: factor200 }, 50, 64).annuity).toEqual({
+        monthly: 5000,
+        startAge: 64,
+        origin: "factor",
+      });
+    });
+
+    it("prefers the user's own estimate over the factor", () => {
+      const source = gemel({ annuityParameters: { ...factor200, estimatedMonthlyAnnuity: 4200 } });
+      expect(source.annuity).toEqual({ monthly: 4200, startAge: 60, origin: "override" });
+    });
+
+    it("models no annuity without a factor or an estimate", () => {
+      expect(gemel({}).annuity).toBeNull();
+    });
+
+    it("never starts before 60, even for an account marked as already paying", () => {
+      const source = gemel({ accountStatus: "payingAnnuity", annuityParameters: factor200 });
+      expect(source.annuity?.startAge).toBe(60);
+    });
+
+    it("keeps the fund's capital-gains treatment and always-open unlock age", () => {
+      const source = gemel({ annuityParameters: factor200 });
+      expect(source.taxTreatment).toBe("capitalGains");
+      expect(source.unlockAge).toBe(0);
+    });
+
+    it("is ignored for every other product category", () => {
+      for (const productCategory of ["providentFund", "iraProvidentFund", "studyFund"] as const) {
+        expect(gemel({ productCategory, annuityParameters: factor200 }).annuity).toBeNull();
+      }
+    });
+  });
+
   describe("tax treatment", () => {
     const treatmentOf = (productCategory: PensionAccount["productCategory"]) =>
       buildSources(

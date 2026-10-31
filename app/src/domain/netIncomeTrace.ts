@@ -279,7 +279,8 @@ function recordBindingYear(
       ];
     }),
     note:
-      "annuityMonthly is the account's annuity in the binding year. The draw is split over the holdings by " +
+      "annuityMonthly is the account's annuity in the binding year. Only a pension holding's annuity is taxed " +
+      "(as a pension); the annuity of an investment provident fund taken as a life annuity is tax-free. The draw is split over the holdings by " +
       "drawCapitalShare (the last year that had unlocked capital, when it is used up): drawAmount = " +
       "fromSavings × drawCapitalShare. For a capital-gains holding, drawAmount × ordinaryFraction is " +
       "ordinary income, drawAmount × gainFraction is a taxed capital gain at capitalGainsTaxRate, and the " +

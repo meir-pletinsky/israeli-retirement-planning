@@ -71,6 +71,8 @@ export function PensionAccountForm({
   }) as string[];
   // The dates only decide when a study fund unlocks.
   const datesImportance = account.productCategory === "studyFund" ? "recommended" : "reference";
+  const hasAnnuityInput =
+    (annuityParameters.estimatedMonthlyAnnuity ?? 0) > 0 || (annuityParameters.conversionFactor ?? 0) > 0;
 
   return (
     <div className="flex flex-col gap-4">
@@ -129,6 +131,22 @@ export function PensionAccountForm({
           label: opt("accountStatus", v),
         }))}
       />
+      {account.productCategory === "investmentProvidentFund" && (
+        <div className="flex flex-col gap-1">
+          <CheckboxField
+            label={f("lifeAnnuityFrom60")}
+            importance="recommended"
+            checked={account.lifeAnnuityFrom60}
+            onChange={(lifeAnnuityFrom60) => onChange({ lifeAnnuityFrom60 })}
+          />
+          <p className="text-xs text-slate-500">{f("lifeAnnuityFrom60Helper")}</p>
+          {account.lifeAnnuityFrom60 && !hasAnnuityInput && (
+            <p role="status" className="text-xs text-amber-800">
+              {f("lifeAnnuityFrom60NeedsInput")}
+            </p>
+          )}
+        </div>
+      )}
       <SelectField
         label={f("legacyPolicyModel")}
         importance="reference"

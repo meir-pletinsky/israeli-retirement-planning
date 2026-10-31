@@ -49,7 +49,7 @@ cost in lost return and in tax; the app should show those options.
   paying fund: gains and annuity are tax-free. Nothing in the sources gives a
   0% route before 60. So for a bridge **before 60** the gemel costs 25% of the
   real gain; **from 60** the annuity route is a real alternative, but it locks
-  the money into a life annuity.
+  the money into a life annuity (R7 models it as an opt-in per account).
 - **Foreign stock (rules R-T).** The taxable gain is the lower of the nominal
   shekel gain and the USD gain × the sale-date rate; FIFO applies across lots.
   The app's single `unrealizedCapitalGainUSD` × 3.7 overstates tax when the
@@ -147,7 +147,7 @@ and S and invented data only.
 | R4 | Purchase lots and effective cost basis (rule R); ESPP kind (**built; there is no `kind` field, the category says ESPP or private; see "R4 notes" in `implementation-progress.md`**) | Yes, for holdings with lots (lower tax when the dollar was higher at purchase) |
 | R5 | Per-source cost table ("tax to raise ₪100 net" and "what you give up") (**built with two columns only, as the user chose; "what you give up" is words, not numbers; see "R5 notes" in `implementation-progress.md`**) | No |
 | R6 | Stress tests: employer-stock haircut and USD/ILS move (**built as fixed rows: employer shares −30% and −50%, the dollar −10% and −20%, and both together; see "R6 notes" in `implementation-progress.md`**) | No |
-| R7 | Investment-gemel annuity route from 60 (rule U), if wanted | Yes, for investment gemel from 60 |
+| R7 | Investment-gemel annuity route from 60 (rule U) (**built as an opt-in tick box per investment-provident-fund account; no default conversion factor; see "R7 notes" in `implementation-progress.md`**) | Only for accounts the user ticks and gives a factor or estimate |
 
 R1 can come first because it needs nothing new. R2 is the biggest engine
 change. R3 fixes a real overstatement: today unvested shares count in full.
@@ -167,9 +167,11 @@ change. R3 fixes a real overstatement: today unvested shares count in full.
 4. **24 months.** *Answered (R3):* for RSUs held by an ESOP in Israel the 24
    months count from the original grant date of the award, not from each vest
    date. User-reported, not checked against the Ordinance.
-5. **Investment gemel annuity (R7).** Worth modelling? It only matters from
-   age 60 and locks the money into a life annuity; the exemption rule is from
-   advisory sites and the legal section is unconfirmed.
+5. **Investment gemel annuity (R7).** *Answered (R7):* yes, model it, as a
+   per-account opt-in in My Data shown only for investment provident funds. The
+   user supplies the conversion factor or a monthly estimate; nothing is
+   assumed. The exemption rule is from advisory sites and the legal section is
+   unconfirmed.
 6. **Exchange rate.** The model uses a fixed 3.7. A live Bank of Israel rate is
    deferred to Phase 4; the effective cost basis in R4 uses the user's
    purchase-date rate and the fixed sale rate.

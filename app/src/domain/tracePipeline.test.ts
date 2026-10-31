@@ -125,6 +125,48 @@ describe("calculation trace of the income pipeline", () => {
     });
   });
 
+  describe("with an investment provident fund taken as a life annuity", () => {
+    const annuitised = buildTestProfile({
+      age: 50,
+      gender: "male",
+      retirementAge: 62,
+      monthlyGrossSalary: 25_000,
+      investmentReturnPct: 5,
+      inflationPct: 2,
+      pensionBalances: [900_000, 400_000],
+      pensionAccountOverrides: [
+        { productCategory: "comprehensivePension" },
+        {
+          productCategory: "investmentProvidentFund",
+          lifeAnnuityFrom60: true,
+          annuityParameters: {
+            hasGuaranteedFactor: false,
+            conversionFactor: 200,
+            estimatedMonthlyAnnuity: null,
+            annuityTaxType: null,
+            guaranteedPaymentMonths: null,
+          },
+        },
+      ],
+    });
+    const annuitisedTiming = resolveRetirementTiming(annuitised, "standard");
+
+    it("records the start age and monthly annuity, and still checks out", () => {
+      const untraced = estimateRetirementIncomeForTiming(annuitised, annuitisedTiming);
+      const { result, log } = runTraced(
+        () => estimateRetirementIncomeForTiming(annuitised, annuitisedTiming),
+        { evaluatedAt: EVALUATED_AT },
+      );
+      expect(result).toEqual(untraced);
+      const start = log.steps.find((step) => step.id.endsWith("annuityStartAge") && step.expr?.includes("investmentGemelAnnuityAge"));
+      expect(start?.output).toBe(62);
+      const monthly = log.steps.filter((step) => step.id.endsWith("annuityMonthly") && step.note?.includes("tax-free"));
+      expect(monthly.length).toBeGreaterThan(0);
+      const report = checkTrace(log, { profile: annuitised, constants: constantsSnapshot() });
+      expect(report.issues).toEqual([]);
+    });
+  });
+
   describe("with purchase lots", () => {
     const lotted = buildTestProfile({
       age: 50,

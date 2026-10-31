@@ -170,6 +170,12 @@ export interface PensionAccount {
   productCategory: ProductCategory | null;
   legacyPolicyModel: LegacyPolicyModel | null;
   accountStatus: AccountStatus | null;
+  /**
+   * Investment provident funds only: the user plans to move the balance at 60 into a paying fund
+   * and take it as a tax-free life annuity instead of a lump sum taxed on its real gain.
+   * Ignored for every other product category.
+   */
+  lifeAnnuityFrom60: boolean;
   joinDate: string | null;
   liquidityDate: string | null;
   totalAccumulatedBalance: number | null;
@@ -191,6 +197,7 @@ export function createEmptyPensionAccount(): PensionAccount {
     productCategory: null,
     legacyPolicyModel: null,
     accountStatus: null,
+    lifeAnnuityFrom60: false,
     joinDate: null,
     liquidityDate: null,
     totalAccumulatedBalance: null,
@@ -694,8 +701,9 @@ export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined
     merged.pensionSavings = EMPTY_PROFILE.pensionSavings;
   } else {
     // Accounts saved before contribution rates existed lack `contributions`,
-    // ones saved before couples were supported lack `owner`, and older ones
-    // lack the reference IDs.
+    // ones saved before couples were supported lack `owner`, older ones lack
+    // the reference IDs, and those from before the annuity route for the
+    // investment provident fund lack `lifeAnnuityFrom60`.
     merged.pensionSavings = {
       ...merged.pensionSavings,
       accounts: merged.pensionSavings.accounts.map((account) => ({
@@ -704,6 +712,7 @@ export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined
         policyNumber: account.policyNumber ?? "",
         fundId: account.fundId ?? "",
         reportId: typeof account.reportId === "string" ? account.reportId : null,
+        lifeAnnuityFrom60: account.lifeAnnuityFrom60 === true,
         contributions: {
           ...EMPTY_ACCOUNT_CONTRIBUTIONS,
           ...account.contributions,

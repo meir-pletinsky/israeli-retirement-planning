@@ -139,6 +139,48 @@ describe("PensionSavingsStep — accounts repeater", () => {
     expect(labelOf(/^Liquidity date/)).toHaveTextContent("Recommended");
   });
 
+  describe("life annuity from 60 (investment provident fund)", () => {
+    const CHECKBOX = /^Take as a life annuity from age 60/;
+    const NUDGE = /Nothing changes yet: enter a conversion factor/;
+
+    it("is offered only for an investment provident fund", async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
+      await user.click(await screen.findByRole("button", { name: "Add account" }));
+
+      expect(screen.queryByLabelText(CHECKBOX)).not.toBeInTheDocument();
+      await user.selectOptions(screen.getByLabelText(/^Product category/), "comprehensivePension");
+      expect(screen.queryByLabelText(CHECKBOX)).not.toBeInTheDocument();
+      await user.selectOptions(screen.getByLabelText(/^Product category/), "investmentProvidentFund");
+      expect(screen.getByLabelText(CHECKBOX)).not.toBeChecked();
+    });
+
+    it("asks for a conversion factor or estimate once ticked, and saves the choice", async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
+      await user.click(await screen.findByRole("button", { name: "Add account" }));
+      await user.type(screen.getByLabelText(/^Provider name/), "Meitav");
+      await user.selectOptions(screen.getByLabelText(/^Product category/), "investmentProvidentFund");
+
+      expect(screen.queryByText(NUDGE)).not.toBeInTheDocument();
+      await user.click(screen.getByLabelText(CHECKBOX));
+      expect(screen.getByRole("status")).toHaveTextContent(NUDGE);
+
+      await user.click(screen.getByRole("button", { name: /^Annuity parameters/ }));
+      await user.type(screen.getByLabelText(/^Conversion factor/), "200");
+      expect(screen.queryByText(NUDGE)).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "Save" }));
+      await waitFor(async () => {
+        const [account] = (await loadProfileFromDb())!.pensionSavings.accounts;
+        expect(account).toMatchObject({
+          productCategory: "investmentProvidentFund",
+          lifeAnnuityFrom60: true,
+        });
+      });
+    });
+  });
+
   describe("where an account came from", () => {
     const REPORT = {
       id: "r1",

@@ -102,7 +102,9 @@ export function retirementPlanYears(
  *   income: brackets and credit points. From the statutory retirement age the
  *   Section 9A exemption applies, at the share set for that calendar year
  *   (`household.baseYear` plus the years from now); before it, the pension
- *   bears health tax instead.
+ *   bears health tax instead. The exception is an investment provident fund
+ *   the owner chose to take as a life annuity from 60: that annuity is
+ *   tax-free (rule U) and adds no taxable income.
  * - Withdrawals from investment provident funds and other investments are
  *   taxed only on their real gain, at a flat rate.
  * - Employer shares follow their tax route (see `employerStockRoute`): under
