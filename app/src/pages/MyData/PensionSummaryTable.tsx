@@ -1,8 +1,7 @@
 import { useTranslation } from "react-i18next";
 
-import { useProfile } from "../../app/ProfileContext";
-import { aggregatePensionBalance, isHouseholdActive } from "../../domain";
 import type { PensionAccount } from "../../types";
+import { sumBalances } from "./pensionPeople";
 import {
   EMPTY_CELL,
   formatCurrency,
@@ -12,20 +11,17 @@ import { SummaryTable, type SummaryColumn } from "./SummaryTable";
 
 const FIELDS = "myData.steps.pensionSavings";
 
-/** Read-only overview of every pension and savings account, above the cards that edit them. */
-export function PensionSummaryTable() {
+interface PensionSummaryTableProps {
+  /** One person's accounts; the total row adds up exactly these. */
+  accounts: readonly PensionAccount[];
+}
+
+/** Read-only overview of one person's pension and savings accounts, above the cards that edit them. */
+export function PensionSummaryTable({ accounts }: PensionSummaryTableProps) {
   const { t } = useTranslation();
-  const { profile } = useProfile();
-  const { accounts } = profile.pensionSavings;
   if (accounts.length === 0) return null;
 
   const currency = t("common.currencySymbol");
-  const householdActive = isHouseholdActive(profile);
-  const showOwner =
-    profile.personal.maritalStatus === "married" ||
-    accounts.some((account) => account.owner === "spouse");
-  const notCounted = (account: PensionAccount) => account.owner === "spouse" && !householdActive;
-  const anyNotCounted = accounts.some(notCounted);
 
   const categoryLabel = (account: PensionAccount) =>
     account.productCategory ? t(`${FIELDS}.options.productCategory.${account.productCategory}`) : null;
@@ -56,22 +52,6 @@ export function PensionSummaryTable() {
       header: t(`${FIELDS}.fields.productCategory`),
       cell: (account) => categoryLabel(account) ?? EMPTY_CELL,
     },
-    ...(showOwner
-      ? [
-          {
-            key: "owner",
-            header: t(`${FIELDS}.fields.owner`),
-            cell: (account: PensionAccount) =>
-              notCounted(account) ? (
-                <span className="inline-block rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
-                  {t(`${FIELDS}.ownerNotCounted`)}
-                </span>
-              ) : (
-                t(`${FIELDS}.options.owner.${account.owner}`)
-              ),
-          },
-        ]
-      : []),
     {
       key: "status",
       header: t(`${FIELDS}.fields.accountStatus`),
@@ -83,7 +63,7 @@ export function PensionSummaryTable() {
       header: t(`${FIELDS}.fields.totalAccumulatedBalance`),
       numeric: true,
       cell: (account) => formatCurrency(account.totalAccumulatedBalance, currency),
-      total: formatCurrency(aggregatePensionBalance(profile), currency),
+      total: formatCurrency(sumBalances(accounts), currency),
     },
     {
       key: "employee",
@@ -124,10 +104,6 @@ export function PensionSummaryTable() {
       rows={accounts}
       rowKey={(account) => account.id}
       columns={columns}
-    >
-      {anyNotCounted && (
-        <p className="mt-3 text-xs text-slate-500">{t("myData.summary.pensionNotCountedNote")}</p>
-      )}
-    </SummaryTable>
+    />
   );
 }

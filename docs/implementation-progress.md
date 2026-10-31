@@ -737,6 +737,30 @@ ticks.
       `ownerCheck.test.ts` (12) and `ClearingHouseImportPage.test.tsx`
       (owner check, partner suggestion, sample, a parse of the shipped zip).
 
+- [x] O10. **Me | Partner tabs on Personal and Pension & savings.** The two people's
+      data used to share one list (with an owner chip per row) and one form. Now:
+      *Pension & savings* has a tab per person (`PersonTabs.tsx`, ARIA tablist, arrow
+      keys, RTL-aware, brand colour for the user and indigo for the partner). Each tab
+      shows that person's summary table, accounts, Add button (owner preset to the active
+      tab) and Clearing House import link (`/import/clearing-house?owner=spouse`).
+      Tabs appear when the user is married or any account is owned by the partner. A
+      partner tab of a not-married user shows one amber "saved but not counted" note
+      instead of a chip per row. The household total sits above the tabs; other assets,
+      equity, expenses and assumptions stay household-level (no tabs).
+      *Personal* shows a Me | Partner switch when married: own fields on Me, the spouse
+      section on Partner (age, gender, retirement age and so on). A single user sees a
+      note that only married couples share calculations; a married user sees what the
+      household total includes. On an invalid Next the tab with the error gets a "!"
+      badge and the view jumps to it (own details first).
+      *State:* the selected person lives in `ActivePersonProvider` (in `MyDataLayout`),
+      with a local-state fallback so a step also works standalone. `?person=self|spouse`
+      opens a step on a tab; `?owner=` presets the import owner and the done button
+      returns to the matching tab. The owner dropdown now says "Partner" (was "My
+      spouse") to match the tabs. Removed texts: `ownerNotCounted`,
+      `summary.pensionNotCountedNote`. Tests: `PersonTabs.test.tsx` and tab-aware
+      cases in `PensionSavingsStep`, `PersonalStep`, `SummaryTables` and
+      `ClearingHouseImportPage` tests.
+
 ## Phase P — Calculation trace and verification pack
 
 The user asked for a way to validate the app's calculations: "traces of all

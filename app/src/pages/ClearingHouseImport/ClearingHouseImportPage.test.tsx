@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, useLocation } from "react-router-dom";
 
 import {
   importClearingHouseFiles,
@@ -55,13 +55,18 @@ const REPORT_XML = toXml(
   report({}, product({}, activePension({ number: POLICY_NUMBER, plan: "תוכנית לדוגמה" }))),
 );
 
-function renderPage() {
+function AccountsPage() {
+  const { search } = useLocation();
+  return <p>Accounts page {search}</p>;
+}
+
+function renderPage(route = "/import/clearing-house") {
   return renderWithProviders(
     <Routes>
       <Route path="/import/clearing-house" element={<ClearingHouseImportPage />} />
-      <Route path="/my-data/pension-savings" element={<p>Accounts page</p>} />
+      <Route path="/my-data/pension-savings" element={<AccountsPage />} />
     </Routes>,
-    { route: "/import/clearing-house" },
+    { route },
   );
 }
 
@@ -107,7 +112,7 @@ describe("ClearingHouseImportPage", () => {
     });
 
     await user.click(screen.getByRole("button", { name: "Go to pension & savings" }));
-    expect(await screen.findByText("Accounts page")).toBeInTheDocument();
+    expect(await screen.findByText("Accounts page ?person=self")).toBeInTheDocument();
   });
 
   it("asks for the zip password, tells a wrong one apart, and then continues", async () => {
@@ -301,9 +306,9 @@ describe("ClearingHouseImportPage", () => {
 });
 
 describe("whose report it is", () => {
-  async function openReport(file: File = xmlFile(REPORT_XML)) {
+  async function openReport(file: File = xmlFile(REPORT_XML), route?: string) {
     const user = userEvent.setup();
-    renderPage();
+    renderPage(route);
     await user.upload(await screen.findByLabelText("Choose zip or XML files"), file);
     await screen.findByText("Review before importing");
     return user;
@@ -364,6 +369,47 @@ describe("whose report it is", () => {
     });
     expect(saved.pensionSavings.accounts[0].owner).toBe("spouse");
     expect(saved.personal.age).toBe(30);
+  });
+
+  it("imports for the partner when opened from the partner's tab, and returns to that tab", async () => {
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 30,
+        gender: "female",
+        maritalStatus: "married",
+        spouse: { age: 46, gender: "male" },
+      }),
+    );
+    const user = await openReport(xmlFile(REPORT_XML), "/import/clearing-house?owner=spouse");
+
+    expect(screen.getByText("Importing for: Partner")).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "My partner's" })).toBeChecked();
+
+    await user.click(screen.getByRole("button", { name: "Import selected values" }));
+    expect(await screen.findByText("Import complete")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Go to pension & savings" }));
+
+    expect(await screen.findByText("Accounts page ?person=spouse")).toBeInTheDocument();
+    const saved = await loadProfileFromDb();
+    expect(saved?.pensionSavings.accounts[0].owner).toBe("spouse");
+  });
+
+  it("keeps the owner chosen by the tab even when the report fits the other person", async () => {
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 30,
+        gender: "female",
+        maritalStatus: "married",
+        spouse: { age: 46, gender: "male" },
+      }),
+    );
+    await openReport(xmlFile(REPORT_XML), "/import/clearing-house?owner=self");
+
+    expect(screen.getByText("Importing for: Me")).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Mine" })).toBeChecked();
+    expect(screen.queryByText(/set to your partner because the report fits/)).not.toBeInTheDocument();
+    // The report does not fit the user, so it is still checked with them.
+    expect(screen.getByText("This report may be about someone else")).toBeInTheDocument();
   });
 
   it("asks again when the owner is changed to someone the report does not fit", async () => {

@@ -36,16 +36,20 @@ interface ReviewStageProps {
   parsed: ParsedReport;
   /** The bundled demonstration report: matched against nothing, and confirmed before it joins real data. */
   sample: boolean;
+  /** The person the user started the import for; overrides the guess made from the report. */
+  initialOwner?: AccountOwner | null;
   onApply: (plan: ImportPlan) => void;
   onStartOver: () => void;
 }
 
-export function ReviewStage({ parsed, sample, onApply, onStartOver }: ReviewStageProps) {
+export function ReviewStage({ parsed, sample, initialOwner = null, onApply, onStartOver }: ReviewStageProps) {
   const { t } = useTranslation();
   const { profile } = useProfile();
   const { result } = parsed;
-  const [owner, setOwner] = useState<AccountOwner>(() => (sample ? "self" : suggestOwner(result, profile)));
-  const [suggestedSpouse] = useState(owner === "spouse");
+  const [owner, setOwner] = useState<AccountOwner>(
+    () => initialOwner ?? (sample ? "self" : suggestOwner(result, profile)),
+  );
+  const [suggestedSpouse] = useState(initialOwner === null && owner === "spouse");
   const [confirmed, setConfirmed] = useState(false);
 
   const selfConcerns = useMemo(

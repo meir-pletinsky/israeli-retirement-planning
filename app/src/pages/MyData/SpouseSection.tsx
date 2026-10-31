@@ -25,10 +25,7 @@ export function SpouseSection({ error }: SpouseSectionProps) {
   const { bituachLeumi } = spouse;
 
   return (
-    <section
-      aria-label={t(`${prefix}.spouseSection`)}
-      className="flex flex-col gap-4 rounded-md border border-slate-200 bg-slate-50 p-4"
-    >
+    <section aria-label={t(`${prefix}.spouseSection`)} className="flex flex-col gap-4">
       <div>
         <h3 className="text-sm font-semibold text-slate-800">{t(`${prefix}.spouseSection`)}</h3>
         <p className="mt-1 text-sm text-slate-600">{t(`${prefix}.spouseIntro`)}</p>

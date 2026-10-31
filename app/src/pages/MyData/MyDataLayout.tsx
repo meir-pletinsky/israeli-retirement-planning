@@ -3,8 +3,8 @@ import { useLocation, useNavigate, Outlet } from "react-router-dom";
 
 import { Stepper } from "../../components/Stepper";
 import { EquitySummaryTable } from "./EquitySummaryTable";
+import { ActivePersonProvider } from "./ActivePersonProvider";
 import { FieldLegend } from "./FieldLegend";
-import { PensionSummaryTable } from "./PensionSummaryTable";
 import { STEP_ORDER, type StepKey } from "./stepOrder";
 
 function toCamelCase(key: string): string {
@@ -25,19 +25,21 @@ export function MyDataLayout() {
   }));
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-semibold text-slate-900">
-        {t("myData.title")}
-      </h1>
-      <Stepper
-        steps={steps}
-        currentKey={currentKey}
-        onStepClick={(key) => navigate(`/my-data/${key}`)}
-      />
-      {currentKey === "pension-savings" && <PensionSummaryTable />}
-      {currentKey === "equity" && <EquitySummaryTable />}
-      <FieldLegend />
-      <Outlet />
-    </div>
+    <ActivePersonProvider>
+      <div className="flex flex-col gap-6">
+        <h1 className="text-xl font-semibold text-slate-900">
+          {t("myData.title")}
+        </h1>
+        <Stepper
+          steps={steps}
+          currentKey={currentKey}
+          onStepClick={(key) => navigate(`/my-data/${key}`)}
+        />
+        {currentKey === "equity" && <EquitySummaryTable />}
+        {/* The pension step shows its own summary, per person, above the legend. */}
+        {currentKey !== "pension-savings" && <FieldLegend />}
+        <Outlet />
+      </div>
+    </ActivePersonProvider>
   );
 }

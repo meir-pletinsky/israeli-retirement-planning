@@ -5,10 +5,6 @@ import type { PensionAccount } from "../../types";
 interface PensionAccountCardProps {
   account: PensionAccount;
   currencySymbol: string;
-  /** Show whose account this is (a married user's accounts can belong to either spouse). */
-  showOwner?: boolean;
-  /** The spouse's account is not counted until the spouse's age is entered. */
-  notCounted?: boolean;
   onEdit: () => void;
   onRemove: () => void;
 }
@@ -16,8 +12,6 @@ interface PensionAccountCardProps {
 export function PensionAccountCard({
   account,
   currencySymbol,
-  showOwner = false,
-  notCounted = false,
   onEdit,
   onRemove,
 }: PensionAccountCardProps) {
@@ -43,17 +37,6 @@ export function PensionAccountCard({
         </p>
         <p className="truncate text-xs text-slate-500">{categoryLabel}</p>
         {references && <p className="truncate text-xs text-slate-400">{references}</p>}
-        {showOwner && (
-          <p
-            className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-              notCounted ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-600"
-            }`}
-          >
-            {notCounted
-              ? t("myData.steps.pensionSavings.ownerNotCounted")
-              : t(`myData.steps.pensionSavings.options.owner.${account.owner}`)}
-          </p>
-        )}
         {account.totalAccumulatedBalance != null && (
           <p className="mt-1 text-sm font-medium text-brand-700">
             {currencySymbol}

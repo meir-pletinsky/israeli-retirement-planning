@@ -104,43 +104,56 @@ describe("My Data summary tables — Pension & Savings", () => {
     expect(screen.getByRole("link", { name: "Import Clearing House report" })).toBeInTheDocument();
   });
 
-  it("leaves a spouse's account out of the total until the spouse's age is entered", async () => {
-    await saveProfileToDb(
-      buildTestProfile({
-        age: 50,
-        maritalStatus: "married",
-        pensionBalances: [100_000, 40_000],
-        pensionAccountOverrides: [{ owner: "self" }, { owner: "spouse" }],
-      }),
-    );
-    renderStep("pension-savings");
-
-    const table = await screen.findByRole("table", { name: "Pension & savings at a glance" });
-    const rows = within(table).getAllByRole("row");
-    expect(rows[1]).toHaveTextContent("Me");
-    expect(rows[2]).toHaveTextContent("Not counted \u2014 add your spouse's age");
-    expect(rows[3]).toHaveTextContent(`${SHEKEL}100,000`);
-    expect(rows[3]).not.toHaveTextContent(`${SHEKEL}140,000`);
-    expect(screen.getByText(/The total leaves out accounts marked/)).toBeInTheDocument();
-  });
-
-  it("counts the spouse's account and shows its owner once the household is active", async () => {
+  it("shows one table per person, each totalling only that person's accounts", async () => {
+    const user = userEvent.setup();
     await saveProfileToDb(
       buildTestProfile({
         age: 50,
         maritalStatus: "married",
         spouse: { age: 48 },
         pensionBalances: [100_000, 40_000],
+        pensionAccountOverrides: [
+          { owner: "self", providerName: "My Fund" },
+          { owner: "spouse", providerName: "Partner Fund" },
+        ],
+      }),
+    );
+    renderStep("pension-savings");
+
+    let table = await screen.findByRole("table", { name: "Pension & savings at a glance" });
+    expect(within(table).getByText("My Fund")).toBeInTheDocument();
+    expect(within(table).queryByText("Partner Fund")).not.toBeInTheDocument();
+    expect(within(table).getAllByRole("row")[2]).toHaveTextContent(`${SHEKEL}100,000`);
+
+    await user.click(screen.getByRole("tab", { name: /Partner/ }));
+    table = await screen.findByRole("table", { name: "Pension & savings at a glance" });
+    expect(within(table).getByText("Partner Fund")).toBeInTheDocument();
+    expect(within(table).queryByText("My Fund")).not.toBeInTheDocument();
+    expect(within(table).getAllByRole("row")[2]).toHaveTextContent(`${SHEKEL}40,000`);
+    expect(screen.getByText(/Household total counted in your plan:/)).toHaveTextContent(`${SHEKEL}140,000`);
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
+  });
+
+  it("explains that the partner's accounts are not counted until the partner's age is entered", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 50,
+        maritalStatus: "married",
+        pensionBalances: [100_000, 40_000],
         pensionAccountOverrides: [{ owner: "self" }, { owner: "spouse" }],
       }),
     );
     renderStep("pension-savings");
 
-    const table = await screen.findByRole("table", { name: "Pension & savings at a glance" });
-    const rows = within(table).getAllByRole("row");
-    expect(rows[2]).toHaveTextContent("My spouse");
-    expect(rows[3]).toHaveTextContent(`${SHEKEL}140,000`);
-    expect(screen.queryByText(/The total leaves out accounts marked/)).not.toBeInTheDocument();
+    await screen.findByRole("table", { name: "Pension & savings at a glance" });
+    expect(screen.getByText(/Household total counted in your plan:/)).toHaveTextContent(`${SHEKEL}100,000`);
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: /Partner/ }));
+    const note = await screen.findByRole("note");
+    expect(note).toHaveTextContent("These accounts are not counted yet");
+    expect(within(note).getByRole("link", { name: "Go to Personal" })).toHaveAttribute("href", "/my-data/personal");
   });
 
   it("hides the owner column for a single person", async () => {

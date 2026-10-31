@@ -14,18 +14,40 @@ beforeEach(async () => {
 describe("PersonalStep — spouse", () => {
   const married = { age: 50, retirementAge: 65, maritalStatus: "married" as const };
 
+  async function openPartnerTab(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(await screen.findByRole("tab", { name: /^Partner/ }));
+  }
+
   it("shows the spouse section only for a married user", async () => {
     const user = userEvent.setup();
     renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
 
     await screen.findByLabelText(/Monthly gross salary/);
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/^Spouse's age/)).not.toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText(/^Marital status/), "married");
+    await openPartnerTab(user);
 
     expect(screen.getByLabelText(/^Spouse's age/)).toBeInTheDocument();
     // Everything else waits for the spouse's age.
     expect(screen.queryByLabelText(/^Spouse's retirement age/)).not.toBeInTheDocument();
+  });
+
+  it("keeps the user's fields on their own tab and the partner's on the Partner tab", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(buildTestProfile({ ...married, spouse: { age: 48 } }));
+    renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+
+    const meTab = await screen.findByRole("tab", { name: /^Me/ });
+    expect(meTab).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /^Partner/ })).toHaveTextContent("Age 48");
+    expect(screen.getByLabelText(/^Marital status/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/^Spouse's age/)).not.toBeInTheDocument();
+
+    await openPartnerTab(user);
+    expect(screen.getByLabelText(/^Spouse's age/)).toHaveValue(48);
+    expect(screen.queryByLabelText(/^Marital status/)).not.toBeInTheDocument();
   });
 
   it("saves the spouse's details once their age is entered", async () => {
@@ -33,6 +55,7 @@ describe("PersonalStep — spouse", () => {
     await saveProfileToDb(buildTestProfile(married));
     renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
 
+    await openPartnerTab(user);
     await user.type(await screen.findByLabelText(/^Spouse's age/), "48");
     await user.selectOptions(screen.getByLabelText(/^Spouse's gender/), "female");
     await user.type(screen.getByLabelText(/^Spouse's retirement age/), "62");
@@ -61,10 +84,40 @@ describe("PersonalStep — spouse", () => {
     await saveProfileToDb(buildTestProfile({ ...married, spouse: { age: 48 } }));
     renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
 
+    await openPartnerTab(user);
     await screen.findByLabelText(/^Spouse's retirement age/);
     await user.click(screen.getByRole("button", { name: "Next" }));
 
     expect(await screen.findByText("This field is required.")).toBeInTheDocument();
+  });
+
+  it("flags the Partner tab and opens it when Next is blocked by the partner's data", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(buildTestProfile({ ...married, spouse: { age: 48 } }));
+    renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+
+    const partnerTab = await screen.findByRole("tab", { name: /^Partner/ });
+    expect(partnerTab).not.toHaveTextContent("Needs attention");
+    await user.click(screen.getByRole("button", { name: "Next" }));
+
+    await waitFor(() => expect(partnerTab).toHaveAttribute("aria-selected", "true"));
+    expect(partnerTab).toHaveTextContent("Needs attention");
+    expect(screen.getByRole("tab", { name: /^Me/ })).not.toHaveTextContent("Needs attention");
+  });
+
+  it("opens the user's own tab first when both people have something to fix", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(
+      buildTestProfile({ maritalStatus: "married", age: null, retirementAge: null, spouse: { age: 48 } }),
+    );
+    renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+
+    await openPartnerTab(user);
+    await user.click(screen.getByRole("button", { name: "Next" }));
+
+    await waitFor(() => expect(screen.getByRole("tab", { name: /^Me/ })).toHaveAttribute("aria-selected", "true"));
+    expect(screen.getByRole("tab", { name: /^Me/ })).toHaveTextContent("Needs attention");
+    expect(screen.getByRole("tab", { name: /^Partner/ })).toHaveTextContent("Needs attention");
   });
 
   it("rejects a spouse retirement age below their current age but accepts an equal one", async () => {
@@ -96,10 +149,24 @@ describe("PersonalStep — spouse", () => {
 
     await user.selectOptions(await screen.findByLabelText(/^Marital status/), "divorced");
 
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/^Spouse's age/)).not.toBeInTheDocument();
     // The details are kept, so switching back does not lose them.
     await user.selectOptions(screen.getByLabelText(/^Marital status/), "married");
+    await openPartnerTab(user);
     expect(screen.getByLabelText(/^Spouse's age/)).toHaveValue(48);
+  });
+
+  it("says that only married couples can share calculations", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+
+    expect(await screen.findByRole("note")).toHaveTextContent(
+      "available only for married couples. Common-law partners count as married.",
+    );
+
+    await user.selectOptions(screen.getByLabelText(/^Marital status/), "married");
+    expect(screen.getByRole("note")).toHaveTextContent("Open the Partner tab");
   });
 });
 
@@ -209,6 +276,7 @@ describe("PersonalStep — tax credit points", () => {
     );
     renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
 
+    await user.click(await screen.findByRole("tab", { name: /^Partner/ }));
     const points = await screen.findByLabelText(/^Spouse's tax credit points/);
     expect(points).toHaveValue(null);
     await user.type(points, "2.5");
@@ -219,11 +287,13 @@ describe("PersonalStep — tax credit points", () => {
   });
 
   it("hides the spouse's credit points until their age is entered", async () => {
+    const user = userEvent.setup();
     await saveProfileToDb(
       buildTestProfile({ age: 50, retirementAge: 65, maritalStatus: "married" }),
     );
     renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
 
+    await user.click(await screen.findByRole("tab", { name: /^Partner/ }));
     await screen.findByLabelText(/^Spouse's age/);
     expect(screen.queryByLabelText(/^Spouse's tax credit points/)).not.toBeInTheDocument();
   });

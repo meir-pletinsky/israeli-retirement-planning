@@ -138,6 +138,16 @@
       },
       "legendOptional": "Fields with no tag are optional refinements; a sensible default applies when they are empty."
     },
+    "person": {
+      "switcher": "Choose whose data to view",
+      "self": "Me",
+      "spouse": "Partner",
+      "noAccounts": "No accounts",
+      "ageDetail": "Age {{age}}",
+      "addAgeToInclude": "Add age to include",
+      "needsAttention": "Needs attention",
+      "householdTotal": "Household total counted in your plan:"
+    },
     "summary": {
       "pensionTitle": "Pension & savings at a glance",
       "equityCategoryTitle": {
@@ -149,7 +159,6 @@
       "equityTotalAllCategories": "Total across all categories",
       "readOnlyHint": "Summary only. To add, edit or remove an item, use the cards below.",
       "total": "Total",
-      "pensionNotCountedNote": "The total leaves out accounts marked \"Not counted\" until you enter your spouse's age.",
       "currentPriceUsd": "Current price (USD)",
       "valueUsd": "Value (USD)",
       "valueIls": "Value (ILS)",
@@ -178,6 +187,8 @@
         "maritalStatusMarried": "Married",
         "maritalStatusDivorced": "Divorced",
         "maritalStatusWidowed": "Widowed",
+        "householdNoteUnmarried": "Joint (household) calculations with a partner are available only for married couples. Common-law partners count as married. Choose \"Married\" to add your partner.",
+        "householdNoteMarried": "Joint calculations are available only for married couples. Open the Partner tab to add your partner's details.",
         "retirementAge": "Desired retirement age",
         "monthlyGrossSalary": "Monthly gross salary",
         "monthlyGrossSalaryHelper": "Used to project ongoing pension and savings deposits until retirement. Leave empty to assume no further deposits.",
@@ -195,7 +206,7 @@
         "bituachLeumiOverride": "Monthly pension from Bituach Leumi's calculator",
         "bituachLeumiOverrideHelper": "Optional. Replaces the estimate; enter the amount in today's money.",
         "spouseSection": "Spouse or partner",
-        "spouseIntro": "Enter your spouse's age to plan together. Their pension accounts and Bituach Leumi pension then join your projections, and you stop contributing and claim at your own ages. Common-law partners count as married.",
+        "spouseIntro": "Enter your partner's age to plan together. Their pension accounts and Bituach Leumi pension then join your projections, and you stop contributing and claim at your own ages. Only married couples can share calculations; common-law partners count as married.",
         "spouseAge": "Spouse's age",
         "spouseAgeHelper": "Leave empty to plan on your own.",
         "spouseGender": "Spouse's gender",
@@ -215,16 +226,25 @@
       "pensionSavings": {
         "label": "Pension & Savings",
         "accountsTitle": "Pension & savings accounts",
+        "accountsTitleFor": {
+          "self": "My accounts",
+          "spouse": "Partner's accounts"
+        },
         "addAccount": "Add account",
         "noAccounts": "No accounts added yet. Add your pension funds, provident funds, managers insurance policies, or study funds.",
+        "noAccountsSpouse": "No accounts added for your partner yet. Add their accounts here, or import their Clearing House report.",
         "untitledAccount": "Untitled account",
-        "ownerNotCounted": "Not counted \u2014 add your spouse's age",
+        "partnerNotCountedMarried": "These accounts are not counted yet. Enter your partner's age on the Personal tab to include them in your joint plan.",
+        "partnerNotCountedUnmarried": "These accounts are not counted. Joint calculations are available only for married couples: set your marital status to Married on the Personal tab to include them.",
+        "goToPersonal": "Go to Personal",
         "policyNumberShort": "Policy {{value}}",
         "fundIdShort": "Fund {{value}}",
         "accountFormTitle": "Pension / savings account",
+        "accountFormTitleFor": "Pension / savings account \u2014 {{person}}",
         "removeConfirmTitle": "Remove this account?",
         "removeConfirmBody": "This permanently removes the account and its details from your profile.",
         "otherAssets": "Other assets (cash, bonds, real estate, etc.)",
+        "otherAssetsShared": "Counted once for the whole household, not per person.",
         "providerSuggestions": [
           "Clal Insurance and Finance",
           "The Phoenix Group",
@@ -279,7 +299,7 @@
         "options": {
           "owner": {
             "self": "Me",
-            "spouse": "My spouse"
+            "spouse": "Partner"
           },
           "productCategory": {
             "comprehensivePension": "Comprehensive pension fund",
@@ -468,6 +488,11 @@
     "entryTitle": "Have a Pension Clearing House report?",
     "entryBody": "Import the consolidated pension report (zip or XML files) from the Pension Clearing House (HaMaslaka HaPensionit, swiftness.co.il) to add all your accounts at once. The files are read on this device only; nothing is uploaded.",
     "entryButton": "Import Clearing House report",
+    "entryButtonFor": {
+      "self": "Import my Clearing House report",
+      "spouse": "Import my partner's Clearing House report"
+    },
+    "importingFor": "Importing for: {{person}}",
     "sample": {
       "badge": "Sample",
       "title": "Want to see how it works first?",

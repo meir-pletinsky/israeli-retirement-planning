@@ -35,8 +35,9 @@ describe("PensionSavingsStep — accounts repeater", () => {
     );
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    expect(await screen.findByText("Menora Mivtachim")).toBeInTheDocument();
-    expect(screen.getByText("\u20aa150,000")).toBeInTheDocument();
+    // The name and balance show on both the summary table and the card.
+    expect(await screen.findAllByText("Menora Mivtachim")).not.toHaveLength(0);
+    expect(screen.getAllByText("\u20aa150,000")).not.toHaveLength(0);
     expect(screen.queryByText(/no accounts added yet/i)).not.toBeInTheDocument();
 
     // Edit it.
@@ -46,7 +47,7 @@ describe("PensionSavingsStep — accounts repeater", () => {
     await user.type(balanceInput, "175000");
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    expect(await screen.findByText("\u20aa175,000")).toBeInTheDocument();
+    expect(await screen.findAllByText("\u20aa175,000")).not.toHaveLength(0);
 
     // Remove it (through the confirm modal).
     await user.click(screen.getByRole("button", { name: "Remove" }));
@@ -73,7 +74,7 @@ describe("PensionSavingsStep — accounts repeater", () => {
     await user.type(screen.getByLabelText(/Severance contribution rate/), "6");
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    await screen.findByText("Clal");
+    expect(await screen.findAllByText("Clal")).not.toHaveLength(0);
     await waitFor(async () => {
       const stored = await loadProfileFromDb();
       expect(stored?.pensionSavings.accounts[0].contributions).toEqual({
@@ -108,7 +109,7 @@ describe("PensionSavingsStep — accounts repeater", () => {
     await user.type(screen.getByLabelText(/^Fund \/ program ID/), "12345");
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    expect(await screen.findByText("Policy CLAL-9255621 · Fund 12345")).toBeInTheDocument();
+    expect(await screen.findAllByText("Policy CLAL-9255621 · Fund 12345")).not.toHaveLength(0);
     await waitFor(async () => {
       const [account] = (await loadProfileFromDb())!.pensionSavings.accounts;
       expect(account).toMatchObject({ policyNumber: "CLAL-9255621", fundId: "12345" });
@@ -145,70 +146,143 @@ describe("PensionSavingsStep — account owner", () => {
     await saveProfileToDb(profile);
   }
 
-  it("does not ask who owns an account for a single person", async () => {
+  it("does not show person tabs or ask who owns an account for a single person", async () => {
     const user = userEvent.setup();
     await seed(buildTestProfile({ age: 50, pensionBalances: [100_000] }));
     renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
 
-    await screen.findByText("Test Provider");
-    expect(screen.queryByText("Me")).not.toBeInTheDocument();
+    await screen.findAllByText("Test Provider");
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Edit" }));
     expect(screen.queryByLabelText("Account owner")).not.toBeInTheDocument();
   });
 
-  it("lets a married user assign an account to their spouse", async () => {
+  it("shows each person's accounts on their own tab", async () => {
+    const user = userEvent.setup();
+    await seed(
+      buildTestProfile({
+        age: 50,
+        ...married,
+        pensionBalances: [100_000, 40_000],
+        pensionAccountOverrides: [
+          { owner: "self", providerName: "My Fund" },
+          { owner: "spouse", providerName: "Partner Fund" },
+        ],
+      }),
+    );
+    renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
+
+    const meTab = await screen.findByRole("tab", { name: /^Me/ });
+    const partnerTab = screen.getByRole("tab", { name: /^Partner/ });
+    expect(meTab).toHaveAttribute("aria-selected", "true");
+    expect(meTab).toHaveTextContent("\u20aa100,000");
+    expect(partnerTab).toHaveTextContent("\u20aa40,000");
+    expect(screen.getAllByText("My Fund")).not.toHaveLength(0);
+    expect(screen.queryByText("Partner Fund")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "My accounts" })).toBeInTheDocument();
+
+    await user.click(partnerTab);
+    expect(partnerTab).toHaveAttribute("aria-selected", "true");
+    expect(screen.getAllByText("Partner Fund")).not.toHaveLength(0);
+    expect(screen.queryByText("My Fund")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Partner's accounts" })).toBeInTheDocument();
+  });
+
+  it("opens on the partner's tab when asked to by the page address", async () => {
+    await seed(
+      buildTestProfile({
+        age: 50,
+        ...married,
+        pensionBalances: [100_000],
+        pensionAccountOverrides: [{ owner: "spouse" }],
+      }),
+    );
+    renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings?person=spouse" });
+
+    expect(await screen.findByRole("tab", { name: /^Partner/ })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("lets a married user assign an account to their partner and follows it to their tab", async () => {
     const user = userEvent.setup();
     await seed(buildTestProfile({ age: 50, ...married, pensionBalances: [100_000] }));
     renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
 
-    expect(await screen.findByText("Me")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Edit" }));
+    await user.click(await screen.findByRole("button", { name: "Edit" }));
+    expect(screen.getByRole("heading", { name: "Pension / savings account \u2014 Me" })).toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText("Account owner"), "spouse");
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    expect(await screen.findByText("My spouse")).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: /^Partner/ })).toHaveAttribute("aria-selected", "true");
     await waitFor(async () => {
       const stored = await loadProfileFromDb();
       expect(stored?.pensionSavings.accounts[0].owner).toBe("spouse");
     });
   });
 
-  it("defaults a new account to the user", async () => {
+  it("presets a new account's owner to the person whose tab is open", async () => {
     const user = userEvent.setup();
     await seed(buildTestProfile({ age: 50, ...married }));
     renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
 
     await user.click(await screen.findByRole("button", { name: "Add account" }));
     expect(screen.getByLabelText("Account owner")).toHaveValue("self");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    await user.click(screen.getByRole("tab", { name: /^Partner/ }));
+    await user.click(screen.getByRole("button", { name: "Add account" }));
+    expect(screen.getByLabelText("Account owner")).toHaveValue("spouse");
   });
 
-  it("warns that a spouse's account is not counted until the spouse's age is entered", async () => {
-    const profile = buildTestProfile({
-      age: 50,
-      maritalStatus: "married",
-      pensionBalances: [100_000],
-      pensionAccountOverrides: [{ owner: "spouse" }],
-    });
-    await seed(profile);
+  it("points the import at the person whose tab is open", async () => {
+    const user = userEvent.setup();
+    await seed(buildTestProfile({ age: 50, ...married }));
     renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
 
-    expect(await screen.findByText("Not counted \u2014 add your spouse's age")).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "Import my Clearing House report" })).toHaveAttribute(
+      "href",
+      "/import/clearing-house?owner=self",
+    );
+    await user.click(screen.getByRole("tab", { name: /^Partner/ }));
+    expect(screen.getByRole("link", { name: "Import my partner's Clearing House report" })).toHaveAttribute(
+      "href",
+      "/import/clearing-house?owner=spouse",
+    );
   });
 
-  it("keeps showing the owner after the user is no longer married", async () => {
-    const profile = buildTestProfile({
-      age: 50,
-      maritalStatus: "divorced",
-      pensionBalances: [100_000],
-      pensionAccountOverrides: [{ owner: "spouse" }],
-    });
-    await seed(profile);
+  it("warns that the partner's accounts are not counted until the partner's age is entered", async () => {
+    const user = userEvent.setup();
+    await seed(
+      buildTestProfile({
+        age: 50,
+        maritalStatus: "married",
+        pensionBalances: [100_000],
+        pensionAccountOverrides: [{ owner: "spouse" }],
+      }),
+    );
     renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
 
-    expect(await screen.findByText("Not counted \u2014 add your spouse's age")).toBeInTheDocument();
+    await user.click(await screen.findByRole("tab", { name: /^Partner/ }));
+    expect(await screen.findByRole("note")).toHaveTextContent("Enter your partner's age on the Personal tab");
   });
 
-  it("counts a spouse's account once the household is active", async () => {
+  it("keeps the partner's tab, with a married-couples note, once the user is no longer married", async () => {
+    const user = userEvent.setup();
+    await seed(
+      buildTestProfile({
+        age: 50,
+        maritalStatus: "divorced",
+        pensionBalances: [100_000],
+        pensionAccountOverrides: [{ owner: "spouse" }],
+      }),
+    );
+    renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
+
+    await user.click(await screen.findByRole("tab", { name: /^Partner/ }));
+    expect(await screen.findByRole("note")).toHaveTextContent("only for married couples");
+  });
+
+  it("counts a partner's account once the household is active", async () => {
+    const user = userEvent.setup();
     await seed(
       buildTestProfile({
         age: 50,
@@ -219,7 +293,8 @@ describe("PensionSavingsStep — account owner", () => {
     );
     renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
 
-    expect(await screen.findByText("My spouse")).toBeInTheDocument();
-    expect(screen.queryByText(/Not counted/)).not.toBeInTheDocument();
+    await user.click(await screen.findByRole("tab", { name: /^Partner/ }));
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
+    expect(screen.getByText(/Household total counted in your plan:/)).toHaveTextContent("\u20aa100,000");
   });
 });

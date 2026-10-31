@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { useProfile } from "../../app/ProfileContext";
 import {
@@ -13,6 +13,8 @@ import {
   type ImportPlan,
   type ParsedReport,
 } from "../../domain/clearingHouseImport";
+import type { AccountOwner } from "../../types";
+import { PERSON_PARAM, parsePerson } from "../MyData/activePerson";
 import { PasswordPrompt } from "./PasswordPrompt";
 import { PickStage } from "./PickStage";
 import { countPlan } from "./reviewState";
@@ -23,13 +25,21 @@ type Stage =
   | { name: "pick" }
   | { name: "password"; files: File[]; wrongPassword: boolean }
   | { name: "review"; parsed: ParsedReport; sample: boolean }
-  | { name: "done"; accounts: number; personal: number; sample: boolean };
+  | { name: "done"; accounts: number; personal: number; sample: boolean; owner: AccountOwner };
 
 const ACCOUNTS_ROUTE = "/my-data/pension-savings";
+
+/** The accounts page, opened on the tab of the person whose report was imported. */
+function accountsRoute(owner: AccountOwner | null): string {
+  return owner ? `${ACCOUNTS_ROUTE}?${PERSON_PARAM}=${owner}` : ACCOUNTS_ROUTE;
+}
 
 export function ClearingHouseImportPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Set when the user starts from a person's tab, so the report goes to that person.
+  const requestedOwner = parsePerson(searchParams.get("owner"));
   const { profile, updateProfile } = useProfile();
   const [stage, setStage] = useState<Stage>({ name: "pick" });
   const [busy, setBusy] = useState(false);
@@ -82,13 +92,24 @@ export function ClearingHouseImportPage() {
     if (stage.name !== "review") return;
     const counts = countPlan(plan);
     updateProfile(applyImport(profile, plan));
-    setStage({ name: "done", accounts: counts.accounts, personal: counts.personal, sample: stage.sample });
+    setStage({
+      name: "done",
+      accounts: counts.accounts,
+      personal: counts.personal,
+      sample: stage.sample,
+      owner: plan.owner,
+    });
   }
 
   return (
     <div className="flex max-w-2xl flex-col gap-4">
       <h1 className="text-xl font-semibold text-slate-900">{t("clearingHouse.title")}</h1>
 
+      {requestedOwner && stage.name !== "done" && (
+        <p className="text-sm font-medium text-slate-700">
+          {t("clearingHouse.importingFor", { person: t(`myData.person.${requestedOwner}`) })}
+        </p>
+      )}
       {stage.name === "pick" && (
         <PickStage
           busy={busy}
@@ -108,7 +129,13 @@ export function ClearingHouseImportPage() {
       )}
 
       {stage.name === "review" && (
-        <ReviewStage parsed={stage.parsed} sample={stage.sample} onApply={apply} onStartOver={startOver} />
+        <ReviewStage
+          parsed={stage.parsed}
+          sample={stage.sample}
+          initialOwner={requestedOwner}
+          onApply={apply}
+          onStartOver={startOver}
+        />
       )}
 
       {stage.name === "done" && (
@@ -131,7 +158,7 @@ export function ClearingHouseImportPage() {
           <div>
             <button
               type="button"
-              onClick={() => navigate(ACCOUNTS_ROUTE)}
+              onClick={() => navigate(accountsRoute(stage.owner))}
               className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
             >
               {t("clearingHouse.done.toAccounts")}

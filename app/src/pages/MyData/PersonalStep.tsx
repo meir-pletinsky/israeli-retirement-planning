@@ -7,6 +7,8 @@ import { CollapsibleSection } from "../../components/CollapsibleSection";
 import { NumberField } from "../../components/fields/NumberField";
 import { SelectField } from "../../components/fields/SelectField";
 import type { Gender, MaritalStatus } from "../../types";
+import { useActivePerson, type Person } from "./activePerson";
+import { PersonTabs, type PersonTab } from "./PersonTabs";
 import { StepFooter } from "./StepFooter";
 import { SpouseSection } from "./SpouseSection";
 
@@ -50,8 +52,35 @@ export function PersonalStep() {
   const isValid =
     !ageMissing && !retirementAgeMissing && !retirementBeforeAge && spouseError === null;
 
-  return (
-    <div className="flex max-w-lg flex-col gap-4">
+  const { person: selectedPerson, setPerson } = useActivePerson();
+  const person: Person = isMarried ? selectedPerson : "self";
+  const selfHasError = ageMissing || retirementAgeMissing || retirementBeforeAge;
+
+  const tabs: PersonTab[] = [
+    {
+      person: "self",
+      detail:
+        personal.age === null ? undefined : t("myData.person.ageDetail", { age: personal.age }),
+      hasError: showErrors && selfHasError,
+    },
+    {
+      person: "spouse",
+      detail:
+        spouse.age === null
+          ? t("myData.person.addAgeToInclude")
+          : t("myData.person.ageDetail", { age: spouse.age }),
+      hasError: showErrors && spouseError !== null,
+    },
+  ];
+
+  function handleInvalidAttempt() {
+    setShowErrors(true);
+    // Show the person whose fields need fixing.
+    if (isMarried) setPerson(selfHasError ? "self" : "spouse");
+  }
+
+  const selfFields = (
+    <>
       <NumberField
         label={t("myData.steps.personal.age")}
         importance="required"
@@ -93,6 +122,13 @@ export function PersonalStep() {
           ),
         }))}
       />
+      <p role="note" className="-mt-2 text-xs text-slate-600">
+        {t(
+          isMarried
+            ? "myData.steps.personal.householdNoteMarried"
+            : "myData.steps.personal.householdNoteUnmarried",
+        )}
+      </p>
       <NumberField
         label={t("myData.steps.personal.retirementAge")}
         importance="required"
@@ -132,8 +168,6 @@ export function PersonalStep() {
         max={10}
         step={0.25}
       />
-
-      {isMarried && <SpouseSection error={showErrors ? spouseError : null} />}
 
       <CollapsibleSection title={t("myData.steps.personal.taxExemptionSection")}>
         <CheckboxField
@@ -212,11 +246,23 @@ export function PersonalStep() {
           suffix={currency}
         />
       </CollapsibleSection>
+    </>
+  );
+
+  return (
+    <div className="flex max-w-lg flex-col gap-4">
+      {isMarried ? (
+        <PersonTabs id="personal" tabs={tabs} active={person} onChange={setPerson}>
+          {person === "self" ? selfFields : <SpouseSection error={showErrors ? spouseError : null} />}
+        </PersonTabs>
+      ) : (
+        selfFields
+      )}
 
       <StepFooter
         currentKey="personal"
         isValid={isValid}
-        onInvalidAttempt={() => setShowErrors(true)}
+        onInvalidAttempt={handleInvalidAttempt}
       />
     </div>
   );
