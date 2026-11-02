@@ -1,4 +1,5 @@
 import type { Assumptions, PensionAccount, ProfileData, StockHolding } from "../types";
+import { aggregateBankDepositsBalance } from "./bankDeposits";
 import {
   DEFAULT_CURRENT_AGE,
   DEFAULT_RETIREMENT_AGE,
@@ -124,7 +125,8 @@ export function aggregatePensionBalance(profile: ProfileData): number {
 /**
  * Non-pension assets in ILS: the `otherAssets` catch-all (cash, bonds, real
  * estate, etc.) plus equity holdings (`quantity * currentMarketPriceUSD`,
- * converted at the profile's USD to ILS rate, see `usdToIlsRate`).
+ * converted at the profile's USD to ILS rate, see `usdToIlsRate`) plus bank
+ * deposits (see `bankDepositValueIls`).
  *
  * Employer-granted shares count only the batches the owner has. Without
  * `retirementMs` those are the batches vested by now; with it, the batches
@@ -150,7 +152,12 @@ export function aggregateOtherBalance(
       ),
     0,
   );
-  return otherAssets + equityTotal;
+  const bankDepositsTotal = aggregateBankDepositsBalance(
+    profile.bankDeposits,
+    profile.assumptions.inflationPct,
+    nowMs,
+  );
+  return otherAssets + equityTotal + bankDepositsTotal;
 }
 
 /**

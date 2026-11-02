@@ -40,8 +40,13 @@ const MORE_ESPP = /^More details: ESPP/;
 const MORE_PERSONAL = /^More details: personal brokerage/;
 
 async function openAddHolding(user: User, category: string) {
-  await user.click(await screen.findByRole("button", { name: "Add holding" }));
-  await user.selectOptions(screen.getByLabelText(/^Investment category/), category);
+  const label =
+    category === "employerEsppDiscount"
+      ? "Add ESPP purchase"
+      : category === "employerGrantedStock"
+        ? "Add ESOP / RSU grant"
+        : "Add private trade";
+  await user.click(await screen.findByRole("button", { name: label }));
 }
 
 const lot = (n: number) => within(screen.getByRole("group", { name: `Purchase ${n}` }));

@@ -11,9 +11,14 @@ beforeEach(async () => {
   await clearAllData();
 });
 
+const ADD_BUTTON_LABEL: Record<string, string> = {
+  employerGrantedStock: "Add ESOP / RSU grant",
+  employerEsppDiscount: "Add ESPP purchase",
+  personalBrokeragePurchase: "Add private trade",
+};
+
 async function openAddHolding(user: ReturnType<typeof userEvent.setup>, category: string) {
-  await user.click(await screen.findByRole("button", { name: "Add holding" }));
-  await user.selectOptions(screen.getByLabelText(/^Investment category/), category);
+  await user.click(await screen.findByRole("button", { name: ADD_BUTTON_LABEL[category] }));
 }
 
 describe("EquityStep — simple purchase / grant entry", () => {
@@ -79,17 +84,13 @@ describe("EquityStep — simple purchase / grant entry", () => {
     });
   });
 
-  it("shows the date and price before a category is chosen and carries them into it", async () => {
+  it("switches category and carries the date and price into the new one", async () => {
     const user = userEvent.setup();
     renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
 
-    await user.click(await screen.findByRole("button", { name: "Add holding" }));
-    await user.type(screen.getByLabelText(/^Purchase \/ grant date/), "2024-03-01");
-    await user.type(screen.getByLabelText(/^Share price on that date/), "150");
-
-    await user.selectOptions(screen.getByLabelText(/^Investment category/), "employerGrantedStock");
-    expect(screen.getByLabelText(/^Grant date/)).toHaveValue("2024-03-01");
-    expect(screen.getByLabelText(/^Share price at grant/)).toHaveValue(150);
+    await openAddHolding(user, "employerGrantedStock");
+    await user.type(screen.getByLabelText(/^Grant date/), "2024-03-01");
+    await user.type(screen.getByLabelText(/^Share price at grant/), "150");
 
     await user.selectOptions(screen.getByLabelText(/^Investment category/), "personalBrokeragePurchase");
     expect(screen.getByLabelText(/^Purchase date/)).toHaveValue("2024-03-01");

@@ -46,8 +46,7 @@ afterEach(() => {
 });
 
 async function openAddHolding(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(await screen.findByRole("button", { name: "Add holding" }));
-  await user.selectOptions(screen.getByLabelText(/^Investment category/), "employerGrantedStock");
+  await user.click(await screen.findByRole("button", { name: "Add ESOP / RSU grant" }));
 }
 
 const grantDate = () => screen.getByLabelText(/^Grant date/);

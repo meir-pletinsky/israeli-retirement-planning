@@ -4,6 +4,7 @@ import { createEmptyStockHolding, type InvestmentCategory, type StockHolding } f
 import {
   CATEGORY_ORDER,
   categoryChangePatch,
+  createHoldingForCategory,
   entryDate,
   entryDatePatch,
   entryPricePatch,
@@ -126,6 +127,53 @@ describe("holdingEntry — categoryChangePatch", () => {
       purchaseDate: null,
       fairMarketValueAtPurchaseUSD: null,
     });
+  });
+});
+
+describe("holdingEntry — createHoldingForCategory", () => {
+  it("presets the category on a fresh, otherwise-empty holding", () => {
+    const holding = createHoldingForCategory("personalBrokeragePurchase", []);
+    expect(holding.investmentCategory).toBe("personalBrokeragePurchase");
+    expect(holding.tickerSymbol).toBe("");
+    expect(holding.companyName).toBe("");
+  });
+
+  it.each(["employerGrantedStock", "employerEsppDiscount"] as const)(
+    "defaults the ticker symbol and company from the last %s holding, assuming the same employer",
+    (category) => {
+      const existing: StockHolding[] = [
+        { ...holdingOf(category), tickerSymbol: "AAA", companyName: "Old Co" },
+        { ...holdingOf(category), tickerSymbol: "BBB", companyName: "New Co" },
+      ];
+
+      const holding = createHoldingForCategory(category, existing);
+
+      expect(holding.investmentCategory).toBe(category);
+      expect(holding.tickerSymbol).toBe("BBB");
+      expect(holding.companyName).toBe("New Co");
+    },
+  );
+
+  it("does not carry a symbol into a private trade, which has no employer to assume", () => {
+    const existing: StockHolding[] = [
+      { ...holdingOf("personalBrokeragePurchase"), tickerSymbol: "AAA", companyName: "Old Co" },
+    ];
+
+    const holding = createHoldingForCategory("personalBrokeragePurchase", existing);
+
+    expect(holding.tickerSymbol).toBe("");
+    expect(holding.companyName).toBe("");
+  });
+
+  it("only looks at holdings of the same category for the default symbol", () => {
+    const existing: StockHolding[] = [
+      { ...holdingOf("employerGrantedStock"), tickerSymbol: "AAA", companyName: "Grant Co" },
+    ];
+
+    const holding = createHoldingForCategory("employerEsppDiscount", existing);
+
+    expect(holding.tickerSymbol).toBe("");
+    expect(holding.companyName).toBe("");
   });
 });
 

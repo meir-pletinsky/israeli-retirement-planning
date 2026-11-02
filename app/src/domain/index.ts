@@ -1,4 +1,5 @@
 export * from "./accessRules";
+export * from "./bankDeposits";
 export * from "./bituachLeumi";
 export * from "./bituachLeumiRates";
 export * from "./constants";

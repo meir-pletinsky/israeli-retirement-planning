@@ -1,10 +1,11 @@
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useProfile } from "../../app/ProfileContext";
 import { holdingValueIls, usdToIlsRate } from "../../domain";
 import type { InvestmentCategory, ProfileData, StockHolding } from "../../types";
-import { CATEGORY_ORDER, entryDate, entryPriceUsd } from "./holdingEntry";
+import { entryDate, entryPriceUsd } from "./holdingEntry";
 import { RowActions } from "./RowActions";
 import { EMPTY_CELL, formatCurrency } from "./summaryFormat";
 import { SummaryTable, type SummaryColumn } from "./SummaryTable";
@@ -24,25 +25,37 @@ function holdingValueUsd(holding: StockHolding): number | null {
   return holding.quantity * holding.currentMarketPriceUSD;
 }
 
-function sumUsd(holdings: readonly StockHolding[]): number {
+export function sumUsd(holdings: readonly StockHolding[]): number {
   return holdings.reduce((sum, holding) => sum + (holdingValueUsd(holding) ?? 0), 0);
 }
 
-function sumIls(holdings: readonly StockHolding[], rate: number): number {
+export function sumIls(holdings: readonly StockHolding[], rate: number): number {
   return holdings.reduce((sum, holding) => sum + holdingValueIls(holding, rate), 0);
 }
 
-interface CategoryTableProps {
-  /** Null for holdings that have no category yet. */
+interface EquityCategoryTableProps {
+  /** Null only for holdings saved before a category was chosen (see `createHoldingForCategory`); shown in a separate legacy table with no "Add" button of its own. */
   category: InvestmentCategory | null;
   holdings: readonly StockHolding[];
   /** Shekels per US dollar. */
   rate: number;
   onEdit: (holding: StockHolding) => void;
   onRemove: (holding: StockHolding) => void;
+  /** The category's own "Add" button; omitted for the legacy no-category table. */
+  toolbar?: ReactNode;
+  emptyMessage: ReactNode;
 }
 
-function CategoryTable({ category, holdings, rate, onEdit, onRemove }: CategoryTableProps) {
+/** One category's holdings as its own table, with its own "Add" button and totals. */
+export function EquityCategoryTable({
+  category,
+  holdings,
+  rate,
+  onEdit,
+  onRemove,
+  toolbar,
+  emptyMessage,
+}: EquityCategoryTableProps) {
   const { t } = useTranslation();
   const currency = t("common.currencySymbol");
   const totalUsd = sumUsd(holdings);
@@ -131,6 +144,8 @@ function CategoryTable({ category, holdings, rate, onEdit, onRemove }: CategoryT
       rows={holdings}
       rowKey={(holding) => holding.id}
       columns={columns}
+      toolbar={toolbar}
+      emptyMessage={emptyMessage}
       rowActions={(holding, describedBy) => (
         <RowActions
           describedBy={describedBy}
@@ -143,7 +158,7 @@ function CategoryTable({ category, holdings, rate, onEdit, onRemove }: CategoryT
 }
 
 /** Where the rate behind the shekel values comes from, and a field to replace it with the user's own. */
-function UsdIlsRateControl({ equity, rate }: { equity: ProfileData["equity"]; rate: number }) {
+export function UsdIlsRateControl({ equity, rate }: { equity: ProfileData["equity"]; rate: number }) {
   const { t } = useTranslation();
   const { setUsdToIlsRate } = useProfile();
   const [draft, setDraft] = useState<string | null>(null);
@@ -196,51 +211,31 @@ function UsdIlsRateControl({ equity, rate }: { equity: ProfileData["equity"]; ra
   );
 }
 
-interface EquitySummaryTableProps {
-  onEdit: (holding: StockHolding) => void;
-  onRemove: (holding: StockHolding) => void;
+interface EquityTotalsFooterProps {
+  /** Every stock holding across the three categories (and any legacy uncategorized ones), for the grand total. */
+  holdings: readonly StockHolding[];
+  /** Number of the above tables that currently have at least one holding; hides the grand total when there's only one. */
+  nonEmptyTableCount: number;
 }
 
-/** The equity holdings, one table per category, with the buttons to edit and remove each one. */
-export function EquitySummaryTable({ onEdit, onRemove }: EquitySummaryTableProps) {
+/** The combined total across every equity table, plus the USD/ILS exchange rate control. */
+export function EquityTotalsFooter({ holdings, nonEmptyTableCount }: EquityTotalsFooterProps) {
   const { t } = useTranslation();
   const { profile } = useProfile();
-  const { holdings } = profile.equity;
   const rate = usdToIlsRate(profile);
-
-  const groups = [...CATEGORY_ORDER, null]
-    .map((category) => ({
-      category,
-      holdings: holdings.filter((holding) => (holding.investmentCategory ?? null) === category),
-    }))
-    .filter((group) => group.holdings.length > 0);
-  if (groups.length === 0) return null;
-
   const currency = t("common.currencySymbol");
 
   return (
-    <>
-      {groups.map((group) => (
-        <CategoryTable
-          key={group.category ?? "none"}
-          category={group.category}
-          holdings={group.holdings}
-          rate={rate}
-          onEdit={onEdit}
-          onRemove={onRemove}
-        />
-      ))}
-      <div className="flex flex-col gap-2 text-xs text-slate-500">
-        {groups.length > 1 && (
-          <p className="text-sm font-semibold text-slate-900">
-            {t("myData.summary.equityTotalAllCategories")}:{" "}
-            <span dir="ltr">{formatCurrency(sumUsd(holdings), "$")}</span>
-            {" / "}
-            <span dir="ltr">{formatCurrency(Math.round(sumIls(holdings, rate)), currency)}</span>
-          </p>
-        )}
-        <UsdIlsRateControl equity={profile.equity} rate={rate} />
-      </div>
-    </>
+    <div className="flex flex-col gap-2 text-xs text-slate-500">
+      {nonEmptyTableCount > 1 && (
+        <p className="text-sm font-semibold text-slate-900">
+          {t("myData.summary.equityTotalAllCategories")}:{" "}
+          <span dir="ltr">{formatCurrency(sumUsd(holdings), "$")}</span>
+          {" / "}
+          <span dir="ltr">{formatCurrency(Math.round(sumIls(holdings, rate)), currency)}</span>
+        </p>
+      )}
+      <UsdIlsRateControl equity={profile.equity} rate={rate} />
+    </div>
   );
 }

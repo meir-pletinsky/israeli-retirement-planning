@@ -1,4 +1,5 @@
 import type { InvestmentCategory, StockHolding } from "../../types";
+import { createEmptyStockHolding } from "../../types";
 
 /**
  * The simple entry form asks for one purchase or grant: its date, the share price on that day and
@@ -129,6 +130,35 @@ function entryPatch(
 
 function targetsOf(holding: StockHolding): readonly InvestmentCategory[] {
   return holding.investmentCategory ? [holding.investmentCategory] : CATEGORY_ORDER;
+}
+
+/**
+ * Categories whose "Add" button defaults the ticker symbol from the last entered holding of the
+ * same category: ESOP and ESPP, since both assume the person is still working at the same
+ * employer. A private trade has no such assumption, so it always starts blank.
+ */
+const CATEGORIES_WITH_SYMBOL_CARRYOVER: readonly InvestmentCategory[] = [
+  "employerGrantedStock",
+  "employerEsppDiscount",
+];
+
+/**
+ * A fresh holding for one category's own "Add" button: preset to that category, and for ESOP/ESPP,
+ * with the ticker symbol (and company name) of the last holding already entered in that category,
+ * since the person is presumably still at the same employer.
+ */
+export function createHoldingForCategory(
+  category: InvestmentCategory,
+  existingHoldings: readonly StockHolding[],
+): StockHolding {
+  const holding = { ...createEmptyStockHolding(), investmentCategory: category };
+  if (!CATEGORIES_WITH_SYMBOL_CARRYOVER.includes(category)) return holding;
+
+  const sameCategory = existingHoldings.filter((h) => h.investmentCategory === category);
+  const last = sameCategory[sameCategory.length - 1];
+  if (!last) return holding;
+
+  return { ...holding, tickerSymbol: last.tickerSymbol, companyName: last.companyName };
 }
 
 export function entryDatePatch(holding: StockHolding, date: string | null): Partial<StockHolding> {

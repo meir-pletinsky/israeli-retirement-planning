@@ -1,4 +1,6 @@
 import type {
+  BankDeposit,
+  BankDepositRateType,
   BituachLeumiData,
   ExpenseItem,
   Gender,
@@ -80,6 +82,15 @@ export function buildTestProfile(overrides: {
   expenseItems?: Partial<ExpenseItem>[];
   /** The retirement ages saved from the Projections comparison. */
   comparisonAges?: [number, number, number];
+  bankDeposits?: {
+    amount: number;
+    startDate?: string;
+    rateType?: BankDepositRateType;
+    annualInterestRatePercent?: number;
+    cpiLinked?: boolean;
+    bankName?: string;
+    maturityDate?: string;
+  }[];
 }): ProfileData {
   const {
     age,
@@ -103,6 +114,7 @@ export function buildTestProfile(overrides: {
     retirementMonthlyExpenses,
     expenseItems,
     comparisonAges,
+    bankDeposits = [],
   } = overrides;
 
   return {
@@ -254,5 +266,17 @@ export function buildTestProfile(overrides: {
       withdrawalStrategy: withdrawalStrategy ?? EMPTY_PROFILE.assumptions.withdrawalStrategy,
     },
     comparisonAges: comparisonAges ?? null,
+    bankDeposits: bankDeposits.map(
+      (deposit, index): BankDeposit => ({
+        id: `test-deposit-${index}`,
+        bankName: deposit.bankName ?? "Test Bank",
+        amount: deposit.amount,
+        startDate: deposit.startDate ?? null,
+        maturityDate: deposit.maturityDate ?? null,
+        rateType: deposit.rateType ?? "fixed",
+        annualInterestRatePercent: deposit.annualInterestRatePercent ?? null,
+        cpiLinked: deposit.cpiLinked ?? false,
+      }),
+    ),
   };
 }
