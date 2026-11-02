@@ -13,7 +13,7 @@ import { PersonalStep } from "../pages/MyData/PersonalStep";
 import { Dashboard } from "../pages/Dashboard";
 import { Projections } from "../pages/Projections";
 import { Settings } from "../pages/Settings";
-import { Welcome } from "../pages/Welcome";
+import { Welcome } from "../pages/Welcome/Welcome";
 import { AppShell } from "./AppShell";
 import { useProfile } from "./ProfileContext";
 

@@ -19,10 +19,74 @@
   },
   "welcome": {
     "title": "Your retirement plan, on your device",
-    "subtitle": "Estimate your retirement income and readiness \u2014 privately. No account, no server, your financial data never leaves this device.",
+    "subtitle": "Estimate your retirement income, and when you could retire, from your Israeli pension, savings and investments.",
     "start": "Start my plan",
-    "import": "Import data",
-    "privacyNote": "Your financial data stays on this device."
+    "getStarted": "Get started",
+    "loadSaved": "Load my saved data file",
+    "loadSavedHint": "Used the app before? Choose the .json file you saved earlier with \u201cExport data\u201d in Settings.",
+    "about": {
+      "title": "What this app does",
+      "body": "You enter your pension, provident and study funds, stocks, Bituach Leumi pension and expected spending. The app turns them into a retirement picture.",
+      "points": {
+        "income": "Your monthly income after tax, year by year",
+        "earliest": "The earliest age you could retire",
+        "rules": "Israeli tax and Bituach Leumi rules are built in",
+        "scenarios": "What-if scenarios and a market-risk check"
+      },
+      "saveTitle": "Save and come back later",
+      "saveBody": "Your plan lives in this browser. Use \u201cExport data\u201d in Settings to save it as a file, and \u201cImport data\u201d there (or \u201cLoad my saved data file\u201d above) to load it again, later or on another device. Keep an exported file as a backup: clearing browser data erases the plan."
+    },
+    "privacy": {
+      "title": "Private by design",
+      "lead": "Your financial data never leaves this device.",
+      "points": {
+        "local": "No account and no server. Everything is saved in this browser only.",
+        "files": "Nothing is uploaded. Files you import are read on this device only.",
+        "lookups": "A few optional public lookups are made: the dollar rate (only a currency pair and a date), Israeli inflation figures and public stock-price files. None carries amounts or personal details, and the first two can be switched off in Settings."
+      }
+    },
+    "flow": {
+      "title": "Get started",
+      "intro": "Go through the My Data steps in order, or jump to any of them. Only your age and desired retirement age are required. Everything is saved on this device and you can change it at any time.",
+      "optional": "Optional",
+      "fastTrackBadge": "Fast track fills most of this",
+      "steps": {
+        "personal": "Your age, gender, salary and family details.",
+        "pensionSavings": "Pension, provident and study funds, with balances, deposits and fees.",
+        "equity": "Stocks, employee share plans (ESPP, EOSP) and other investments.",
+        "expenses": "What you spend now and expect to spend in retirement.",
+        "assumptions": "Returns, inflation and other settings. Sensible defaults are used if you skip this."
+      },
+      "result": {
+        "title": "See your results",
+        "body": "The Dashboard shows your earliest feasible retirement age and income after tax. Projections lets you compare scenarios."
+      }
+    },
+    "fastTrack": {
+      "badge": "Recommended fast track",
+      "title": "Fastest start: import your Pension Clearing House report",
+      "intro": "The report lists all your pension, provident and study funds in one file. Importing it fills in most of steps 1 and 2 for you. You check every value before anything is added.",
+      "fillsTitle": "What it fills in",
+      "personal": {
+        "age": "Your age",
+        "gender": "Gender",
+        "salary": "Monthly gross salary, taken from your deposits",
+        "marital": "Marital status, offered as a suggestion for you to confirm"
+      },
+      "pension": {
+        "accounts": "Every account: provider, product type, balance and severance balance",
+        "deposits": "Deposit rates for you and your employer",
+        "fees": "Management fees and the investment track",
+        "annuity": "Estimated monthly pension and conversion factor",
+        "cover": "Death and disability cover"
+      },
+      "stillYoursTitle": "Still yours to fill in:",
+      "stillYours": "your desired retirement age, expenses, stock holdings and assumptions.",
+      "howOrder": "Order the report at swiftness.co.il (the Pension Clearing House service). You verify your identity and pay a small fee.",
+      "howImport": "It arrives by email, usually within about one business day, as a password-protected file. Choose that file here.",
+      "howReview": "Review the suggested values and apply the ones you want. The file is read on this device only.",
+      "sampleHint": "Want to see how it works first? The import page has a sample report to try."
+    }
   },
   "dashboard": {
     "feasibility": {

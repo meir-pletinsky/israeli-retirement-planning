@@ -1815,6 +1815,34 @@ Not handled: data saved under a different address (another browser, device, or
 `localhost` versus the published site) is a different IndexedDB, so it cannot be detected.
 Use Settings → Export and Import to move it.
 
+## Welcome page redesign for new visitors
+
+The start page was a title, two buttons and one privacy line. A new visitor could not tell
+what the app does, what the privacy promise covers, which order to fill the steps in, or that
+the Pension Clearing House import is the quickest way in. The "Import data" button also did not
+say it loads a file from an earlier session.
+
+- [x] `pages/Welcome/` (the page moved from `pages/Welcome.tsx`): `AboutBox` (what it does,
+      plus a "save and come back later" note naming Export data and Import data),
+      `PrivacyBox` (no account or server, nothing uploaded, the optional public lookups and what
+      they send), `GetStartedFlow` (a numbered vertical diagram of the five My Data steps, each
+      with Required, Recommended or Optional, ending at the results), `FastTrackCard` (the
+      Clearing House import: what it fills for Personal and Pension and savings, what is still
+      the user's, how to order the report, and a link to `/import/clearing-house`).
+- [x] The old "Import data" button is now "Load my saved data file", with a hint line that names
+      the Export data button in Settings. The Settings buttons are unchanged.
+- [x] The "what it fills" lists come from `domain/clearingHouseImport/types.ts` and
+      `mapReport.ts`: age, gender, salary and marital status (a suggestion) for Personal; the
+      account details, deposit rates, fees and track, annuity estimate and cover for pension.
+- [x] Copy under `welcome.*` in en, he and ru (RTL checked); `welcome.import` and
+      `welcome.privacyNote` were removed. The Hebrew and Russian text is not native-reviewed.
+- [x] Follow-up: the top primary button is "Get started" (smooth-scrolls to the Get started
+      card and focuses its heading); "Start my plan" moved to the bottom of that card. Trade-off:
+      it now comes before the Fast-track card.
+- [x] Tests: `pages/Welcome/Welcome.test.tsx` (the boxes, the step order, the fast-track link,
+      the Get started scroll, Start my plan inside the Get started card, the load button,
+      loading a saved file, a bad file).
+
 ## App logo and Mediterranean colour scheme
 
 The app had no logo (plain text in the header and the Vite purple bolt as the favicon) and

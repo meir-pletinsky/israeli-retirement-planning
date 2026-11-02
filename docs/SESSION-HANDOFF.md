@@ -68,6 +68,27 @@ Phases A–K are committed and pushed to
 `main`; Phases L, M, N, O, P, Q, S, T, V, W, X, Y, R1, R2, R3, R4, R5, R6 and R7 are committed and pushed only if `git log`
 shows them.
 
+- **Welcome page redesign for new visitors: DONE 2026-10-31, NOT committed.** The user asked for
+  five things on the start page: (1) a short "What this app does" box that mentions export and
+  import, (2) a privacy box, (3) a "Get started" diagram of the suggested steps, (4) a
+  recommended fast track through the Pension Clearing House import that says what it fills
+  (personal and pension), (5) a clearer import button. Built in `src/pages/Welcome/`
+  (`Welcome.tsx` moved there; `AboutBox`, `PrivacyBox`, `GetStartedFlow`, `FastTrackCard`,
+  `WelcomeCard`). The old "Import data" button is now **"Load my saved data file"** with a hint
+  line pointing to "Export data" in Settings (Settings keeps its own "Import data"). The flow
+  is a vertical numbered diagram with arrowheads (RTL-safe), reusing the `myData.steps.*` labels
+  and `ImportanceBadge`; steps 1 and 2 carry a "Fast track fills most of this" badge. All copy is
+  under `welcome.*` in en, he and ru (`welcome.import` and `welcome.privacyNote` were removed).
+  Tests in `Welcome.test.tsx`. Typecheck, lint, build clean; browser
+  check in English, Hebrew (RTL) and a narrow and wide layout. My calls, all unconfirmed: the
+  Required, Recommended and Optional tags per step (Personal required, Pension and Expenses
+  recommended, Equity and Assumptions optional); the Hebrew and Russian wording (written by me,
+  not reviewed by a native speaker). **Follow-up tweak:** the top primary button is now
+  **"Get started"** (it scrolls to and focuses the Get started card), and **"Start my plan"**
+  moved to the bottom of that card, so it now comes before the Fast-track card (open trade-off:
+  a visitor who reads straight down reaches "Start my plan" before the recommendation).
+  1346 passed and 1 skipped.
+
 - **Stock lots CSV import: designed 2026-10-31, NOT built** (the user said documentation only
   for now). The user asked what the minimum row is for a bulk CSV load of ESPP, EOSP and private
   purchases and grants. Answer, in `docs/stock-lots-csv-import-design.md`: `type, symbol, date,
