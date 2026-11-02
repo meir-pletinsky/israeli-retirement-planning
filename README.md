@@ -4,8 +4,8 @@ A privacy-first, local-first web app to help Israeli residents estimate
 retirement income, eligibility, and readiness across pensions, provident
 funds, Bituach Leumi, investments, and more.
 
-**Live app:** https://meir-pletinsky.github.io/israeli-retirement-planning/
-(auto-deployed from `main` via GitHub Actions; see
+**Live app:** https://gimlai.app/
+(GitHub Pages with a custom domain, auto-deployed from `main` via GitHub Actions; see
 [`docs/implementation-progress.md`](docs/implementation-progress.md) for
 current build status).
 

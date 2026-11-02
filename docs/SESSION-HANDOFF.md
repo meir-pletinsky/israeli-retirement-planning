@@ -12,8 +12,9 @@ history (everything described here is already committed and pushed to
   `docs/implementation-progress.md` for why: GitHub Pages on a private repo
   needs a paid plan, this account is Free).
 - Default branch: `main`.
-- Live app (GitHub Pages, auto-deployed from `main`):
-  https://meir-pletinsky.github.io/israeli-retirement-planning/
+- Live app (GitHub Pages with custom domain, auto-deployed from `main`):
+  https://gimlai.app/ (the old `meir-pletinsky.github.io/israeli-retirement-planning/`
+  address now redirects there)
 
 ## To resume on a new machine/account
 
@@ -812,11 +813,14 @@ Remaining, not yet started:
   defensive-merge used for legacy localStorage migration, JSON import, and
   (since Phase E) every load from Dexie — don't duplicate this logic
   elsewhere. Any new profile field must be backfilled there.
-- **Vite `base` differs by command**: `/` in dev, `/israeli-retirement-planning/`
-  in build (`app/vite.config.ts`), and `main.tsx`'s `BrowserRouter` reads
-  `import.meta.env.BASE_URL` for its `basename` — this is required for the
-  GitHub Pages project-site subpath to resolve assets/routes correctly.
-  Don't hardcode a different base path without updating both.
+- **Vite `base` is `/`** (dev and build, `app/vite.config.ts`) because the site is
+  served from the root of the custom domain https://gimlai.app/. `main.tsx`'s
+  `BrowserRouter`, the stock-price files and the sample report all read
+  `import.meta.env.BASE_URL`, so they follow the base. Before the custom domain
+  (2026-11-02) the build used `/israeli-retirement-planning/`; leaving that
+  value in place breaks the deployed scripts (404) on the custom domain.
+  Browser data (IndexedDB) is per origin, so saved data on the old github.io
+  address is not visible on gimlai.app (use Export data and Load my saved data file).
 - **GH Pages SPA fallback**: GitHub Pages has no server-side rewrites, so
   deep-linked routes 404 unless `404.html` exists. The deploy workflow
   copies the built `index.html` to `404.html` after build — keep this step

@@ -47,8 +47,9 @@ history replayed on the plan) as Phase Y.
       stays working.
 - [x] A6. GitHub Actions CI workflow: lint, typecheck, test, build on push/PR.
 - [x] A7. GitHub Actions deploy workflow: build + publish `app/dist` to
-      GitHub Pages on merge to `main`. Live at
-      https://meir-pletinsky.github.io/israeli-retirement-planning/
+      GitHub Pages on merge to `main`. Live at https://gimlai.app/ (custom domain,
+      Vite `base` is `/`; originally
+      https://meir-pletinsky.github.io/israeli-retirement-planning/)
       (verified: both workflows green, site returns HTTP 200 after push).
 
 ## Phase B — Domain calculation engine (pure TS, unit-tested)
