@@ -82,3 +82,12 @@ fuller cross-machine setup/resume guide.
 - Localized: English (default), Russian, Hebrew (incl. RTL).
 - Professional, clean UI.
 - TypeScript, maintainable codebase.
+
+## License
+
+This project's original code and documentation are licensed under the
+[MIT License](LICENSE). Copyright (c) 2026 Meir Pletinsky.
+
+Third-party dependencies and data remain subject to their own licenses and
+terms. In particular, the stock-price dataset's redistribution terms have not
+yet been verified; see [the stock-price data license notes](docs/stock-price-data-design.md#open-items).
