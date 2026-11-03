@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { PensionAccount, TaxTrack } from "../types";
 import { buildTestProfile } from "../test/domainFixtures";
+import { selfProfileView, spouseProfileView } from "./household";
 import {
   accountUnlockAge,
   buildSources,
@@ -130,6 +131,28 @@ describe("buildSources", () => {
     });
     const total = buildSources(profile, 62).reduce((sum, s) => sum + s.valueAtRetirement, 0);
     expect(total).toBeCloseTo(projectBalanceAtAge(profile, 62), 6);
+  });
+
+  it("counts bank deposits in the other-investments bucket and in the projected balance", () => {
+    const profile = buildTestProfile({
+      age: 40,
+      otherAssets: 30_000,
+      bankDeposits: [{ amount: 100_000 }, { amount: 20_000 }],
+      investmentReturnPct: 6,
+      inflationPct: 2.5,
+    });
+    const [bucket] = buildSources(profile, 60);
+    expect(bucket.kind).toBe("otherInvestments");
+    expect(bucket.balance).toBeCloseTo(150_000, 6);
+    expect(bucket.costBasis).toBeCloseTo(150_000, 6);
+    const total = buildSources(profile, 60).reduce((sum, s) => sum + s.valueAtRetirement, 0);
+    expect(total).toBeCloseTo(projectBalanceAtAge(profile, 60), 6);
+  });
+
+  it("keeps the primary user's bank deposits out of the spouse's view", () => {
+    const profile = buildTestProfile({ age: 40, bankDeposits: [{ amount: 100_000 }] });
+    expect(spouseProfileView(profile).bankDeposits).toEqual([]);
+    expect(selfProfileView(profile).bankDeposits).toHaveLength(1);
   });
 
   describe("annuities", () => {

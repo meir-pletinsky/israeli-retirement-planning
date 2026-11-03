@@ -6,6 +6,7 @@ import type {
   TaxTrack,
 } from "../types";
 import { ACCESS_RULES } from "./accessRules";
+import { aggregateBankDepositsBalance } from "./bankDeposits";
 import { DEFAULT_CURRENT_AGE } from "./constants";
 import {
   contributionSalaryBase,
@@ -160,6 +161,15 @@ function fxRateOrigin(profile: ProfileData): string {
     : "entered by the user, profile.equity.usdToIlsRate";
 }
 
+/** Today's balance of all bank deposits in ILS; they count in the non-pension investments bucket like other cash. */
+function bankDepositsValue(profile: ProfileData): number {
+  return aggregateBankDepositsBalance(
+    profile.bankDeposits,
+    profile.assumptions.inflationPct,
+    engineNowMs(),
+  );
+}
+
 /**
  * Cost basis and tax rate of the non-pension investments bucket. Without
  * declared unrealized gains the whole balance counts as basis, so no gain is
@@ -176,7 +186,7 @@ function otherInvestmentsTaxProfile(
 ): { costBasis: number; rate: number; value: number; gains: number; weightedRate: number } {
   const defaultRate = TAX_RATES.capitalGainsRate;
   const fxRate = usdToIlsRate(profile);
-  const otherAssets = profile.pensionSavings.otherAssets ?? 0;
+  const otherAssets = (profile.pensionSavings.otherAssets ?? 0) + bankDepositsValue(profile);
   let value = otherAssets + nonTrustee.value;
   let gains = nonTrustee.value - nonTrustee.grantValue;
   let weightedRate = (otherAssets + nonTrustee.value) * defaultRate;
@@ -866,6 +876,7 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
   const fxRate = usdToIlsRate(profile);
   const otherBalance =
     (profile.pensionSavings.otherAssets ?? 0) +
+    bankDepositsValue(profile) +
     equity.nonTrustee.value +
     equity.rest.reduce((sum, holding) => sum + holdingValueIls(holding, fxRate), 0);
   const otherTax = otherInvestmentsTaxProfile(profile, equity.rest, equity.nonTrustee);
@@ -1049,10 +1060,15 @@ function recordOtherInvestmentsSteps(
   }
   const balanceId = recordStep("balance", () => ({
     title: "Balance of the non-pension investments bucket",
-    formula: "other assets + Section 3(i) employer shares + every holding that is not employer-granted",
-    expr: "otherAssets + nonTrusteeValue + otherHoldingsValue",
+    formula:
+      "other assets + bank deposits + Section 3(i) employer shares + every holding that is not employer-granted",
+    expr: "otherAssets + bankDepositsValue + nonTrusteeValue + otherHoldingsValue",
     inputs: {
       otherAssets: input(profile.pensionSavings.otherAssets, fromProfile("pensionSavings.otherAssets")),
+      bankDepositsValue: input(
+        bankDepositsValue(profile),
+        fromDerived("profile.bankDeposits: amount compounded since the start date (see bankDepositValueIls)"),
+      ),
       nonTrusteeValue: input(
         equity.nonTrustee.value,
         fromDerived("employerLots table: lots on the nonTrustee route"),

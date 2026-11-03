@@ -23,15 +23,20 @@ function depositOf(overrides: Partial<BankDeposit> = {}): BankDeposit {
 }
 
 describe("bankDepositValueIls", () => {
-  it("compounds a non-CPI-linked deposit at its real (inflation-adjusted) rate", () => {
-    // Nominal 4%, inflation 2%: real rate = 1.04 / 1.02 - 1 ≈ 1.9608%.
+  it("compounds a non-CPI-linked deposit at its quoted nominal rate, ignoring inflation", () => {
     const value = bankDepositValueIls(depositOf(), 2, NOW);
-    expect(value).toBeCloseTo(10_000 * Math.pow(1.04 / 1.02, YEARS_ELAPSED), 2);
+    expect(value).toBeCloseTo(10_000 * Math.pow(1.04, YEARS_ELAPSED), 2);
+    expect(bankDepositValueIls(depositOf(), 5, NOW)).toBeCloseTo(value, 6);
   });
 
-  it("treats a CPI-linked deposit's quoted rate as already real, ignoring inflation", () => {
+  it("keeps a zero-interest deposit at its principal", () => {
+    const value = bankDepositValueIls(depositOf({ annualInterestRatePercent: 0 }), 2, NOW);
+    expect(value).toBeCloseTo(10_000, 6);
+  });
+
+  it("grows a CPI-linked deposit by the index (the inflation assumption) plus its quoted rate", () => {
     const value = bankDepositValueIls(depositOf({ cpiLinked: true }), 2, NOW);
-    expect(value).toBeCloseTo(10_000 * Math.pow(1.04, YEARS_ELAPSED), 2);
+    expect(value).toBeCloseTo(10_000 * Math.pow(1.04 * 1.02, YEARS_ELAPSED), 2);
   });
 
   it("is zero for a missing or non-positive amount", () => {
@@ -50,7 +55,7 @@ describe("bankDepositValueIls", () => {
     const twoYearsLater = Date.parse("2027-06-15");
     const years = (twoYearsLater - START) / MS_PER_YEAR;
     const value = bankDepositValueIls(depositOf(), 2, twoYearsLater);
-    expect(value).toBeCloseTo(10_000 * Math.pow(1.04 / 1.02, years), 2);
+    expect(value).toBeCloseTo(10_000 * Math.pow(1.04, years), 2);
   });
 });
 
@@ -61,7 +66,7 @@ describe("aggregateBankDepositsBalance", () => {
       depositOf({ id: "d2", amount: 5_000, cpiLinked: true }),
     ];
     const total = aggregateBankDepositsBalance(deposits, 2, NOW);
-    const expectedPerUnit = Math.pow(1.04, YEARS_ELAPSED);
+    const expectedPerUnit = Math.pow(1.04 * 1.02, YEARS_ELAPSED);
     expect(total).toBeCloseTo(10_000 * expectedPerUnit + 5_000 * expectedPerUnit, 2);
   });
 

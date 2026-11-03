@@ -71,7 +71,7 @@ export function BankDepositForm({ deposit, onChange }: BankDepositFormProps) {
         checked={deposit.cpiLinked}
         onChange={(cpiLinked) => onChange({ cpiLinked })}
       />
-      <p className="-mt-2 text-xs text-slate-500">{f("cpiLinkedHelper")}</p>
+      <p className="-mt-2 text-xs text-slate-500">{t("myData.steps.bankDeposits.cpiLinkedHelper")}</p>
     </div>
   );
 }
