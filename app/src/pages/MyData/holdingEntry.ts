@@ -193,6 +193,19 @@ export function categoryChangePatch(
   };
 }
 
+/**
+ * ESOP, ESPP and private holdings can't be saved without a ticker symbol, an entry date and a
+ * positive quantity. Legacy uncategorized holdings are exempt, so they can still be edited.
+ */
+export function hasRequiredHoldingFields(holding: StockHolding): boolean {
+  if (holding.investmentCategory === null) return true;
+  return (
+    holding.tickerSymbol.trim() !== "" &&
+    entryDate(holding) !== null &&
+    (holding.quantity ?? 0) > 0
+  );
+}
+
 /** What `createEmptyStockHolding` pre-fills, so it doesn't count as something the user entered. */
 const DEFAULT_CAPITAL_GAINS_RATE_PERCENT = 25;
 
@@ -214,13 +227,11 @@ export function hasAdvancedDetails(holding: StockHolding): boolean {
         espp.discountPercentage !== null ||
         espp.purchasePriceUSD !== null ||
         espp.taxedDiscountValueUSD !== null ||
-        espp.capitalGainsOnGrowthUSD !== null ||
-        holding.purchaseLots.length > 0
+        espp.capitalGainsOnGrowthUSD !== null
       );
     case "personalBrokeragePurchase":
       return (
         personal.unrealizedCapitalGainUSD !== null ||
-        holding.purchaseLots.length > 0 ||
         (personal.capitalGainsTaxRatePercent !== null &&
           personal.capitalGainsTaxRatePercent !== DEFAULT_CAPITAL_GAINS_RATE_PERCENT)
       );

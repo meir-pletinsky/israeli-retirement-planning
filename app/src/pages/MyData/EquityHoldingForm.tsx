@@ -6,7 +6,6 @@ import { DateField } from "../../components/fields/DateField";
 import { NumberField } from "../../components/fields/NumberField";
 import { SelectField } from "../../components/fields/SelectField";
 import { TextField } from "../../components/fields/TextField";
-import { holdingTakesLots, isUsableLot } from "../../domain";
 import type {
   InvestmentCategory,
   StockHolding,
@@ -25,7 +24,6 @@ import {
   type HoldingChange,
 } from "./holdingEntry";
 import { VestingTranchesEditor } from "./VestingTranchesEditor";
-import { PurchaseLotsEditor } from "./PurchaseLotsEditor";
 import { useEntryRateAutofill } from "./useEntryRateAutofill";
 import { useStockPriceAutofill } from "./useStockPriceAutofill";
 
@@ -58,7 +56,6 @@ export function EquityHoldingForm({
   const detailsOpen = hasAdvancedDetails(holding);
   const { suggestions, hint } = useStockPriceAutofill(holding, onChange);
   const rateHint = useEntryRateAutofill(holding, onChange);
-  const lotsActive = holdingTakesLots(holding) && holding.purchaseLots.some(isUsableLot);
 
   const entryFields = {
     employerGrantedStock: {
@@ -88,23 +85,27 @@ export function EquityHoldingForm({
         priceHelper: f("entryPriceGenericHelper"),
         importance: "recommended" as const,
       };
+  // Categorized holdings must have a symbol, date and quantity; legacy uncategorized ones are exempt.
+  const required = category ? ("required" as const) : undefined;
 
   return (
     <div className="flex flex-col gap-4">
-      <SelectField
-        label={f("investmentCategory")}
-        importance="reference"
-        value={category}
-        onChange={(v) => onChange(categoryChangePatch(holding, v as InvestmentCategory))}
-        options={CATEGORY_ORDER.map((v) => ({
-          value: v,
-          label: opt("investmentCategory", v),
-        }))}
-      />
+      {category === null && (
+        <SelectField
+          label={f("investmentCategory")}
+          importance="reference"
+          value={category}
+          onChange={(v) => onChange(categoryChangePatch(holding, v as InvestmentCategory))}
+          options={CATEGORY_ORDER.map((v) => ({
+            value: v,
+            label: opt("investmentCategory", v),
+          }))}
+        />
+      )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <TextField
           label={f("tickerSymbol")}
-          importance="reference"
+          importance={required ?? "reference"}
           value={holding.tickerSymbol}
           onChange={(v) => onChange({ tickerSymbol: v.toUpperCase() })}
           suggestions={suggestions.length > 0 ? suggestions : undefined}
@@ -113,7 +114,7 @@ export function EquityHoldingForm({
         />
         <NumberField
           label={f("quantity")}
-          importance="recommended"
+          importance={required ?? "recommended"}
           value={holding.quantity}
           onChange={(v) => onChange({ quantity: v })}
           min={0}
@@ -122,7 +123,7 @@ export function EquityHoldingForm({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <DateField
           label={entry.dateLabel}
-          importance={entry.importance}
+          importance={required ?? entry.importance}
           value={entryDate(holding)}
           onChange={(date) => onChange(entryDatePatch(holding, date))}
         />
@@ -323,7 +324,6 @@ export function EquityHoldingForm({
             suffix="$"
             min={0}
           />
-          <PurchaseLotsEditor holding={holding} onChange={onChange} />
         </CollapsibleSection>
       )}
 
@@ -334,7 +334,6 @@ export function EquityHoldingForm({
         >
           <NumberField
             label={f("unrealizedCapitalGainUSD")}
-            helperText={lotsActive ? f("unrealizedIgnoredWithLots") : undefined}
             value={personalPurchaseDetails.unrealizedCapitalGainUSD}
             onChange={(v) =>
               onChange({
@@ -362,7 +361,6 @@ export function EquityHoldingForm({
             min={0}
             max={100}
           />
-          <PurchaseLotsEditor holding={holding} onChange={onChange} />
         </CollapsibleSection>
       )}
     </div>

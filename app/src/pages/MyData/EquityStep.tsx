@@ -16,7 +16,12 @@ import { BankDepositsTable } from "./BankDepositsTable";
 import { EquityHoldingForm } from "./EquityHoldingForm";
 import { EquityCategoryTable, EquityTotalsFooter } from "./EquitySummaryTable";
 import { CollapsibleFieldLegend } from "./FieldLegend";
-import { applyHoldingChange, CATEGORY_ORDER, createHoldingForCategory } from "./holdingEntry";
+import {
+  applyHoldingChange,
+  CATEGORY_ORDER,
+  createHoldingForCategory,
+  hasRequiredHoldingFields,
+} from "./holdingEntry";
 import { StepFooter } from "./StepFooter";
 
 /** Each stock table's own "Add" button label and empty-state message key. */
@@ -153,7 +158,11 @@ export function EquityStep() {
 
       <FormModal
         open={editingHolding !== null}
-        title={t("myData.steps.equity.holdingFormTitle")}
+        title={
+          editingHolding?.investmentCategory
+            ? t(`myData.steps.equity.options.investmentCategory.${editingHolding.investmentCategory}`)
+            : t("myData.steps.equity.holdingFormTitle")
+        }
         closeLabel={t("common.close")}
         onClose={() => setEditingHolding(null)}
         note={<CollapsibleFieldLegend />}
@@ -169,7 +178,8 @@ export function EquityStep() {
             <button
               type="button"
               onClick={handleSaveHolding}
-              className="rounded-md bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+              disabled={!editingHolding || !hasRequiredHoldingFields(editingHolding)}
+              className="rounded-md bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {t("common.save")}
             </button>

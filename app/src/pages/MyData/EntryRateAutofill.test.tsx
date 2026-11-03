@@ -63,6 +63,7 @@ describe("EquityStep — dollar rate of the grant date", () => {
     expect(screen.getByText(/Bank of Israel rate of 2024-03-01/)).toBeInTheDocument();
     expect(screen.getByText(/the tax calculations do not use it\./)).toBeInTheDocument();
 
+    await user.type(screen.getByLabelText(/^Ticker symbol/), "abc");
     await user.type(screen.getByLabelText(/^Quantity \(shares\)/), "10");
     await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(async () => {
