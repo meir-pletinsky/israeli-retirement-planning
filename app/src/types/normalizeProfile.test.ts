@@ -448,6 +448,7 @@ describe("normalizeProfile", () => {
         rateType: "fixed",
         annualInterestRatePercent: 4.5,
         cpiLinked: true,
+        autoRenew: true,
       };
       const result = normalizeProfile({ ...profile, bankDeposits: [deposit] });
       expect(result.bankDeposits).toEqual([deposit]);
@@ -464,6 +465,7 @@ describe("normalizeProfile", () => {
           rateType: null,
           annualInterestRatePercent: null,
           cpiLinked: false,
+          autoRenew: false,
         },
       ]);
     });
@@ -484,6 +486,7 @@ describe("normalizeProfile", () => {
           rateType: null,
           annualInterestRatePercent: null,
           cpiLinked: false,
+          autoRenew: false,
         },
       ]);
 

@@ -558,7 +558,8 @@
           "maturityDate": "תאריך פדיון",
           "rateType": "סוג ריבית",
           "annualInterestRatePercent": "ריבית שנתית",
-          "cpiLinked": "צמוד למדד המחירים לצרכן"
+          "cpiLinked": "צמוד למדד המחירים לצרכן",
+          "autoRenew": "מתחדש אוטומטית בפדיון (ממשיך לצבור ריבית)"
         },
         "options": {
           "rateType": {

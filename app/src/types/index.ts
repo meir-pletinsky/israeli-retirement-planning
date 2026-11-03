@@ -453,6 +453,8 @@ export interface BankDeposit {
   annualInterestRatePercent: number | null;
   /** True when the principal and/or rate are linked to the Consumer Price Index. */
   cpiLinked: boolean;
+  /** A fixed-term deposit that rolls over at maturity and keeps earning; otherwise interest stops then. */
+  autoRenew: boolean;
 }
 
 export function createEmptyBankDeposit(): BankDeposit {
@@ -465,6 +467,7 @@ export function createEmptyBankDeposit(): BankDeposit {
     rateType: null,
     annualInterestRatePercent: null,
     cpiLinked: false,
+    autoRenew: false,
   };
 }
 
@@ -821,6 +824,7 @@ export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined
                 : null,
             annualInterestRatePercent: finiteOrNull(deposit.annualInterestRatePercent),
             cpiLinked: deposit.cpiLinked === true,
+            autoRenew: deposit.autoRenew === true,
           },
         ];
       })

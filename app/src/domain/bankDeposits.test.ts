@@ -18,6 +18,7 @@ function depositOf(overrides: Partial<BankDeposit> = {}): BankDeposit {
     rateType: "fixed",
     annualInterestRatePercent: 4,
     cpiLinked: false,
+    autoRenew: false,
     ...overrides,
   };
 }
@@ -56,6 +57,49 @@ describe("bankDepositValueIls", () => {
     const years = (twoYearsLater - START) / MS_PER_YEAR;
     const value = bankDepositValueIls(depositOf(), 2, twoYearsLater);
     expect(value).toBeCloseTo(10_000 * Math.pow(1.04, years), 2);
+  });
+});
+
+describe("bankDepositValueIls maturity", () => {
+  const MATURITY = "2026-01-15";
+  const yearsToMaturity = (Date.parse(MATURITY) - START) / MS_PER_YEAR;
+
+  it("stops accruing at maturity for a fixed-term deposit that does not renew", () => {
+    const value = bankDepositValueIls(depositOf({ maturityDate: MATURITY }), 2, NOW);
+    expect(value).toBeCloseTo(10_000 * Math.pow(1.04, yearsToMaturity), 2);
+  });
+
+  it("keeps compounding after maturity when the deposit renews", () => {
+    const value = bankDepositValueIls(depositOf({ maturityDate: MATURITY, autoRenew: true }), 2, NOW);
+    expect(value).toBeCloseTo(10_000 * Math.pow(1.04, YEARS_ELAPSED), 2);
+  });
+
+  it("is unaffected by a maturity date that is still in the future", () => {
+    const value = bankDepositValueIls(depositOf({ maturityDate: "2027-06-15" }), 2, NOW);
+    expect(value).toBeCloseTo(10_000 * Math.pow(1.04, YEARS_ELAPSED), 2);
+  });
+
+  it("applies the CPI index only up to maturity for a non-renewing CPI-linked deposit", () => {
+    const value = bankDepositValueIls(depositOf({ maturityDate: MATURITY, cpiLinked: true }), 2, NOW);
+    expect(value).toBeCloseTo(10_000 * Math.pow(1.04 * 1.02, yearsToMaturity), 2);
+  });
+
+  it("ignores the maturity date for a variable-rate deposit", () => {
+    const value = bankDepositValueIls(
+      depositOf({ rateType: "variable", maturityDate: MATURITY }),
+      2,
+      NOW,
+    );
+    expect(value).toBeCloseTo(10_000 * Math.pow(1.04, YEARS_ELAPSED), 2);
+  });
+
+  it("ignores an unparseable maturity date", () => {
+    const value = bankDepositValueIls(depositOf({ maturityDate: "soon" }), 2, NOW);
+    expect(value).toBeCloseTo(10_000 * Math.pow(1.04, YEARS_ELAPSED), 2);
+  });
+
+  it("returns the principal when maturity is on or before the start date", () => {
+    expect(bankDepositValueIls(depositOf({ maturityDate: "2025-06-01" }), 2, NOW)).toBe(10_000);
   });
 });
 

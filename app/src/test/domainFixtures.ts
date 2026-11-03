@@ -90,6 +90,7 @@ export function buildTestProfile(overrides: {
     cpiLinked?: boolean;
     bankName?: string;
     maturityDate?: string;
+    autoRenew?: boolean;
   }[];
 }): ProfileData {
   const {
@@ -276,6 +277,7 @@ export function buildTestProfile(overrides: {
         rateType: deposit.rateType ?? "fixed",
         annualInterestRatePercent: deposit.annualInterestRatePercent ?? null,
         cpiLinked: deposit.cpiLinked ?? false,
+        autoRenew: deposit.autoRenew ?? false,
       }),
     ),
   };

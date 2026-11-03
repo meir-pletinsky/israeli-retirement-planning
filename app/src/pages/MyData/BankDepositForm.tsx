@@ -66,6 +66,13 @@ export function BankDepositForm({ deposit, onChange }: BankDepositFormProps) {
           step={0.01}
         />
       </div>
+      {deposit.rateType !== "variable" && deposit.maturityDate && (
+        <CheckboxField
+          label={f("autoRenew")}
+          checked={deposit.autoRenew}
+          onChange={(autoRenew) => onChange({ autoRenew })}
+        />
+      )}
       <CheckboxField
         label={f("cpiLinked")}
         checked={deposit.cpiLinked}

@@ -558,7 +558,8 @@
           "maturityDate": "Maturity date",
           "rateType": "Rate type",
           "annualInterestRatePercent": "Annual interest rate",
-          "cpiLinked": "Linked to the Consumer Price Index (CPI)"
+          "cpiLinked": "Linked to the Consumer Price Index (CPI)",
+          "autoRenew": "Renews automatically at maturity (keeps earning interest)"
         },
         "options": {
           "rateType": {
