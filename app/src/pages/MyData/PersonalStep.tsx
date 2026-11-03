@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useProfile } from "../../app/ProfileContext";
 import { CheckboxField } from "../../components/fields/CheckboxField";
 import { CollapsibleSection } from "../../components/CollapsibleSection";
+import { suggestedRetirementAge } from "../../domain/bituachLeumi";
 import { NumberField } from "../../components/fields/NumberField";
 import { SelectField } from "../../components/fields/SelectField";
 import type { Gender, MaritalStatus } from "../../types";
@@ -85,7 +86,15 @@ export function PersonalStep() {
         label={t("myData.steps.personal.age")}
         importance="required"
         value={personal.age}
-        onChange={(age) => updateProfile({ personal: { ...personal, age } })}
+        onChange={(age) =>
+          updateProfile({
+            personal: {
+              ...personal,
+              age,
+              retirementAge: personal.retirementAge ?? suggestedRetirementAge(personal.gender, age),
+            },
+          })
+        }
         min={18}
         max={100}
         error={
@@ -99,7 +108,14 @@ export function PersonalStep() {
         importance="recommended"
         value={personal.gender}
         onChange={(gender) =>
-          updateProfile({ personal: { ...personal, gender: gender as Gender } })
+          updateProfile({
+            personal: {
+              ...personal,
+              gender: gender as Gender,
+              retirementAge:
+                personal.retirementAge ?? suggestedRetirementAge(gender as Gender, personal.age),
+            },
+          })
         }
         options={[
           { value: "male", label: t("myData.steps.personal.genderMale") },

@@ -5,6 +5,7 @@ import {
   estimateBituachLeumiPension,
   mayQualifyForIncomeSupplement,
   statutoryRetirementAge,
+  suggestedRetirementAge,
 } from "./bituachLeumi";
 import { womenRetirementAge } from "./bituachLeumiRates";
 
@@ -35,6 +36,19 @@ describe("statutoryRetirementAge", () => {
 
   it("falls back to the men's age when gender is unknown", () => {
     expect(statutoryRetirementAge(null, 1962)).toBe(67);
+  });
+});
+
+describe("suggestedRetirementAge", () => {
+  it("is the statutory age for the birth year implied by today's age", () => {
+    expect(suggestedRetirementAge("female", 56, YEAR)).toBe(65);
+    expect(suggestedRetirementAge("male", 56, YEAR)).toBe(67);
+  });
+
+  it("suggests nothing until the gender and an adult age are known", () => {
+    expect(suggestedRetirementAge(null, 56, YEAR)).toBeNull();
+    expect(suggestedRetirementAge("female", null, YEAR)).toBeNull();
+    expect(suggestedRetirementAge("female", 5, YEAR)).toBeNull();
   });
 });
 

@@ -55,6 +55,18 @@ describe("targetRetirementAge", () => {
     expect(targetRetirementAge(profile, "self")).toBe(62);
     expect(targetRetirementAge(profile, "spouse")).toBe(67);
   });
+
+  it("falls back to the statutory age for the person's gender and age, from the profile or the report", () => {
+    const woman = buildTestProfile({ age: 56, gender: "female" });
+    expect(targetRetirementAge(woman, "self")).toBe(65);
+    const empty = buildTestProfile({});
+    const personal = {
+      gender: { value: "female" as const, confidence: "official" as const, source: "MIN" },
+      age: { value: 56, confidence: "official" as const, source: "TAARICH-LEYDA" },
+    };
+    expect(targetRetirementAge(empty, "self", personal)).toBe(65);
+    expect(targetRetirementAge(empty, "self")).toBe(67);
+  });
 });
 
 describe("import plan", () => {

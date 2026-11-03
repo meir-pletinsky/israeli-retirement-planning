@@ -58,7 +58,10 @@ describe("PersonalStep — spouse", () => {
     await openPartnerTab(user);
     await user.type(await screen.findByLabelText(/^Spouse's age/), "48");
     await user.selectOptions(screen.getByLabelText(/^Spouse's gender/), "female");
-    await user.type(screen.getByLabelText(/^Spouse's retirement age/), "62");
+    const spouseRetirement = screen.getByLabelText(/^Spouse's retirement age/);
+    expect(spouseRetirement).toHaveValue(65);
+    await user.clear(spouseRetirement);
+    await user.type(spouseRetirement, "62");
     await user.type(screen.getByLabelText(/Spouse's monthly gross salary/), "12000");
     await user.click(screen.getByRole("button", { name: /Spouse's Bituach Leumi pension/ }));
     await user.click(screen.getByRole("checkbox", { name: /Include their state pension/ }));
@@ -209,6 +212,19 @@ describe("PersonalStep — what is required", () => {
       expect(screen.queryByRole("region", { name: /Spouse or partner/ })).not.toBeInTheDocument();
     },
   );
+
+  it("pre-fills the statutory retirement age once the gender and age are known, but only while it is empty", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+
+    await user.type(await screen.findByLabelText(/^Age/), "56");
+    expect(screen.getByLabelText(/^Desired retirement age/)).toHaveValue(null);
+    await user.selectOptions(screen.getByLabelText(/^Gender/), "female");
+    expect(screen.getByLabelText(/^Desired retirement age/)).toHaveValue(65);
+
+    await user.clear(screen.getByLabelText(/^Desired retirement age/));
+    expect(screen.getByLabelText(/^Desired retirement age/)).toHaveValue(null);
+  });
 
   it("blocks Next and names the missing age when it is empty", async () => {
     const user = userEvent.setup();

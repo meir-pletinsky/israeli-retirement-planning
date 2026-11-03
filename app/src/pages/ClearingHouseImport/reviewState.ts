@@ -8,6 +8,8 @@ import {
   type PersonalFieldKey,
   type PersonalSuggestions,
 } from "../../domain/clearingHouseImport";
+import { suggestedRetirementAge } from "../../domain/bituachLeumi";
+import { DEFAULT_RETIREMENT_AGE } from "../../domain/constants";
 import type { AccountOwner, Gender, MaritalStatus, PensionAccount, ProfileData } from "../../types";
 
 export type PersonalValue = Gender | MaritalStatus | number;
@@ -18,8 +20,6 @@ export interface AccountReviewState {
   updateAccountId: string | null;
   selected: AccountFieldKey[];
 }
-
-const DEFAULT_RETIREMENT_AGE = 67;
 
 export function initialAccountState(
   candidate: ImportedAccountCandidate,
@@ -84,9 +84,21 @@ export function defaultSelectedPersonal(
     .map(({ key }) => key);
 }
 
-export function targetRetirementAge(profile: ProfileData, owner: AccountOwner): number {
-  const age = owner === "self" ? profile.personal.retirementAge : profile.spouse.retirementAge;
-  return age ?? DEFAULT_RETIREMENT_AGE;
+/**
+ * The retirement age the report's figures are compared with: the one entered, else the statutory age for the
+ * person's gender and age (from the profile, or failing that from the report), else the default.
+ */
+export function targetRetirementAge(
+  profile: ProfileData,
+  owner: AccountOwner,
+  personal: PersonalSuggestions = {},
+): number {
+  const person = owner === "self" ? profile.personal : profile.spouse;
+  return (
+    person.retirementAge ??
+    suggestedRetirementAge(person.gender ?? personal.gender?.value ?? null, person.age ?? personal.age?.value ?? null) ??
+    DEFAULT_RETIREMENT_AGE
+  );
 }
 
 export function buildImportPlan(

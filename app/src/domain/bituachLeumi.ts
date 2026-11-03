@@ -25,6 +25,19 @@ export function statutoryRetirementAge(gender: Gender | null, birthYear: number)
 }
 
 /**
+ * The statutory retirement age to suggest as someone's retirement age, from their gender and age today.
+ * Null until both are known (and the age is an adult one), so nothing is suggested from half-typed input.
+ */
+export function suggestedRetirementAge(
+  gender: Gender | null,
+  currentAge: number | null,
+  referenceYear: number = engineCurrentYear(),
+): number | null {
+  if (gender === null || currentAge === null || currentAge < 18) return null;
+  return statutoryRetirementAge(gender, referenceYear - Math.floor(currentAge));
+}
+
+/**
  * Estimates the Bituach Leumi old-age pension for someone who stops working
  * at `retirementAge`, in today's money.
  *

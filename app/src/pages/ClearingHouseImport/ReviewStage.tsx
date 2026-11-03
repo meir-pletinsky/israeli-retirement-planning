@@ -232,7 +232,7 @@ function ReviewBody({ owner, result, sample, blocked, onApply, onStartOver }: Re
   const { personal, skipped } = result;
   // The sample is made up, so it must never update (or be mistaken for) one of the user's real accounts.
   const accounts = sample ? NO_ACCOUNTS : profile.pensionSavings.accounts;
-  const retirementAge = targetRetirementAge(profile, owner);
+  const retirementAge = targetRetirementAge(profile, owner, personal);
 
   const [candidates] = useState(() => withAnnuityFields(result.candidates, retirementAge));
   const [matches] = useState(() => matchCandidates(candidates, accounts, owner));

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useProfile } from "../../app/ProfileContext";
 import { CheckboxField } from "../../components/fields/CheckboxField";
 import { CollapsibleSection } from "../../components/CollapsibleSection";
+import { suggestedRetirementAge } from "../../domain/bituachLeumi";
 import { NumberField } from "../../components/fields/NumberField";
 import { SelectField } from "../../components/fields/SelectField";
 import type { Gender } from "../../types";
@@ -35,7 +36,12 @@ export function SpouseSection({ error }: SpouseSectionProps) {
         importance="recommended"
         helperText={t(`${prefix}.spouseAgeHelper`)}
         value={spouse.age}
-        onChange={(age) => updateSpouse({ age })}
+        onChange={(age) =>
+          updateSpouse({
+            age,
+            retirementAge: spouse.retirementAge ?? suggestedRetirementAge(spouse.gender, age),
+          })
+        }
         min={18}
         max={100}
       />
@@ -45,7 +51,13 @@ export function SpouseSection({ error }: SpouseSectionProps) {
             label={t(`${prefix}.spouseGender`)}
             importance="recommended"
             value={spouse.gender}
-            onChange={(gender) => updateSpouse({ gender: gender as Gender })}
+            onChange={(gender) =>
+              updateSpouse({
+                gender: gender as Gender,
+                retirementAge:
+                  spouse.retirementAge ?? suggestedRetirementAge(gender as Gender, spouse.age),
+              })
+            }
             options={[
               { value: "male", label: t(`${prefix}.genderMale`) },
               { value: "female", label: t(`${prefix}.genderFemale`) },
