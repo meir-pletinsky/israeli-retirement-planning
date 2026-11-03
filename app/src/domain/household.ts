@@ -123,6 +123,7 @@ export function spouseProfileView(profile: ProfileData): ProfileData {
       accounts: spouseAccounts(profile).map((account) => ({ ...account, owner: "self" })),
     },
     equity: EMPTY_PROFILE.equity,
+    bankDeposits: EMPTY_PROFILE.bankDeposits,
   };
 }
 

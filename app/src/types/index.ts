@@ -432,6 +432,45 @@ export interface EquityData {
   usdToIlsRateDate: string | null;
 }
 
+/** Whether a bank deposit's rate is fixed for its whole term or can change ("variable"/"prime-linked"). */
+export type BankDepositRateType = "fixed" | "variable";
+
+export const BANK_DEPOSIT_RATE_TYPES: readonly BankDepositRateType[] = ["fixed", "variable"];
+
+/**
+ * A bank deposit held at an Israeli bank: always in NIS (no currency field), either a fixed-term
+ * or a variable-rate deposit, and optionally linked to the Consumer Price Index.
+ */
+export interface BankDeposit {
+  id: string;
+  bankName: string;
+  /** Principal deposited, in NIS. */
+  amount: number | null;
+  startDate: string | null;
+  maturityDate: string | null;
+  rateType: BankDepositRateType | null;
+  /** Annual interest rate, as a percentage (e.g. 4.5 for 4.5%/year). */
+  annualInterestRatePercent: number | null;
+  /** True when the principal and/or rate are linked to the Consumer Price Index. */
+  cpiLinked: boolean;
+  /** A fixed-term deposit that rolls over at maturity and keeps earning; otherwise interest stops then. */
+  autoRenew: boolean;
+}
+
+export function createEmptyBankDeposit(): BankDeposit {
+  return {
+    id: createId(),
+    bankName: "",
+    amount: null,
+    startDate: null,
+    maturityDate: null,
+    rateType: null,
+    annualInterestRatePercent: null,
+    cpiLinked: false,
+    autoRenew: false,
+  };
+}
+
 /** Where a household expense belongs, for grouping the itemised list. */
 export const EXPENSE_CATEGORIES = [
   "housing",
@@ -545,6 +584,7 @@ export interface ProfileData {
   bituachLeumi: BituachLeumiData;
   pensionSavings: PensionSavingsData;
   equity: EquityData;
+  bankDeposits: BankDeposit[];
   expenses: ExpensesData;
   assumptions: Assumptions;
   /** The three retirement ages last compared on Projections; null until the user changes them. */
@@ -569,6 +609,7 @@ export const EMPTY_PROFILE: ProfileData = {
   bituachLeumi: { ...EMPTY_BITUACH_LEUMI },
   pensionSavings: { accounts: [], reports: [], otherAssets: null },
   equity: { holdings: [], usdToIlsRate: null, usdToIlsRateDate: null },
+  bankDeposits: [],
   expenses: { mode: "totals", retirementMonthly: null, items: [] },
   assumptions: {
     preset: "base",
@@ -764,6 +805,30 @@ export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined
           : null,
     };
   }
+  // Profiles saved before bank deposits existed lack the field entirely.
+  merged.bankDeposits = Array.isArray(merged.bankDeposits)
+    ? merged.bankDeposits.flatMap((entry): BankDeposit[] => {
+        if (typeof entry !== "object" || entry === null) return [];
+        const deposit = entry as Partial<BankDeposit>;
+        if (typeof deposit.id !== "string" || deposit.id === "") return [];
+        return [
+          {
+            id: deposit.id,
+            bankName: typeof deposit.bankName === "string" ? deposit.bankName : "",
+            amount: finiteOrNull(deposit.amount),
+            startDate: typeof deposit.startDate === "string" ? deposit.startDate : null,
+            maturityDate: typeof deposit.maturityDate === "string" ? deposit.maturityDate : null,
+            rateType:
+              deposit.rateType === "fixed" || deposit.rateType === "variable"
+                ? deposit.rateType
+                : null,
+            annualInterestRatePercent: finiteOrNull(deposit.annualInterestRatePercent),
+            cpiLinked: deposit.cpiLinked === true,
+            autoRenew: deposit.autoRenew === true,
+          },
+        ];
+      })
+    : [];
   return merged;
 }
 

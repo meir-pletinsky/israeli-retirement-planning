@@ -318,7 +318,7 @@ describe("My Data summary tables — Equity & Investments", () => {
     expect(within(espp).getAllByRole("row")[1]).toHaveTextContent("$90");
     expect(within(espp).getAllByRole("row")[2]).toHaveTextContent("$500");
 
-    const privateInvestments = screen.getByRole("table", { name: "Private investments at a glance" });
+    const privateInvestments = screen.getByRole("table", { name: "Privately purchased stocks at a glance" });
     expect(within(privateInvestments).getAllByRole("row")[0]).toHaveTextContent(
       "Purchase price per share",
     );
@@ -361,7 +361,7 @@ describe("My Data summary tables — Equity & Investments", () => {
     expect(totals).toHaveTextContent(`${SHEKEL}9,250`);
   });
 
-  it("shows only the categories that have holdings, with no all-category total", async () => {
+  it("shows every table even when only one category has holdings, with no all-category total", async () => {
     await saveProfileToDb(
       buildTestProfile({
         age: 50,
@@ -372,6 +372,12 @@ describe("My Data summary tables — Equity & Investments", () => {
 
     expect(await screen.findByRole("table", { name: "ESPP at a glance" })).toBeInTheDocument();
     expect(screen.getAllByRole("table")).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Add ESOP / RSU grant" })).toBeInTheDocument();
+    expect(screen.getByText(/No ESOP\/RSU grants added yet/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add private trade" })).toBeInTheDocument();
+    expect(screen.getByText(/No private trades added yet/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add bank deposit" })).toBeInTheDocument();
+    expect(screen.getByText(/No bank deposits added yet/)).toBeInTheDocument();
     expect(screen.queryByText(/Total across all categories/)).not.toBeInTheDocument();
   });
 
@@ -384,7 +390,7 @@ describe("My Data summary tables — Equity & Investments", () => {
     );
     renderStep("equity");
 
-    const table = await screen.findByRole("table", { name: "Private investments at a glance" });
+    const table = await screen.findByRole("table", { name: "Privately purchased stocks at a glance" });
     const [, row] = within(table).getAllByRole("row");
     const cells = within(row).getAllByRole("cell");
     expect(cells[3]).toHaveTextContent("\u2014");
@@ -412,7 +418,7 @@ describe("My Data summary tables — Equity & Investments", () => {
     expect(within(second).getByRole("button", { name: "Remove" })).toHaveAccessibleDescription(/BBB/);
     expect(within(totals).queryByRole("button")).not.toBeInTheDocument();
 
-    const add = screen.getByRole("button", { name: "Add holding" });
+    const add = screen.getByRole("button", { name: "Add ESOP / RSU grant" });
     expect(add.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
     await user.click(within(second).getByRole("button", { name: "Edit" }));
@@ -443,12 +449,18 @@ describe("My Data summary tables — Equity & Investments", () => {
     expect(within(legend).getByText(/Needed to build your plan/)).toBeInTheDocument();
   });
 
-  it("shows no table before any holding is added", async () => {
+  it("shows every table with its own empty state and Add button before any holding is added", async () => {
     renderStep("equity");
 
-    expect(await screen.findByText(/no equity holdings added yet/i)).toBeInTheDocument();
+    expect(await screen.findByText(/No ESOP\/RSU grants added yet/)).toBeInTheDocument();
+    expect(screen.getByText(/No ESPP purchases added yet/)).toBeInTheDocument();
+    expect(screen.getByText(/No private trades added yet/)).toBeInTheDocument();
+    expect(screen.getByText(/No bank deposits added yet/)).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add holding" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add ESOP / RSU grant" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add ESPP purchase" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add private trade" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add bank deposit" })).toBeInTheDocument();
   });
 });
 

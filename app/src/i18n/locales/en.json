@@ -242,7 +242,7 @@
       "equityCategoryTitle": {
         "employerGrantedStock": "ESOP / RSU at a glance",
         "employerEsppDiscount": "ESPP at a glance",
-        "personalBrokeragePurchase": "Private investments at a glance",
+        "personalBrokeragePurchase": "Privately purchased stocks at a glance",
         "none": "Holdings without a category"
       },
       "equityTotalAllCategories": "Total across all categories",
@@ -431,8 +431,12 @@
       "equity": {
         "label": "Equity & Investments",
         "holdingsTitle": "Stock & equity holdings",
-        "addHolding": "Add holding",
-        "noHoldings": "No equity holdings added yet. Add employer RSUs/options, ESPP shares, or personal brokerage positions.",
+        "addEsop": "Add ESOP / RSU grant",
+        "noEsop": "No ESOP/RSU grants added yet. Add one if your employer grants you shares or options.",
+        "addEspp": "Add ESPP purchase",
+        "noEspp": "No ESPP purchases added yet. Add one if you buy shares through an employee stock purchase plan.",
+        "addPrivateTrade": "Add private trade",
+        "noPrivateTrade": "No private trades added yet. Add shares you bought yourself, outside an employer plan.",
         "untitledHolding": "Untitled holding",
         "holdingFormTitle": "Stock / equity holding",
         "removeConfirmTitle": "Remove this holding?",
@@ -458,26 +462,6 @@
           "grantPrice": "Share price at grant",
           "grantPriceHelper": "Empty: the price at grant below.",
           "exceeds": "The batches add up to {{listed}} shares, more than the {{quantity}} in this holding, so they are scaled down to fit."
-        },
-        "lots": {
-          "title": "Purchases (optional)",
-          "introEspp": "List each ESPP purchase to tax the growth of your shares precisely. Enter the market price on the purchase day: the discount is taxed as salary, so your cost is the full market price. Shares in no purchase are treated as having no gain.",
-          "introPersonal": "List each purchase to tax your real gain. Shares bought at another dollar rate are taxed on the lower of the shekel gain and the dollar gain. Shares in no purchase are treated as having no gain, and the unrealized gain above is not used.",
-          "add": "Add purchase",
-          "startFromEntry": "Start from the purchase above",
-          "remove": "Remove",
-          "lot": "Purchase {{n}}",
-          "date": "Purchase date",
-          "quantity": "Shares bought",
-          "priceEspp": "Market price that day",
-          "priceEsppHelper": "Per share, in USD: the market price on the purchase day, not the discounted price you paid.",
-          "pricePersonal": "Price paid per share",
-          "rate": "Dollar rate on that date",
-          "rateHelper": "Shekels per US dollar. Filled in automatically; type your own to replace it. Empty: today's rate, so only the dollar gain counts.",
-          "rateFilled": "The dollar rate was filled in from the Bank of Israel rate of {{date}}, the last business day on or before the purchase date.",
-          "exceeds": "The purchases add up to {{listed}} shares, more than the {{quantity}} in this holding, so they are scaled down to fit.",
-          "incomplete": "Purchases left out of the tax calculation because they lack shares or a price: {{count}}.",
-          "summary": "The purchases cover {{shares}} shares, with a cost basis of {{basis}}. Gain counted for tax: {{gain}}."
         },
         "fields": {
           "investmentCategory": "Investment category",
@@ -512,15 +496,14 @@
           "costBasisAtGrantUSD": "Share price at grant",
           "costBasisAtGrantHelper": "Per share, in USD: the fair market value on the grant date for Israeli tax. Some plans define it as the average price over the 30 trading days before the grant, so check your plan documents. Leave empty if unknown: then the whole value is taxed as a capital gain.",
           "estimatedMarginalTaxOnVesting": "Estimated tax on vesting/sale",
-          "sectionEsppDetails": "More details: ESPP (discount, price paid, purchases)",
+          "sectionEsppDetails": "More details: ESPP (discount, price paid)",
           "purchaseDate": "Purchase date",
           "discountPercentage": "Discount percentage",
           "purchasePriceUSD": "Purchase price paid",
           "taxedDiscountValueUSD": "Discount taxed as income",
           "capitalGainsOnGrowthUSD": "Capital gain above purchase FMV",
-          "sectionPersonalPurchaseDetails": "More details: personal brokerage (gain, tax rate, purchases)",
+          "sectionPersonalPurchaseDetails": "More details: personal brokerage (gain, tax rate)",
           "unrealizedCapitalGainUSD": "Unrealized capital gain",
-          "unrealizedIgnoredWithLots": "Not used while purchases are listed below.",
           "capitalGainsTaxRatePercent": "Capital gains tax rate"
         },
         "options": {
@@ -535,6 +518,35 @@
             "section3iNonTrustee": "Section 3(i) \u2014 non-trustee"
           }
         }
+      },
+      "bankDeposits": {
+        "title": "Bank deposits",
+        "untitledDeposit": "Untitled deposit",
+        "addDeposit": "Add bank deposit",
+        "noDeposits": "No bank deposits added yet. Add a fixed-term or variable-rate shekel deposit, with or without a CPI link.",
+        "formTitle": "Bank deposit",
+        "removeConfirmTitle": "Remove this deposit?",
+        "removeConfirmBody": "This permanently removes the deposit and its details from your profile.",
+        "currentValue": "Current value (ILS)",
+        "yes": "Yes",
+        "no": "No",
+        "fields": {
+          "bankName": "Bank / institution",
+          "amount": "Amount deposited",
+          "startDate": "Start date",
+          "maturityDate": "Maturity date",
+          "rateType": "Rate type",
+          "annualInterestRatePercent": "Annual interest rate",
+          "cpiLinked": "Linked to the Consumer Price Index (CPI)",
+          "autoRenew": "Renews automatically at maturity (keeps earning interest)"
+        },
+        "options": {
+          "rateType": {
+            "fixed": "Fixed-term",
+            "variable": "Variable-rate"
+          }
+        },
+        "cpiLinkedHelper": "Deposits always shown in shekels (NIS). When linked, the principal and/or rate track the CPI in addition to the interest rate above."
       },
       "expenses": {
         "label": "Expenses",

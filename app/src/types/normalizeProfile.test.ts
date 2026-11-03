@@ -428,4 +428,73 @@ describe("normalizeProfile", () => {
       expect(withExpenses({ mode: "detailed", items: "nope" }).items).toEqual([]);
     });
   });
+
+  describe("bankDeposits", () => {
+    it("gives a profile saved before bank deposits existed an empty list", () => {
+      const profile = buildTestProfile({ age: 40 }) as Record<string, unknown>;
+      delete profile.bankDeposits;
+      const result = normalizeProfile(profile as unknown as Parameters<typeof normalizeProfile>[0]);
+      expect(result.bankDeposits).toEqual([]);
+    });
+
+    it("keeps a well-formed deposit and fills in defaults for missing optional fields", () => {
+      const profile = buildTestProfile({ age: 40 });
+      const deposit = {
+        id: "d1",
+        bankName: "Bank Hapoalim",
+        amount: 50_000,
+        startDate: "2025-01-01",
+        maturityDate: "2026-01-01",
+        rateType: "fixed",
+        annualInterestRatePercent: 4.5,
+        cpiLinked: true,
+        autoRenew: true,
+      };
+      const result = normalizeProfile({ ...profile, bankDeposits: [deposit] });
+      expect(result.bankDeposits).toEqual([deposit]);
+
+      const sparse = { id: "d2" };
+      const sparseResult = normalizeProfile({ ...profile, bankDeposits: [sparse] });
+      expect(sparseResult.bankDeposits).toEqual([
+        {
+          id: "d2",
+          bankName: "",
+          amount: null,
+          startDate: null,
+          maturityDate: null,
+          rateType: null,
+          annualInterestRatePercent: null,
+          cpiLinked: false,
+          autoRenew: false,
+        },
+      ]);
+    });
+
+    it("drops malformed deposit entries and a deposit list that is not a list", () => {
+      const profile = buildTestProfile({ age: 40 });
+      const result = normalizeProfile({
+        ...profile,
+        bankDeposits: [null, "text", {}, { id: "" }, { id: "ok", rateType: "nonsense", amount: "lots" }],
+      } as unknown as Parameters<typeof normalizeProfile>[0]);
+      expect(result.bankDeposits).toEqual([
+        {
+          id: "ok",
+          bankName: "",
+          amount: null,
+          startDate: null,
+          maturityDate: null,
+          rateType: null,
+          annualInterestRatePercent: null,
+          cpiLinked: false,
+          autoRenew: false,
+        },
+      ]);
+
+      expect(
+        normalizeProfile({ ...profile, bankDeposits: "nope" } as unknown as Parameters<
+          typeof normalizeProfile
+        >[0]).bankDeposits,
+      ).toEqual([]);
+    });
+  });
 });

@@ -46,8 +46,7 @@ afterEach(() => {
 });
 
 async function openAddHolding(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(await screen.findByRole("button", { name: "Add holding" }));
-  await user.selectOptions(screen.getByLabelText(/^Investment category/), "employerGrantedStock");
+  await user.click(await screen.findByRole("button", { name: "Add ESOP / RSU grant" }));
 }
 
 const grantDate = () => screen.getByLabelText(/^Grant date/);
@@ -64,6 +63,7 @@ describe("EquityStep — dollar rate of the grant date", () => {
     expect(screen.getByText(/Bank of Israel rate of 2024-03-01/)).toBeInTheDocument();
     expect(screen.getByText(/the tax calculations do not use it\./)).toBeInTheDocument();
 
+    await user.type(screen.getByLabelText(/^Ticker symbol/), "abc");
     await user.type(screen.getByLabelText(/^Quantity \(shares\)/), "10");
     await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(async () => {

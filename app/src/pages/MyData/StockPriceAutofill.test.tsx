@@ -58,8 +58,7 @@ afterEach(() => {
 });
 
 async function openAddHolding(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(await screen.findByRole("button", { name: "Add holding" }));
-  await user.selectOptions(screen.getByLabelText(/^Investment category/), "employerGrantedStock");
+  await user.click(await screen.findByRole("button", { name: "Add ESOP / RSU grant" }));
   await waitFor(() =>
     expect(document.querySelectorAll("#stock-ticker-suggestions option")).toHaveLength(2),
   );
@@ -214,8 +213,7 @@ describe("EquityStep — stock price suggestions and autofill", () => {
     const user = userEvent.setup();
     renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
 
-    await user.click(await screen.findByRole("button", { name: "Add holding" }));
-    await user.selectOptions(screen.getByLabelText(/^Investment category/), "employerGrantedStock");
+    await user.click(await screen.findByRole("button", { name: "Add ESOP / RSU grant" }));
     await user.type(ticker(), "AAA");
     await user.type(grantDate(), "2024-03-01");
     await user.type(grantPrice(), "150");

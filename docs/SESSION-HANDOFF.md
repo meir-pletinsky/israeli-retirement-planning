@@ -69,6 +69,53 @@ Phases A–K are committed and pushed to
 `main`; Phases L, M, N, O, P, Q, S, T, V, W, X, Y, R1, R2, R3, R4, R5, R6 and R7 are committed and pushed only if `git log`
 shows them.
 
+- **Equity & Investments tab split into per-instrument tables, plus a new bank deposits
+  tracker: DONE 2026-11-02, PR OPEN, NOT MERGED to `main`.** Branch
+  `meir-pletinsky-cuddly-adventure`, [PR #1](https://github.com/meir-pletinsky/israeli-retirement-planning/pull/1)
+  (open, not merged as of this handoff). The user asked to split the single combined equity
+  table (Phase S's per-category tables, still one "Add holding" button with a category picker)
+  into **four independent tables, each with its own Add button**: ESOP, ESPP, Private trade, and
+  a brand-new Bank deposits table. What was built: (a) `EquitySummaryTable.tsx`'s old
+  `CategoryTable`/`EquitySummaryTable` became exported `EquityCategoryTable` (reusable per-table)
+  and `EquityTotalsFooter` (cross-category total, shown only when more than one table is
+  non-empty, plus the USD/ILS rate control); (b) `EquityStep.tsx` is now the orchestrator: three
+  stock-category tables (ESOP / ESPP / Private trade), each with its own Add button, a 5th
+  read-only "no category" table for old data (no Add button), `EquityTotalsFooter`, and the new
+  bank deposits table; (c) `holdingEntry.ts`'s `createHoldingForCategory()` defaults a new ESOP or
+  ESPP row's ticker symbol and company name from the **last existing row of that same category**
+  (assumes the person is still at the same employer); private trade rows get no default, since
+  there is no employer to assume continuity from; (d) a new `BankDeposit` type
+  (`types/index.ts`) and `domain/bankDeposits.ts` (`bankDepositValueIls`,
+  `aggregateBankDepositsBalance`): always NIS, a `rateType` of **Fixed-term or Variable-rate**,
+  and an optional `cpiLinked` flag, plus bank name, amount, start/maturity date and annual
+  interest rate; a CPI-linked deposit's quoted rate is treated as already real, a fixed/variable
+  one is converted nominal-to-real with the plan's inflation assumption (same convention as the
+  rest of the engine), compounding annually from the start date; (e) `normalizeProfile`
+  defaults `bankDeposits` to `[]` for old profiles and drops malformed entries; (f) new i18n
+  (`myData.steps.bankDeposits`, plus split `addEsop`/`addEspp`/`addPrivateTrade` and matching
+  empty-state keys replacing the old generic `addHolding`/`noHoldings`) in en, he and ru.
+  `aggregateOtherBalance` (`domain/profileBasics.ts`) now adds `aggregateBankDepositsBalance` to
+  its total, **so bank deposits already count in net worth and anything built on it** (net worth
+  today, `netWorth.ts`'s projection over time, and the household dashboard's net-worth figures).
+  **Important gap, not yet decided by the user: bank deposits are NOT in `sources.ts`**, the
+  engine that decides what can be *drawn on* in retirement, pays tax on it and feeds income/the
+  liquidity ladder/the calculation trace — that function only pools `otherAssets` and the equity
+  `nonTrustee` value. So today a bank deposit raises the net-worth charts but is invisible to
+  retirement income, the Dashboard's monthly-income figure, drawdown order, the liquidity ladder
+  and the trace/verification pack. My calls, all unconfirmed: **(1)** this net-worth-only wiring
+  was a deliberate scope cut for this PR, not a decision that bank deposits should stay
+  non-drawable — whether and how to add them to `sources.ts` (its own bucket vs. folded into
+  `otherAssets`, and whether the deposit's maturity date should matter) is an open design
+  question for whoever continues this; (2) the symbol/company default only looks at the same
+  category's last row, not the most recent row overall; (3) the Hebrew and Russian wording for
+  the new bank-deposit texts is written by me, not reviewed by a native speaker; (4) no price
+  autofill or ticker suggestions for bank deposits (they have no ticker). 1361 passed, 0 skipped;
+  typecheck, lint and `npm run build` all clean. No browser check was done (no desktop/browser
+  available in that session) — **verify the four tables and the bank-deposit add/edit flow in a
+  browser before relying on this.** **Next, if continuing this work:** decide whether/how bank
+  deposits should become a drawable source in `sources.ts` (open call #1 above); then decide
+  whether to merge PR #1 as-is or extend it first.
+
 - **Welcome page redesign for new visitors: DONE 2026-10-31, NOT committed.** The user asked for
   five things on the start page: (1) a short "What this app does" box that mentions export and
   import, (2) a privacy box, (3) a "Get started" diagram of the suggested steps, (4) a
