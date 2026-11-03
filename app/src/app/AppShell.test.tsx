@@ -22,6 +22,23 @@ beforeEach(async () => {
   await clearAllData();
 });
 
+describe("AppShell — home link and build info", () => {
+  it("takes the logo and title back to the home page", async () => {
+    renderShell("/settings");
+
+    const links = await screen.findAllByRole("link", { name: "Israeli Retirement Planning" });
+    expect(links.length).toBeGreaterThan(0);
+    for (const link of links) expect(link).toHaveAttribute("href", "/");
+  });
+
+  it("shows which version is deployed and when it was built", async () => {
+    renderShell("/dashboard");
+
+    expect(await screen.findByText(/built \d{2}\/\d{2}\/\d{4} \d{2}:\d{2}/)).toBeInTheDocument();
+    expect(screen.getByText(/^Version [0-9a-f]{7}$|^Development build$/)).toBeInTheDocument();
+  });
+});
+
 describe("AppShell — privacy banner", () => {
   it("shows the full privacy note next to the navigation and a one-line version for phones", async () => {
     renderShell("/dashboard");

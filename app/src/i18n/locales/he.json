@@ -1,6 +1,9 @@
 {
   "common": {
     "appName": "\u05ea\u05db\u05e0\u05d5\u05df \u05e4\u05e8\u05d9\u05e9\u05d4 \u05d1\u05d9\u05e9\u05e8\u05d0\u05dc",
+    "buildVersion": "\u05d2\u05e8\u05e1\u05d4 {{commit}}",
+    "buildVersionUnknown": "\u05d2\u05e8\u05e1\u05ea \u05e4\u05d9\u05ea\u05d5\u05d7",
+    "buildTime": "\u05e0\u05d1\u05e0\u05ea\u05d4 {{time}}",
     "next": "\u05d4\u05d1\u05d0",
     "back": "\u05d7\u05d6\u05e8\u05d4",
     "save": "\u05e9\u05de\u05d9\u05e8\u05d4",

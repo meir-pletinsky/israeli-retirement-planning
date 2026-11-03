@@ -1,6 +1,9 @@
 {
   "common": {
     "appName": "Israeli Retirement Planning",
+    "buildVersion": "Version {{commit}}",
+    "buildVersionUnknown": "Development build",
+    "buildTime": "built {{time}}",
     "next": "Next",
     "back": "Back",
     "save": "Save",

@@ -1,6 +1,9 @@
 {
   "common": {
     "appName": "Планирование пенсии в Израиле",
+    "buildVersion": "Версия {{commit}}",
+    "buildVersionUnknown": "Сборка для разработки",
+    "buildTime": "собрано {{time}}",
     "next": "Далее",
     "back": "Назад",
     "save": "Сохранить",
