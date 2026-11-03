@@ -60,7 +60,7 @@ describe("EquityStep — dollar rate of the grant date", () => {
 
     await user.type(grantDate(), "2024-03-01");
     await waitFor(() => expect(rateField()).toHaveValue(3.65));
-    expect(screen.getByText(/Bank of Israel rate of 2024-03-01/)).toBeInTheDocument();
+    expect(screen.getByText(/Bank of Israel rate of 01\/03\/2024/)).toBeInTheDocument();
     expect(screen.getByText(/the tax calculations do not use it\./)).toBeInTheDocument();
 
     await user.type(screen.getByLabelText(/^Ticker symbol/), "abc");
@@ -82,7 +82,7 @@ describe("EquityStep — dollar rate of the grant date", () => {
 
     await user.type(grantDate(), "2024-03-02");
     await waitFor(() => expect(rateField()).toHaveValue(3.65));
-    expect(screen.getByText(/Bank of Israel rate of 2024-03-01/)).toBeInTheDocument();
+    expect(screen.getByText(/Bank of Israel rate of 01\/03\/2024/)).toBeInTheDocument();
   });
 
   it("follows a changed date, and takes the rate away when the new date has none", async () => {

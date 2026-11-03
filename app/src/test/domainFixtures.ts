@@ -227,6 +227,7 @@ export function buildTestProfile(overrides: {
               }),
             ),
             keepsVestingAfterLeaving: holding.employerGrant?.keepsVestingAfterLeaving ?? false,
+            vestingSchedule: { batches: null, everyMonths: null, firstVestMonths: null },
           },
           esppDetails: {
             purchaseDate: entryIn("employerEsppDiscount") ? entryDate : null,

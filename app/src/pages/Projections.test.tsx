@@ -544,7 +544,7 @@ describe("Projections", () => {
       );
 
       expect(
-        within(card).getByText(reads(/^Company shares worth about ₪18,500 at today's price vest after you retire \(the first batch on 01\.03\.2033\)/)),
+        within(card).getByText(reads(/^Company shares worth about ₪18,500 at today's price vest after you retire \(the first batch on 01\/03\/2033\)/)),
       ).toBeInTheDocument();
     });
 
@@ -625,12 +625,12 @@ describe("Projections", () => {
 
       expect(
         within(card).getByText(
-          reads(/^If you retire on \d\d\.\d\d\.2031, you lose 300 shares of unvested company stock \(about ₪55,500\)\.$/),
+          reads(/^If you retire on \d\d\/\d\d\/2031, you lose 300 shares of unvested company stock \(about ₪55,500\)\.$/),
         ),
       ).toBeInTheDocument();
       expect(
         within(card).getByText(
-          reads(/^Staying \d+ months longer, until 01\.12\.2031, would keep another 100 shares \(about ₪18,500\)\./),
+          reads(/^Staying \d+ months longer, until 01\/12\/2031, would keep another 100 shares \(about ₪18,500\)\./),
         ),
       ).toBeInTheDocument();
       expect(within(card).getByText(reads(/^That adds about ₪[\d,]+ a month to your net retirement income\.$/))).toBeInTheDocument();

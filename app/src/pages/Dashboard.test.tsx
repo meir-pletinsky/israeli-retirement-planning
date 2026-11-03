@@ -443,7 +443,7 @@ describe("Dashboard", () => {
       expect(screen.getByText("\u20aa2,757 per month")).toBeInTheDocument();
       expect(screen.getByText("Starts at age 67")).toBeInTheDocument();
       expect(screen.getByText("Includes a 50% seniority supplement.")).toBeInTheDocument();
-      expect(screen.getByText(/Rates as of 01\.01\.2026\./)).toBeInTheDocument();
+      expect(screen.getByText(/Rates as of 01\/01\/2026\./)).toBeInTheDocument();
       expect(screen.getByRole("link", { name: "Source: Bituach Leumi" })).toHaveAttribute(
         "href",
         expect.stringContaining("btl.gov.il"),
@@ -566,7 +566,7 @@ describe("Dashboard", () => {
           "These figures are for the year with the lowest income after tax (age 62); other years are higher.",
         ),
       ).toBeInTheDocument();
-      expect(card.getByText(/Tax rates as of 01\.01\.2026\./)).toBeInTheDocument();
+      expect(card.getByText(/Tax rates as of 01\/01\/2026\./)).toBeInTheDocument();
       expect(card.getByRole("link", { name: "Source: Israel Tax Authority" })).toHaveAttribute(
         "href",
         expect.stringContaining("gov.il"),

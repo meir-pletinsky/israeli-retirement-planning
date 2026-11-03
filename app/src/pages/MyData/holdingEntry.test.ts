@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { createEmptyStockHolding, type InvestmentCategory, type StockHolding } from "../../types";
 import {
+  createEmptyStockHolding,
+  createEmptyVestingTranche,
+  type InvestmentCategory,
+  type StockHolding,
+} from "../../types";
+import {
+  applyHoldingChange,
   CATEGORY_ORDER,
   categoryChangePatch,
   createHoldingForCategory,
@@ -213,5 +219,62 @@ describe("holdingEntry — hasAdvancedDetails", () => {
         },
       }),
     ).toBe(true);
+  });
+});
+
+describe("holdingEntry — vesting batches follow the schedule", () => {
+  const esop = () => ({
+    ...holdingOf("employerGrantedStock"),
+    quantity: 40,
+    employerGrantDetails: { ...holdingOf("employerGrantedStock").employerGrantDetails, grantDate: "2024-03-01" },
+  });
+  const schedule = { batches: 4, everyMonths: 12, firstVestMonths: 12 };
+  const withSchedule = (holding: StockHolding) =>
+    applyHoldingChange(holding, {
+      employerGrantDetails: { ...holding.employerGrantDetails, vestingSchedule: schedule },
+    });
+
+  it("generates the batches when the schedule is complete", () => {
+    const { vestingTranches } = withSchedule(esop()).employerGrantDetails;
+    expect(vestingTranches.map((t) => [t.vestDate, t.quantity])).toEqual([
+      ["2025-03-01", 10],
+      ["2026-03-01", 10],
+      ["2027-03-01", 10],
+      ["2028-03-01", 10],
+    ]);
+  });
+
+  it("regenerates them when the quantity changes", () => {
+    const next = applyHoldingChange(withSchedule(esop()), { quantity: 80 });
+    expect(next.employerGrantDetails.vestingTranches.map((t) => t.quantity)).toEqual([20, 20, 20, 20]);
+  });
+
+  it("empties them when the schedule becomes incomplete", () => {
+    const complete = withSchedule(esop());
+    const next = applyHoldingChange(complete, {
+      employerGrantDetails: {
+        ...complete.employerGrantDetails,
+        vestingSchedule: { ...schedule, everyMonths: null },
+      },
+    });
+    expect(next.employerGrantDetails.vestingTranches).toEqual([]);
+  });
+
+  it("leaves batches without a schedule alone until the quantity or schedule is edited", () => {
+    const base = esop();
+    const custom = {
+      ...base,
+      employerGrantDetails: {
+        ...base.employerGrantDetails,
+        vestingTranches: [{ ...createEmptyVestingTranche(), vestDate: "2025-03-01", quantity: 5 }],
+      },
+    };
+    expect(applyHoldingChange(custom, { tickerSymbol: "ABC" }).employerGrantDetails.vestingTranches).toHaveLength(1);
+    expect(applyHoldingChange(custom, { quantity: 50 }).employerGrantDetails.vestingTranches).toHaveLength(1);
+  });
+
+  it("does not derive batches for other categories", () => {
+    const espp = { ...holdingOf("employerEsppDiscount"), quantity: 40 };
+    expect(withSchedule(espp).employerGrantDetails.vestingTranches).toEqual([]);
   });
 });

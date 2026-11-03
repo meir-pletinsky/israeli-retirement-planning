@@ -9,6 +9,7 @@ import {
   type AccountFieldKey,
   type ImportedAccountCandidate,
 } from "../../domain/clearingHouseImport";
+import { formatDate } from "../../domain/dates";
 import type { PensionAccount } from "../../types";
 import { FieldRow } from "./FieldRow";
 import { formatAccountValue, formatMoney, productKindLabel } from "./formatFieldValue";
@@ -101,7 +102,7 @@ export function AccountReviewCard({
           )}
           {candidate.valuationDate && (
             <p className="text-xs text-slate-500">
-              {t("clearingHouse.review.balanceDate", { date: candidate.valuationDate })}
+              {t("clearingHouse.review.balanceDate", { date: formatDate(candidate.valuationDate) })}
             </p>
           )}
         </div>

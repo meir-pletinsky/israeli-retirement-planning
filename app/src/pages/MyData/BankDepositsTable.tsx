@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useProfile } from "../../app/ProfileContext";
-import { bankDepositValueIls, engineNowMs } from "../../domain";
+import { bankDepositValueIls, engineNowMs, formatDate } from "../../domain";
 import type { BankDeposit } from "../../types";
 import { RowActions } from "./RowActions";
 import { EMPTY_CELL, formatCurrency, formatPercent } from "./summaryFormat";
@@ -64,13 +64,13 @@ export function BankDepositsTable({ deposits, toolbar, emptyMessage, onEdit, onR
       key: "startDate",
       header: t(`${FIELDS}.fields.startDate`),
       numeric: true,
-      cell: (deposit) => deposit.startDate ?? EMPTY_CELL,
+      cell: (deposit) => deposit.startDate ? formatDate(deposit.startDate) : EMPTY_CELL,
     },
     {
       key: "maturityDate",
       header: t(`${FIELDS}.fields.maturityDate`),
       numeric: true,
-      cell: (deposit) => deposit.maturityDate ?? EMPTY_CELL,
+      cell: (deposit) => deposit.maturityDate ? formatDate(deposit.maturityDate) : EMPTY_CELL,
     },
     {
       key: "currentValue",

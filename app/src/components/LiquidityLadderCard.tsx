@@ -1,6 +1,11 @@
 import { useTranslation } from "react-i18next";
 
-import { ACCESS_RULES, type LadderItem, type LiquidityLadder } from "../domain";
+import {
+  ACCESS_RULES,
+  formatDate as formatIsoDate,
+  type LadderItem,
+  type LiquidityLadder,
+} from "../domain";
 import { useFormatAge } from "./useFormatAge";
 
 interface LiquidityLadderCardProps {
@@ -23,8 +28,7 @@ const ITEM_LABEL_KEYS: Record<LadderItem["kind"], string> = {
 /** Keeps digits reading left to right when inserted into a right-to-left sentence. */
 const isolate = (text: string) => `\u2066${text}\u2069`;
 
-/** ISO date (2026-10-26) to the day-first format used in Israel (26.10.2026). */
-const formatDate = (iso: string) => isolate(iso.split("-").reverse().join("."));
+const formatDate = (iso: string) => isolate(formatIsoDate(iso));
 
 export function LiquidityLadderCard({ ladder, isCouple }: LiquidityLadderCardProps) {
   const { t } = useTranslation();

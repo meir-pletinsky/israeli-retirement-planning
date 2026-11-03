@@ -212,14 +212,14 @@ describe("PensionSavingsStep — accounts repeater", () => {
     it("names the report's person and date for an imported account", async () => {
       await seedAccounts("r1");
       renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
-      expect(await screen.findByText("Report of Dana, age 46 \u00b7 2026-05-01")).toBeInTheDocument();
+      expect(await screen.findByText("Report of Dana, age 46 \u00b7 01/05/2026")).toBeInTheDocument();
     });
 
     it("removes the report record with the last account that came from it", async () => {
       await seedAccounts("r1");
       const user = userEvent.setup();
       renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
-      await screen.findByText("Report of Dana, age 46 \u00b7 2026-05-01");
+      await screen.findByText("Report of Dana, age 46 \u00b7 01/05/2026");
 
       await user.click(screen.getByRole("button", { name: "Remove" }));
       await user.click(screen.getByRole("button", { name: "Confirm" }));

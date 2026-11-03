@@ -97,8 +97,8 @@ describe("EquityStep — stock price suggestions and autofill", () => {
     await user.type(grantDate(), "2024-03-01");
     await waitFor(() => expect(grantPrice()).toHaveValue(102.5));
 
-    expect(screen.getByText(/filled in from the closing price on 2024-03-01/)).toBeInTheDocument();
-    expect(screen.getByText(/filled in from the closing price on 2024-06-14/)).toBeInTheDocument();
+    expect(screen.getByText(/filled in from the closing price on 01\/03\/2024/)).toBeInTheDocument();
+    expect(screen.getByText(/filled in from the closing price on 14\/06\/2024/)).toBeInTheDocument();
     expect(screen.getByText(/adjusted for later stock splits and dividends/)).toBeInTheDocument();
 
     await user.type(screen.getByLabelText(/^Quantity \(shares\)/), "10");
@@ -122,7 +122,7 @@ describe("EquityStep — stock price suggestions and autofill", () => {
     await user.type(ticker(), "AAA");
     await user.type(grantDate(), "2024-03-02");
     await waitFor(() => expect(grantPrice()).toHaveValue(102.5));
-    expect(screen.getByText(/filled in from the closing price on 2024-03-01/)).toBeInTheDocument();
+    expect(screen.getByText(/filled in from the closing price on 01\/03\/2024/)).toBeInTheDocument();
 
     await user.clear(grantDate());
     await user.type(grantDate(), "2024-02-29");

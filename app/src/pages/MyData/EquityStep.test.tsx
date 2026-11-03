@@ -133,7 +133,7 @@ describe("EquityStep — simple purchase / grant entry", () => {
 
     await user.click(await screen.findByRole("button", { name: "Edit" }));
     await user.selectOptions(screen.getByLabelText(/^Investment category/), "personalBrokeragePurchase");
-    expect(screen.getByLabelText(/^Purchase date/)).toHaveValue("2024-03-01");
+    expect(screen.getByLabelText(/^Purchase date/)).toHaveValue("01/03/2024");
     expect(screen.getByLabelText(/^Purchase price per share/)).toHaveValue(150);
     await user.click(screen.getByRole("button", { name: "Save" }));
 
@@ -149,14 +149,24 @@ describe("EquityStep — simple purchase / grant entry", () => {
     });
   });
 
-  it("keeps the advanced details under a collapsed section until they hold something", async () => {
+  it("opens a new ESOP grant's details with the usual RSU schedule filled in", async () => {
     const user = userEvent.setup();
     renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
 
     await openAddHolding(user, "employerGrantedStock");
-    expect(screen.queryByRole("button", { name: "Add batch" })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /^More details: employer grant/ }));
-    expect(screen.getByRole("button", { name: "Add batch" })).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Number of batches/)).toHaveValue(20);
+    expect(screen.getByLabelText(/^Months between batches/)).toHaveValue(3);
+    expect(screen.getByLabelText(/^Months until the first batch/)).toHaveValue(3);
+  });
+
+  it("keeps the other categories' advanced details collapsed until they hold something", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
+
+    await openAddHolding(user, "personalBrokeragePurchase");
+    expect(screen.queryByLabelText(/^Unrealized capital gain/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /^More details: / }));
+    expect(screen.getByLabelText(/^Unrealized capital gain/)).toBeInTheDocument();
   });
 
   it("opens the advanced details when the holding already has some", async () => {
@@ -176,101 +186,117 @@ describe("EquityStep — simple purchase / grant entry", () => {
     renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
 
     await user.click(await screen.findByRole("button", { name: "Edit" }));
-    expect(screen.getByRole("button", { name: "Add batch" })).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Number of batches/)).toBeInTheDocument();
   });
 });
 
-describe("EquityStep — vesting tranches", () => {
-  it("adds, saves and removes vesting batches of an employer grant", async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
-
-    await openAddHolding(user, "employerGrantedStock");
-    await user.type(screen.getByLabelText(/^Ticker symbol/), "abc");
-    await user.type(screen.getByLabelText(/^Quantity \(shares\)/), "100");
-    await user.type(screen.getByLabelText(/^Grant date/), "2024-03-01");
-
-    // Two batches, then remove the first.
-    await user.click(screen.getByRole("button", { name: /^More details: employer grant/ }));
-    await user.click(screen.getByRole("button", { name: "Add batch" }));
-    await user.click(screen.getByRole("button", { name: "Add batch" }));
-    expect(screen.getAllByLabelText(/^Vesting date/)).toHaveLength(2);
-
-    const [firstBatch, secondBatch] = screen.getAllByRole("group");
-    await user.click(firstBatch.querySelector("button")!);
-    expect(screen.getAllByLabelText(/^Vesting date/)).toHaveLength(1);
-    expect(screen.getByRole("group", { name: "Batch 1" })).toBe(secondBatch);
-
-    await user.type(screen.getByLabelText(/^Vesting date/), "2025-03-01");
-    await user.type(screen.getByLabelText(/^Shares in batch/), "40");
-    await user.click(screen.getByRole("button", { name: "Save" }));
-
-    await waitFor(async () => {
-      const stored = await loadProfileFromDb();
-      expect(stored?.equity.holdings[0].employerGrantDetails.vestingTranches).toMatchObject([
-        { vestDate: "2025-03-01", quantity: 40, grantPriceUSD: null },
-      ]);
-    });
-  });
-
-  it("warns when the batches add up to more than the holding's quantity", async () => {
-    const user = userEvent.setup();
-    renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
-
-    await openAddHolding(user, "employerGrantedStock");
-    await user.type(screen.getByLabelText(/^Quantity \(shares\)/), "10");
-    await user.click(screen.getByRole("button", { name: /^More details: employer grant/ }));
-    await user.click(screen.getByRole("button", { name: "Add batch" }));
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
-
-    await user.type(screen.getByLabelText(/^Shares in batch/), "25");
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "The batches add up to 25 shares, more than the 10 in this holding",
-    );
-  });
-
-  it("creates an even schedule from the grant date and the quantity", async () => {
+describe("EquityStep — vesting schedule", () => {
+  it("derives the vesting batches from one schedule and saves both", async () => {
     const user = userEvent.setup();
     renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
 
     await openAddHolding(user, "employerGrantedStock");
     await user.type(screen.getByLabelText(/^Ticker symbol/), "abc");
     await user.type(screen.getByLabelText(/^Quantity \(shares\)/), "400");
-    await user.type(screen.getByLabelText(/^Grant date/), "2024-01-31");
-    await user.click(screen.getByRole("button", { name: /^More details: employer grant/ }));
-
-    const create = screen.getByRole("button", { name: "Create schedule" });
-    expect(create).toBeEnabled();
+    await user.type(screen.getByLabelText(/^Grant date/), "31/01/2024");
+    // The default schedule is already filled in, so the preview appears once the date and quantity are known.
     expect(
       screen.getByText((content) =>
-        /^Batches: 20, from 30\.04\.2024 to 31\.01\.2029\./.test(content.replace(/[\u2066\u2069]/g, "")),
+        /^Batches: 20, from 30\/04\/2024 to 31\/01\/2029\./.test(content.replace(/[\u2066\u2069]/g, "")),
       ),
     ).toBeInTheDocument();
-
-    await user.click(create);
-    expect(screen.getAllByLabelText(/^Vesting date/)).toHaveLength(20);
     // The clock is pinned to 2026-06-15, so the first nine batches have vested.
     expect(screen.getByText("Shares vested so far: 180. Not yet vested: 220.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Replace the batches with this schedule" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add batch" })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(async () => {
-      const tranches = (await loadProfileFromDb())?.equity.holdings[0].employerGrantDetails.vestingTranches;
-      expect(tranches).toHaveLength(20);
-      expect(tranches?.[0]).toMatchObject({ vestDate: "2024-04-30", quantity: 20 });
-      expect(tranches?.reduce((sum, tranche) => sum + (tranche.quantity ?? 0), 0)).toBe(400);
+      const grant = (await loadProfileFromDb())?.equity.holdings[0].employerGrantDetails;
+      expect(grant?.vestingSchedule).toEqual({ batches: 20, everyMonths: 3, firstVestMonths: 3 });
+      expect(grant?.vestingTranches).toHaveLength(20);
+      expect(grant?.vestingTranches[0]).toMatchObject({ vestDate: "2024-04-30", quantity: 20 });
+      expect(grant?.vestingTranches.reduce((sum, tranche) => sum + (tranche.quantity ?? 0), 0)).toBe(400);
     });
   });
 
-  it("cannot create a schedule without a grant date and a quantity", async () => {
+  it("follows a changed quantity and drops the batches when the schedule is cleared", async () => {
     const user = userEvent.setup();
     renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
 
     await openAddHolding(user, "employerGrantedStock");
-    await user.click(screen.getByRole("button", { name: /^More details: employer grant/ }));
+    await user.type(screen.getByLabelText(/^Ticker symbol/), "abc");
+    await user.type(screen.getByLabelText(/^Quantity \(shares\)/), "40");
+    await user.type(screen.getByLabelText(/^Grant date/), "01/03/2024");
+    const batches = screen.getByLabelText(/^Number of batches/);
+    await user.clear(batches);
+    await user.type(batches, "4");
+    const between = screen.getByLabelText(/^Months between batches/);
+    await user.clear(between);
+    await user.type(between, "12");
+    const first = screen.getByLabelText(/^Months until the first batch/);
+    await user.clear(first);
+    await user.type(first, "12");
 
-    expect(screen.getByRole("button", { name: "Create schedule" })).toBeDisabled();
+    await user.clear(screen.getByLabelText(/^Quantity \(shares\)/));
+    await user.type(screen.getByLabelText(/^Quantity \(shares\)/), "80");
+    await user.clear(between);
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(async () => {
+      const grant = (await loadProfileFromDb())?.equity.holdings[0].employerGrantDetails;
+      expect(grant?.vestingTranches).toEqual([]);
+    });
+  });
+
+  it("accepts a single batch without the months between batches", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
+
+    await openAddHolding(user, "employerGrantedStock");
+    await user.type(screen.getByLabelText(/^Ticker symbol/), "abc");
+    await user.type(screen.getByLabelText(/^Quantity \(shares\)/), "50");
+    await user.type(screen.getByLabelText(/^Grant date/), "01/03/2024");
+    const batches = screen.getByLabelText(/^Number of batches/);
+    await user.clear(batches);
+    await user.type(batches, "1");
+    await user.clear(screen.getByLabelText(/^Months between batches/));
+    const first = screen.getByLabelText(/^Months until the first batch/);
+    await user.clear(first);
+    await user.type(first, "12");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(async () => {
+      const grant = (await loadProfileFromDb())?.equity.holdings[0].employerGrantDetails;
+      expect(grant?.vestingTranches).toMatchObject([{ vestDate: "2025-03-01", quantity: 50 }]);
+    });
+  });
+
+  it("says what is missing before it can show a schedule", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
+
+    await openAddHolding(user, "employerGrantedStock");
+
     expect(screen.getByText(/^Enter the grant date and the quantity above/)).toBeInTheDocument();
+  });
+
+  it("treats the grant as fully vested once the schedule is cleared", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
+
+    await openAddHolding(user, "employerGrantedStock");
+    await user.type(screen.getByLabelText(/^Ticker symbol/), "abc");
+    await user.type(screen.getByLabelText(/^Quantity \(shares\)/), "10");
+    await user.type(screen.getByLabelText(/^Grant date/), "2024-03-01");
+    await user.clear(screen.getByLabelText(/^Number of batches/));
+    await user.clear(screen.getByLabelText(/^Months between batches/));
+    await user.clear(screen.getByLabelText(/^Months until the first batch/));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(async () => {
+      const grant = (await loadProfileFromDb())?.equity.holdings[0].employerGrantDetails;
+      expect(grant?.vestingTranches).toEqual([]);
+    });
   });
 
   it("saves whether the grant keeps vesting after leaving", async () => {
@@ -281,7 +307,6 @@ describe("EquityStep — vesting tranches", () => {
     await user.type(screen.getByLabelText(/^Ticker symbol/), "abc");
     await user.type(screen.getByLabelText(/^Quantity \(shares\)/), "10");
     await user.type(screen.getByLabelText(/^Grant date/), "2024-03-01");
-    await user.click(screen.getByRole("button", { name: /^More details: employer grant/ }));
     const keeps = screen.getByRole("checkbox", { name: /^This grant keeps vesting after I leave/ });
     expect(keeps).not.toBeChecked();
 

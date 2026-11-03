@@ -305,7 +305,7 @@ describe("My Data summary tables — Equity & Investments", () => {
     expect(esopHeader).toHaveTextContent("Current price (USD)");
     expect(esopRow).toHaveTextContent("AAA");
     expect(esopRow).toHaveTextContent("Test Co");
-    expect(esopRow).toHaveTextContent("2024-03-01");
+    expect(esopRow).toHaveTextContent("01/03/2024");
     expect(esopRow).toHaveTextContent("$150");
     expect(esopRow).toHaveTextContent("$200");
     expect(esopRow).toHaveTextContent("$2,000");
@@ -314,7 +314,7 @@ describe("My Data summary tables — Equity & Investments", () => {
 
     const espp = screen.getByRole("table", { name: "ESPP at a glance" });
     expect(within(espp).getAllByRole("row")[0]).toHaveTextContent("Share price on purchase date");
-    expect(within(espp).getAllByRole("row")[1]).toHaveTextContent("2025-06-15");
+    expect(within(espp).getAllByRole("row")[1]).toHaveTextContent("15/06/2025");
     expect(within(espp).getAllByRole("row")[1]).toHaveTextContent("$90");
     expect(within(espp).getAllByRole("row")[2]).toHaveTextContent("$500");
 
@@ -322,7 +322,7 @@ describe("My Data summary tables — Equity & Investments", () => {
     expect(within(privateInvestments).getAllByRole("row")[0]).toHaveTextContent(
       "Purchase price per share",
     );
-    expect(within(privateInvestments).getAllByRole("row")[1]).toHaveTextContent("2023-01-10");
+    expect(within(privateInvestments).getAllByRole("row")[1]).toHaveTextContent("10/01/2023");
     expect(within(privateInvestments).getAllByRole("row")[2]).toHaveTextContent("$100");
 
     const uncategorised = screen.getByRole("table", { name: "Holdings without a category" });
@@ -330,7 +330,7 @@ describe("My Data summary tables — Equity & Investments", () => {
       within(uncategorised).getAllByRole("row");
     expect(uncategorisedHeader).toHaveTextContent("Purchase / grant date");
     expect(uncategorisedHeader).toHaveTextContent("Share price on that date");
-    expect(uncategorisedRow).toHaveTextContent("2022-05-05");
+    expect(uncategorisedRow).toHaveTextContent("05/05/2022");
     expect(uncategorisedRow).toHaveTextContent("$8");
     expect(uncategorisedTotals).toHaveTextContent("$10");
 
@@ -480,7 +480,7 @@ describe("My Data summary tables — dollar rate", () => {
     const table = await screen.findByRole("table", { name: "ESOP / RSU at a glance" });
     expect(within(table).getAllByRole("row")[1]).toHaveTextContent(`${SHEKEL}3,118`);
     expect(screen.getByLabelText("Shekels per US dollar")).toHaveValue(3.118);
-    expect(screen.getByText(/Bank of Israel rate of 2026-10-30/)).toBeInTheDocument();
+    expect(screen.getByText(/Bank of Israel rate of 30\/10\/2026/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Use the automatic rate" })).not.toBeInTheDocument();
   });
 

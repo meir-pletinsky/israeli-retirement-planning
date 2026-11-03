@@ -292,6 +292,23 @@ export function createEmptyVestingTranche(): VestingTranche {
   return { id: createId(), vestDate: null, quantity: null, grantPriceUSD: null };
 }
 
+/**
+ * How an award vests, as the form asks for it: this many equal batches, the first this many months
+ * after the grant date, then one every this many months. The batches themselves are derived from
+ * it (see `vestingTranches`); all three left empty means everything is already vested.
+ */
+export interface VestingSchedule {
+  batches: number | null;
+  everyMonths: number | null;
+  firstVestMonths: number | null;
+}
+
+export const EMPTY_VESTING_SCHEDULE: VestingSchedule = {
+  batches: null,
+  everyMonths: null,
+  firstVestMonths: null,
+};
+
 export interface EmployerGrantDetails {
   /** Date of the award. The 24-month Section 102 holding period counts from here, for every batch of the award. */
   grantDate: string | null;
@@ -310,9 +327,11 @@ export interface EmployerGrantDetails {
   /**
    * Batches of the holding's shares with their own vesting dates. They are
    * part of `StockHolding.quantity`; whatever is not covered by a batch is
-   * already vested.
+   * already vested. The form derives them from `vestingSchedule`.
    */
   vestingTranches: VestingTranche[];
+  /** The even schedule the form generates `vestingTranches` from. */
+  vestingSchedule: VestingSchedule;
   /**
    * The plan lets unvested batches keep vesting after the owner leaves (a
    * retirement clause). Off: batches still unvested on the retirement date
@@ -331,6 +350,7 @@ export const EMPTY_EMPLOYER_GRANT_DETAILS: EmployerGrantDetails = {
   usdToIlsRateAtGrant: null,
   estimatedMarginalTaxOnVesting: null,
   vestingTranches: [],
+  vestingSchedule: EMPTY_VESTING_SCHEDULE,
   keepsVestingAfterLeaving: false,
 };
 
@@ -780,6 +800,10 @@ export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined
                 ...tranche,
               }))
             : [],
+          vestingSchedule: {
+            ...EMPTY_VESTING_SCHEDULE,
+            ...holding.employerGrantDetails?.vestingSchedule,
+          },
         },
         esppDetails: {
           ...holding.esppDetails,

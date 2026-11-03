@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { CheckboxField } from "../../components/fields/CheckboxField";
 import { CollapsibleSection } from "../../components/CollapsibleSection";
 import { DateField } from "../../components/fields/DateField";
+import { formatDate } from "../../domain/dates";
 import { NumberField } from "../../components/fields/NumberField";
 import { SelectField } from "../../components/fields/SelectField";
 import { TextField } from "../../components/fields/TextField";
@@ -23,7 +24,7 @@ import {
   hasAdvancedDetails,
   type HoldingChange,
 } from "./holdingEntry";
-import { VestingTranchesEditor } from "./VestingTranchesEditor";
+import { VestingScheduleFields } from "./VestingScheduleFields";
 import { useEntryRateAutofill } from "./useEntryRateAutofill";
 import { useStockPriceAutofill } from "./useStockPriceAutofill";
 
@@ -153,18 +154,18 @@ export function EquityHoldingForm({
         <div className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">
           {hint?.entryPriceDate && (
             <p>
-              {t("myData.steps.equity.fields.priceHintEntry", { date: hint.entryPriceDate })}
+              {t("myData.steps.equity.fields.priceHintEntry", { date: formatDate(hint.entryPriceDate) })}
             </p>
           )}
           {hint?.currentPriceDate && (
             <p>
-              {t("myData.steps.equity.fields.priceHintCurrent", { date: hint.currentPriceDate })}
+              {t("myData.steps.equity.fields.priceHintCurrent", { date: formatDate(hint.currentPriceDate) })}
             </p>
           )}
           {hint && <p className="mt-1">{f("priceHintAdjusted")}</p>}
           {rateHint && (
             <p className={hint ? "mt-1" : undefined}>
-              {t("myData.steps.equity.fields.rateHint", { date: rateHint.rateDate })}
+              {t("myData.steps.equity.fields.rateHint", { date: formatDate(rateHint.rateDate) })}
             </p>
           )}
         </div>
@@ -223,11 +224,12 @@ export function EquityHoldingForm({
               label: opt("taxTrack", v),
             }))}
           />
-          <VestingTranchesEditor
+          <VestingScheduleFields
             holding={holding}
-            onChange={(vestingTranches) =>
+            schedule={employerGrantDetails.vestingSchedule}
+            onChange={(vestingSchedule) =>
               onChange({
-                employerGrantDetails: { ...employerGrantDetails, vestingTranches },
+                employerGrantDetails: { ...employerGrantDetails, vestingSchedule },
               })
             }
           />

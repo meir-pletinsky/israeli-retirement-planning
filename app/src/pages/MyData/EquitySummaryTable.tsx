@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useProfile } from "../../app/ProfileContext";
-import { holdingValueIls, usdToIlsRate } from "../../domain";
+import { formatDate, holdingValueIls, usdToIlsRate } from "../../domain";
 import type { InvestmentCategory, ProfileData, StockHolding } from "../../types";
 import { entryDate, entryPriceUsd } from "./holdingEntry";
 import { RowActions } from "./RowActions";
@@ -103,7 +103,10 @@ export function EquityCategoryTable({
         }`,
       ),
       numeric: true,
-      cell: (holding) => entryDate(holding) ?? EMPTY_CELL,
+      cell: (holding) => {
+        const date = entryDate(holding);
+        return date ? formatDate(date) : EMPTY_CELL;
+      },
     },
     {
       key: "entryPrice",
@@ -206,7 +209,11 @@ export function UsdIlsRateControl({ equity, rate }: { equity: ProfileData["equit
           </button>
         )}
       </div>
-      <p>{t(`myData.summary.fxRateSource.${sourceKey}`, { date: equity.usdToIlsRateDate })}</p>
+      <p>
+        {t(`myData.summary.fxRateSource.${sourceKey}`, {
+          date: equity.usdToIlsRateDate ? formatDate(equity.usdToIlsRateDate) : "",
+        })}
+      </p>
     </div>
   );
 }

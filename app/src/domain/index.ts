@@ -5,6 +5,7 @@ export * from "./bituachLeumiRates";
 export * from "./constants";
 export * from "./contributions";
 export * from "./dashboardKpis";
+export * from "./dates";
 export * from "./drawdown";
 export * from "./expenseCatalog";
 export * from "./expenses";

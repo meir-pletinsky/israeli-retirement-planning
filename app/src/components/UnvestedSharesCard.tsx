@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import type { LeavingEarlyCost } from "../domain";
+import { formatDate as formatIsoDate, type LeavingEarlyCost } from "../domain";
 
 interface UnvestedSharesCardProps {
   cost: LeavingEarlyCost | null;
@@ -9,8 +9,7 @@ interface UnvestedSharesCardProps {
 /** Keeps digits reading left to right when inserted into a right-to-left sentence. */
 const isolate = (text: string) => `\u2066${text}\u2069`;
 
-/** ISO date (2026-10-26) to the day-first format used in Israel (26.10.2026). */
-const formatDate = (iso: string) => isolate(iso.split("-").reverse().join("."));
+const formatDate = (iso: string) => isolate(formatIsoDate(iso));
 
 /** What leaving before the company shares vest costs, and what waiting for the next batch would earn back. */
 export function UnvestedSharesCard({ cost }: UnvestedSharesCardProps) {

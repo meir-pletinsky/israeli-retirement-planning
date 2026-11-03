@@ -5,6 +5,7 @@ import {
   BITUACH_LEUMI_RATES,
   type BituachLeumiEstimate,
   type HouseholdMemberEstimate,
+  formatDate as formatEffectiveDate,
   mayQualifyForIncomeSupplement,
 } from "../domain";
 
@@ -16,9 +17,6 @@ interface BituachLeumiCardProps {
 }
 
 const percent = (fraction: number) => Math.round(fraction * 100);
-
-/** ISO date (2026-01-01) to the day-first format used in Israel (01.01.2026). */
-const formatEffectiveDate = (iso: string) => iso.split("-").reverse().join(".");
 
 export function BituachLeumiCard({ members, monthlyIncomeTodayMoney }: BituachLeumiCardProps) {
   const { t } = useTranslation();

@@ -38,11 +38,11 @@ describe("accountSourceLabel", () => {
   });
 
   it("names the report, its person and its date", () => {
-    expect(accountSourceLabel(account("r1"), [record()], t)).toBe("Report of Dana, age 46 \u00b7 2026-05-01");
+    expect(accountSourceLabel(account("r1"), [record()], t)).toBe("Report of Dana, age 46 \u00b7 01/05/2026");
   });
 
   it("falls back to the import day when the report has no date", () => {
-    expect(reportLabel(record({ reportDate: null }), t)).toBe("Report of Dana, age 46 \u00b7 2026-05-02");
+    expect(reportLabel(record({ reportDate: null }), t)).toBe("Report of Dana, age 46 \u00b7 02/05/2026");
     expect(reportLabel(record({ reportDate: null, importedAt: "" }), t)).toBe("Report of Dana, age 46");
   });
 

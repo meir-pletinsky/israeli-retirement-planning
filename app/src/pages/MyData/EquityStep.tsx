@@ -13,15 +13,9 @@ import {
 } from "../../types";
 import { BankDepositForm } from "./BankDepositForm";
 import { BankDepositsTable } from "./BankDepositsTable";
-import { EquityHoldingForm } from "./EquityHoldingForm";
 import { EquityCategoryTable, EquityTotalsFooter } from "./EquitySummaryTable";
-import { CollapsibleFieldLegend } from "./FieldLegend";
-import {
-  applyHoldingChange,
-  CATEGORY_ORDER,
-  createHoldingForCategory,
-  hasRequiredHoldingFields,
-} from "./holdingEntry";
+import { HoldingDialog } from "./HoldingDialog";
+import { CATEGORY_ORDER, createHoldingForCategory } from "./holdingEntry";
 import { StepFooter } from "./StepFooter";
 
 /** Each stock table's own "Add" button label and empty-state message key. */
@@ -46,13 +40,11 @@ export function EquityStep() {
     updateProfile({ equity: { ...equity, holdings } });
   }
 
-  function handleSaveHolding() {
-    if (!editingHolding) return;
-    const exists = equity.holdings.some((h) => h.id === editingHolding.id);
-    const holdings = exists
-      ? equity.holdings.map((h) => (h.id === editingHolding.id ? editingHolding : h))
-      : [...equity.holdings, editingHolding];
-    saveHoldings(holdings);
+  function handleSaveHoldings(saved: StockHolding[]) {
+    const byId = new Map(saved.map((h) => [h.id, h]));
+    const replaced = equity.holdings.map((h) => byId.get(h.id) ?? h);
+    const added = saved.filter((h) => !equity.holdings.some((existing) => existing.id === h.id));
+    saveHoldings([...replaced, ...added]);
     setEditingHolding(null);
   }
 
@@ -156,47 +148,15 @@ export function EquityStep() {
         <StepFooter currentKey="equity" />
       </div>
 
-      <FormModal
-        open={editingHolding !== null}
-        title={
-          editingHolding?.investmentCategory
-            ? t(`myData.steps.equity.options.investmentCategory.${editingHolding.investmentCategory}`)
-            : t("myData.steps.equity.holdingFormTitle")
-        }
-        closeLabel={t("common.close")}
-        onClose={() => setEditingHolding(null)}
-        note={<CollapsibleFieldLegend />}
-        footer={
-          <>
-            <button
-              type="button"
-              onClick={() => setEditingHolding(null)}
-              className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
-            >
-              {t("common.cancel")}
-            </button>
-            <button
-              type="button"
-              onClick={handleSaveHolding}
-              disabled={!editingHolding || !hasRequiredHoldingFields(editingHolding)}
-              className="rounded-md bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {t("common.save")}
-            </button>
-          </>
-        }
-      >
-        {editingHolding && (
-          <EquityHoldingForm
-            holding={editingHolding}
-            onChange={(change) =>
-              setEditingHolding((current) =>
-                current ? applyHoldingChange(current, change) : current,
-              )
-            }
-          />
-        )}
-      </FormModal>
+      {editingHolding && (
+        <HoldingDialog
+          key={editingHolding.id}
+          holding={editingHolding}
+          isNew={!equity.holdings.some((h) => h.id === editingHolding.id)}
+          onClose={() => setEditingHolding(null)}
+          onSave={handleSaveHoldings}
+        />
+      )}
 
       <ConfirmModal
         open={removingHoldingId !== null}

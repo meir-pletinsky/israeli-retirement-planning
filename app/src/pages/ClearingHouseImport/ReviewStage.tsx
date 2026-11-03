@@ -13,6 +13,7 @@ import {
   type PersonalFieldKey,
   type ReportMapResult,
 } from "../../domain/clearingHouseImport";
+import { formatDate } from "../../domain/dates";
 import { hasProfileData, type AccountOwner, type PensionAccount } from "../../types";
 import { reportPersonLabel } from "../MyData/reportSource";
 import { AccountReviewCard } from "./AccountReviewCard";
@@ -136,7 +137,7 @@ export function ReviewStage({ parsed, sample, initialOwner = null, onApply, onSt
           )}
           {recognised && (
             <p role="note" className="mt-2 text-xs text-slate-600">
-              {t("clearingHouse.review.recognised", { date: recognised.importedAt })}
+              {t("clearingHouse.review.recognised", { date: formatDate(recognised.importedAt) })}
             </p>
           )}
         </fieldset>
@@ -144,7 +145,7 @@ export function ReviewStage({ parsed, sample, initialOwner = null, onApply, onSt
 
       {!canChooseOwner && recognised && (
         <p role="note" className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-          {t("clearingHouse.review.recognised", { date: recognised.importedAt })}
+          {t("clearingHouse.review.recognised", { date: formatDate(recognised.importedAt) })}
         </p>
       )}
 

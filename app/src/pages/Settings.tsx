@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import { exportProfileToFile, importProfileFromFile } from "../storage/profileIO";
+import { formatDate } from "../domain/dates";
 import { useProfile } from "../app/ProfileContext";
 import { useLatestUsdIlsRate } from "../app/useLatestUsdIlsRate";
 import { ConfirmModal } from "../components/ConfirmModal";
@@ -92,7 +93,7 @@ export function Settings() {
                     minimumFractionDigits: 3,
                     maximumFractionDigits: 4,
                   }),
-                  date: latestRate.date,
+                  date: formatDate(latestRate.date),
                 })
               : t(rateSettled ? "settings.fxCurrentUnavailable" : "settings.fxCurrentLoading")}
           </p>

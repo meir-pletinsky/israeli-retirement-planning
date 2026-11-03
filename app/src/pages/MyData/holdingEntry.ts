@@ -1,5 +1,6 @@
-import type { InvestmentCategory, StockHolding } from "../../types";
-import { createEmptyStockHolding } from "../../types";
+import { DEFAULT_VESTING_TEMPLATE, generateVestingSchedule } from "../../domain/vesting";
+import type { InvestmentCategory, StockHolding, VestingSchedule, VestingTranche } from "../../types";
+import { createEmptyStockHolding, createEmptyVestingTranche } from "../../types";
 
 /**
  * The simple entry form asks for one purchase or grant: its date, the share price on that day and
@@ -25,7 +26,55 @@ export type HoldingChange =
   | ((current: StockHolding) => Partial<StockHolding>);
 
 export function applyHoldingChange(holding: StockHolding, change: HoldingChange): StockHolding {
-  return { ...holding, ...(typeof change === "function" ? change(holding) : change) };
+  const next = { ...holding, ...(typeof change === "function" ? change(holding) : change) };
+  return withDerivedVesting(holding, next);
+}
+
+function isScheduleComplete({ batches, everyMonths, firstVestMonths }: VestingSchedule): boolean {
+  return batches !== null && firstVestMonths !== null && (everyMonths !== null || batches === 1);
+}
+
+/** The vesting batches an ESOP/RSU holding's schedule makes, from its grant date and quantity. */
+export function vestingTranchesOf(holding: StockHolding): VestingTranche[] {
+  const { grantDate, vestingSchedule } = holding.employerGrantDetails;
+  if (!grantDate || !isScheduleComplete(vestingSchedule)) return [];
+  return generateVestingSchedule(grantDate, holding.quantity ?? 0, {
+    batches: vestingSchedule.batches ?? 0,
+    everyMonths: vestingSchedule.everyMonths ?? 1,
+    firstVestMonths: vestingSchedule.firstVestMonths ?? -1,
+  }).map((batch) => ({
+    ...createEmptyVestingTranche(),
+    vestDate: batch.vestDate,
+    quantity: batch.quantity,
+  }));
+}
+
+/** The holding with its vesting batches generated from its schedule. */
+export function withVestingTranches(holding: StockHolding): StockHolding {
+  return {
+    ...holding,
+    employerGrantDetails: {
+      ...holding.employerGrantDetails,
+      vestingTranches: vestingTranchesOf(holding),
+    },
+  };
+}
+
+/**
+ * Keeps an ESOP/RSU holding's vesting batches in step with its schedule when the schedule, grant
+ * date or quantity changes. A holding that arrives with batches and no schedule is left alone
+ * until its schedule is edited.
+ */
+function withDerivedVesting(previous: StockHolding, next: StockHolding): StockHolding {
+  if (next.investmentCategory !== "employerGrantedStock") return next;
+  const before = previous.employerGrantDetails;
+  const after = next.employerGrantDetails;
+  const scheduleChanged = before.vestingSchedule !== after.vestingSchedule;
+  const inputsChanged =
+    scheduleChanged || before.grantDate !== after.grantDate || previous.quantity !== next.quantity;
+  if (!inputsChanged) return next;
+  if (!scheduleChanged && !isScheduleComplete(after.vestingSchedule)) return next;
+  return withVestingTranches(next);
 }
 
 /** Grant date of an ESOP/RSU holding, or the purchase date of an ESPP or private one. */
@@ -152,6 +201,12 @@ export function createHoldingForCategory(
   existingHoldings: readonly StockHolding[],
 ): StockHolding {
   const holding = { ...createEmptyStockHolding(), investmentCategory: category };
+  if (category === "employerGrantedStock") {
+    holding.employerGrantDetails = {
+      ...holding.employerGrantDetails,
+      vestingSchedule: { ...DEFAULT_VESTING_TEMPLATE },
+    };
+  }
   if (!CATEGORIES_WITH_SYMBOL_CARRYOVER.includes(category)) return holding;
 
   const sameCategory = existingHoldings.filter((h) => h.investmentCategory === category);
@@ -220,6 +275,9 @@ export function hasAdvancedDetails(holding: StockHolding): boolean {
         grant.trusteeHoldingPeriodMet ||
         grant.keepsVestingAfterLeaving ||
         grant.estimatedMarginalTaxOnVesting !== null ||
+        grant.vestingSchedule.batches !== null ||
+        grant.vestingSchedule.everyMonths !== null ||
+        grant.vestingSchedule.firstVestMonths !== null ||
         grant.vestingTranches.length > 0
       );
     case "employerEsppDiscount":

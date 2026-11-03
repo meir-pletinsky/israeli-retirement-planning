@@ -1,14 +1,11 @@
 import { useTranslation } from "react-i18next";
 
-import { ACCESS_RULES, type RetirementAccessSummary } from "../domain";
+import { ACCESS_RULES, formatDate as formatAsOf, type RetirementAccessSummary } from "../domain";
 import { useFormatAge } from "./useFormatAge";
 
 interface SourceAccessCardProps {
   access: RetirementAccessSummary;
 }
-
-/** ISO date (2026-10-26) to the day-first format used in Israel (26.10.2026). */
-const formatAsOf = (iso: string) => iso.split("-").reverse().join(".");
 
 /** Whether there is anything about access timing worth telling the user. */
 function hasAccessNotes(access: RetirementAccessSummary): boolean {

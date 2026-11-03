@@ -44,7 +44,7 @@ describe("Settings — exchange rates", () => {
   it("shows the current rate with its day, and says it is checked every hour", async () => {
     renderWithProviders(<Settings />, { route: "/settings" });
 
-    const status = await screen.findByText(/Current rate: ₪3[.,]118 per US dollar \(Bank of Israel, 2026-10-30\)/);
+    const status = await screen.findByText(/Current rate: ₪3[.,]118 per US dollar \(Bank of Israel, 30\/10\/2026\)/);
     expect(status).toHaveTextContent("Checked every hour while the app is open.");
     expect(status).toHaveAttribute("role", "status");
     expect(fetchMock.mock.calls[0][0]).toBe("https://api.frankfurter.dev/v2/rate/usd/ils?providers=boi");

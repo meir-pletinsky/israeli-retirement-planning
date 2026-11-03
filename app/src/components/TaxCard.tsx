@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 
 import {
   FINAL_EXEMPTION_YEAR,
+  formatDate as formatEffectiveDate,
   type NetIncomeEstimate,
   TAX_RATES,
   totalExemptionRate,
@@ -14,9 +15,6 @@ interface TaxCardProps {
   /** True when the profile holds employer-granted shares (Section 102). */
   hasEmployerStock: boolean;
 }
-
-/** ISO date (2026-01-01) to the day-first format used in Israel (01.01.2026). */
-const formatEffectiveDate = (iso: string) => iso.split("-").reverse().join(".");
 
 /** A share as a percentage with at most two decimals (0.575 becomes 57.5, 0.0323 becomes 3.23). */
 const toPercent = (share: number) => Math.round(share * 10000) / 100;

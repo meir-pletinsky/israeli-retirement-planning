@@ -1,5 +1,6 @@
 import type { TFunction } from "i18next";
 
+import { formatDate } from "../../domain";
 import type { ImportedReport, PensionAccount } from "../../types";
 
 const SOURCE = "clearingHouse.source";
@@ -19,8 +20,9 @@ export function reportPersonLabel(
 export function reportLabel(report: ImportedReport, t: TFunction): string {
   if (report.sample) return t(`${SOURCE}.sample`);
   const person = reportPersonLabel(report, t);
-  const date = report.reportDate ?? report.importedAt;
-  return date ? t(`${SOURCE}.report`, { person, date }) : t(`${SOURCE}.reportNoDate`, { person });
+  const isoDate = report.reportDate ?? report.importedAt;
+  return isoDate
+    ? t(`${SOURCE}.report`, { person, date: formatDate(isoDate) }) : t(`${SOURCE}.reportNoDate`, { person });
 }
 
 /** Where an account's data came from: typed by hand or imported from a report. */
