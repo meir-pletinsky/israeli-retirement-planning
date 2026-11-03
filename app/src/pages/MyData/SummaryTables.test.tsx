@@ -318,7 +318,7 @@ describe("My Data summary tables — Equity & Investments", () => {
     expect(within(espp).getAllByRole("row")[1]).toHaveTextContent("$90");
     expect(within(espp).getAllByRole("row")[2]).toHaveTextContent("$500");
 
-    const privateInvestments = screen.getByRole("table", { name: "Private investments at a glance" });
+    const privateInvestments = screen.getByRole("table", { name: "Privately purchased stocks at a glance" });
     expect(within(privateInvestments).getAllByRole("row")[0]).toHaveTextContent(
       "Purchase price per share",
     );
@@ -390,7 +390,7 @@ describe("My Data summary tables — Equity & Investments", () => {
     );
     renderStep("equity");
 
-    const table = await screen.findByRole("table", { name: "Private investments at a glance" });
+    const table = await screen.findByRole("table", { name: "Privately purchased stocks at a glance" });
     const [, row] = within(table).getAllByRole("row");
     const cells = within(row).getAllByRole("cell");
     expect(cells[3]).toHaveTextContent("\u2014");

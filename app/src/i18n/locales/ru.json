@@ -242,7 +242,7 @@
       "equityCategoryTitle": {
         "employerGrantedStock": "Сводка: ESOP / RSU",
         "employerEsppDiscount": "Сводка: ESPP",
-        "personalBrokeragePurchase": "Сводка: личные инвестиции",
+        "personalBrokeragePurchase": "Сводка: акции, купленные самостоятельно",
         "none": "Позиции без категории"
       },
       "equityTotalAllCategories": "Итого по всем категориям",
