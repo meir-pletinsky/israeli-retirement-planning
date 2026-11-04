@@ -2,9 +2,10 @@
  * Daily job: downloads the public S&P 500 price dataset and writes one small JSON file per stock
  * (plus an index of symbols) for the app to read. Run from the `app` folder:
  *
- *   npm run stock-data -- [--out public/stock-data] [--zip file.zip] [--max-age-days 7]
+ *   npm run stock-data -- [--out public/stock-data] [--zip file.zip] [--max-age-days 7] [--no-splits]
  *
  * Kaggle sign-in is optional: set KAGGLE_USERNAME and KAGGLE_KEY if the download asks for it.
+ * Stock split history is fetched per symbol from Yahoo Finance; `--no-splits` skips that.
  */
 import { createWriteStream } from "node:fs";
 import { mkdtemp, rm, stat } from "node:fs/promises";
@@ -15,6 +16,7 @@ import { pipeline } from "node:stream/promises";
 import { parseArgs } from "node:util";
 import { readDatasetZip, writeOutput } from "./dataset.ts";
 import { findProblem } from "./build.ts";
+import { attachSplits } from "./splits.ts";
 
 const DATASET = "darkmatternet/s-and-p-500-stocks-25-years-of-data-updated-daily";
 const DOWNLOAD_URL = `https://www.kaggle.com/api/v1/datasets/download/${DATASET}`;
@@ -40,6 +42,7 @@ async function main(): Promise<void> {
       zip: { type: "string" },
       "max-age-days": { type: "string", default: "7" },
       "min-symbols": { type: "string", default: "400" },
+      "no-splits": { type: "boolean", default: false },
     },
   });
   const maxAgeDays = Number(values["max-age-days"]);
@@ -63,6 +66,7 @@ async function main(): Promise<void> {
     const output = await readDatasetZip(zipPath, { source: SOURCE, generatedAtUtc: now.toISOString(), log });
     const problem = findProblem(output, { now, maxAgeDays, minSymbols });
     if (problem) throw new Error(problem);
+    if (!values["no-splits"]) await attachSplits(output, { log });
 
     await writeOutput(values.out, output);
     log(`Wrote ${output.files.size} price files to '${values.out}'.`);

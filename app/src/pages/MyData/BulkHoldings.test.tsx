@@ -12,7 +12,10 @@ const FILES: Record<string, unknown> = {
   "_index.json": {
     generatedAtUtc: "2024-06-15T00:00:00.000Z",
     source: "test",
-    symbols: [{ symbol: "AAA", name: "Alpha Corp", firstDate: "2024-02-28", lastDate: "2024-06-14" }],
+    symbols: [
+      { symbol: "AAA", name: "Alpha Corp", firstDate: "2024-02-28", lastDate: "2024-06-14" },
+      { symbol: "SPL", name: "Splitter Inc", firstDate: "2024-02-28", lastDate: "2024-06-14" },
+    ],
   },
   "AAA.json": {
     symbol: "AAA",
@@ -21,6 +24,16 @@ const FILES: Record<string, unknown> = {
     priceBasis: "adjusted-close",
     dates: ["2024-02-28", "2024-03-15", "2024-06-14"],
     close: [100, 110, 150],
+  },
+  // A 10:1 split on 2024-04-01: the published prices are already adjusted for it.
+  "SPL.json": {
+    symbol: "SPL",
+    name: "Splitter Inc",
+    asOf: "2024-06-14",
+    priceBasis: "adjusted-close",
+    dates: ["2024-02-28", "2024-03-15", "2024-06-14"],
+    close: [10, 11, 15],
+    splits: [{ date: "2024-04-01", ratio: 10 }],
   },
 };
 
@@ -154,6 +167,95 @@ describe("HoldingDialog — bulk entry", () => {
     expect(screen.getByText("1 line could not be read and was ignored.")).toBeInTheDocument();
   });
 
+  it("restates pasted rows in today's shares after a later split", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
+    await openBulk(user, "Add private trade");
+
+    // Bought before the 10:1 split: 10 shares at $110 became 100 shares at $11.
+    // The second row has no price, and the estimate is already adjusted.
+    // The third was bought after the split and stays as it is.
+    paste("2024-03-15, spl, 10, 110\n2024-03-15, spl, 3\n2024-05-02, spl, 4, 14");
+    const table = await screen.findByRole("table");
+    await waitFor(() => expect(within(table).getAllByText("×10")).toHaveLength(2));
+    expect(within(table).getByText("100")).toBeInTheDocument();
+    expect(within(table).getByText("$11.00")).toBeInTheDocument();
+    expect(within(table).getByText("30")).toBeInTheDocument();
+    expect(within(table).getByText("$11.00 (estimated)")).toBeInTheDocument();
+    expect(screen.getByText(/Rows marked with ×/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Add 3 holdings" }));
+    await waitFor(async () => {
+      const holdings = (await loadProfileFromDb())?.equity.holdings ?? [];
+      expect(holdings.map((h) => h.quantity)).toEqual([100, 30, 4]);
+      expect(holdings.map((h) => h.personalPurchaseDetails.averageCostBasisUSD)).toEqual([11, 11, 14]);
+    });
+  });
+
+  it("takes the numbers as typed when they are not marked as reported before splits", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
+    await openBulk(user, "Add private trade");
+
+    await user.click(screen.getByRole("checkbox", { name: /as originally reported/ }));
+    paste("2024-03-15, spl, 100, 11");
+    const table = await screen.findByRole("table");
+    expect(within(table).queryByText("×10")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Add 1 holding" }));
+    await waitFor(async () => {
+      const [holding] = (await loadProfileFromDb())?.equity.holdings ?? [];
+      expect(holding).toMatchObject({
+        quantity: 100,
+        personalPurchaseDetails: { averageCostBasisUSD: 11 },
+      });
+    });
+  });
+
+  it("restates a single entry too, dividing only a price that was typed", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
+    await user.click(await screen.findByRole("button", { name: "Add private trade" }));
+
+    await user.type(screen.getByLabelText(/^Ticker symbol/), "SPL");
+    await user.type(screen.getByLabelText(/^Purchase date/), "2024-03-15");
+    await user.type(screen.getByLabelText(/^Quantity \(shares\)/), "10");
+    const price = screen.getByLabelText(/^Purchase price/);
+    await waitFor(() => expect(price).toHaveValue(11));
+    expect(await screen.findByText(/it will be saved as 100 shares/)).toBeInTheDocument();
+
+    await user.clear(price);
+    await user.type(price, "110");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(async () => {
+      const [holding] = (await loadProfileFromDb())?.equity.holdings ?? [];
+      expect(holding).toMatchObject({
+        quantity: 100,
+        personalPurchaseDetails: { averageCostBasisUSD: 11 },
+      });
+    });
+  });
+
+  it("keeps an estimated single-entry price as it is, since it is already adjusted", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
+    await user.click(await screen.findByRole("button", { name: "Add private trade" }));
+
+    await user.type(screen.getByLabelText(/^Ticker symbol/), "SPL");
+    await user.type(screen.getByLabelText(/^Purchase date/), "2024-03-15");
+    await user.type(screen.getByLabelText(/^Quantity \(shares\)/), "10");
+    await waitFor(() => expect(screen.getByLabelText(/^Purchase price/)).toHaveValue(11));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(async () => {
+      const [holding] = (await loadProfileFromDb())?.equity.holdings ?? [];
+      expect(holding).toMatchObject({
+        quantity: 100,
+        personalPurchaseDetails: { averageCostBasisUSD: 11 },
+      });
+    });
+  });
+
   it("offers no bulk entry when editing a saved holding", async () => {
     await saveProfileToDb(buildTestProfile({ age: 50, equity: [{ quantity: 100, priceUSD: 10 }] }));
     const user = userEvent.setup();
@@ -161,5 +263,6 @@ describe("HoldingDialog — bulk entry", () => {
 
     await user.click(await screen.findByRole("button", { name: "Edit" }));
     expect(screen.queryByRole("tab")).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: /as originally reported/ })).not.toBeInTheDocument();
   });
 });

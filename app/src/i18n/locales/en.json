@@ -461,6 +461,11 @@
           "single": "Single",
           "bulk": "Bulk (paste CSV)"
         },
+        "splits": {
+          "asReported": "Quantities and prices are as originally reported (before later stock splits)",
+          "asReportedHelper": "Keep this on for numbers taken from a broker or clearing-house statement: they are restated in today's shares using the stock's split history. Turn it off if you already converted them.",
+          "singleNote": "A split since this date means each share became ×{{factor}}: it will be saved as {{quantity}} shares. A price you typed is divided by the same factor; an estimated price is already adjusted."
+        },
         "bulk": {
           "symbolHelper": "All rows below are for this stock. To add another stock, use this dialog again.",
           "csvLabel": "Purchases, one per line",
@@ -476,6 +481,8 @@
           "colSymbol": "Symbol",
           "colQuantity": "Quantity",
           "colPrice": "Share price",
+          "colSplits": "Splits since",
+          "splitsNote": "Rows marked with × were restated in today's shares, after the stock split since their date.",
           "priceEstimated": "{{price}} (estimated)",
           "priceNote": "A missing or zero price is filled in with the closing price on that date when the stock is in the downloaded data. You can change it later by editing the holding.",
           "needsSymbol": "Enter the stock symbol to add these rows.",

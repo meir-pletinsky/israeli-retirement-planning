@@ -30,6 +30,13 @@ export interface StockIndexFile {
   symbols: StockIndexEntry[];
 }
 
+/** A stock split: each share held before `date` became `ratio` shares (2 for 2:1, 0.1 for 1:10). */
+export interface StockSplit {
+  /** First trading day at the new share count (ISO date). */
+  date: string;
+  ratio: number;
+}
+
 /** `<SYMBOL>.json`: one closing price per trading day, as two parallel lists sorted by date. */
 export interface StockHistoryFile {
   symbol: string;
@@ -40,6 +47,11 @@ export interface StockHistoryFile {
   /** ISO dates (YYYY-MM-DD), oldest first. */
   dates: string[];
   close: number[];
+  /**
+   * Splits, oldest first. An empty list means the stock never split; a missing one means the
+   * splits could not be fetched, so they are unknown.
+   */
+  splits?: StockSplit[];
 }
 
 export function normalizeSymbol(raw: string): string {
@@ -81,13 +93,20 @@ export function isStockIndexFile(value: unknown): value is StockIndexFile {
   );
 }
 
+export function isStockSplit(value: unknown): value is StockSplit {
+  if (typeof value !== "object" || value === null) return false;
+  const { date, ratio } = value as Partial<StockSplit>;
+  return isIsoDate(date) && typeof ratio === "number" && Number.isFinite(ratio) && ratio > 0;
+}
+
 export function isStockHistoryFile(value: unknown): value is StockHistoryFile {
   if (typeof value !== "object" || value === null) return false;
-  const { symbol, dates, close } = value as Partial<StockHistoryFile>;
+  const { symbol, dates, close, splits } = value as Partial<StockHistoryFile>;
   return (
     typeof symbol === "string" &&
     isStringArray(dates) &&
     isFiniteNumberArray(close) &&
-    dates.length === close.length
+    dates.length === close.length &&
+    (splits === undefined || (Array.isArray(splits) && splits.every(isStockSplit)))
   );
 }

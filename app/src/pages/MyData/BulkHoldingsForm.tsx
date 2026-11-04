@@ -4,8 +4,9 @@ import { TextField } from "../../components/fields/TextField";
 import { formatDate } from "../../domain/dates";
 import type { StockHistoryFile } from "../../stockPrices/format";
 import type { InvestmentCategory, VestingSchedule } from "../../types";
-import { rowPrice } from "./bulkHoldings";
-import type { HoldingCsvResult } from "./holdingCsv";
+import { displayFactor } from "./splitEntry";
+import { resolveRow } from "./bulkHoldings";
+import type { HoldingCsvResult, HoldingCsvRow } from "./holdingCsv";
 import { useStockSuggestions } from "./useStockHistories";
 import { VestingScheduleFields } from "./VestingScheduleFields";
 
@@ -19,6 +20,8 @@ interface BulkHoldingsFormProps {
   onTextChange: (text: string) => void;
   parsed: HoldingCsvResult;
   histories: ReadonlyMap<string, StockHistoryFile>;
+  /** Whether quantities and prices are restated for the splits since each date. */
+  asReported: boolean;
 }
 
 const MONEY = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
@@ -34,6 +37,7 @@ export function BulkHoldingsForm({
   onTextChange,
   parsed,
   histories,
+  asReported,
 }: BulkHoldingsFormProps) {
   const { t } = useTranslation();
   const b = (key: string, params?: Record<string, unknown>) =>
@@ -42,6 +46,9 @@ export function BulkHoldingsForm({
   const suggestions = useStockSuggestions();
 
   const personal = category === "personalBrokeragePurchase";
+  const symbolOf = (row: HoldingCsvRow) => (personal ? (row.symbol ?? "") : symbol.trim());
+  const anySplit =
+    asReported && parsed.rows.some((row) => resolveRow(row, symbolOf(row), histories, true).factor !== 1);
 
   return (
     <div className="flex flex-col gap-4">
@@ -92,21 +99,23 @@ export function BulkHoldingsForm({
                   {personal && <th className="px-3 py-2 font-medium">{b("colSymbol")}</th>}
                   <th className="px-3 py-2 text-right font-medium">{b("colQuantity")}</th>
                   <th className="px-3 py-2 text-right font-medium">{b("colPrice")}</th>
+                  {asReported && <th className="px-3 py-2 text-right font-medium">{b("colSplits")}</th>}
                 </tr>
               </thead>
               <tbody>
                 {parsed.rows.map((row) => {
-                  const { price, estimated } = rowPrice(
+                  const { quantity, price, estimated, factor } = resolveRow(
                     row,
-                    personal ? (row.symbol ?? "") : symbol.trim(),
+                    symbolOf(row),
                     histories,
+                    asReported,
                   );
                   return (
                     <tr key={row.line} className="border-t border-slate-100">
                       <td className="px-3 py-1.5">{formatDate(row.date)}</td>
                       {personal && <td className="px-3 py-1.5">{row.symbol}</td>}
                       <td className="px-3 py-1.5 text-right">
-                        {row.quantity.toLocaleString("en-US", { maximumFractionDigits: 6 })}
+                        {quantity.toLocaleString("en-US", { maximumFractionDigits: 6 })}
                       </td>
                       <td className="px-3 py-1.5 text-right">
                         {price === null
@@ -115,6 +124,11 @@ export function BulkHoldingsForm({
                             ? b("priceEstimated", { price: MONEY.format(price) })
                             : MONEY.format(price)}
                       </td>
+                      {asReported && (
+                        <td className="px-3 py-1.5 text-right text-slate-500">
+                          {factor === 1 ? "" : `×${displayFactor(factor).toLocaleString("en-US")}`}
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
@@ -126,6 +140,7 @@ export function BulkHoldingsForm({
           <p className="mt-2 text-xs text-slate-500">{b("ignored", { count: parsed.ignored })}</p>
         )}
         <p className="mt-1 text-xs text-slate-400">{b("priceNote")}</p>
+        {anySplit && <p className="mt-1 text-xs text-slate-500">{b("splitsNote")}</p>}
         {!personal && symbol.trim() === "" && (
           <p className="mt-1 text-xs text-amber-700">{b("needsSymbol")}</p>
         )}

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { CheckboxField } from "../../components/fields/CheckboxField";
 import { FormModal } from "../../components/FormModal";
 import { DEFAULT_VESTING_TEMPLATE } from "../../domain/vesting";
 import type { StockHolding, VestingSchedule } from "../../types";
@@ -10,6 +11,7 @@ import { EquityHoldingForm } from "./EquityHoldingForm";
 import { CollapsibleFieldLegend } from "./FieldLegend";
 import { parseHoldingCsv } from "./holdingCsv";
 import { applyHoldingChange, hasRequiredHoldingFields } from "./holdingEntry";
+import { adjustHoldingForSplits, displayFactor } from "./splitEntry";
 import { useStockHistories } from "./useStockHistories";
 
 type EntryMode = "single" | "bulk";
@@ -32,6 +34,7 @@ export function HoldingDialog({ holding, isNew, onClose, onSave }: HoldingDialog
 
   const [mode, setMode] = useState<EntryMode>("single");
   const [draft, setDraft] = useState(holding);
+  const [asReported, setAsReported] = useState(true);
 
   const [text, setText] = useState("");
   const [symbol, setSymbol] = useState(holding.tickerSymbol);
@@ -40,23 +43,27 @@ export function HoldingDialog({ holding, isNew, onClose, onSave }: HoldingDialog
   });
 
   const personal = category === "personalBrokeragePurchase";
+  const bulk = mode === "bulk" && canBulk;
   const parsed = useMemo(
     () => (category ? parseHoldingCsv(text, category) : { rows: [], ignored: 0 }),
     [text, category],
   );
   const bulkSymbol = symbol.trim().toUpperCase();
-  const symbols = useMemo(
-    () =>
-      personal
-        ? parsed.rows.flatMap((row) => (row.symbol ? [row.symbol] : []))
-        : bulkSymbol
-          ? [bulkSymbol]
-          : [],
-    [personal, parsed, bulkSymbol],
-  );
+  const draftSymbol = draft.tickerSymbol.trim().toUpperCase();
+  const symbols = useMemo(() => {
+    if (!bulk) return draftSymbol ? [draftSymbol] : [];
+    if (personal) return parsed.rows.flatMap((row) => (row.symbol ? [row.symbol] : []));
+    return bulkSymbol ? [bulkSymbol] : [];
+  }, [bulk, personal, parsed, bulkSymbol, draftSymbol]);
   const histories = useStockHistories(symbols);
 
-  const bulk = mode === "bulk" && canBulk;
+  const restated = useMemo(
+    () =>
+      canBulk && asReported
+        ? adjustHoldingForSplits(draft, histories.get(draftSymbol))
+        : { holding: draft, factor: 1 },
+    [canBulk, asReported, draft, histories, draftSymbol],
+  );
   const canSave = bulk
     ? parsed.rows.length > 0 && (personal || bulkSymbol !== "")
     : hasRequiredHoldingFields(draft);
@@ -70,10 +77,11 @@ export function HoldingDialog({ holding, isNew, onClose, onSave }: HoldingDialog
           symbol: bulkSymbol,
           vestingSchedule,
           histories,
+          asReported,
         }),
       );
     } else {
-      onSave([draft]);
+      onSave([restated.holding]);
     }
   }
 
@@ -135,6 +143,18 @@ export function HoldingDialog({ holding, isNew, onClose, onSave }: HoldingDialog
             ))}
           </div>
         )}
+        {canBulk && (
+          <div>
+            <CheckboxField
+              label={t("myData.steps.equity.splits.asReported")}
+              checked={asReported}
+              onChange={setAsReported}
+            />
+            <p className="mt-1 ps-6 text-xs text-slate-500">
+              {t("myData.steps.equity.splits.asReportedHelper")}
+            </p>
+          </div>
+        )}
         {bulk && category ? (
           <BulkHoldingsForm
             category={category}
@@ -146,12 +166,25 @@ export function HoldingDialog({ holding, isNew, onClose, onSave }: HoldingDialog
             onTextChange={setText}
             parsed={parsed}
             histories={histories}
+            asReported={asReported}
           />
         ) : (
-          <EquityHoldingForm
-            holding={draft}
-            onChange={(change) => setDraft((current) => applyHoldingChange(current, change))}
-          />
+          <>
+            <EquityHoldingForm
+              holding={draft}
+              onChange={(change) => setDraft((current) => applyHoldingChange(current, change))}
+            />
+            {restated.factor !== 1 && (
+              <p className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                {t("myData.steps.equity.splits.singleNote", {
+                  factor: displayFactor(restated.factor).toLocaleString("en-US"),
+                  quantity: (restated.holding.quantity ?? 0).toLocaleString("en-US", {
+                    maximumFractionDigits: 6,
+                  }),
+                })}
+              </p>
+            )}
+          </>
         )}
       </div>
     </FormModal>
