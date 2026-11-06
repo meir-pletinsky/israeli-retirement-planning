@@ -438,6 +438,15 @@ nearest the user's retirement age into importable fields.
   `hasGuaranteedFactor` is true. An implied factor on managers insurance is
   therefore stored but not used until the user ticks the guarantee, and the
   review card says so.
+
+#### 6.4.2 Reviewing a long report
+
+The review opens with a summary (accounts, total balance, values selected, values
+to confirm, warnings), and each account card is collapsed to the values that need a
+look: one that would replace a value the profile holds, or an `uncertain` one.
+"Show all details" opens the rest. "Select all accounts", "Clear all accounts" and
+"Show only the selected changes" work on the whole report; the Import button and
+the selection summary stay in a fixed bar while the user scrolls.
 - An unticked `hasGuaranteedFactor` counts as empty when matching an existing
   account, so an imported guarantee is offered as "fills an empty field".
 

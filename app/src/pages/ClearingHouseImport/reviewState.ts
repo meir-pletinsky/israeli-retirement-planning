@@ -1,12 +1,19 @@
 import {
+  ACCOUNT_FIELD_KEYS,
   defaultSelectedFields,
+  diffField,
   type AccountFieldKey,
+  type FieldDiff,
+  type ImportConfidence,
   type ImportedAccountCandidate,
+  type ImportedFieldValues,
   type ImportedValue,
   type ImportPlan,
   type ImportReportInfo,
+  type ImportWarning,
   type PersonalFieldKey,
   type PersonalSuggestions,
+  WARNING_SEVERITY,
 } from "../../domain/clearingHouseImport";
 import { suggestedRetirementAge } from "../../domain/bituachLeumi";
 import { DEFAULT_RETIREMENT_AGE } from "../../domain/constants";
@@ -27,6 +34,49 @@ export function initialAccountState(
 ): AccountReviewState {
   const selected = defaultSelectedFields(candidate, existing);
   return { include: selected.length > 0, updateAccountId: existing?.id ?? null, selected };
+}
+
+type FieldValue = ImportedFieldValues[AccountFieldKey];
+
+/** One value of a report account as the review lists it. */
+export interface AccountValueRow {
+  key: AccountFieldKey;
+  imported: ImportedValue<FieldValue>;
+  diff: FieldDiff;
+  /** Worth a look before importing: it would replace a value the profile holds, or it is an interpretation. */
+  attention: boolean;
+}
+
+export function needsAttention(confidence: ImportConfidence, diff: FieldDiff): boolean {
+  return diff !== "same" && (diff === "differs" || confidence === "uncertain");
+}
+
+/** The values the report holds for an account, in display order, against what the profile already has. */
+export function accountValueRows(
+  candidate: ImportedAccountCandidate,
+  existing: PensionAccount | null,
+): AccountValueRow[] {
+  return ACCOUNT_FIELD_KEYS.flatMap((key) => {
+    const imported = candidate.fields[key] as ImportedValue<FieldValue> | undefined;
+    if (!imported) return [];
+    const diff = diffField(existing, key, imported.value);
+    return [{ key, imported, diff, attention: needsAttention(imported.confidence, diff) }];
+  });
+}
+
+/** A value identical to the profile's cannot be ticked, so it never counts as selectable. */
+export function selectableKeys(rows: AccountValueRow[]): AccountFieldKey[] {
+  return rows.filter((row) => row.diff !== "same").map((row) => row.key);
+}
+
+export function candidateBalance(candidate: ImportedAccountCandidate): number | null {
+  return candidate.fields.totalAccumulatedBalance?.value ?? null;
+}
+
+/** Notes the user should read, as opposed to ones that only explain how the report was read. */
+export function countWarnings(candidates: ImportedAccountCandidate[], reportWarnings: ImportWarning[]): number {
+  const all = [...reportWarnings, ...candidates.flatMap((candidate) => candidate.warnings)];
+  return all.filter((warning) => WARNING_SEVERITY[warning.code] === "warning").length;
 }
 
 export function personalKeysFor(owner: AccountOwner): PersonalFieldKey[] {

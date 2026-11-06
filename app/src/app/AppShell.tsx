@@ -77,14 +77,14 @@ export function AppShell() {
         </main>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-slate-200 bg-white md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-4 border-t border-slate-200 bg-white md:hidden">
         {NAV_ITEMS.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             className={({ isActive }) =>
               clsx(
-                "flex flex-col items-center gap-0.5 py-2 text-xs font-medium",
+                "flex flex-col items-center justify-center gap-0.5 text-xs font-medium",
                 isActive ? "text-brand-700" : "text-slate-500",
               )
             }

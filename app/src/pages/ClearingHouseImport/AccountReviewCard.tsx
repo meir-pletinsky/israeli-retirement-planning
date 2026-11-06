@@ -1,9 +1,7 @@
 import { useTranslation } from "react-i18next";
 
 import {
-  ACCOUNT_FIELD_KEYS,
   defaultSelectedFields,
-  diffField,
   nearestProjection,
   readField,
   type AccountFieldKey,
@@ -13,7 +11,13 @@ import { formatDate } from "../../domain/dates";
 import type { PensionAccount } from "../../types";
 import { FieldRow } from "./FieldRow";
 import { formatAccountValue, formatMoney, productKindLabel } from "./formatFieldValue";
-import { initialAccountState, type AccountReviewState } from "./reviewState";
+import {
+  accountValueRows,
+  candidateBalance,
+  initialAccountState,
+  selectableKeys,
+  type AccountReviewState,
+} from "./reviewState";
 import { WarningList } from "./WarningList";
 
 interface AccountReviewCardProps {
@@ -23,8 +27,16 @@ interface AccountReviewCardProps {
   state: AccountReviewState;
   retirementAge: number;
   currency: string;
+  /** Every value is listed; otherwise only the ones worth a look. */
+  expanded: boolean;
+  onToggleExpanded: () => void;
+  /** List only the values that will be imported. */
+  onlySelected: boolean;
   onChange: (state: AccountReviewState) => void;
 }
+
+const LINK_BUTTON =
+  "rounded-md px-2 py-1 text-xs font-medium text-brand-700 hover:bg-brand-50 focus-visible:outline-2 focus-visible:outline-brand-600";
 
 export function AccountReviewCard({
   candidate,
@@ -32,6 +44,9 @@ export function AccountReviewCard({
   state,
   retirementAge,
   currency,
+  expanded,
+  onToggleExpanded,
+  onlySelected,
   onChange,
 }: AccountReviewCardProps) {
   const { t } = useTranslation();
@@ -40,6 +55,7 @@ export function AccountReviewCard({
   const category = candidate.fields.productCategory
     ? t(`myData.steps.pensionSavings.options.productCategory.${candidate.fields.productCategory.value}`)
     : productKindLabel(candidate.productTypeCode, t);
+  const title = providerName || category;
   const projection = nearestProjection(candidate.projections, retirementAge);
   const projectionParts: string[] = [];
   if (projection && (projection.monthlyPension ?? 0) > 0) {
@@ -52,6 +68,26 @@ export function AccountReviewCard({
       t("clearingHouse.review.projection.savings", { amount: formatMoney(projection.accumulation!, currency) }),
     );
   }
+
+  const rows = accountValueRows(candidate, existing);
+  const selectable = selectableKeys(rows);
+  const isSelected = (key: AccountFieldKey, diff: string) =>
+    state.include && diff !== "same" && state.selected.includes(key);
+  const selectedCount = rows.filter((row) => isSelected(row.key, row.diff)).length;
+  const attentionCount = rows.filter((row) => row.attention).length;
+  const visibleRows = onlySelected
+    ? rows.filter((row) => isSelected(row.key, row.diff))
+    : expanded
+      ? rows
+      : rows.filter((row) => row.attention);
+  const canExpand = !onlySelected && rows.length > attentionCount;
+  const balance = candidateBalance(candidate);
+  const detailsId = `${candidate.key}-details`;
+  const detailsLabel = t(
+    expanded ? "clearingHouse.review.account.hideDetails" : "clearingHouse.review.account.showDetails",
+  );
+  const selectAllLabel = t("clearingHouse.review.account.selectAllValues");
+  const clearLabel = t("clearingHouse.review.account.clearValues");
 
   function setInclude(include: boolean) {
     if (include && state.selected.length === 0) {
@@ -84,9 +120,7 @@ export function AccountReviewCard({
         />
         <div className="min-w-0 flex-1">
           <label htmlFor={`${candidate.key}-include`} className="block cursor-pointer">
-            <span className="block break-words text-sm font-semibold text-slate-900">
-              {providerName || category}
-            </span>
+            <span className="block break-words text-sm font-semibold text-slate-900">{title}</span>
             {providerName && <span className="block text-xs text-slate-500">{category}</span>}
             <span className="sr-only">{t("clearingHouse.review.include")}</span>
           </label>
@@ -105,6 +139,26 @@ export function AccountReviewCard({
               {t("clearingHouse.review.balanceDate", { date: formatDate(candidate.valuationDate) })}
             </p>
           )}
+          <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
+            {balance !== null && (
+              <span className="font-semibold text-slate-800">
+                {t("clearingHouse.review.account.balance", { amount: formatMoney(balance, currency) })}
+              </span>
+            )}
+            <span>
+              {state.include
+                ? t("clearingHouse.review.account.valuesSelected", {
+                    selected: selectedCount,
+                    total: selectable.length,
+                  })
+                : t("clearingHouse.review.account.notImported")}
+            </span>
+            {attentionCount > 0 && (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-800">
+                {t("clearingHouse.review.account.toCheck", { count: attentionCount })}
+              </span>
+            )}
+          </p>
         </div>
       </div>
 
@@ -119,7 +173,7 @@ export function AccountReviewCard({
                 name={`${candidate.key}-mode`}
                 checked={state.updateAccountId !== null}
                 onChange={() => setMode(true)}
-                                className="accent-brand-600"
+                className="accent-brand-600"
               />
               {t("clearingHouse.review.modeUpdate")}
             </label>
@@ -129,7 +183,7 @@ export function AccountReviewCard({
                 name={`${candidate.key}-mode`}
                 checked={state.updateAccountId === null}
                 onChange={() => setMode(false)}
-                                className="accent-brand-600"
+                className="accent-brand-600"
               />
               {t("clearingHouse.review.modeNew")}
             </label>
@@ -137,26 +191,64 @@ export function AccountReviewCard({
         </fieldset>
       )}
 
-      <ul className="mt-2 divide-y divide-slate-100">
-        {ACCOUNT_FIELD_KEYS.map((key) => {
-          const imported = candidate.fields[key];
-          if (!imported) return null;
-          return (
-            <FieldRow
-              key={key}
-              id={`${candidate.key}-${key}`}
-              label={t(`myData.steps.pensionSavings.fields.${key}`)}
-              value={formatAccountValue(key, imported.value, t, currency)}
-              confidence={imported.confidence}
-              diff={diffField(existing, key, imported.value)}
-              currentValue={formatAccountValue(key, existing ? readField(existing, key) : null, t, currency)}
-              checked={state.selected.includes(key)}
-              disabled={!state.include}
-              onChange={(checked) => toggleField(key, checked)}
-            />
-          );
-        })}
-      </ul>
+      {(canExpand || (expanded && !onlySelected)) && (
+        <div className="mt-2 flex flex-wrap items-center gap-1">
+          {canExpand && (
+            <button
+              type="button"
+              aria-expanded={expanded}
+              aria-controls={detailsId}
+              aria-label={`${detailsLabel} ${title}`}
+              onClick={onToggleExpanded}
+              className={LINK_BUTTON}
+            >
+              {detailsLabel}
+            </button>
+          )}
+          {expanded && !onlySelected && (
+            <>
+              <button
+                type="button"
+                aria-label={`${selectAllLabel} ${title}`}
+                onClick={() => onChange({ ...state, include: true, selected: selectable })}
+                className={LINK_BUTTON}
+              >
+                {selectAllLabel}
+              </button>
+              <button
+                type="button"
+                aria-label={`${clearLabel} ${title}`}
+                onClick={() => onChange({ ...state, selected: [] })}
+                className={LINK_BUTTON}
+              >
+                {clearLabel}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      <div id={detailsId}>
+        {visibleRows.length > 0 && (
+          <ul className="mt-2 divide-y divide-slate-100">
+            {visibleRows.map(({ key, imported, diff, attention }) => (
+              <FieldRow
+                key={key}
+                id={`${candidate.key}-${key}`}
+                label={t(`myData.steps.pensionSavings.fields.${key}`)}
+                value={formatAccountValue(key, imported.value, t, currency)}
+                confidence={imported.confidence}
+                diff={diff}
+                currentValue={formatAccountValue(key, existing ? readField(existing, key) : null, t, currency)}
+                checked={state.selected.includes(key)}
+                disabled={!state.include}
+                highlight={attention}
+                onChange={(checked) => toggleField(key, checked)}
+              />
+            ))}
+          </ul>
+        )}
+      </div>
 
       {candidate.fields.conversionFactor &&
         !candidate.fields.hasGuaranteedFactor &&
@@ -172,7 +264,7 @@ export function AccountReviewCard({
         </div>
       )}
 
-      {projection && projectionParts.length > 0 && (
+      {expanded && !onlySelected && projection && projectionParts.length > 0 && (
         <div className="mt-3 rounded-md bg-slate-50 p-3 text-xs text-slate-600">
           <p className="font-medium text-slate-700">
             {t("clearingHouse.review.projection.title", { age: projection.age })}

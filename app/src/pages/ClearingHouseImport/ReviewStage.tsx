@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useProfile } from "../../app/ProfileContext";
 import {
   assessOwner,
+  defaultSelectedFields,
   matchCandidates,
   reportInfoFor,
   suggestOwner,
@@ -18,10 +19,13 @@ import { hasProfileData, type AccountOwner, type PensionAccount } from "../../ty
 import { reportPersonLabel } from "../MyData/reportSource";
 import { AccountReviewCard } from "./AccountReviewCard";
 import { FieldRow } from "./FieldRow";
-import { formatPersonalValue, productKindLabel } from "./formatFieldValue";
+import { formatMoney, formatPersonalValue, productKindLabel } from "./formatFieldValue";
 import {
+  accountValueRows,
   buildImportPlan,
+  candidateBalance,
   countPlan,
+  countWarnings,
   currentPersonalValue,
   defaultSelectedPersonal,
   initialAccountState,
@@ -35,6 +39,8 @@ import { WarningList } from "./WarningList";
 
 const NO_ACCOUNTS: PensionAccount[] = [];
 
+const LINK_BUTTON =
+  "rounded-md px-2 py-1 text-xs font-medium text-brand-700 hover:bg-brand-50 focus-visible:outline-2 focus-visible:outline-brand-600";
 interface ReviewStageProps {
   parsed: ParsedReport;
   /** The bundled demonstration report: matched against nothing, and confirmed before it joins real data. */
@@ -254,6 +260,31 @@ function ReviewBody({ owner, result, sample, blocked, onApply, onStartOver }: Re
   const plan = buildImportPlan(owner, candidates, states, personal, selectedPersonal, report);
   const counts = countPlan(plan);
   const personalRows = suggestedPersonal(personal, owner);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [onlySelected, setOnlySelected] = useState(false);
+
+  const existingFor = (key: string, state: AccountReviewState) => {
+    const matchedId = matches.get(key);
+    return state.updateAccountId && matchedId
+      ? (accounts.find((account) => account.id === matchedId) ?? null)
+      : null;
+  };
+  const accountsWithBalance = candidates.map(candidateBalance).filter((value): value is number => value !== null);
+  const totalBalance = accountsWithBalance.reduce((sum, value) => sum + value, 0);
+  const valuesToConfirm = candidates.reduce((sum, candidate) => {
+    const state = states[candidate.key];
+    if (!state.include) return sum;
+    return sum + accountValueRows(candidate, existingFor(candidate.key, state)).filter((row) => row.attention).length;
+  }, 0);
+  const warningCount = countWarnings(candidates, result.warnings);
+  const allExpanded = candidates.length > 0 && candidates.every((candidate) => expanded[candidate.key]);
+  const shownCandidates = onlySelected
+    ? candidates.filter((candidate) => {
+        const state = states[candidate.key];
+        const rows = accountValueRows(candidate, existingFor(candidate.key, state));
+        return state.include && rows.some((row) => row.diff !== "same" && state.selected.includes(row.key));
+      })
+    : candidates;
 
   function togglePersonal(key: PersonalFieldKey, checked: boolean) {
     setSelectedPersonal((current) =>
@@ -261,8 +292,57 @@ function ReviewBody({ owner, result, sample, blocked, onApply, onStartOver }: Re
     );
   }
 
+  function setAllIncluded(include: boolean) {
+    setStates((current) =>
+      Object.fromEntries(
+        candidates.map((candidate) => {
+          const state = current[candidate.key];
+          const selected =
+            include && state.selected.length === 0
+              ? defaultSelectedFields(candidate, existingFor(candidate.key, state))
+              : state.selected;
+          return [candidate.key, { ...state, include, selected }];
+        }),
+      ),
+    );
+  }
+
+  function setAllExpanded(open: boolean) {
+    setExpanded(Object.fromEntries(candidates.map((candidate) => [candidate.key, open])));
+  }
+
+  const summary = [
+    {
+      label: t("clearingHouse.review.summary.accountsSelected"),
+      value: t("clearingHouse.review.summary.ofTotal", { selected: counts.accounts, total: candidates.length }),
+    },
+    {
+      label: t("clearingHouse.review.summary.totalBalance"),
+      value: accountsWithBalance.length > 0 ? formatMoney(Math.round(totalBalance), currency) : "\u2014",
+    },
+    { label: t("clearingHouse.review.summary.valuesSelected"), value: String(counts.values) },
+    { label: t("clearingHouse.review.summary.valuesToConfirm"), value: String(valuesToConfirm) },
+    { label: t("clearingHouse.review.summary.warnings"), value: String(warningCount) },
+  ];
+
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 pb-28">
+      <section
+        aria-labelledby="clearing-house-summary-title"
+        className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      >
+        <h3 id="clearing-house-summary-title" className="text-sm font-semibold text-slate-700">
+          {t("clearingHouse.review.summary.title")}
+        </h3>
+        <dl className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {summary.map(({ label, value }) => (
+            <div key={label} className="min-w-0">
+              <dt className="text-xs text-slate-500">{label}</dt>
+              <dd className="break-words text-base font-semibold text-slate-900">{value}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
       {personalRows.length > 0 && (
         <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <h3 className="text-sm font-semibold text-slate-700">
@@ -298,7 +378,42 @@ function ReviewBody({ owner, result, sample, blocked, onApply, onStartOver }: Re
             {t("clearingHouse.review.nothingToImport")}
           </p>
         )}
-        {candidates.map((candidate) => {
+        {candidates.length > 1 && (
+          <div
+            role="group"
+            aria-label={t("clearingHouse.review.controls.label")}
+            className="flex flex-wrap items-center gap-x-2 gap-y-1"
+          >
+            <button type="button" onClick={() => setAllIncluded(true)} className={LINK_BUTTON}>
+              {t("clearingHouse.review.controls.selectAll")}
+            </button>
+            <button type="button" onClick={() => setAllIncluded(false)} className={LINK_BUTTON}>
+              {t("clearingHouse.review.controls.clearAll")}
+            </button>
+            {!onlySelected && (
+              <button type="button" onClick={() => setAllExpanded(!allExpanded)} className={LINK_BUTTON}>
+                {t(allExpanded ? "clearingHouse.review.controls.collapseAll" : "clearingHouse.review.controls.expandAll")}
+              </button>
+            )}
+            <label className="flex items-center gap-2 px-2 py-1 text-xs font-medium text-slate-700">
+              <input
+                type="checkbox"
+                checked={onlySelected}
+                onChange={(e) => setOnlySelected(e.target.checked)}
+                className="accent-brand-600"
+              />
+              {t("clearingHouse.review.controls.onlySelected")}
+            </label>
+          </div>
+        )}
+        {onlySelected && candidates.length > 0 && (
+          <p className="text-xs text-slate-600">
+            {shownCandidates.length > 0
+              ? t("clearingHouse.review.controls.shown", { shown: shownCandidates.length, total: candidates.length })
+              : t("clearingHouse.review.controls.noneSelected")}
+          </p>
+        )}
+        {shownCandidates.map((candidate) => {
           const matchedId = matches.get(candidate.key);
           return (
             <AccountReviewCard
@@ -308,6 +423,11 @@ function ReviewBody({ owner, result, sample, blocked, onApply, onStartOver }: Re
               state={states[candidate.key]}
               retirementAge={retirementAge}
               currency={currency}
+              expanded={expanded[candidate.key] ?? false}
+              onToggleExpanded={() =>
+                setExpanded((current) => ({ ...current, [candidate.key]: !current[candidate.key] }))
+              }
+              onlySelected={onlySelected}
               onChange={(state) => setStates((current) => ({ ...current, [candidate.key]: state }))}
             />
           );
@@ -329,25 +449,37 @@ function ReviewBody({ owner, result, sample, blocked, onApply, onStartOver }: Re
         </section>
       )}
 
-      <div className="flex flex-col gap-2">
+      <div
+        data-fixed-actions
+        role="region"
+        aria-label={t("clearingHouse.review.actionBar.label")}
+        className="fixed inset-x-0 bottom-16 z-20 flex flex-col gap-1.5 border-t border-slate-200 bg-white px-4 py-2 shadow-[0_-2px_8px_rgba(15,23,42,0.08)] md:bottom-0 md:start-60 md:px-6 md:py-3"
+      >
+        <p className="text-xs font-medium text-slate-700">
+          {t("clearingHouse.review.actionBar.selection", {
+            accounts: counts.accounts,
+            total: candidates.length,
+            values: counts.values,
+          })}
+        </p>
         {blocked ? (
           <p className="text-xs text-amber-800">{t("clearingHouse.review.confirmFirst")}</p>
         ) : (
           counts.values === 0 && <p className="text-xs text-slate-500">{t("clearingHouse.review.nothingSelected")}</p>
         )}
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-x-3 gap-y-1">
           <button
             type="button"
             disabled={blocked || counts.values === 0}
             onClick={() => onApply(plan)}
-            className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+            className="rounded-md bg-brand-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300 md:py-2"
           >
             {t(sample ? "clearingHouse.sample.apply" : "clearingHouse.review.apply")}
           </button>
           <button
             type="button"
             onClick={onStartOver}
-            className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+            className="rounded-md px-4 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 md:py-2"
           >
             {t("clearingHouse.review.startOver")}
           </button>

@@ -305,6 +305,174 @@ describe("ClearingHouseImportPage", () => {
   });
 });
 
+describe("reviewing a long report", () => {
+  const LONG_REPORT = toXml(
+    report(
+      {},
+      product(
+        {},
+        activePension({ number: "1110001" }),
+        activePension({ number: "1110002" }),
+        activePension({ number: "1110003" }),
+      ),
+    ),
+  );
+
+  async function openLongReport() {
+    const user = userEvent.setup();
+    renderPage();
+    await user.upload(await screen.findByLabelText("Choose zip or XML files"), xmlFile(LONG_REPORT));
+    await screen.findByText("Review before importing");
+    return user;
+  }
+
+  function summaryValue(label: string): string {
+    const term = within(screen.getByRole("region", { name: "Summary of this report" })).getByText(label);
+    return term.nextElementSibling!.textContent!;
+  }
+
+  const balanceBoxes = () => screen.queryAllByRole("checkbox", { name: /Total accumulated balance/ });
+
+  it("leads with the account count, total balance, selection and warnings", async () => {
+    await openLongReport();
+
+    expect(summaryValue("Accounts selected")).toBe("3 of 3");
+    expect(summaryValue("Total balance in the report")).toBe("\u20aa360,000");
+    expect(Number(summaryValue("Values selected"))).toBeGreaterThan(3);
+    expect(summaryValue("Values to confirm")).toBe("0");
+    expect(summaryValue("Warnings")).toMatch(/^\d+$/);
+  });
+
+  it("lists each account's balance and selection without opening it", async () => {
+    await openLongReport();
+
+    expect(screen.getAllByText("Balance \u20aa120,000")).toHaveLength(3);
+    expect(screen.getAllByText(/Values selected: \d+ of \d+/)).toHaveLength(3);
+    expect(balanceBoxes()).toHaveLength(0);
+  });
+
+  it("opens and closes an account's details on request", async () => {
+    const user = await openLongReport();
+    const [first] = screen.getAllByRole("button", { name: /^Show all details \S/ });
+    expect(first).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(first);
+
+    expect(first).toHaveAttribute("aria-expanded", "true");
+    expect(first).toHaveTextContent("Hide details");
+    expect(balanceBoxes()).toHaveLength(1);
+
+    await user.click(first);
+    expect(balanceBoxes()).toHaveLength(0);
+  });
+
+  it("shows or hides every account's details at once", async () => {
+    const user = await openLongReport();
+    const toggle = () => screen.getByRole("button", { name: /(Show|Hide) all details$/ });
+
+    await user.click(screen.getByRole("button", { name: "Show all details" }));
+    expect(balanceBoxes()).toHaveLength(3);
+
+    await user.click(toggle());
+    expect(balanceBoxes()).toHaveLength(0);
+  });
+
+  it("keeps a value that would replace the user's own in view, highlighted, without opening the account", async () => {
+    const base = buildTestProfile({ pensionBalances: [50000] });
+    await saveProfileToDb({
+      ...base,
+      pensionSavings: { accounts: [{ ...base.pensionSavings.accounts[0], policyNumber: "1110001" }] },
+    });
+    await openLongReport();
+
+    const [balance] = balanceBoxes();
+    expect(balance).not.toBeChecked();
+    expect(balance.closest("li")).toHaveClass("border-amber-400");
+    const badge = screen.getByText(/^To check: \d+$/);
+    expect(Number(summaryValue("Values to confirm"))).toBeGreaterThan(0);
+    expect(badge).toHaveTextContent(`To check: ${summaryValue("Values to confirm")}`);
+  });
+
+  it("selects and clears all accounts together", async () => {
+    const user = await openLongReport();
+    const apply = screen.getByRole("button", { name: "Import selected values" });
+
+    await user.click(screen.getByRole("button", { name: "Clear all accounts" }));
+    expect(summaryValue("Accounts selected")).toBe("0 of 3");
+    // The personal details of the report stay ticked until they are cleared too.
+    const personal = screen
+      .getAllByRole("checkbox")
+      .filter((box) => box.id.startsWith("personal-") && (box as HTMLInputElement).checked);
+    expect(personal.length).toBeGreaterThan(0);
+    expect(Number(summaryValue("Values selected"))).toBe(personal.length);
+    for (const box of personal) await user.click(box);
+    expect(summaryValue("Values selected")).toBe("0");
+    expect(apply).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Select all accounts" }));
+    expect(summaryValue("Accounts selected")).toBe("3 of 3");
+    expect(apply).toBeEnabled();
+  });
+
+  it("selects and clears the values of one account", async () => {
+    const user = await openLongReport();
+    await user.click(screen.getAllByRole("button", { name: /^Show all details \S/ })[0]);
+    const before = screen.getAllByText(/Values selected: \d+ of \d+/)[0].textContent!;
+    const total = /of (\d+)/.exec(before)![1];
+
+    await user.click(screen.getAllByRole("button", { name: /Clear values/ })[0]);
+    expect(screen.getAllByText(/Values selected: \d+ of \d+/)[0]).toHaveTextContent(`Values selected: 0 of ${total}`);
+
+    await user.click(screen.getAllByRole("button", { name: /Select all values/ })[0]);
+    expect(screen.getAllByText(/Values selected: \d+ of \d+/)[0]).toHaveTextContent(
+      `Values selected: ${total} of ${total}`,
+    );
+  });
+
+  it("can list only the selected changes", async () => {
+    const user = await openLongReport();
+    await user.click(screen.getAllByRole("checkbox", { name: /Import this account/ })[0]);
+
+    await user.click(screen.getByRole("checkbox", { name: "Show only the selected changes" }));
+
+    expect(screen.getByText("Showing the selected values of 2 of 3 accounts.")).toBeInTheDocument();
+    expect(screen.getAllByRole("region").length).toBeGreaterThan(0);
+    expect(balanceBoxes()).toHaveLength(2);
+    expect(balanceBoxes().every((box) => (box as HTMLInputElement).checked)).toBe(true);
+    expect(screen.queryByRole("button", { name: /Show all details/ })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("checkbox", { name: "Show only the selected changes" }));
+    expect(screen.getAllByRole("button", { name: /Show all details/ }).length).toBeGreaterThan(0);
+  });
+
+  it("keeps the selection summary and the import button in a bar that stays in view", async () => {
+    await openLongReport();
+
+    const bar = screen.getByRole("region", { name: "Import selection" });
+    expect(bar).toHaveAttribute("data-fixed-actions");
+    expect(bar).toHaveClass("fixed");
+    expect(bar).toHaveTextContent(/Accounts: 3 of 3\. Values: \d+\./);
+    expect(within(bar).getByRole("button", { name: "Import selected values" })).toBeEnabled();
+    expect(within(bar).getByRole("button", { name: "Start over" })).toBeInTheDocument();
+  });
+
+  it("imports what is selected after the selection was changed in bulk", async () => {
+    const user = await openLongReport();
+    await user.click(screen.getByRole("button", { name: "Clear all accounts" }));
+    await user.click(screen.getAllByRole("checkbox", { name: /Import this account/ })[1]);
+
+    await user.click(screen.getByRole("button", { name: "Import selected values" }));
+
+    expect(await screen.findByText("Import complete")).toBeInTheDocument();
+    const saved = await waitFor(async () => {
+      const profile = await loadProfileFromDb();
+      expect(profile?.pensionSavings.accounts).toHaveLength(1);
+      return profile!;
+    });
+    expect(saved.pensionSavings.accounts[0].policyNumber).toBe("1110002");
+  });
+});
+
 describe("whose report it is", () => {
   async function openReport(file: File = xmlFile(REPORT_XML), route?: string) {
     const user = userEvent.setup();

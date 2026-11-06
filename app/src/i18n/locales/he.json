@@ -80,7 +80,7 @@
       "fillsTitle": "מה הוא ממלא",
       "personal": {
         "age": "הגיל שלכם",
-        "gender": "מגדר",
+        "gender": "\u05de\u05d2\u05d3\u05e8",
         "salary": "שכר חודשי ברוטו, לפי ההפקדות",
         "marital": "מצב משפחתי, כהצעה שתאשרו"
       },
@@ -649,7 +649,7 @@
           "line": "{{option}}, {{amount}} לחודש, מגיל {{from}} עד גיל {{to}}",
           "note": "משולם מכיסכם, בנוסף להוצאות שלמעלה, ומופחת מההכנסה והחיסכון בתחזיות. אי אפשר לערוך כאן: משנים זאת תחת \"כיסוי ביטוחי אחרי שאפסיק לעבוד\" בפרטים האישיים."
         },
-        "itemsTitle": "הוצאות",
+        "itemsTitle": "\u05d4\u05d5\u05e6\u05d0\u05d5\u05ea",
         "addItem": "הוספת הוצאה",
         "addFromSuggestions": "בחירה מתוך הצעות",
         "noItems": "עדיין אין הוצאות. בחרו מתוך רשימת ההצעות או הוסיפו הוצאה משלכם. הזינו את מה שאתם צופים לשלם בפרישה.",
@@ -1321,7 +1321,7 @@
       },
       "productKind": {
         "1": "ביטוח עם מרכיב חיסכון",
-        "2": "קרן פנסיה",
+        "2": "\u05e7\u05e8\u05df \u05e4\u05e0\u05e1\u05d9\u05d4",
         "3": "קופת גמל",
         "4": "קרן השתלמות",
         "5": "פוליסת חיסכון",
@@ -1336,7 +1336,40 @@
       "nothingSelected": "סמנו לפחות ערך אחד לייבוא.",
       "confirmFirst": "כדי להמשיך, סמנו את האישור שלמעלה.",
       "apply": "ייבוא הערכים שנבחרו",
-      "startOver": "התחלה מחדש"
+      "startOver": "התחלה מחדש",
+      "summary": {
+        "title": "סיכום הדוח",
+        "accountsSelected": "חשבונות שנבחרו",
+        "ofTotal": "{{selected}} מתוך {{total}}",
+        "totalBalance": "יתרה כוללת בדוח",
+        "valuesSelected": "ערכים שנבחרו",
+        "valuesToConfirm": "ערכים לאישור",
+        "warnings": "אזהרות"
+      },
+      "controls": {
+        "label": "בקרות בחירה",
+        "selectAll": "בחירת כל החשבונות",
+        "clearAll": "ניקוי בחירת החשבונות",
+        "expandAll": "הצגת כל הפרטים",
+        "collapseAll": "הסתרת כל הפרטים",
+        "onlySelected": "הצגת השינויים שנבחרו בלבד",
+        "shown": "מוצגים הערכים שנבחרו ב-{{shown}} מתוך {{total}} חשבונות.",
+        "noneSelected": "לא נבחרו ערכים."
+      },
+      "account": {
+        "balance": "יתרה {{amount}}",
+        "valuesSelected": "ערכים שנבחרו: {{selected}} מתוך {{total}}",
+        "notImported": "לא יובא",
+        "toCheck": "לבדיקה: {{count}}",
+        "showDetails": "הצגת כל הפרטים",
+        "hideDetails": "הסתרת הפרטים",
+        "selectAllValues": "בחירת כל הערכים",
+        "clearValues": "ניקוי הערכים"
+      },
+      "actionBar": {
+        "label": "הבחירה לייבוא",
+        "selection": "חשבונות: {{accounts}} מתוך {{total}}. ערכים: {{values}}."
+      }
     },
     "done": {
       "title": "הייבוא הושלם",
@@ -1416,7 +1449,7 @@
       "currentColumn": "התוכנית הנוכחית",
       "fileColumn": "בקובץ",
       "rows": {
-        "age": "גיל",
+        "age": "\u05d2\u05d9\u05dc",
         "retirementAge": "גיל פרישה",
         "spouse": "בן/בת זוג בתוכנית",
         "pensionAccounts": "חשבונות פנסיה וחיסכון",
@@ -1429,12 +1462,12 @@
       "no": "לא",
       "emptiedWarning": "בקובץ אין נתונים עבור: {{areas}}. חלקים אלה בתוכנית שלך יתרוקנו.",
       "areas": {
-        "personal": "פרטים אישיים",
-        "pensionSavings": "פנסיה וחיסכון",
+        "personal": "\u05e4\u05e8\u05d8\u05d9\u05dd \u05d0\u05d9\u05e9\u05d9\u05d9\u05dd",
+        "pensionSavings": "\u05e4\u05e0\u05e1\u05d9\u05d4 \u05d5\u05d7\u05d9\u05e1\u05db\u05d5\u05df",
         "equity": "מניות והשקעות",
         "bankDeposits": "פיקדונות בנקאיים",
-        "expenses": "הוצאות",
-        "assumptions": "הנחות"
+        "expenses": "\u05d4\u05d5\u05e6\u05d0\u05d5\u05ea",
+        "assumptions": "\u05d4\u05e0\u05d7\u05d5\u05ea"
       },
       "restoreNote": "התוכנית הנוכחית שלך נשמרת קודם, כך שאפשר לבטל את הפעולה דרך הגדרות ← ניהול נתונים.",
       "confirm": "החלף את התוכנית שלי"

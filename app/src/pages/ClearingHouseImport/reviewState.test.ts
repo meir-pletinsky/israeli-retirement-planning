@@ -5,11 +5,16 @@ import { EMPTY_PROFILE } from "../../types";
 import { buildTestProfile } from "../../test/domainFixtures";
 import { activePension, product, report, toXml } from "../../test/fixtures/clearingHouse/builders";
 import {
+  accountValueRows,
   buildImportPlan,
+  candidateBalance,
   countPlan,
+  countWarnings,
   defaultSelectedPersonal,
   initialAccountState,
+  needsAttention,
   personalDiff,
+  selectableKeys,
   suggestedPersonal,
   targetRetirementAge,
 } from "./reviewState";
@@ -105,5 +110,67 @@ describe("import plan", () => {
       [],
     );
     expect(countPlan(plan).accounts).toBe(0);
+  });
+});
+
+describe("review summary helpers", () => {
+  const withMatch = () => {
+    const result = parse();
+    const [candidate] = result.candidates as ImportedAccountCandidate[];
+    return { result, candidate };
+  };
+
+  it("marks a replacing or uncertain value for a look, and nothing that is new, equal or certain", () => {
+    expect(needsAttention("official", "new")).toBe(false);
+    expect(needsAttention("uncertain", "new")).toBe(true);
+    expect(needsAttention("official", "fillsEmpty")).toBe(false);
+    expect(needsAttention("uncertain", "fillsEmpty")).toBe(true);
+    expect(needsAttention("official", "differs")).toBe(true);
+    expect(needsAttention("uncertain", "same")).toBe(false);
+    expect(needsAttention("official", "same")).toBe(false);
+  });
+
+  it("lists the report's values and leaves attention off for a plain new account", () => {
+    const { candidate } = withMatch();
+    const rows = accountValueRows(candidate, null);
+    expect(rows.map((row) => row.key)).toContain("totalAccumulatedBalance");
+    expect(rows.every((row) => row.diff === "new")).toBe(true);
+    expect(rows.filter((row) => row.attention).every((row) => row.imported.confidence === "uncertain")).toBe(true);
+    expect(selectableKeys(rows)).toEqual(rows.map((row) => row.key));
+  });
+
+  it("flags a value that would replace the profile's and keeps equal values out of the selectable ones", () => {
+    const { candidate } = withMatch();
+    const base = buildTestProfile({ pensionBalances: [50000] });
+    const existing = {
+      ...base.pensionSavings.accounts[0],
+      totalAccumulatedBalance: candidate.fields.totalAccumulatedBalance!.value,
+    };
+    const same = accountValueRows(candidate, existing).find((row) => row.key === "totalAccumulatedBalance")!;
+    expect(same.diff).toBe("same");
+    expect(same.attention).toBe(false);
+    expect(selectableKeys(accountValueRows(candidate, existing))).not.toContain("totalAccumulatedBalance");
+
+    const differing = { ...existing, totalAccumulatedBalance: 1 };
+    const changed = accountValueRows(candidate, differing).find((row) => row.key === "totalAccumulatedBalance")!;
+    expect(changed.diff).toBe("differs");
+    expect(changed.attention).toBe(true);
+  });
+
+  it("reads the balance of an account and tolerates one without", () => {
+    const { candidate } = withMatch();
+    expect(candidateBalance(candidate)).toBe(120000);
+    const { totalAccumulatedBalance: _removed, ...fields } = candidate.fields;
+    expect(candidateBalance({ ...candidate, fields })).toBeNull();
+  });
+
+  it("counts only the warnings worth reading, from the report and from each account", () => {
+    const { candidate } = withMatch();
+    const warned = {
+      ...candidate,
+      warnings: [{ code: "negativeBalance" as const }, { code: "oldPensionFund" as const }],
+    };
+    expect(countWarnings([warned], [{ code: "staleReport" }, { code: "newerSchemaVersion" }])).toBe(2);
+    expect(countWarnings([], [])).toBe(0);
   });
 });

@@ -34,6 +34,11 @@ body {
     sans-serif;
 }
 
+/* A page with a fixed action bar (the import review) keeps a focused field clear of it. */
+html:has([data-fixed-actions]) {
+  scroll-padding-bottom: 11rem;
+}
+
 /* Chart axes are numeric and SVG text-anchor flips under RTL, so keep the plot itself left-to-right. */
 .recharts-surface {
   direction: ltr;

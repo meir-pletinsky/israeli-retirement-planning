@@ -2032,6 +2032,22 @@ rest).
   and it clears on the next successful write. The last step's button is "View my results"
   instead of "Save" (it still marks the plan as started and opens the Dashboard). Record
   dialogs keep their explicit Save / Cancel, since those really are a commit/discard choice.
+- [Review-UX-12] The Clearing House import review no longer asks for a pass over every value
+  of every account. It opens with a "Summary of this report" (accounts selected "x of y",
+  total balance in the report, values selected, values to confirm, warnings) and, for more
+  than one account, bulk controls: Select all / Clear all accounts, Show / Hide all details and
+  "Show only the selected changes". Each account card shows its balance, how many values are
+  selected and a "To check: n" badge, and lists only the values that need a look (a value that
+  would replace one the plan holds, or an interpretation marked uncertain; highlighted with an
+  amber edge) until "Show all details" is chosen, which also offers Select all values / Clear
+  values for that account. Helpers in `reviewState.ts` (`accountValueRows`, `needsAttention`,
+  `selectableKeys`, `candidateBalance`, `countWarnings`) hold the rules. The selection summary
+  and the Import / Start over buttons sit in a `fixed` bar (`data-fixed-actions`) that
+  stays in view while scrolling, above the mobile nav and beside the desktop sidebar
+  (`index.css` adds scroll padding so a focused field is not hidden behind it). `Sticky` does
+  not work there because `main` scrolls, so the bar's offsets are coupled to `AppShell`; the
+  mobile nav now has a fixed `h-16` to keep them aligned. "Calculation-critical" is
+  approximated as changed-versus-existing or uncertain values.
 
 ## Modeling assumptions (by phase)
 

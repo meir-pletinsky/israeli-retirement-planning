@@ -20,6 +20,8 @@ interface FieldRowProps {
   currentValue: string;
   checked: boolean;
   disabled: boolean;
+  /** Marks a value worth a look before importing. */
+  highlight?: boolean;
   onChange: (checked: boolean) => void;
 }
 
@@ -32,13 +34,16 @@ export function FieldRow({
   currentValue,
   checked,
   disabled,
+  highlight = false,
   onChange,
 }: FieldRowProps) {
   const { t } = useTranslation();
   const locked = diff === "same";
 
   return (
-    <li className="flex items-start gap-3 py-2">
+    <li
+      className={`flex items-start gap-3 py-2 ${highlight ? "border-s-4 border-amber-400 bg-amber-50/60 ps-2" : ""}`}
+    >
       <input
         id={id}
         type="checkbox"

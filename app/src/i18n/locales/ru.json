@@ -585,7 +585,7 @@
           "taxedDiscountValueUSD": "Скидка, облагаемая налогом как доход",
           "capitalGainsOnGrowthUSD": "Прирост капитала сверх цены на момент покупки",
           "sectionPersonalPurchaseDetails": "Дополнительно: личный брокерский счёт           (прирост, ставка налога)",
-                    "unrealizedCapitalGainUSD": "Нереализованный прирост капитала",
+          "unrealizedCapitalGainUSD": "Нереализованный прирост капитала",
           "capitalGainsTaxRatePercent": "Ставка налога на прирост капитала"
         },
         "options": {
@@ -1336,7 +1336,40 @@
       "nothingSelected": "Отметьте хотя бы одно значение для импорта.",
       "confirmFirst": "Чтобы продолжить, отметьте подтверждение выше.",
       "apply": "Импортировать выбранное",
-      "startOver": "Начать заново"
+      "startOver": "Начать заново",
+      "summary": {
+        "title": "Сводка по отчёту",
+        "accountsSelected": "Выбрано счетов",
+        "ofTotal": "{{selected}} из {{total}}",
+        "totalBalance": "Общий баланс в отчёте",
+        "valuesSelected": "Выбрано значений",
+        "valuesToConfirm": "Значений для проверки",
+        "warnings": "Предупреждения"
+      },
+      "controls": {
+        "label": "Управление выбором",
+        "selectAll": "Выбрать все счета",
+        "clearAll": "Снять выбор со всех счетов",
+        "expandAll": "Показать все подробности",
+        "collapseAll": "Скрыть все подробности",
+        "onlySelected": "Показывать только выбранные изменения",
+        "shown": "Показаны выбранные значения для счетов: {{shown}} из {{total}}.",
+        "noneSelected": "Ничего не выбрано."
+      },
+      "account": {
+        "balance": "Баланс {{amount}}",
+        "valuesSelected": "Выбрано значений: {{selected}} из {{total}}",
+        "notImported": "Не будет импортирован",
+        "toCheck": "Проверить: {{count}}",
+        "showDetails": "Показать все подробности",
+        "hideDetails": "Скрыть подробности",
+        "selectAllValues": "Выбрать все значения",
+        "clearValues": "Снять выбор со значений"
+      },
+      "actionBar": {
+        "label": "Выбор для импорта",
+        "selection": "Счета: {{accounts}} из {{total}}. Значения: {{values}}."
+      }
     },
     "done": {
       "title": "Импорт завершён",

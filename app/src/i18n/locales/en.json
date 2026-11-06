@@ -1322,7 +1322,40 @@
       "nothingSelected": "Tick at least one value to import.",
       "confirmFirst": "Tick the confirmation above to continue.",
       "apply": "Import selected values",
-      "startOver": "Start over"
+      "startOver": "Start over",
+      "summary": {
+        "title": "Summary of this report",
+        "accountsSelected": "Accounts selected",
+        "ofTotal": "{{selected}} of {{total}}",
+        "totalBalance": "Total balance in the report",
+        "valuesSelected": "Values selected",
+        "valuesToConfirm": "Values to confirm",
+        "warnings": "Warnings"
+      },
+      "controls": {
+        "label": "Selection controls",
+        "selectAll": "Select all accounts",
+        "clearAll": "Clear all accounts",
+        "expandAll": "Show all details",
+        "collapseAll": "Hide all details",
+        "onlySelected": "Show only the selected changes",
+        "shown": "Showing the selected values of {{shown}} of {{total}} accounts.",
+        "noneSelected": "No values are selected."
+      },
+      "account": {
+        "balance": "Balance {{amount}}",
+        "valuesSelected": "Values selected: {{selected}} of {{total}}",
+        "notImported": "Not imported",
+        "toCheck": "To check: {{count}}",
+        "showDetails": "Show all details",
+        "hideDetails": "Hide details",
+        "selectAllValues": "Select all values",
+        "clearValues": "Clear values"
+      },
+      "actionBar": {
+        "label": "Import selection",
+        "selection": "Accounts: {{accounts}} of {{total}}. Values: {{values}}."
+      }
     },
     "done": {
       "title": "Import complete",
