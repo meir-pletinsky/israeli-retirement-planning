@@ -1121,6 +1121,16 @@
       "shortfallMarker": "Unfunded from here",
       "income": "The most your savings and pensions are estimated to pay each month, before tax, so that they last to age {{age}}. This is not your planned spending and does not change when you change it.",
       "incomeShortfall": "At your planned {{amount}} a month your usable savings run out at age {{age}} (see Net Worth Projection), so payments from savings would not continue at this level after that age."
+    },
+    "split": {
+      "payments": "Recurring payments",
+      "withdrawals": "Withdrawals from savings",
+      "total": "Total",
+      "paymentOf": "{{source}} (payment)",
+      "withdrawalOf": "{{source}} (withdrawal)",
+      "note": "Recurring payments keep arriving without using up your savings: Bituach Leumi and any pension annuity that has started. Withdrawals are money taken out of your savings to cover the rest, so they can include your original capital, not only returns. The plan does not separate interest or dividends from capital.",
+      "noteShort": "Withdrawals come out of your savings and can include your original capital, not only returns.",
+      "investmentsPool": "{{source}} is one pool: bank deposits, private shares, vested employer shares, cash and other assets are drawn on together and cannot be split here."
     }
   },
   "cover": {

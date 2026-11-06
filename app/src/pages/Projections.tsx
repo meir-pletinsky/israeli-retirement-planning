@@ -10,6 +10,7 @@ import { NetWorthChart } from "../components/charts/NetWorthChart";
 import { CoverOptionsCard } from "../components/CoverOptionsCard";
 import { FeasibilityCard } from "../components/FeasibilityCard";
 import { HistoricalBacktestCard } from "../components/HistoricalBacktestCard";
+import { IncomeSplitNote } from "../components/IncomeSplitNote";
 import { LiquidityLadderCard } from "../components/LiquidityLadderCard";
 import { RetirementTimeline } from "../components/RetirementTimeline";
 import { RiskAnalysisCard } from "../components/RiskAnalysisCard";
@@ -75,6 +76,7 @@ export function Projections() {
   const hasNetIncome = netIncomeYears.some((year) => year.grossMonthly > 0);
   const hasBankDeposits = profile.bankDeposits.some((deposit) => (deposit.amount ?? 0) > 0);
   const timeline = buildRetirementTimeline(incomeData);
+  const hasInvestmentsBand = incomeData.some((point) => point.investments > 0);
   const ladder = useMemo(() => buildLiquidityLadder(profile, scenario), [profile, scenario]);
   const leavingEarly = useMemo(() => buildLeavingEarlyCost(profile, scenario), [profile, scenario]);
   const sourceCosts = useMemo(() => buildSourceCostTable(profile, scenario), [profile, scenario]);
@@ -221,11 +223,19 @@ export function Projections() {
         <div className="mb-2">
           <ScenarioTitle tag={scenarioTag}>{t("projections.incomeChart")}</ScenarioTitle>
           <IncomeBasisNote funding={funding} />
+          <IncomeSplitNote variant="full" showInvestmentsPool={hasInvestmentsBand} />
         </div>
         <IncomeBreakdownChart
           data={incomeData}
           currencySymbol={currencySymbol}
           labels={bandLabels}
+          texts={{
+            payments: t("projections.split.payments"),
+            withdrawals: t("projections.split.withdrawals"),
+            total: t("projections.split.total"),
+            paymentOf: (source) => t("projections.split.paymentOf", { source }),
+            withdrawalOf: (source) => t("projections.split.withdrawalOf", { source }),
+          }}
         />
       </div>
 
@@ -283,7 +293,12 @@ export function Projections() {
         currencySymbol={currencySymbol}
         spouseAgeAt={isCouple ? (age) => spouseAgeAt(profile, age) : undefined}
         scenarioTag={scenarioTag}
-        basisNote={<IncomeBasisNote funding={funding} />}
+        basisNote={
+          <>
+            <IncomeBasisNote funding={funding} />
+            <IncomeSplitNote variant="short" />
+          </>
+        }
       />
     </div>
   );

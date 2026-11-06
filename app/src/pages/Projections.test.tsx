@@ -149,6 +149,90 @@ describe("Projections", () => {
     });
   });
 
+  describe("recurring payments and withdrawals", () => {
+    const renderProjections = async (profile: ReturnType<typeof buildTestProfile>) => {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+      return within(await screen.findByRole("region", { name: "Retirement timeline" }));
+    };
+
+    it("shows income taken from savings as withdrawals, not as recurring payments", async () => {
+      const timeline = await renderProjections(
+        buildTestProfile({
+          age: 55,
+          retirementAge: 55,
+          otherAssets: 60_000,
+          pensionBalances: [600_000],
+          pensionAccountOverrides: [{ productCategory: "comprehensivePension" }],
+          investmentReturnPct: 4,
+          inflationPct: 4,
+        }),
+      );
+
+      const rows = timeline.getAllByRole("row").slice(1);
+      for (const row of rows) {
+        expect(within(row).getByText("Withdrawals from savings")).toBeInTheDocument();
+        expect(within(row).queryByText("Recurring payments")).not.toBeInTheDocument();
+      }
+      // The chart legend lists them under the same heading.
+      expect(screen.getAllByText("Withdrawals from savings").length).toBeGreaterThan(rows.length);
+      expect(screen.queryByText("Recurring payments")).not.toBeInTheDocument();
+    });
+
+    it("lists the state pension as a recurring payment next to the withdrawals", async () => {
+      const timeline = await renderProjections(
+        buildTestProfile({
+          age: 60,
+          retirementAge: 60,
+          investmentReturnPct: 4,
+          inflationPct: 4,
+          pensionBalances: [600_000],
+          bituachLeumi: { includeInProjection: true, monthlyPensionOverride: 2000 },
+        }),
+      );
+
+      const last = timeline.getAllByRole("row").at(-1)!;
+      const payments = within(last).getByText("Recurring payments").parentElement!;
+      expect(within(payments).getByText("Bituach Leumi")).toBeInTheDocument();
+      expect(within(payments).queryByText("Pension Fund")).not.toBeInTheDocument();
+      const withdrawals = within(last).getByText("Withdrawals from savings").parentElement!;
+      expect(within(withdrawals).getByText("Pension Fund")).toBeInTheDocument();
+      expect(within(withdrawals).queryByText("Bituach Leumi")).not.toBeInTheDocument();
+    });
+
+    it("explains that withdrawals can include the original capital", async () => {
+      await renderProjections(buildTestProfile({ age: 60, retirementAge: 60, pensionBalances: [600_000] }));
+
+      // Under the income chart and, shorter, under the timeline.
+      expect(screen.getAllByText(/original capital, not only returns/)).toHaveLength(2);
+      expect(screen.getByText(/does not separate interest or dividends from capital/)).toBeInTheDocument();
+    });
+
+    it("leaves out sources that have no accounts", async () => {
+      await renderProjections(buildTestProfile({ age: 60, retirementAge: 60, pensionBalances: [600_000] }));
+
+      expect(screen.getAllByText("Pension Fund").length).toBeGreaterThan(0);
+      for (const unused of ["Managers Insurance", "Provident Fund", "Study Fund"]) {
+        expect(screen.queryByText(unused)).not.toBeInTheDocument();
+      }
+    });
+
+    it("says the other-investments band is one pool only when it is shown", async () => {
+      await renderProjections(buildTestProfile({ age: 60, retirementAge: 60, pensionBalances: [600_000] }));
+      expect(screen.queryByText(/is one pool/)).not.toBeInTheDocument();
+    });
+
+    it("says what the other-investments band pools", async () => {
+      await renderProjections(
+        buildTestProfile({ age: 60, retirementAge: 60, otherAssets: 300_000, bankDeposits: [{ amount: 100_000 }] }),
+      );
+      expect(
+        screen.getByText(/Other Investments is one pool: bank deposits, private shares, vested employer shares/),
+      ).toBeInTheDocument();
+    });
+  });
+
   it("shows the spouse's age beside each stage of a couple's retirement", async () => {
     await saveProfileToDb(
       buildTestProfile({

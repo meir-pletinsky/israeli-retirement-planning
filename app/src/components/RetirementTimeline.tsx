@@ -2,8 +2,14 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { IncomeBandKey, TimelineSegment } from "../domain";
-import { INCOME_BAND_COLORS } from "./charts/incomeBandColors";
+import { BandSwatch } from "./charts/BandSwatch";
 import { ScenarioTitle } from "./ScenarioTag";
+
+/** The two kinds of income a segment is split into: recurring payments, then withdrawals from savings. */
+const SPLIT_GROUPS = [
+  { key: "payments", heading: "projections.split.payments", hatched: false },
+  { key: "withdrawals", heading: "projections.split.withdrawals", hatched: true },
+] as const;
 
 interface RetirementTimelineProps {
   segments: TimelineSegment[];
@@ -69,22 +75,29 @@ export function RetirementTimeline({
                   )}
                 </td>
                 <td className="py-2 pe-3">
-                  <ul className="flex flex-col gap-0.5">
-                    {segment.bands.map((band) => (
-                      <li key={band} className="flex items-center gap-2">
-                        <span
-                          aria-hidden="true"
-                          className="inline-block h-2.5 w-2.5 shrink-0 rounded-sm"
-                          style={{ backgroundColor: INCOME_BAND_COLORS[band] }}
-                        />
-                        <span>{labels[band]}</span>
-                        <span className="text-slate-500 tabular-nums">
-                          {currencySymbol}
-                          {(segment.amounts[band] ?? 0).toLocaleString()}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="flex flex-col gap-1.5">
+                    {SPLIT_GROUPS.map(({ key, heading, hatched }) => {
+                      const bands = segment.bands.filter((band) => (segment[key][band] ?? 0) > 0);
+                      if (bands.length === 0) return null;
+                      return (
+                        <div key={key}>
+                          <p className="text-xs font-medium text-slate-600">{t(heading)}</p>
+                          <ul className="flex flex-col gap-0.5">
+                            {bands.map((band) => (
+                              <li key={band} className="flex items-center gap-2">
+                                <BandSwatch band={band} hatched={hatched} />
+                                <span>{labels[band]}</span>
+                                <span className="text-slate-500 tabular-nums">
+                                  {currencySymbol}
+                                  {(segment[key][band] ?? 0).toLocaleString()}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </td>
                 <td className="py-2 font-medium tabular-nums">
                   {currencySymbol}

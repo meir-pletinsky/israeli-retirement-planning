@@ -2081,6 +2081,19 @@ rest).
   income chart titles became "Sustainable income by source / after tax". The connected annual
   cash-flow view (income, withdrawals, essential and full expenses, unfunded spending) and a
   planned-spending line on the gross by-source chart are left open.
+- [Review-UX-18] The income views separate recurring payments from withdrawals from savings.
+  `estimateIncomeBreakdown` points gain `withdrawn` (the part of each band drawn from savings
+  capital) and `recurringAmount(point, band)` (the rest: Bituach Leumi and started annuities);
+  band totals are unchanged, so the Dashboard figures are unaffected. `IncomeBreakdownChart`
+  stacks recurring payments (solid) under withdrawals (hatched, `BandSwatch` in the legend),
+  groups the legend under those two headings, draws only the sources that have an amount, and
+  its tooltip lists the non-zero sources with "(payment)" / "(withdrawal)". The retirement
+  timeline lists each stage's payments and withdrawals separately, and a segment breaks when a
+  source switches between the two. `IncomeSplitNote` explains that withdrawals can include the
+  original capital and that the plan does not model interest or dividends as separate streams;
+  it also says Other Investments is one pool (bank deposits, private and vested employer shares,
+  cash, other assets). A bank / private-stock / employer-stock drill-down is not possible because
+  the drawdown draws that pool as one bucket.
 
 ## Modeling assumptions (by phase)
 

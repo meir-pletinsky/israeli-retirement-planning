@@ -4,7 +4,7 @@ import type { PensionAccount } from "../types";
 import { buildTestProfile } from "../test/domainFixtures";
 import { simulateDrawdown } from "./drawdown";
 import { findEarliestFeasibleRetirementAge } from "./feasibility";
-import { estimateIncomeBreakdown } from "./incomeBreakdown";
+import { estimateIncomeBreakdown, recurringAmount } from "./incomeBreakdown";
 import { projectNetWorth } from "./netWorth";
 import { estimateRetirementIncomeAtAge } from "./retirementIncome";
 import { buildRetirementTimeline } from "./timeline";
@@ -287,6 +287,27 @@ describe("estimateIncomeBreakdown by source", () => {
     expect(first.investments).toBe(0);
   });
 
+  it("tells an account annuity (a recurring payment) from a withdrawal of capital", () => {
+    const profile = buildTestProfile({
+      age: 67,
+      retirementAge: 67,
+      pensionBalances: [1_000_000, 100_000],
+      pensionAccountOverrides: [
+        {
+          productCategory: "managersInsurance",
+          annuityParameters: annuityOf({ hasGuaranteedFactor: true, conversionFactor: 200 }),
+        },
+        { productCategory: "providentFund" },
+      ],
+      ...zeroReal,
+    });
+    const [first] = estimateIncomeBreakdown(profile);
+    expect(recurringAmount(first, "managersInsurance")).toBe(5000);
+    expect(first.withdrawn.managersInsurance).toBe(0);
+    expect(first.withdrawn.providentFund).toBe(362);
+    expect(recurringAmount(first, "providentFund")).toBe(0);
+  });
+
   it("keeps the last mix in the final year when all capital is used", () => {
     const profile = buildTestProfile({
       age: 67,
@@ -350,5 +371,40 @@ describe("buildRetirementTimeline", () => {
     expect(final.monthlyIncome).toBe(
       Object.values(final.amounts).reduce((sum, amount) => sum + amount, 0),
     );
+  });
+
+  it("separates the recurring state pension from the withdrawals from savings", () => {
+    const final = segments[2];
+    expect(final.payments).toEqual({ bituachLeumi: 1000 });
+    expect(Object.keys(final.withdrawals)).toEqual(["pensionFund", "investments"]);
+    expect(final.withdrawals.pensionFund).toBe(final.amounts.pensionFund);
+    expect(final.withdrawals.investments).toBe(final.amounts.investments);
+    // Before the state pension starts, everything is a withdrawal.
+    expect(segments[0].payments).toEqual({});
+    expect(segments[0].withdrawals).toEqual({ investments: segments[0].amounts.investments });
+  });
+
+  it("starts a new segment when a source moves from withdrawals to a recurring payment", () => {
+    const zero = {
+      pensionFund: 0,
+      providentFund: 0,
+      managersInsurance: 0,
+      studyFund: 0,
+      investments: 0,
+      bituachLeumi: 0,
+    };
+    const at = (age: number, withdrawn: number, recurring: number) => ({
+      age,
+      ...zero,
+      managersInsurance: withdrawn + recurring,
+      withdrawn: { ...zero, managersInsurance: withdrawn },
+    });
+    const result = buildRetirementTimeline([at(60, 1000, 0), at(61, 1000, 0), at(62, 0, 1000)]);
+    expect(result.map(({ fromAge, toAge }) => [fromAge, toAge])).toEqual([
+      [60, 61],
+      [62, 62],
+    ]);
+    expect(result[1].payments).toEqual({ managersInsurance: 1000 });
+    expect(result[1].withdrawals).toEqual({});
   });
 });

@@ -5,19 +5,32 @@ import { estimateHouseholdRetirementIncome } from "./retirementIncome";
 import { SOURCE_KINDS, type SourceKind } from "./sources";
 import type { RetirementScenario } from "./types";
 
-/** Monthly retirement income at one age, split by where it comes from (today's money). */
-export interface IncomeBreakdownPoint {
+/** `investments` is the non-pension pool: `otherAssets`, bank deposits and equity holdings. */
+export type IncomeBandKey =
+  | "pensionFund"
+  | "providentFund"
+  | "managersInsurance"
+  | "studyFund"
+  | "investments"
+  | "bituachLeumi";
+
+/**
+ * Monthly retirement income at one age, split by where it comes from (today's money). Each band
+ * is the source's total; `withdrawn` says how much of it is taken out of savings capital.
+ */
+export interface IncomeBreakdownPoint extends Record<IncomeBandKey, number> {
   age: number;
-  pensionFund: number;
-  providentFund: number;
-  managersInsurance: number;
-  studyFund: number;
-  /** Non-pension investments: `otherAssets` and equity holdings. */
-  investments: number;
-  bituachLeumi: number;
+  /**
+   * The part of each band that is withdrawn from savings, which can include the original balance
+   * and not only its returns. The rest of the band is a recurring payment (Bituach Leumi or an
+   * account annuity that has started).
+   */
+  withdrawn: Record<IncomeBandKey, number>;
 }
 
-export type IncomeBandKey = Exclude<keyof IncomeBreakdownPoint, "age">;
+/** What part of a band is a recurring payment rather than a withdrawal. */
+export const recurringAmount = (point: IncomeBreakdownPoint, band: IncomeBandKey): number =>
+  point[band] - point.withdrawn[band];
 
 /** Display order of the bands, bottom to top in the chart. */
 export const INCOME_BAND_KEYS: readonly IncomeBandKey[] = [
@@ -45,7 +58,10 @@ const BAND_FOR_KIND: Record<SourceKind, IncomeBandKey> = {
  * - The Bituach Leumi pension (with any spouse supplement) and account
  *   annuities are their own bands from their start age on.
  * - The rest is paid from savings, split across each kind in proportion to
- *   the capital that is unlocked at that age. Capital that is still locked
+ *   the capital that is unlocked at that age. This part is a withdrawal of
+ *   capital (it can include the original balance, not only returns) and is
+ *   recorded in `withdrawn`; the model does not separate interest or
+ *   dividends from capital. Capital that is still locked
  *   (e.g. a pension fund before age 60) does not contribute until it opens,
  *   so the mix shifts at each unlock.
  * Unlocked kinds are drawn on in the order of the household's withdrawal
@@ -81,6 +97,14 @@ export function estimateIncomeBreakdownForTiming(
       studyFund: 0,
       investments: 0,
       bituachLeumi: Math.round(row.streams.bituachLeumi),
+      withdrawn: {
+        pensionFund: 0,
+        providentFund: 0,
+        managersInsurance: 0,
+        studyFund: 0,
+        investments: 0,
+        bituachLeumi: 0,
+      },
     };
     let streamsTotal = point.bituachLeumi;
     for (const kind of SOURCE_KINDS) {
@@ -100,6 +124,7 @@ export function estimateIncomeBreakdownForTiming(
       largest.amount += fromSavings - draws.reduce((sum, draw) => sum + draw.amount, 0);
       for (const draw of draws) {
         point[BAND_FOR_KIND[draw.kind]] += draw.amount;
+        point.withdrawn[BAND_FOR_KIND[draw.kind]] += draw.amount;
       }
     }
     points.push(point);

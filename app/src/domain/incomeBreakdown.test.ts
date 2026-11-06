@@ -1,19 +1,37 @@
 import { describe, expect, it } from "vitest";
 
 import { buildTestProfile } from "../test/domainFixtures";
-import { estimateIncomeBreakdown, type IncomeBreakdownPoint } from "./incomeBreakdown";
+import {
+  estimateIncomeBreakdown,
+  recurringAmount,
+  type IncomeBandKey,
+  type IncomeBreakdownPoint,
+} from "./incomeBreakdown";
 import { MAX_PLANNING_AGE } from "./constants";
 
-const point = (age: number, bands: Partial<IncomeBreakdownPoint>): IncomeBreakdownPoint => ({
-  age,
+const zeroBands = {
   pensionFund: 0,
   providentFund: 0,
   managersInsurance: 0,
   studyFund: 0,
   investments: 0,
   bituachLeumi: 0,
-  ...bands,
-});
+};
+
+// The bands are totals; `withdrawn` is the part of each taken out of savings. Without an explicit
+// `withdrawn`, every band except Bituach Leumi is a withdrawal, as when no account pays an annuity.
+const point = (
+  age: number,
+  bands: Partial<Record<IncomeBandKey, number>>,
+  withdrawn?: Partial<Record<IncomeBandKey, number>>,
+): IncomeBreakdownPoint => {
+  const totals = { ...zeroBands, ...bands };
+  return {
+    age,
+    ...totals,
+    withdrawn: { ...totals, bituachLeumi: 0, ...withdrawn },
+  };
+};
 
 describe("estimateIncomeBreakdown", () => {
   it("splits income proportionally to pension vs other balances", () => {
@@ -63,6 +81,14 @@ describe("estimateIncomeBreakdown", () => {
         estimateIncomeBreakdown(profile).map((p) => p.pensionFund + p.investments + p.bituachLeumi),
       );
       expect([...totals]).toEqual([3200]);
+    });
+
+    it("counts the state pension as a recurring payment and the pension fund as a withdrawal", () => {
+      const at67 = estimateIncomeBreakdown(profile).find((p) => p.age === 67)!;
+      expect(recurringAmount(at67, "bituachLeumi")).toBe(2000);
+      expect(at67.withdrawn.bituachLeumi).toBe(0);
+      expect(at67.withdrawn.pensionFund).toBe(1200);
+      expect(recurringAmount(at67, "pensionFund")).toBe(0);
     });
   });
 
