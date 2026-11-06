@@ -43,11 +43,13 @@ export function BankDepositForm({ deposit, onChange }: BankDepositFormProps) {
         />
         <DateField
           label={f("maturityDate")}
-          importance="reference"
           value={deposit.maturityDate}
           onChange={(maturityDate) => onChange({ maturityDate })}
         />
       </div>
+      {deposit.maturityDate && (
+        <p className="-mt-2 text-xs text-slate-500">{t("myData.steps.bankDeposits.maturityHelper")}</p>
+      )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <SelectField
           label={f("rateType")}

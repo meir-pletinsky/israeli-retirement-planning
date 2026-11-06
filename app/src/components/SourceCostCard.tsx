@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { SOURCE_COST_NET_STEP, type SourceCostGroup, type SourceCostRow } from "../domain";
+import { BankDepositsNote } from "./BankDepositsNote";
 import { ScenarioTitle } from "./ScenarioTag";
 import { useFormatAge } from "./useFormatAge";
 
@@ -11,6 +12,8 @@ interface SourceCostCardProps {
   isCouple: boolean;
   /** Names the retirement scenario shown, beside the title. */
   scenarioTag?: ReactNode;
+  /** Whether bank deposits are entered, so the investments row can say they are part of it. */
+  hasBankDeposits?: boolean;
 }
 
 const GROUP_LABEL_KEYS: Record<SourceCostGroup, string> = {
@@ -38,7 +41,7 @@ const GIVE_UP_KEYS: Record<SourceCostGroup, string> = {
 /** Keeps digits reading left to right when inserted into a right-to-left sentence. */
 const isolate = (text: string) => `\u2066${text}\u2069`;
 
-export function SourceCostCard({ rows, isCouple, scenarioTag }: SourceCostCardProps) {
+export function SourceCostCard({ rows, isCouple, scenarioTag, hasBankDeposits }: SourceCostCardProps) {
   const { t } = useTranslation();
   const formatAge = useFormatAge();
   const currencySymbol = t("common.currencySymbol");
@@ -124,6 +127,8 @@ export function SourceCostCard({ rows, isCouple, scenarioTag }: SourceCostCardPr
           </tbody>
         </table>
       </div>
+
+      {hasBankDeposits && rows.some((row) => row.group === "investments") && <BankDepositsNote />}
 
       <details className="mt-3 text-sm text-slate-700">
         <summary className="cursor-pointer text-xs font-medium text-brand-700">

@@ -2059,6 +2059,16 @@ rest).
   the list, the totals. The card actions are visible buttons, not an overflow menu. The desktop
   table is unchanged, and the content column of `AppShell` now has `min-w-0`, so a wide table
   scrolls inside its own container instead of stretching the document past the viewport.
+- [Review-UX-17] Bank deposits no longer vanish behind an unqualified "usable at any time"
+  claim. The model still pools deposits into the non-pension investments bucket (usable at any
+  age, growing at the plan return, whole balance treated as cost basis). Now the liquidity
+  ladder and the source-cost card show a `BankDepositsNote` ("counted in Other Investments ...
+  maturity date, early-withdrawal terms and renewal are not modeled individually") whenever a
+  deposit with a balance exists, and the ladder / source-cost wording says "including bank
+  deposits" / "treated as usable". The deposit form's Maturity date is no longer tagged
+  "Reference only" (it does stop interest accruing in the current value) and carries a helper
+  saying that it is not used to time withdrawals. Contract-aware deposits (early-withdrawal
+  penalties, maturity and renewal, a bank rung in the ladder) are a modeling change left open.
 
 ## Modeling assumptions (by phase)
 

@@ -466,6 +466,28 @@ describe("My Data summary tables — Equity & Investments", () => {
     expect(screen.getByLabelText(/^Ticker symbol/)).toHaveValue("BBB");
   });
 
+  it("explains in the deposit form that the maturity date does not time withdrawals", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 50,
+        bankDeposits: [
+          { amount: 200_000, startDate: "2025-01-01", maturityDate: "2033-01-01", rateType: "fixed", bankName: "Bank A" },
+        ],
+      }),
+    );
+    renderStep("equity");
+
+    const table = await screen.findByRole("table", { name: "Bank deposits" });
+    await user.click(within(within(table).getAllByRole("row")[1]).getByRole("button", { name: "Edit" }));
+
+    const helper = screen.getByText(/Used only to stop interest at this date/);
+    expect(helper).toHaveTextContent(/does not time your withdrawals by it/);
+    expect(helper).toHaveTextContent(/money you can use at any time/);
+    // The date does change today's value, so it is not "not used in any calculation".
+    expect(screen.queryByText("Reference only")).not.toBeInTheDocument();
+  });
+
   it("keeps the field legend out of the page and folded inside the holding form", async () => {
     const user = userEvent.setup();
     await saveProfileToDb(

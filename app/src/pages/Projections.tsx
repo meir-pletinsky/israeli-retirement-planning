@@ -70,6 +70,7 @@ export function Projections() {
   const incomeData = estimateIncomeBreakdown(profile, scenario);
   const netIncomeYears = estimateNetIncome(profile, scenario).years;
   const hasNetIncome = netIncomeYears.some((year) => year.grossMonthly > 0);
+  const hasBankDeposits = profile.bankDeposits.some((deposit) => (deposit.amount ?? 0) > 0);
   const timeline = buildRetirementTimeline(incomeData);
   const ladder = useMemo(() => buildLiquidityLadder(profile, scenario), [profile, scenario]);
   const leavingEarly = useMemo(() => buildLeavingEarlyCost(profile, scenario), [profile, scenario]);
@@ -241,9 +242,19 @@ export function Projections() {
         />
       )}
 
-      <LiquidityLadderCard ladder={ladder} isCouple={isCouple} scenarioTag={scenarioTag} />
+      <LiquidityLadderCard
+        ladder={ladder}
+        isCouple={isCouple}
+        scenarioTag={scenarioTag}
+        hasBankDeposits={hasBankDeposits}
+      />
 
-      <SourceCostCard rows={sourceCosts} isCouple={isCouple} scenarioTag={scenarioTag} />
+      <SourceCostCard
+        rows={sourceCosts}
+        isCouple={isCouple}
+        scenarioTag={scenarioTag}
+        hasBankDeposits={hasBankDeposits}
+      />
 
       <UnvestedSharesCard cost={leavingEarly} scenarioTag={scenarioTag} />
 

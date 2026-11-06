@@ -7,6 +7,7 @@ import {
   type LadderItem,
   type LiquidityLadder,
 } from "../domain";
+import { BankDepositsNote } from "./BankDepositsNote";
 import { ScenarioTitle } from "./ScenarioTag";
 import { useFormatAge } from "./useFormatAge";
 
@@ -16,6 +17,8 @@ interface LiquidityLadderCardProps {
   isCouple: boolean;
   /** Names the retirement scenario shown, beside the title. */
   scenarioTag?: ReactNode;
+  /** Whether bank deposits are entered, so the investments line can say they are part of it. */
+  hasBankDeposits?: boolean;
 }
 
 const ITEM_LABEL_KEYS: Record<LadderItem["kind"], string> = {
@@ -34,7 +37,7 @@ const isolate = (text: string) => `\u2066${text}\u2069`;
 
 const formatDate = (iso: string) => isolate(formatIsoDate(iso));
 
-export function LiquidityLadderCard({ ladder, isCouple, scenarioTag }: LiquidityLadderCardProps) {
+export function LiquidityLadderCard({ ladder, isCouple, scenarioTag, hasBankDeposits }: LiquidityLadderCardProps) {
   const { t } = useTranslation();
   const formatAge = useFormatAge();
   const currencySymbol = t("common.currencySymbol");
@@ -114,6 +117,11 @@ export function LiquidityLadderCard({ ladder, isCouple, scenarioTag }: Liquidity
           </tbody>
         </table>
       </div>
+
+      {hasBankDeposits &&
+        ladder.rungs.some((rung) => rung.items.some((item) => item.kind === "otherInvestments")) && (
+          <BankDepositsNote />
+        )}
 
       {ladder.lateVesting && (
         <p role="status" className="mt-3 text-sm text-amber-800">

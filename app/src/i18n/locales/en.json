@@ -623,7 +623,8 @@
             "variable": "Variable-rate"
           }
         },
-        "cpiLinkedHelper": "Deposits always shown in shekels (NIS). When linked, the principal and/or rate track the CPI in addition to the interest rate above."
+        "cpiLinkedHelper": "Deposits always shown in shekels (NIS). When linked, the principal and/or rate track the CPI in addition to the interest rate above.",
+        "maturityHelper": "Used only to stop interest at this date when the deposit does not renew. The plan does not time your withdrawals by it: bank deposits are counted with your other investments as money you can use at any time, growing at the plan's return."
       },
       "expenses": {
         "label": "Expenses",
@@ -946,7 +947,7 @@
       "lateVesting": "Company shares worth about {{amount}} at today's price vest after you retire (the first batch on {{date}}), and your grant keeps vesting after you leave. The plan counts them as usable from retirement, so it may be too optimistic in the first years.",
       "howTitle": "How this works",
       "howValues": "Savings are shown at their value when you retire. A pot that is still locked keeps growing until it opens.",
-      "howRules": "Pension funds, managers insurance and provident funds open at age {{age}}. A study fund opens when its liquidity date passes, by default {{years}} years after you joined. Investment provident funds and other savings can be used at any time.",
+      "howRules": "Pension funds, managers insurance and provident funds open at age {{age}}. A study fund opens when its liquidity date passes, by default {{years}} years after you joined. Investment provident funds and other savings, including bank deposits, are treated as usable at any time.",
       "howPayments": "Annuities and Bituach Leumi are monthly payments, not savings, so they are not added to the usable total.",
       "howReadOnly": "This only shows your plan. It changes none of its numbers, and early-withdrawal penalties are not modeled."
     },
@@ -968,7 +969,7 @@
       },
       "giveUp": {
         "studyFund": "Tax-free growth. Money you take out stops growing free of tax.",
-        "investments": "Flexibility. This money is usable at any time, and only its real gain is taxed, at a flat rate.",
+        "investments": "Flexibility. This money is treated as usable at any time, and only its real gain is taxed, at a flat rate.",
         "investmentProvidentFund": "Flexibility. Only the growth since today is taxed, at a flat rate, and this money is usable at any time.",
         "section102Shares": "Employer shares. The grant-date value is taxed as salary at your brackets, with health tax and Bituach Leumi before the statutory retirement age; only the growth above it is taxed at a flat rate.",
         "ordinaryIncomeShares": "All of it is taxed as salary at your brackets, with health tax and Bituach Leumi before the statutory retirement age.",
@@ -1108,7 +1109,8 @@
       "income": "Monthly income",
       "range": "{{from}}–{{to}}",
       "spouseAges": "Spouse:"
-    }
+    },
+    "bankDepositsNote": "Your bank deposits are counted in “Other Investments”: the plan treats them as money you can use at any time, growing at the plan's return. Each deposit's own maturity date, early-withdrawal terms and renewal are not modeled individually."
   },
   "cover": {
     "section": {

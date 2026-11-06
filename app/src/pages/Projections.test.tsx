@@ -596,6 +596,35 @@ describe("Projections", () => {
       await screen.findByRole("heading", { name: "Projections" });
       expect(screen.queryByRole("region", { name: "When your money becomes usable" })).not.toBeInTheDocument();
     });
+
+    it("says that bank deposits are modeled as accessible investments, not by their own terms", async () => {
+      const card = await renderLadder(
+        buildTestProfile({
+          age: 50,
+          retirementAge: 55,
+          bankDeposits: [
+            {
+              amount: 200_000,
+              startDate: "2025-01-01",
+              maturityDate: "2033-01-01",
+              rateType: "fixed",
+              annualInterestRatePercent: 4,
+            },
+          ],
+        }),
+      );
+
+      const note = within(card).getByRole("note");
+      expect(note).toHaveTextContent(/bank deposits are counted in .Other Investments./i);
+      expect(note).toHaveTextContent(/use at any time, growing at the plan's return/);
+      expect(note).toHaveTextContent(/maturity date, early-withdrawal terms and renewal are not modeled individually/);
+      expect(within(card).getByText(/including bank deposits/)).toBeInTheDocument();
+    });
+
+    it("does not mention bank deposits when none are entered", async () => {
+      const card = await renderLadder(buildTestProfile({ age: 50, retirementAge: 55, otherAssets: 10_000 }));
+      expect(within(card).queryByRole("note")).not.toBeInTheDocument();
+    });
   });
 
   describe("unvested company shares", () => {
@@ -919,6 +948,25 @@ describe("Projections", () => {
 
       expect(within(card).getByText(/^Tax-free growth\./)).toBeInTheDocument();
       expect(within(card).getByText(/^Taxed as a pension\./)).toBeInTheDocument();
+    });
+
+    it("says that bank deposits are part of the investments it treats as usable at any time", async () => {
+      const card = await renderCard(
+        buildTestProfile({
+          ...retired,
+          bankDeposits: [{ amount: 200_000, startDate: "2025-01-01", maturityDate: "2033-01-01", rateType: "fixed" }],
+        }),
+      );
+
+      expect(within(card).getByText(/treated as usable at any time/)).toBeInTheDocument();
+      expect(within(card).getByRole("note")).toHaveTextContent(
+        /maturity date, early-withdrawal terms and renewal are not modeled individually/,
+      );
+    });
+
+    it("leaves the bank note out when no deposit is entered", async () => {
+      const card = await renderCard(buildTestProfile({ ...retired, otherAssets: 100_000 }));
+      expect(within(card).queryByRole("note")).not.toBeInTheDocument();
     });
 
     it("says whose each line is for a couple", async () => {
