@@ -9,6 +9,7 @@ const MONEY_KEYS: ReadonlySet<AccountFieldKey> = new Set([
   "deathCoverageAmount",
   "monthlyDisabilityAmount",
   "monthlyRiskDeduction",
+  "monthlySurvivorsSpousePension",
   "estimatedMonthlyAnnuity",
 ]);
 
@@ -16,6 +17,7 @@ const PERCENT_KEYS: ReadonlySet<AccountFieldKey> = new Set([
   "employeeRatePercent",
   "employerRatePercent",
   "severanceRatePercent",
+  "survivorSpousePercent",
   "feeFromAccumulationPercent",
   "feeFromDepositPercent",
 ]);

@@ -1378,6 +1378,58 @@ Known limits: US history in US purchasing power (the shekel, Israeli inflation a
 markets are not modelled); two asset classes only; before fees and tax; overlapping windows;
 the table needs a new row each January.
 
+## Phase Z — Cover plan for early retirement (insurance continuity)
+
+Survivors' and death cover in a pension fund lapses some months after the last deposit. An early
+retiree therefore has a gap between the end of that cover and the age the pension opens. This
+phase lets each person choose how to handle it and shows the cost. The full design, the owner's
+answers to the six open questions (2026-11-06) and the status table are in
+`docs/insurance-cover-design.md`; the legal rules are rule V in `docs/constants-to-verify.md`.
+
+Decisions (the owner's answers, Q1–Q6): the size of the gap in money comes from the imported
+spouse survivors' pension; a non-earner is assumed able to keep paying (a toggle switches that
+off); the cost is paid out of pocket and shown read-only in the expenses report; the need-until
+age defaults to the pension start (60) and is editable; disability is left out; both partners
+have their own plan. The app never recommends an option.
+
+- [x] C2. **Types and My Data input** (`CoverPlan`, `createCoverPlan`, normalisation,
+      `pages/MyData/CoverPlanSection`): one optional plan per person (none / keep pension
+      insurance / independent term life, need-until age, monthly cost, term end age, "keep
+      paying after the arrangement"). A null plan changes no number.
+- [x] C2b. **Survivors' pension fields** on the pension account (`monthlySurvivorsSpousePension`,
+      `survivorSpousePercent`): typed in the account form and imported from the Clearing House
+      report, mapped by element name because the parent node is not verified.
+- [x] C3. **Pure logic** (`domain/coverPlan.ts`, `coverAnalysis.ts`): the free extension (5
+      months) and arrangement (24 months) windows, the protection gap in years and in money,
+      the cover on file, a result block in the My Data section and the Dashboard
+      `CoverNoticeCard`.
+- [x] C4. **Projections card** (`CoverOptionsCard`, `planForOption`, `compareCoverOptions`):
+      the three options side by side with gap, monthly cost, total cost and the effect on the
+      plan, each option run through the normal engine.
+- [x] C5. **Cover cost as an outflow** (`domain/coverCost.ts`): a negative stream in
+      `retirementIncome.ts`, added to the needed draw in `drawdown.ts`, taxed with the draw and
+      subtracted again in `netIncome.ts` (so gross − tax = net still holds). Traced
+      (`<role>/cover/*`, `net/binding/coverCostMonthly`, table `drawdown/coverCost`), kept in the
+      verification pack, and shown read-only in `CoverCostsSummary` on the Expenses step.
+      `monthlyIncomeTodayMoney` is clamped at 0.
+- [x] C6. **Risk premium out of the deposit** (`contributions.ts`,
+      `monthlyRiskDeductionForAccount`): while working, `monthlyRiskDeduction` buys cover, not
+      savings, so it is subtracted from what is added to the balance (floored at 0), with the
+      `monthlyDeposit` trace step and a helper text under the field. **This changes numbers for
+      every profile with a stored deduction**, lowering the balance at retirement by the
+      premium's future value.
+- [x] Tests: `coverPlan.test.ts`, `coverAnalysis.test.ts`, `coverCost.test.ts` (engine, trace,
+      spouse), `contributions.test.ts` (risk premium, trace), `verificationPack.test.ts`, the
+      My Data, Dashboard and Projections page tests. 1553 passed and 1 skipped in all.
+
+Known limits and unverified assumptions: whether a person with no earned income may keep
+depositing, and at what cost (rule V); the Clearing House parent node of the survivors'
+elements; the balance-only part of the gap in money is a Low-confidence estimate; orphans'
+and parents' pensions and lump sums are not netted; the cost is a flat figure the user enters
+(no premium table, no rise with age); "same accounts" in Q2 is read as accounts with a
+survivors' pension above 0; the "keep paying" toggle defaults to on (the owner did not say);
+the displayed gross income is net of the cover cost while tax is computed on the full draw.
+
 ### R1 notes — liquidity ladder (Phase R)
 
 A "When your money becomes usable" card on Projections, just above the retirement

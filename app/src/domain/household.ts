@@ -1,8 +1,11 @@
 import type { Gender, ProfileData, WithdrawalStrategy } from "../types";
 import { EMPTY_PROFILE, EMPTY_SPOUSE } from "../types";
+import { COVER_RULES, ACCESS_RULES } from "./accessRules";
 import { estimateBituachLeumiPension } from "./bituachLeumi";
 import { BITUACH_LEUMI_RATES as RATES } from "./bituachLeumiRates";
 import { MAX_PLANNING_AGE } from "./constants";
+import { coverCostOf, type CoverCost } from "./coverCost";
+import { coverOnFile } from "./coverPlan";
 import {
   isHouseholdActive,
   ownAccounts,
@@ -18,6 +21,7 @@ import {
   engineCurrentYear,
   fromConst,
   fromDerived,
+  fromLatestStep,
   fromProfile,
   fromStep,
   input,
@@ -63,6 +67,8 @@ export interface HouseholdMember {
   sources: RetirementSource[];
   /** Includes the spouse supplement this member receives, if any. */
   bituachLeumi: BituachLeumiEstimate;
+  /** What this member pays out of pocket to keep their survivors' cover; null when they pay nothing. */
+  coverCost: CoverCost | null;
 }
 
 export interface Household {
@@ -113,6 +119,7 @@ export function spouseProfileView(profile: ProfileData): ProfileData {
       retirementAge: spouse.retirementAge,
       monthlyGrossSalary: spouse.monthlyGrossSalary,
       creditPoints: spouse.creditPoints,
+      coverPlan: spouse.coverPlan,
     },
     spouse: EMPTY_SPOUSE,
     taxExemptionBasket: EMPTY_PROFILE.taxExemptionBasket,
@@ -242,14 +249,20 @@ export function buildHousehold(
   }
 
   const members: HouseholdMember[] = views.map(({ role, view, retirementAge }) =>
-    withMember(role, () => ({
-      role,
-      profile: view,
-      currentAge: resolveCurrentAge(view),
-      retirementAge,
-      sources: buildSources(view, retirementAge),
-      bituachLeumi: estimateBituachLeumiPension(view, retirementAge, baseYear),
-    })),
+    withMember(role, () => {
+      const member: HouseholdMember = {
+        role,
+        profile: view,
+        currentAge: resolveCurrentAge(view),
+        retirementAge,
+        sources: buildSources(view, retirementAge),
+        bituachLeumi: estimateBituachLeumiPension(view, retirementAge, baseYear),
+        coverCost: null,
+      };
+      member.coverCost = coverCostOf(view.personal.coverPlan, coverOnFile(view, "self"), retirementAge);
+      recordCoverCostSteps(member);
+      return member;
+    }),
   );
 
   if (members.length === 2) {
@@ -433,6 +446,89 @@ function recordSupplementSteps(self: HouseholdMember, spouse: HouseholdMember): 
 /** Years from now at which `member` reaches `age`. */
 export function yearsUntilAge(member: HouseholdMember, age: number): number {
   return age - member.currentAge;
+}
+
+/** When `member` pays for their cover, in years from now; null when they pay nothing. */
+export function coverCostYears(member: HouseholdMember): { startYears: number; endYears: number } | null {
+  if (member.coverCost === null) return null;
+  return {
+    startYears: yearsUntilAge(member, member.coverCost.startAge),
+    endYears: yearsUntilAge(member, member.coverCost.endAge),
+  };
+}
+
+/**
+ * What the household pays for survivors' cover in the year that starts `years`
+ * from now, as a monthly average in today's money. Cover is paid out of
+ * pocket on top of the spending the plan funds.
+ */
+export function averageMonthlyCoverCost(household: Household, years: number): number {
+  let total = 0;
+  for (const member of household.members) {
+    const window = coverCostYears(member);
+    if (window === null || member.coverCost === null) continue;
+    const overlap = Math.min(window.endYears, years + 1) - Math.max(window.startYears, years);
+    if (overlap > 0) total += member.coverCost.monthly * overlap;
+  }
+  return total;
+}
+
+/** Records how a member's cover cost came about. A no-op unless tracing, and when the member pays nothing. */
+function recordCoverCostSteps(member: HouseholdMember): void {
+  const cost = member.coverCost;
+  const plan = member.profile.personal.coverPlan;
+  if (cost === null || plan === null) return;
+  withScope("cover", () => {
+    const optionInput = () => input(plan.option, fromProfile("personal.coverPlan.option"));
+    const retirementAgeInput = () =>
+      input(member.retirementAge, fromLatestStep(`${member.role}/retirementAge`, member.retirementAge));
+    recordStep("monthlyCost", () => ({
+      title: "Monthly cost of the chosen cover, paid out of pocket (today's money)",
+      formula:
+        "the monthly cost entered in the plan; for 'keep the pension insurance' with none entered, the risk premiums the accounts take now",
+      inputs: {
+        option: optionInput(),
+        monthlyCost: input(plan.monthlyCost, fromProfile("personal.coverPlan.monthlyCost")),
+        riskDeductionOnFile: input(
+          coverOnFile(member.profile, "self").monthlyRiskDeduction,
+          fromDerived("sum of monthlyRiskDeduction over the accounts that still receive deposits"),
+        ),
+      },
+      output: cost.monthly,
+    }));
+    recordStep("startAge", () => ({
+      title: "Age at which this member starts paying for the cover",
+      formula: "retirement age + the months the cover goes on free after the last deposit / 12",
+      expr: "retirementAge + freeExtensionMonths / 12",
+      inputs: {
+        retirementAge: retirementAgeInput(),
+        freeExtensionMonths: input(COVER_RULES.freeExtensionMonths, fromConst("COVER_RULES.freeExtensionMonths")),
+      },
+      output: cost.startAge,
+    }));
+    recordStep("endAge", () => ({
+      title: "Age at which this member stops paying for the cover",
+      formula:
+        plan.option === "keepPensionInsurance"
+          ? "the pension insurance runs to the later of the need-until age and the end of the insurance arrangement (retirement age + arrangement months / 12) when deposits may go on, else to the end of the arrangement; payment stops no later than the need-until age"
+          : "the policy's end age (the need-until age when none is given), but not before the free extension ends",
+      inputs: {
+        option: optionInput(),
+        needUntilAge: input(plan.needUntilAge, fromProfile("personal.coverPlan.needUntilAge")),
+        termEndAge: input(plan.termEndAge, fromProfile("personal.coverPlan.termEndAge")),
+        keepPayingAfterArrangement: input(
+          plan.keepPayingAfterArrangement,
+          fromProfile("personal.coverPlan.keepPayingAfterArrangement"),
+        ),
+        retirementAge: retirementAgeInput(),
+        earliestAnnuityAge: input(ACCESS_RULES.earliestAnnuityAge, fromConst("ACCESS_RULES.earliestAnnuityAge")),
+        freeExtensionMonths: input(COVER_RULES.freeExtensionMonths, fromConst("COVER_RULES.freeExtensionMonths")),
+        arrangementMonths: input(COVER_RULES.arrangementMonths, fromConst("COVER_RULES.arrangementMonths")),
+      },
+      output: cost.endAge,
+      note: "The need-until age is the earliest annuity age when none is entered.",
+    }));
+  });
 }
 
 /** `member`'s age expressed as the primary user's age at the same moment. */

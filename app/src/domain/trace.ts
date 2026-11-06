@@ -251,6 +251,7 @@ const SPOUSE_VIEW_PERSONAL_FIELDS = new Set([
   "retirementAge",
   "monthlyGrossSalary",
   "creditPoints",
+  "coverPlan",
 ]);
 
 /**

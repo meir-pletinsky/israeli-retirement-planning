@@ -785,9 +785,9 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
         const contributionId = recordStep("monthlyDeposit", () => ({
           title: "Monthly deposit into the account",
           formula:
-            "salary base × (employee + employer + severance rate) / 100, only while the account is activeContributing",
+            "salary base × (employee + employer + severance rate) / 100, less the monthly risk premium deducted for the insurance cover (not below 0), only while the account is activeContributing",
           expr: depositing
-            ? "salaryBase * (max(employeeRatePercent, 0) + max(employerRatePercent, 0) + max(severanceRatePercent, 0)) / 100"
+            ? "max(salaryBase * (max(employeeRatePercent, 0) + max(employerRatePercent, 0) + max(severanceRatePercent, 0)) / 100 - max(monthlyRiskDeduction, 0), 0)"
             : undefined,
           inputs: {
             salaryBase: input(
@@ -799,6 +799,10 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
             employeeRatePercent: input(contributions.employeeRatePercent, field("contributions.employeeRatePercent")),
             employerRatePercent: input(contributions.employerRatePercent, field("contributions.employerRatePercent")),
             severanceRatePercent: input(contributions.severanceRatePercent, field("contributions.severanceRatePercent")),
+            monthlyRiskDeduction: input(
+              account.insuranceCoverages.monthlyRiskDeduction,
+              field("insuranceCoverages.monthlyRiskDeduction"),
+            ),
             accountStatus: input(account.accountStatus, field("accountStatus")),
           },
           output: monthlyContribution,

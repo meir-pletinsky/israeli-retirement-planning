@@ -654,6 +654,98 @@ describe("Projections", () => {
     });
   });
 
+  describe("cover that ends when deposits stop", () => {
+    const REGION = "Cover that ends when deposits stop";
+    const BIDI_MARKS = /[\u2066\u2069]/g;
+    const reads = (pattern: RegExp) => (content: string) => pattern.test(content.replace(BIDI_MARKS, ""));
+
+    const withCover = {
+      accountStatus: "activeContributing" as const,
+      insuranceCoverages: {
+        deathCoverageAmount: 800_000,
+        monthlyDisabilityAmount: null,
+        monthlyRiskDeduction: 90,
+        monthlySurvivorsSpousePension: 4_000,
+        survivorSpousePercent: null,
+      },
+    };
+    const profileWithCover = () =>
+      buildTestProfile({
+        age: 50,
+        retirementAge: 55,
+        investmentReturnPct: 0,
+        inflationPct: 0,
+        pensionBalances: [600_000],
+        pensionAccountOverrides: [withCover],
+      });
+
+    const renderCard = async (profile: ReturnType<typeof buildTestProfile>) => {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+      return screen.findByRole("region", { name: REGION });
+    };
+
+    it("sets the three options side by side with the years left uncovered and the cost", async () => {
+      const card = await renderCard(profileWithCover());
+
+      expect(within(card).getAllByRole("columnheader").map((header) => header.textContent)).toEqual([
+        "What it means",
+        "Do nothing",
+        "Keep the pension insurance",
+        "Term life policy",
+      ]);
+      expect(within(card).getByRole("rowheader", { name: "Years without cover" })).toBeInTheDocument();
+      expect(within(card).getByRole("rowheader", { name: "Cost per month" })).toBeInTheDocument();
+      expect(within(card).getByRole("rowheader", { name: "Total cost" })).toBeInTheDocument();
+      expect(within(card).getByText(reads(/^₪90 per month$/))).toBeInTheDocument();
+      expect(within(card).getByText("Not known: enter it in My Data")).toBeInTheDocument();
+      expect(within(card).queryByText("Your choice")).not.toBeInTheDocument();
+    });
+
+    it("saves the option the person chooses and marks it as the choice", async () => {
+      const user = userEvent.setup();
+      const card = await renderCard(profileWithCover());
+      expect((await loadProfileFromDb())?.personal.coverPlan).toBeNull();
+
+      await user.click(within(card).getByRole("button", { name: "Choose Keep the pension insurance for Your cover" }));
+
+      await waitFor(async () =>
+        expect((await loadProfileFromDb())?.personal.coverPlan?.option).toBe("keepPensionInsurance"),
+      );
+      expect(within(card).getByText("Your choice")).toBeInTheDocument();
+      expect(
+        within(card).queryByRole("button", { name: "Choose Keep the pension insurance for Your cover" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("explains itself in a section that starts closed", async () => {
+      const card = await renderCard(profileWithCover());
+      const details = within(card).getByText("How this works").closest("details");
+
+      expect(details).not.toBeNull();
+      expect(details).not.toHaveAttribute("open");
+    });
+
+    it("is not shown when no cover is on file", async () => {
+      await saveProfileToDb(buildTestProfile({ age: 50, retirementAge: 55, pensionBalances: [600_000] }));
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      await screen.findByRole("heading", { name: "Projections" });
+      expect(screen.queryByRole("region", { name: REGION })).not.toBeInTheDocument();
+    });
+
+    it("is not shown when the cover already lasts to the age it is needed until", async () => {
+      await saveProfileToDb({ ...profileWithCover(), personal: { ...profileWithCover().personal, retirementAge: 62 } });
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      await screen.findByRole("heading", { name: "Projections" });
+      expect(screen.queryByRole("region", { name: REGION })).not.toBeInTheDocument();
+    });
+  });
+
   describe("withdrawal order", () => {
     const BIDI_MARKS = /[\u2066\u2069]/g;
     const reads = (pattern: RegExp) => (content: string) => pattern.test(content.replace(BIDI_MARKS, ""));

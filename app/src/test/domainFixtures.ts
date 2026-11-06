@@ -2,6 +2,7 @@ import type {
   BankDeposit,
   BankDepositRateType,
   BituachLeumiData,
+  CoverPlan,
   ExpenseItem,
   Gender,
   InvestmentCategory,
@@ -33,6 +34,8 @@ export function buildTestProfile(overrides: {
   monthlyGrossSalary?: number;
   maritalStatus?: MaritalStatus;
   creditPoints?: number;
+  /** The primary user's plan for the cover that lapses when deposits stop; the spouse's goes in `spouse.coverPlan`. */
+  coverPlan?: CoverPlan;
   taxExemptionBasket?: Partial<TaxExemptionBasket>;
   /** Spouse basics; the household is active once `maritalStatus` is "married" and `spouse.age` is set. */
   spouse?: Partial<Omit<SpouseData, "bituachLeumi">> & {
@@ -100,6 +103,7 @@ export function buildTestProfile(overrides: {
     monthlyGrossSalary,
     maritalStatus,
     creditPoints,
+    coverPlan,
     taxExemptionBasket,
     spouse,
     bituachLeumi,
@@ -128,6 +132,7 @@ export function buildTestProfile(overrides: {
       monthlyGrossSalary: monthlyGrossSalary ?? null,
       maritalStatus: maritalStatus ?? null,
       creditPoints: creditPoints ?? null,
+      coverPlan: coverPlan ?? null,
     },
     taxExemptionBasket: { ...EMPTY_PROFILE.taxExemptionBasket, ...taxExemptionBasket },
     spouse: {
@@ -173,6 +178,8 @@ export function buildTestProfile(overrides: {
           deathCoverageAmount: null,
           monthlyDisabilityAmount: null,
           monthlyRiskDeduction: null,
+          monthlySurvivorsSpousePension: null,
+          survivorSpousePercent: null,
         },
         investmentAndFees: {
           investmentTrackName: "",

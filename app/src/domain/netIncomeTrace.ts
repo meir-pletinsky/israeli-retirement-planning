@@ -29,6 +29,8 @@ export interface NetYearDetail {
   row: DrawdownYear;
   draws: YearDraw[];
   streamsTotal: number;
+  /** The monthly average cost of survivors' cover that year. */
+  coverCostMonthly: number;
   fromSavings: number;
   /** Each member's total tax that year, before rounding. */
   memberTaxes: number[];
@@ -157,6 +159,7 @@ function recordYearsTable(
       "primaryAge",
       "taxYear",
       "streamsTotal",
+      "coverCostMonthly",
       "fromSavings",
       "grossMonthly",
       ...household.members.map((member) => `tax:${member.role}`),
@@ -170,6 +173,7 @@ function recordYearsTable(
         year.age,
         household.baseYear + detail.row.yearsFromNow,
         detail.streamsTotal,
+        detail.coverCostMonthly,
         detail.fromSavings,
         year.grossMonthly,
         ...detail.memberTaxes,
@@ -179,8 +183,11 @@ function recordYearsTable(
     }),
     note:
       "One row per year from the household's retirement to the planning horizon. streamsTotal is the sum " +
-      "of the fixed monthly streams in that year (drawdown/years table); fromSavings = max(monthlySpending - " +
-      "streamsTotal, 0); grossMonthly = round(streamsTotal + fromSavings); taxMonthly = round(sum of the " +
+      "of the fixed monthly streams in that year (drawdown/years table); coverCostMonthly is the cost of " +
+      "survivors' cover that year (drawdown/coverCost table, a year's amount / 12; 0 when none); " +
+      "fromSavings = max(monthlySpending + coverCostMonthly - streamsTotal, 0); grossMonthly = " +
+      "round(streamsTotal + fromSavings - coverCostMonthly), because the cover cost is drawn and taxed but is " +
+      "not income to live on; taxMonthly = round(sum of the " +
       "members' tax columns); netMonthly = grossMonthly - taxMonthly. The household can count on the lowest " +
       "netMonthly. The tax columns are the unrounded totals; their steps are under net/binding for the " +
       "year that sets the result.",
@@ -224,26 +231,41 @@ function recordBindingYear(
     ),
     output: detail.streamsTotal,
   }));
+  const coverId = recordStep("coverCostMonthly", () => ({
+    title: "Monthly cost of survivors' cover in the binding year",
+    formula: "the year's cover cost in the drawdown/coverCost table / 12; 0 when the year has no cost",
+    expr: "annualCoverCost / 12",
+    inputs: {
+      annualCoverCost: input(
+        detail.coverCostMonthly * 12,
+        fromDerived(`drawdown/coverCost table, row ${yearsFromNow}, column annualCoverCost (0 when the row is absent)`),
+      ),
+    },
+    output: detail.coverCostMonthly,
+  }));
   const savingsId = recordStep("fromSavings", () => ({
     title: "Monthly amount drawn from savings in the binding year",
-    formula: "max(monthly spending − streams, 0)",
-    expr: "max(monthlySpending - streamsTotal, 0)",
+    formula: "max(monthly spending + cover cost − streams, 0)",
+    expr: "max(monthlySpending + coverCostMonthly - streamsTotal, 0)",
     inputs: {
       monthlySpending: input(
         monthlySpending,
         fromLatestStep("income/monthlyIncomeTodayMoney", monthlySpending),
       ),
+      coverCostMonthly: input(detail.coverCostMonthly, fromStep(coverId)),
       streamsTotal: input(detail.streamsTotal, fromStep(streamsId)),
     },
     output: detail.fromSavings,
   }));
   const grossId = recordStep("grossMonthly", () => ({
     title: "Gross monthly income in the binding year",
-    formula: "streams + draw from savings, rounded to a whole shekel",
-    expr: "round(streamsTotal + fromSavings)",
+    formula:
+      "streams + draw from savings − cover cost, rounded to a whole shekel (the cover cost is drawn and taxed but is not income to live on)",
+    expr: "round(streamsTotal + fromSavings - coverCostMonthly)",
     inputs: {
       streamsTotal: input(detail.streamsTotal, fromStep(streamsId)),
       fromSavings: input(detail.fromSavings, fromStep(savingsId)),
+      coverCostMonthly: input(detail.coverCostMonthly, fromStep(coverId)),
     },
     output: lowest.grossMonthly,
   }));

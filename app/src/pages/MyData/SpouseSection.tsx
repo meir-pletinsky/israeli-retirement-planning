@@ -7,6 +7,7 @@ import { suggestedRetirementAge } from "../../domain/bituachLeumi";
 import { NumberField } from "../../components/fields/NumberField";
 import { SelectField } from "../../components/fields/SelectField";
 import type { Gender } from "../../types";
+import { CoverPlanSection } from "./CoverPlanSection";
 
 interface SpouseSectionProps {
   /** Which validation message to show, when errors are being shown. */
@@ -127,6 +128,7 @@ export function SpouseSection({ error }: SpouseSectionProps) {
               suffix={currency}
             />
           </CollapsibleSection>
+          <CoverPlanSection person="spouse" />
         </>
       )}
     </section>

@@ -514,7 +514,9 @@ shows them.
 
 - **Phase L (tax refinements): ALL DONE.** The user declined survivor
   analysis and the real-estate module for now and asked for further tax
-  refinements; scope agreed: the verified core only.
+  refinements; scope agreed: the verified core only. (Survivors' cover was
+  later taken up in part on 2026-11-06: the cover plan, Phase Z. Simulating a
+  death is still declined.)
   - **Exemption by calendar year.** `TAX_RATES.qualifyingAnnuityFixedExemptionSchedule`
     (22% 2025, 22.5% 2026, 27.5% 2027, 32% from 2028) plus the 35%
     conditional share = 57% / 57.5% / 62.5% / 67%. `domain/tax.ts`:
@@ -793,6 +795,22 @@ Remaining, not yet started:
 
 - **Survivor analysis** (simulate the death of either spouse), Phase 3. The
   user said not now.
+- **Cover plan for early retirement (insurance continuity): built
+  2026-11-06, steps C1-C6 done** (status table in
+  `docs/insurance-cover-design.md` section 9; rule V in
+  `docs/constants-to-verify.md`; Phase Z in `docs/implementation-progress.md`).
+  The owner answered the six open questions the
+  same day (section 10): per-person plan for both partners (none / keep pension
+  insurance / independent term life), cost paid out of pocket and shown
+  read-only in the expenses report, need-until age defaults to the pension
+  start, disability left out, and **the size of the gap in money is computed
+  from the imported spouse survivors' pension**. That last answer widens the
+  declined survivor analysis on one point only; simulating a death stays out.
+  C6 also stopped counting the risk premium as savings, which lowers the
+  projected balance of every profile with a stored deduction. Open: the
+  unverified assumptions listed under "Known limits" in Phase Z (a non-earner
+  may keep paying, the Clearing House node for the survivors' fields, the
+  default of the "keep paying" toggle).
 - **Real estate module** (equity, rental income, appreciation), Phase 3.
   The user said not now.
 - Further tax work: Bituach Leumi contributions on income other than

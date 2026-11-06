@@ -33,6 +33,7 @@ const ENUM_KEYS = new Set([
   "gender",
   "maritalStatus",
   "preset",
+  "option",
   "mode",
   "category",
   "frequency",

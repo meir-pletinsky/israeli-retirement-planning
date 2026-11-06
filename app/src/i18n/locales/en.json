@@ -197,6 +197,15 @@
     "chartTitle": "Net Worth Projection",
     "householdChartNote": "The projection covers your whole household. The age axis shows your age.",
     "adjustAssumptions": "Adjust assumptions",
+    "coverNotice": {
+      "title": "Insurance cover that ends when deposits stop",
+      "intro": "Death cover inside active pension accounts lapses a few months after the deposits stop. Nothing in your numbers changes until you choose what to do.",
+      "item": {
+        "self": "Your cover ends at about age {{endAge}}, {{years}} years before the age it is needed until ({{needAge}}).",
+        "spouse": "Your spouse's cover ends at about age {{endAge}}, {{years}} years before the age it is needed until ({{needAge}})."
+      },
+      "choose": "Choose what to do"
+    },
     "gaps": {
       "title": "Improve your estimate",
       "intro": "Optional details that would change your result. Your estimate already works without them.",
@@ -386,6 +395,9 @@
           "deathCoverageAmount": "Death coverage amount",
           "monthlyDisabilityAmount": "Monthly disability amount",
           "monthlyRiskDeduction": "Monthly risk premium deduction",
+          "monthlyRiskDeductionHelper": "Paid out of each deposit for the insurance cover. The projection counts it as the cost of cover, not as savings, so it is taken off the amount added to the balance.",
+          "monthlySurvivorsSpousePension": "Monthly survivors' pension to a spouse",
+          "survivorSpousePercent": "Spouse's survivors' pension, % of pensionable salary",
           "sectionInvestmentAndFees": "Investment track & fees",
           "investmentTrackName": "Investment track name",
           "feeFromAccumulationPercent": "Fee from accumulation",
@@ -588,6 +600,11 @@
         "essentialTotal": "Essential (minimum budget)",
         "discretionaryTotal": "Discretionary",
         "typedTotalKept": "The total you typed ({{amount}}) is kept and comes back if you switch to one total.",
+        "coverCosts": {
+          "title": "Insurance cover costs",
+          "line": "{{option}}, {{amount}} per month, from age {{from}} to age {{to}}",
+          "note": "Paid out of your own pocket on top of the spending above, and taken out of your income and savings in the projections. You cannot edit it here: change it under \"Cover after I stop working\" in Personal."
+        },
         "itemsTitle": "Expenses",
         "addItem": "Add expense",
         "addFromSuggestions": "Choose from suggestions",
@@ -922,6 +939,43 @@
       "howGain": "The monthly gain compares your net retirement income with the same plan if the next batch had already vested. It uses today's share price and the plan's tax rules.",
       "howReadOnly": "This only shows your plan. It changes none of its numbers."
     },
+    "cover": {
+      "title": "Cover that ends when deposits stop",
+      "intro": "The death cover inside your active pension accounts lapses a few months after the deposits stop. Here are the ways to handle the years until the cover is no longer needed: what each leaves uncovered and what it costs. The app shows the numbers; it does not say which choice is better.",
+      "person": {
+        "self": "Your cover",
+        "spouse": "Your spouse's cover"
+      },
+      "depositsStop": "Deposits stop at age {{age}}.",
+      "option": {
+        "none": "Do nothing",
+        "keepPensionInsurance": "Keep the pension insurance",
+        "termLife": "Term life policy"
+      },
+      "metricColumn": "What it means",
+      "uncovered": "Years without cover",
+      "years": "{{years}} years",
+      "range": "From age {{from}} to {{to}}",
+      "none": "None",
+      "gapMoney": "Survivors' pension not insured",
+      "perMonth": "{{amount}} per month",
+      "upperBound": "At most: some accounts lack a conversion factor",
+      "monthlyCost": "Cost per month",
+      "noCost": "No cost",
+      "costUnknown": "Not known: enter it in My Data",
+      "totalCost": "Total cost",
+      "overYears": "Over {{years}} years",
+      "chosen": "Your choice",
+      "choose": "Choose",
+      "chooseNamed": "Choose {{name}} for {{who}}",
+      "costNote": "Costs are paid out of your own pocket and shown in today's money. Choosing an option saves it in My Data and adds its cost to your spending in the projections, so your income and savings change. You can add the cost and other details there.",
+      "editInMyData": "Edit the details in My Data",
+      "howTitle": "How this works",
+      "howWindow": "The cover continues at no cost for about 5 months after the last deposit. An insurance arrangement can extend it by up to 24 months at your cost. After that it ends, unless you buy a term policy or the fund lets you keep paying. These rules are in the constants file and are still to be verified.",
+      "howGapMoney": "The survivors' pension is the amount your accounts state for the spouse. Without the insurance, your balance alone would pay about the balance divided by the account's conversion factor each month. The gap is the difference. It is a rough, low-confidence estimate, and it leaves out orphans' pensions and lump sums.",
+      "howCost": "The pension insurance costs what you enter, or else the risk premiums now deducted from your accounts. A term policy costs what the insurer quotes, which you must enter. The total is the monthly cost over the years it is paid.",
+      "howScope": "Only death cover for survivors is compared. Disability cover is not included."
+    },
     "stress": {
       "title": "If things go wrong",
       "intro": "Your plan run again with one thing going wrong. Amounts are in today's money.",
@@ -997,6 +1051,52 @@
       "income": "Monthly income",
       "range": "{{from}}–{{to}}",
       "spouseAges": "Spouse:"
+    }
+  },
+  "cover": {
+    "section": {
+      "titleSelf": "Cover after I stop working",
+      "titleSpouse": "Spouse's cover after they stop working",
+      "introSelf": "Pension funds and managers insurance include death cover for your family (a survivors' pension or a lump sum). It runs on for a few months after your deposits stop and then lapses. Choose how you want to handle the years from then until your pension opens. The app shows the gap and the cost; it does not say which choice is better.",
+      "introSpouse": "Your spouse's pension funds and managers insurance include death cover for the family. It runs on for a few months after their deposits stop and then lapses. Choose how to handle the years from then until their pension opens. The app shows the gap and the cost; it does not say which choice is better.",
+      "option": "What to do about the cover",
+      "optionHelper": "Nothing changes in your plan until you choose.",
+      "needUntilAge": "Cover needed until age",
+      "needUntilAgeHelper": "Leave empty to use the earliest pension age ({{age}}). Enter a later age if your family will still depend on the cover.",
+      "monthlyCost": "Monthly cost of the cover",
+      "monthlyCostKeepHelper": "Paid from your own pocket. Leave empty to use the risk premiums now deducted from the accounts ({{amount}} per month).",
+      "monthlyCostKeepHelperUnknown": "Paid from your own pocket. Your accounts do not state a risk premium, so enter the amount the fund asks for.",
+      "monthlyCostTermHelper": "The monthly premium from the insurer's quote, in today's money. The premium rises with age and needs medical underwriting.",
+      "termEndAge": "Term policy ends at age",
+      "termEndAgeHelper": "Leave empty to end it at the age the cover is needed until.",
+      "keepPaying": "Assume I can keep paying personally after the 24-month insurance arrangement",
+      "keepPayingNote": "Whether someone who no longer earns may keep paying into the cover depends on the fund's rules. Ask the fund; switch this off to see the cover end when the arrangement ends.",
+      "onFileTitle": "Cover on file for these accounts",
+      "onFileNote": "From your active pension and savings accounts. It lapses when the deposits stop.",
+      "onFileDeath": "Death cover amount",
+      "onFileRisk": "Monthly risk premium inside the deposits",
+      "onFileSurvivors": "Monthly survivors' pension to the spouse",
+      "onFileNone": "No cover details found on the active accounts. Import the Clearing House report, or fill in the insurance coverage fields of each account.",
+      "derivedTitle": "What this means for you",
+      "derivedNoPlan": "No choice saved yet: this shows what happens if you do nothing.",
+      "derivedGap": "Not covered: from age {{from}} to age {{to}} ({{years}} years).",
+      "derivedNoGap": "No gap: the cover reaches the age it is needed until ({{age}}).",
+      "derivedCost": "Cost of the cover: about {{total}} in total ({{monthly}} per month for {{years}} years), paid from your own pocket.",
+      "derivedCostUnknown": "Cost not known yet: enter the monthly cost above to see the total.",
+      "derivedSurvivors": "The accounts insure a survivors' pension of {{insured}} per month. Without the insurance, the balance alone would pay about {{balance}} per month, so the gap in money is about {{gap}} per month.",
+      "derivedSurvivorsNoFactor": "{{accounts}} account(s) show no conversion factor, so the gap is an upper bound.",
+      "derivedSurvivorsNote": "A rough estimate: the balance is projected to the start of the gap and divided by the account's conversion factor. Orphans' pensions and lump sums are not counted."
+    },
+    "options": {
+      "undecided": "Not decided yet",
+      "none": "Nothing: rely on savings (no extra cost)",
+      "keepPensionInsurance": "Keep the pension insurance going (personal deposits)",
+      "termLife": "Buy an independent term life policy"
+    },
+    "optionHelp": {
+      "none": "The cover continues for the free extension only, about 5 months after the last deposit.",
+      "keepPensionInsurance": "An insurance arrangement can extend the cover for up to 24 months at your cost. Beyond that, it depends on the fund letting you keep paying.",
+      "termLife": "A term policy from the free extension's end to the age you set. You pay the premium; there is probably no tax relief without income."
     }
   },
   "clearingHouse": {

@@ -197,7 +197,7 @@ Mimshak
 
 | Subtree | Present in |
 |---|---|
-| `KisuiBKerenPensia` (disability %, widow %, orphan %) | pension funds only |
+| `KisuiBKerenPensia` (disability %, widow %, orphan %; the spouse's survivors' amount and percent are read from here, location unverified, see 6.5) | pension funds only |
 | `PirteiKisuiBeMutzar`, `SchumeiBituahYesodi`, `hitpatchut*` | insurance only |
 | `PerutHafkadotMetchilatShana` (monthly deposit rows) | some files |
 | `Sheer` (survivor details) | some files |
@@ -448,6 +448,8 @@ nearest the user's retirement age into importable fields.
 | `insuranceCoverages.deathCoverageAmount` | `SchumeiBituahYesodi/SCHUM-BITUAH-LEMAVET` (insurance) |
 | `insuranceCoverages.monthlyDisabilityAmount` | `KisuiBKerenPensia/SACH-PENSIAT-NECHUT` (pension) or `SCHUM-BITUACH-LEMASLUL` |
 | `insuranceCoverages.monthlyRiskDeduction` | `SACH-DMEI-BITUAH-SHENIGBOO` (monthly **[V]**, section 5) |
+| `insuranceCoverages.monthlySurvivorsSpousePension` | `KITZBAT-SHEERIM-LEALMAN-O-ALMANA`, summed across coverage records, positive only **[?]** |
+| `insuranceCoverages.survivorSpousePercent` | `SHEUR-KISUY-ALMAN-O-ALMANA`, the largest across coverage records **[?]** (reference only) |
 
 An insurance block (`PirteiKisuiBeMutzar`) feeds a different target depending on
 its `SUG-KISUY-BITOCHI` (section 4): 1 and 3 feed the death amount; 2, 4 and 5
@@ -459,9 +461,13 @@ the XML is the one to parse (12.6). The `Mutav` (beneficiary) and
 `NetuneiSheerim` (survivor) blocks hold names, IDs and birth dates and are never
 read.
 
-Survivor percentages (`SHEUR-KISUY-ALMAN-O-ALMANA`, `SHIUR-KISUY-YATOM`) have
-no home in the model; the owner said survivor analysis is out of scope, so
-ignore them for now.
+The spouse's survivors' pension (`KITZBAT-SHEERIM-LEALMAN-O-ALMANA`, amount, and
+`SHEUR-KISUY-ALMAN-O-ALMANA`, percent) is now imported, for the insurance-cover
+plan (`docs/insurance-cover-design.md`). The mapper looks for both under
+`KisuiBKerenPensia` first and then directly under `ZihuiKisui`, because no sample
+file confirms the parent node **[?]**; it maps by element name, never by position
+(12.3). The orphan and dependent-parent figures (`SHIUR-KISUY-YATOM`,
+`...LEYATOM`, `...LEHORE-NITMACH`) have no home in the model and are still ignored.
 
 ### 6.6 Fees and track
 
@@ -737,7 +743,7 @@ orphan 34 %, dependent parent 17 % of the pension base. The Excel header says
 XML) and "children" over the **17 %** amount (the parent figure in the XML). So
 the Excel's *labels* for those two columns disagree with the XML's *element
 names*. I cannot tell which side is mislabelled from one row; the percentages
-suggest the XML is right **[I]**. Survivor analysis is out of scope for now, but
+suggest the XML is right **[I]**. Simulating a death stays out of scope, but
 this is a concrete reason to prefer the typed XML over header-matched
 spreadsheet columns.
 

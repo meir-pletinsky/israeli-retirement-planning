@@ -47,6 +47,10 @@ export function readField(account: PensionAccount, key: AccountFieldKey): FieldV
       return account.insuranceCoverages.monthlyDisabilityAmount;
     case "monthlyRiskDeduction":
       return account.insuranceCoverages.monthlyRiskDeduction;
+    case "monthlySurvivorsSpousePension":
+      return account.insuranceCoverages.monthlySurvivorsSpousePension;
+    case "survivorSpousePercent":
+      return account.insuranceCoverages.survivorSpousePercent;
     case "investmentTrackName":
       return account.investmentAndFees.investmentTrackName || null;
     case "feeFromAccumulationPercent":
@@ -105,6 +109,13 @@ export function writeField<K extends AccountFieldKey>(
       };
     case "monthlyRiskDeduction":
       return { ...account, insuranceCoverages: { ...account.insuranceCoverages, monthlyRiskDeduction: v as number } };
+    case "monthlySurvivorsSpousePension":
+      return {
+        ...account,
+        insuranceCoverages: { ...account.insuranceCoverages, monthlySurvivorsSpousePension: v as number },
+      };
+    case "survivorSpousePercent":
+      return { ...account, insuranceCoverages: { ...account.insuranceCoverages, survivorSpousePercent: v as number } };
     case "investmentTrackName":
       return { ...account, investmentAndFees: { ...account.investmentAndFees, investmentTrackName: v as string } };
     case "feeFromAccumulationPercent":

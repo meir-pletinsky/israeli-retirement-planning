@@ -11,6 +11,7 @@ import {
   type ExpenseItem,
   type ExpensesMode,
 } from "../../types";
+import { CoverCostsSummary } from "./CoverCostsSummary";
 import { ExpenseItemForm } from "./ExpenseItemForm";
 import { ExpenseItemsTable } from "./ExpenseItemsTable";
 import { EXPENSES } from "./expenseLabels";
@@ -189,6 +190,8 @@ export function ExpensesStep() {
           )}
         </>
       )}
+
+      <CoverCostsSummary />
 
       <div className="max-w-lg">
         <StepFooter currentKey="expenses" />

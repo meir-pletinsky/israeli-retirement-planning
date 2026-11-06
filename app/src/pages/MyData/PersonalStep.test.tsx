@@ -353,3 +353,173 @@ describe("PersonalStep — Bituach Leumi", () => {
     });
   });
 });
+
+describe("PersonalStep — cover after I stop working", () => {
+  const withCover = {
+    age: 50,
+    retirementAge: 55,
+    pensionBalances: [100_000],
+    pensionAccountOverrides: [
+      {
+        accountStatus: "activeContributing" as const,
+        insuranceCoverages: {
+          deathCoverageAmount: 600_000,
+          monthlyDisabilityAmount: null,
+          monthlyRiskDeduction: 85,
+          monthlySurvivorsSpousePension: 3_500,
+          survivorSpousePercent: null,
+        },
+      },
+    ],
+  };
+
+  async function openSection(user: ReturnType<typeof userEvent.setup>, name = /^Cover after I stop working/) {
+    await user.click(await screen.findByRole("button", { name }));
+  }
+
+  it("shows the cover on file and no plan fields until an option is chosen", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(buildTestProfile(withCover));
+    renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+
+    await openSection(user);
+
+    expect(screen.getByText(/Death cover amount/)).toHaveTextContent("600,000");
+    expect(screen.getByText(/Monthly survivors' pension to the spouse/)).toHaveTextContent("3,500");
+    expect(screen.getByText(/Monthly risk premium inside the deposits/)).toHaveTextContent("85");
+    expect(screen.getByLabelText(/What to do about the cover/)).toHaveValue("undecided");
+    expect(screen.queryByLabelText(/Cover needed until age/)).not.toBeInTheDocument();
+  });
+
+  it("says so when no active account states any cover", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(buildTestProfile({ age: 50, retirementAge: 55 }));
+    renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+
+    await openSection(user);
+
+    expect(screen.getByText(/No cover details found on the active accounts/)).toBeInTheDocument();
+  });
+
+  it("saves the chosen option and shows the fields that belong to it", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(buildTestProfile(withCover));
+    renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+    await openSection(user);
+
+    await user.selectOptions(screen.getByLabelText(/What to do about the cover/), "termLife");
+    await user.type(await screen.findByLabelText(/Monthly cost of the cover/), "310");
+    await user.type(screen.getByLabelText(/Term policy ends at age/), "60");
+    await user.type(screen.getByLabelText(/Cover needed until age/), "62");
+    expect(screen.queryByRole("checkbox", { name: /keep paying personally/ })).not.toBeInTheDocument();
+
+    await waitFor(async () => {
+      expect((await loadProfileFromDb())?.personal.coverPlan).toEqual({
+        option: "termLife",
+        needUntilAge: 62,
+        monthlyCost: 310,
+        termEndAge: 60,
+        keepPayingAfterArrangement: true,
+      });
+    });
+
+    await user.selectOptions(screen.getByLabelText(/What to do about the cover/), "none");
+    expect(screen.queryByLabelText(/Monthly cost of the cover/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Term policy ends at age/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Cover needed until age/)).toHaveValue(62);
+  });
+
+  it("offers the keep-paying switch only for the pension insurance and says what a blank cost means", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(buildTestProfile(withCover));
+    renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+    await openSection(user);
+
+    await user.selectOptions(screen.getByLabelText(/What to do about the cover/), "keepPensionInsurance");
+
+    expect(await screen.findByText(/risk premiums now deducted from the accounts/)).toHaveTextContent("85");
+    const keepPaying = screen.getByRole("checkbox", { name: /keep paying personally/ });
+    expect(keepPaying).toBeChecked();
+    await user.click(keepPaying);
+
+    await waitFor(async () => {
+      expect((await loadProfileFromDb())?.personal.coverPlan).toMatchObject({
+        option: "keepPensionInsurance",
+        keepPayingAfterArrangement: false,
+      });
+    });
+  });
+
+  it("shows the gap and its money size before a choice, then the cost of the chosen option", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(buildTestProfile(withCover));
+    renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+    await openSection(user);
+
+    const derived = await screen.findByTestId("cover-derived");
+    expect(derived).toHaveTextContent("No choice saved yet");
+    expect(derived).toHaveTextContent("Not covered: from age 55 years 5 months to age 60 (4.6 years).");
+    // The account states a survivors' pension but no conversion factor.
+    expect(derived).toHaveTextContent("survivors' pension of ₪3,500 per month");
+    expect(derived).toHaveTextContent("gap in money is about ₪3,500 per month");
+    expect(derived).toHaveTextContent("1 account(s) show no conversion factor");
+    expect(derived).not.toHaveTextContent("Cost of the cover");
+
+    await user.selectOptions(screen.getByLabelText(/What to do about the cover/), "keepPensionInsurance");
+
+    await waitFor(() => {
+      const after = screen.getByTestId("cover-derived");
+      expect(after).not.toHaveTextContent("No choice saved yet");
+      expect(after).toHaveTextContent("No gap: the cover reaches the age it is needed until (60).");
+      expect(after).toHaveTextContent("about ₪4,675 in total (₪85 per month for 4.6 years)");
+    });
+
+    await user.selectOptions(screen.getByLabelText(/What to do about the cover/), "termLife");
+    await waitFor(() => {
+      expect(screen.getByTestId("cover-derived")).toHaveTextContent("Cost not known yet");
+    });
+  });
+
+  it("shows no result block when no cover is on file", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(buildTestProfile({ age: 50, retirementAge: 55 }));
+    renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+    await openSection(user);
+
+    expect(screen.queryByTestId("cover-derived")).not.toBeInTheDocument();
+  });
+
+  it("goes back to not decided, which saves no plan", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(buildTestProfile(withCover));
+    renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+    await openSection(user);
+
+    await user.selectOptions(screen.getByLabelText(/What to do about the cover/), "termLife");
+    await user.selectOptions(screen.getByLabelText(/What to do about the cover/), "undecided");
+
+    await waitFor(async () => {
+      expect((await loadProfileFromDb())?.personal.coverPlan).toBeNull();
+    });
+    expect(screen.queryByLabelText(/Cover needed until age/)).not.toBeInTheDocument();
+  });
+
+  it("keeps the partner's plan apart from the user's", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(
+      buildTestProfile({ age: 50, retirementAge: 65, maritalStatus: "married", spouse: { age: 48, retirementAge: 58 } }),
+    );
+    renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+
+    await user.click(await screen.findByRole("tab", { name: /^Partner/ }));
+    await openSection(user, /^Spouse's cover after they stop working/);
+    await user.selectOptions(screen.getByLabelText(/What to do about the cover/), "keepPensionInsurance");
+
+    await waitFor(async () => {
+      const saved = (await loadProfileFromDb())!;
+      expect(saved.spouse.coverPlan?.option).toBe("keepPensionInsurance");
+      expect(saved.personal.coverPlan).toBeNull();
+    });
+  });
+});
+

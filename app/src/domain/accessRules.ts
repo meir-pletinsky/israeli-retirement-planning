@@ -41,3 +41,16 @@ export const ACCESS_RULES = {
    */
   alwaysAccessibleAge: 0,
 } as const;
+
+/**
+ * How long the risk cover of a pension fund or managers insurance lasts after
+ * the deposits stop (rule V, `docs/constants-to-verify.md`). Secondary sources
+ * only, Medium confidence: the exact periods are policy-specific (a managers
+ * insurance may give 3 months, not 5), so the user's own fund bylaws win.
+ */
+export const COVER_RULES = {
+  /** Months after the last deposit in which the cover goes on at no charge. */
+  freeExtensionMonths: 5,
+  /** Months after the last deposit to which an insurance arrangement (hesder bituach) can extend it, at a cost. */
+  arrangementMonths: 24,
+} as const;

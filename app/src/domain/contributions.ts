@@ -11,9 +11,18 @@ export function contributionSalaryBase(account: PensionAccount, ownerSalary: num
 }
 
 /**
- * Monthly deposit into one account, in today's money: its salary base times
- * the sum of its employee/employer/severance rates. Only accounts with status
- * "activeContributing" receive deposits.
+ * The part of each deposit that pays for the account's insurance cover (death,
+ * disability, survivors) instead of buying savings. 0 when none is on file.
+ */
+export function monthlyRiskDeductionForAccount(account: PensionAccount): number {
+  return Math.max(account.insuranceCoverages.monthlyRiskDeduction ?? 0, 0);
+}
+
+/**
+ * Monthly amount added to one account's balance, in today's money: its salary
+ * base times the sum of its employee/employer/severance rates, less the
+ * monthly risk premium deducted for its insurance cover (never below 0). Only
+ * accounts with status "activeContributing" receive deposits.
  */
 export function monthlyContributionForAccount(
   account: PensionAccount,
@@ -29,7 +38,7 @@ export function monthlyContributionForAccount(
     Math.max(employeeRatePercent ?? 0, 0) +
     Math.max(employerRatePercent ?? 0, 0) +
     Math.max(severanceRatePercent ?? 0, 0);
-  return (base * totalRatePercent) / 100;
+  return Math.max((base * totalRatePercent) / 100 - monthlyRiskDeductionForAccount(account), 0);
 }
 
 /**

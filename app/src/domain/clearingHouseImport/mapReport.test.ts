@@ -466,6 +466,36 @@ describe("insurance coverages", () => {
     expect(candidate.fields.deathCoverageAmount).toBeUndefined();
     expect(candidate.fields.monthlyDisabilityAmount).toBeUndefined();
     expect(candidate.fields.monthlyRiskDeduction).toBeUndefined();
+    expect(candidate.fields.monthlySurvivorsSpousePension).toBeUndefined();
+    expect(candidate.fields.survivorSpousePercent).toBeUndefined();
+  });
+
+  it("reads the spouse's survivors' pension by element name, summing the amounts and keeping the largest percent", () => {
+    const candidate = candidateOf(
+      policy({
+        coverages: [
+          { pensionDisability: 8000, survivorsSpouse: 4080, survivorsSpousePercent: 51 },
+          { survivorsSpouse: 1000, survivorsSpousePercent: 40 },
+        ],
+      }),
+      { type: 1 },
+    );
+    expect(candidate.fields.monthlySurvivorsSpousePension).toMatchObject({
+      value: 5080,
+      confidence: "derived",
+      source: "KITZBAT-SHEERIM-LEALMAN-O-ALMANA",
+    });
+    expect(candidate.fields.survivorSpousePercent).toMatchObject({ value: 51, source: "SHEUR-KISUY-ALMAN-O-ALMANA" });
+    expect(candidate.fields.monthlyDisabilityAmount?.value).toBe(8000);
+  });
+
+  it("ignores a nil or negative survivors' amount", () => {
+    const candidate = candidateOf(
+      policy({ coverages: [{ pensionDisability: 8000, survivorsSpouse: null, survivorsSpousePercent: -5 }] }),
+      { type: 1 },
+    );
+    expect(candidate.fields.monthlySurvivorsSpousePension).toBeUndefined();
+    expect(candidate.fields.survivorSpousePercent).toBeUndefined();
   });
 });
 

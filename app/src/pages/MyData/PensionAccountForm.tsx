@@ -372,6 +372,7 @@ export function PensionAccountForm({
         />
         <NumberField
           label={f("monthlyRiskDeduction")}
+          helperText={f("monthlyRiskDeductionHelper")}
           value={insuranceCoverages.monthlyRiskDeduction}
           onChange={(v) =>
             onChange({
@@ -382,6 +383,32 @@ export function PensionAccountForm({
             })
           }
           suffix={currency}
+        />
+        <NumberField
+          label={f("monthlySurvivorsSpousePension")}
+          value={insuranceCoverages.monthlySurvivorsSpousePension}
+          onChange={(v) =>
+            onChange({
+              insuranceCoverages: {
+                ...insuranceCoverages,
+                monthlySurvivorsSpousePension: v,
+              },
+            })
+          }
+          suffix={currency}
+        />
+        <NumberField
+          label={f("survivorSpousePercent")}
+          value={insuranceCoverages.survivorSpousePercent}
+          onChange={(v) =>
+            onChange({
+              insuranceCoverages: {
+                ...insuranceCoverages,
+                survivorSpousePercent: v,
+              },
+            })
+          }
+          suffix="%"
         />
       </CollapsibleSection>
 

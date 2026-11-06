@@ -1,4 +1,5 @@
 import {
+  averageMonthlyCoverCost,
   buildHousehold,
   resolveRetirementTiming,
   retirementTimingAtAge,
@@ -384,6 +385,7 @@ function simulate(
     recordDrawdownStart(household, monthlySpending, state, strategy);
   }
   const traceRows: TraceScalar[][] | null = isTracing() ? [] : null;
+  const traceCover: TraceScalar[][] | null = isTracing() ? [] : null;
   const traceDraws: TraceScalar[][] | null = isTracing() && strategy !== "proRata" ? [] : null;
 
   const rows: DrawdownYear[] = [];
@@ -440,7 +442,9 @@ function simulate(
     let takenBy: number[] | null = null;
     if (years > 0 && years >= retirementYears) {
       const streamsAnnual = PAYMENT_SOURCES.reduce((sum, band) => sum + streams[band], 0) * 12;
-      const needed = Math.max(annualSpending - streamsAnnual, 0);
+      const coverAnnual = averageMonthlyCoverCost(household, years) * 12;
+      if (coverAnnual > 0) traceCover?.push([years, coverAnnual]);
+      const needed = Math.max(annualSpending + coverAnnual - streamsAnnual, 0);
       const draw = Math.min(needed, unlockedTotal);
       drawn = draw;
       unmet = needed - draw;
@@ -533,13 +537,24 @@ function simulate(
         "whose annuity has started goes to 0. Monthly streams are the Bituach Leumi pensions (and the spouse " +
         "supplement) and the account annuities active at that age. unlockedTotal is the sum of balances of " +
         "sources with no annuity whose unlockAge has been reached, before the draw. When yearsFromNow >= " +
-        "retirementYears and unlockedTotal > 0, annualDraw = min(max(annualSpending - 12 × the monthly streams, 0), " +
-        "unlockedTotal), " +
+        "retirementYears and unlockedTotal > 0, annualDraw = min(max(annualSpending + annualCoverCost - 12 × the monthly streams, 0), " +
+        "unlockedTotal), where annualCoverCost is the yearly cost of survivors' cover from the coverCost table (0 when there is none), " +
         (strategy === "proRata"
           ? "taken from the unlocked sources in proportion to their balances. "
           : "taken from the unlocked sources in the order of the withdrawal strategy (see the withdrawalOrder table). ") +
         "The end: columns are balances after the draw.",
     }));
+    if (traceCover && traceCover.length > 0) {
+      recordTable("coverCost", () => ({
+        title: "Yearly cost of survivors' cover paid out of pocket (today's money)",
+        columns: ["yearsFromNow", "annualCoverCost"],
+        rows: traceCover,
+        note:
+          "For each drawing year, the sum over the members who pay for cover of monthly cost × 12 × the part of " +
+          "the year [yearsFromNow, yearsFromNow + 1] in which they pay (see each member's cover steps for the ages). " +
+          "Years without a cost are left out.",
+      }));
+    }
     if (traceDraws) {
       recordTable("withdrawalOrder", () => ({
         title: "What each source paid of the annual draw (today's money)",

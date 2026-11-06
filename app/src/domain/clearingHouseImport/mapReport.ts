@@ -472,6 +472,8 @@ function mapTrack(policy: XmlNode, fields: ImportedFields, warnings: ImportWarni
 function mapCoverages(policy: XmlNode, fields: ImportedFields): void {
   let death = 0;
   let disability = 0;
+  let survivorsSpouse = 0;
+  let survivorsPercent = 0;
   for (const cover of allAt(policy, "Kisuim", "ZihuiKisui")) {
     const blocks = kids(cover, "PirteiKisuiBeMutzar");
     const blockSum = (types: number[]) =>
@@ -484,9 +486,22 @@ function mapCoverages(policy: XmlNode, fields: ImportedFields): void {
 
     const pensionDisability = numberAt(cover, "KisuiBKerenPensia", "SACH-PENSIAT-NECHUT") ?? 0;
     disability += pensionDisability > 0 ? pensionDisability : blockSum(DISABILITY_COVER_TYPES);
+
+    // The parent of the survivors' elements is not confirmed by a sample file, so the cover level is the fallback.
+    // Always by element name, never by position (analysis 12.3).
+    const survivorAt = (name: string) =>
+      numberAt(cover, "KisuiBKerenPensia", name) ?? numberAt(cover, name) ?? 0;
+    survivorsSpouse += Math.max(0, survivorAt("KITZBAT-SHEERIM-LEALMAN-O-ALMANA"));
+    survivorsPercent = Math.max(survivorsPercent, survivorAt("SHEUR-KISUY-ALMAN-O-ALMANA"));
   }
   if (death > 0) put(fields, "deathCoverageAmount", round2(death), "derived", "SCHUM-BITUAH-LEMAVET");
   if (disability > 0) put(fields, "monthlyDisabilityAmount", round2(disability), "derived", "SACH-PENSIAT-NECHUT");
+  if (survivorsSpouse > 0) {
+    put(fields, "monthlySurvivorsSpousePension", round2(survivorsSpouse), "derived", "KITZBAT-SHEERIM-LEALMAN-O-ALMANA");
+  }
+  if (survivorsPercent > 0) {
+    put(fields, "survivorSpousePercent", round2(survivorsPercent), "derived", "SHEUR-KISUY-ALMAN-O-ALMANA");
+  }
 
   const deduction = numberAt(
     policy,

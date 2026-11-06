@@ -53,6 +53,57 @@ export interface PersonalData {
   creditPoints: number | null;
   /** Gross monthly salary in today's money; basis for ongoing pension/savings contributions. */
   monthlyGrossSalary: number | null;
+  /** How the user covers the survivors' protection that lapses at retirement; null = not decided. */
+  coverPlan: CoverPlan | null;
+}
+
+/**
+ * What to do about the survivors' cover that stops when deposits stop (see
+ * `docs/insurance-cover-design.md`). One plan per insured person: the primary
+ * user's plan protects the spouse and the other way round.
+ */
+export const COVER_OPTIONS = ["none", "keepPensionInsurance", "termLife"] as const;
+export type CoverOption = (typeof COVER_OPTIONS)[number];
+
+export interface CoverPlan {
+  option: CoverOption;
+  /** Age until which the cover is needed; null = the earliest pension age. */
+  needUntilAge: number | null;
+  /** The monthly cost of the chosen option; null = the sum of the accounts' risk deductions (option 2) or unknown. */
+  monthlyCost: number | null;
+  /** Option 3: the age at which the term policy ends; null = the need-until age. */
+  termEndAge: number | null;
+  /** Option 2: assume personal deposits can go on after the 24-month insurance arrangement. */
+  keepPayingAfterArrangement: boolean;
+}
+
+export function createCoverPlan(option: CoverOption = "none"): CoverPlan {
+  return {
+    option,
+    needUntilAge: null,
+    monthlyCost: null,
+    termEndAge: null,
+    keepPayingAfterArrangement: true,
+  };
+}
+
+/** Reads a cover plan of a possibly hand-edited or older profile; anything unusable is "not decided". */
+export function normalizeCoverPlan(value: unknown): CoverPlan | null {
+  if (typeof value !== "object" || value === null) return null;
+  const saved = value as Partial<CoverPlan>;
+  if (!COVER_OPTIONS.includes(saved.option as CoverOption)) return null;
+  const positive = (n: unknown) => {
+    const x = finiteOrNull(n);
+    return x !== null && x > 0 ? x : null;
+  };
+  const cost = finiteOrNull(saved.monthlyCost);
+  return {
+    option: saved.option as CoverOption,
+    needUntilAge: positive(saved.needUntilAge),
+    monthlyCost: cost !== null && cost >= 0 ? cost : null,
+    termEndAge: positive(saved.termEndAge),
+    keepPayingAfterArrangement: saved.keepPayingAfterArrangement !== false,
+  };
 }
 
 /**
@@ -123,6 +174,21 @@ export interface InsuranceCoverages {
   deathCoverageAmount: number | null;
   monthlyDisabilityAmount: number | null;
   monthlyRiskDeduction: number | null;
+  /** Monthly survivors' pension to the spouse that the product insures, in today's money. Pension funds only. */
+  monthlySurvivorsSpousePension: number | null;
+  /** The same cover as a percent of the pensionable salary, as the report states it. Reference only. */
+  survivorSpousePercent: number | null;
+}
+
+/** Fills the survivors' fields that accounts saved before they existed do not have. */
+export function normalizeInsuranceCoverages(value: Partial<InsuranceCoverages> | undefined): InsuranceCoverages {
+  return {
+    deathCoverageAmount: finiteOrNull(value?.deathCoverageAmount),
+    monthlyDisabilityAmount: finiteOrNull(value?.monthlyDisabilityAmount),
+    monthlyRiskDeduction: finiteOrNull(value?.monthlyRiskDeduction),
+    monthlySurvivorsSpousePension: finiteOrNull(value?.monthlySurvivorsSpousePension),
+    survivorSpousePercent: finiteOrNull(value?.survivorSpousePercent),
+  };
 }
 
 export interface InvestmentAndFees {
@@ -219,6 +285,8 @@ export function createEmptyPensionAccount(): PensionAccount {
       deathCoverageAmount: null,
       monthlyDisabilityAmount: null,
       monthlyRiskDeduction: null,
+      monthlySurvivorsSpousePension: null,
+      survivorSpousePercent: null,
     },
     investmentAndFees: {
       investmentTrackName: "",
@@ -586,6 +654,8 @@ export interface SpouseData {
   /** The spouse's own tax credit points; null = the default for their gender. */
   creditPoints: number | null;
   bituachLeumi: BituachLeumiData;
+  /** How the spouse covers the survivors' protection that lapses when they retire; null = not decided. */
+  coverPlan: CoverPlan | null;
 }
 
 export const EMPTY_SPOUSE: SpouseData = {
@@ -595,6 +665,7 @@ export const EMPTY_SPOUSE: SpouseData = {
   monthlyGrossSalary: null,
   creditPoints: null,
   bituachLeumi: { ...EMPTY_BITUACH_LEUMI },
+  coverPlan: null,
 };
 
 export interface ProfileData {
@@ -619,6 +690,7 @@ export const EMPTY_PROFILE: ProfileData = {
     maritalStatus: null,
     creditPoints: null,
     monthlyGrossSalary: null,
+    coverPlan: null,
   },
   spouse: { ...EMPTY_SPOUSE },
   taxExemptionBasket: {
@@ -741,11 +813,16 @@ export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined
   const merged: ProfileData = {
     ...EMPTY_PROFILE,
     ...parsed,
-    personal: { ...EMPTY_PROFILE.personal, ...parsed?.personal },
+    personal: {
+      ...EMPTY_PROFILE.personal,
+      ...parsed?.personal,
+      coverPlan: normalizeCoverPlan(parsed?.personal?.coverPlan),
+    },
     spouse: {
       ...EMPTY_SPOUSE,
       ...parsed?.spouse,
       bituachLeumi: { ...EMPTY_BITUACH_LEUMI, ...parsed?.spouse?.bituachLeumi },
+      coverPlan: normalizeCoverPlan(parsed?.spouse?.coverPlan),
     },
     taxExemptionBasket: {
       ...EMPTY_PROFILE.taxExemptionBasket,
@@ -774,6 +851,7 @@ export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined
         fundId: account.fundId ?? "",
         reportId: typeof account.reportId === "string" ? account.reportId : null,
         lifeAnnuityFrom60: account.lifeAnnuityFrom60 === true,
+        insuranceCoverages: normalizeInsuranceCoverages(account.insuranceCoverages),
         contributions: {
           ...EMPTY_ACCOUNT_CONTRIBUTIONS,
           ...account.contributions,

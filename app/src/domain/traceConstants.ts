@@ -4,7 +4,7 @@
  * compares every `const:` input of a trace with this snapshot.
  */
 
-import { ACCESS_RULES } from "./accessRules";
+import { ACCESS_RULES, COVER_RULES } from "./accessRules";
 import { BITUACH_LEUMI_RATES, womenRetirementAge } from "./bituachLeumiRates";
 import {
   DEFAULT_CURRENT_AGE,
@@ -50,6 +50,7 @@ export function constantsSnapshot(): Record<string, unknown> {
     TAX_RATES,
     BITUACH_LEUMI_RATES,
     ACCESS_RULES,
+    COVER_RULES,
     WOMEN_RETIREMENT_AGE_BY_BIRTH_YEAR: womenRetirementAgeByBirthYear,
   }) as Record<string, unknown>;
 }

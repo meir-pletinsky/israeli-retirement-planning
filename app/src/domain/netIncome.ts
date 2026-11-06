@@ -1,6 +1,7 @@
 import type { ProfileData } from "../types";
 import { PAYMENT_SOURCES, simulateHouseholdDrawdown, type DrawdownYear } from "./drawdown";
 import {
+  averageMonthlyCoverCost,
   buildHousehold,
   resolveRetirementTiming,
   retirementTimingAtAge,
@@ -52,7 +53,9 @@ export interface PlanYear {
   row: DrawdownYear;
   /** Fixed monthly payments (state pension and account annuities), in today's money. */
   streamsTotal: number;
-  /** The monthly draw from savings that tops the payments up to the planned income. */
+  /** What the household pays for survivors' cover this year, as a monthly average; paid out of savings on top of the planned income. */
+  coverCostMonthly: number;
+  /** The monthly draw from savings that tops the payments up to the planned income plus the cover cost. */
   fromSavings: number;
   draws: YearDraw[];
 }
@@ -74,10 +77,12 @@ export function retirementPlanYears(
       drawHoldings = row.holdings;
     }
     const streamsTotal = PAYMENT_SOURCES.reduce((sum, band) => sum + row.streams[band], 0);
-    const fromSavings = Math.max(monthlyIncome - streamsTotal, 0);
+    const coverCostMonthly = averageMonthlyCoverCost(household, row.yearsFromNow);
+    const fromSavings = Math.max(monthlyIncome + coverCostMonthly - streamsTotal, 0);
     years.push({
       row,
       streamsTotal,
+      coverCostMonthly,
       fromSavings,
       draws: drawHoldings.map((holding) => ({
         holding,
@@ -96,7 +101,9 @@ export function retirementPlanYears(
  *
  * Each year's income is the fixed streams plus the draw from savings, which
  * is split over the unlocked sources in proportion to their balances, as in
- * the income breakdown. Per owner:
+ * the income breakdown. The cost of survivors' cover is part of the draw (it
+ * is taxed as one) but is then paid out, so it is not in the gross income.
+ * Per owner:
  * - Bituach Leumi pensions and study-fund money are tax-free.
  * - Account annuities and withdrawals from pension-like accounts are pension
  *   income: brackets and credit points. From the statutory retirement age the
@@ -124,7 +131,7 @@ export function estimateNetIncomeForHousehold(household: Household): NetIncomeEs
 
   const details: NetYearDetail[] | null = isTracing() ? [] : null;
   const years: NetIncomeYear[] = [];
-  for (const { row, draws, streamsTotal, fromSavings } of retirementPlanYears(
+  for (const { row, draws, streamsTotal, coverCostMonthly, fromSavings } of retirementPlanYears(
     household,
     monthlyIncomeTodayMoney,
     rows,
@@ -134,7 +141,8 @@ export function estimateNetIncomeForHousehold(household: Household): NetIncomeEs
     );
     const memberTaxes = memberDetails.map(({ tax }) => tax.totalMonthly);
     const taxMonthly = Math.round(memberTaxes.reduce((sum, tax) => sum + tax, 0));
-    const grossMonthly = Math.round(streamsTotal + fromSavings);
+    // The cover cost is drawn and taxed like the rest of the draw, but it is not income to live on.
+    const grossMonthly = Math.round(streamsTotal + fromSavings - coverCostMonthly);
     years.push({
       age: row.age,
       grossMonthly,
@@ -142,7 +150,7 @@ export function estimateNetIncomeForHousehold(household: Household): NetIncomeEs
       netMonthly: grossMonthly - taxMonthly,
       taxableMonthly: Math.max(...memberDetails.map(({ taxableMonthly }) => taxableMonthly)),
     });
-    details?.push({ row, draws, streamsTotal, fromSavings, memberTaxes });
+    details?.push({ row, draws, streamsTotal, coverCostMonthly, fromSavings, memberTaxes });
   }
 
   const lowest = years.reduce<NetIncomeYear | null>(

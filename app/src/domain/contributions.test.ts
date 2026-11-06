@@ -6,8 +6,14 @@ import { buildTestProfile } from "../test/domainFixtures";
 import {
   futureValueOfMonthlyContributions,
   monthlyContributionForAccount,
+  monthlyRiskDeductionForAccount,
   totalMonthlyContribution,
 } from "./contributions";
+import { realAnnualReturnRate } from "./profileBasics";
+import { buildSources } from "./sources";
+import { runTraced } from "./trace";
+import { checkTrace } from "./traceCheck";
+import { constantsSnapshot } from "./traceConstants";
 
 function activeAccount(overrides: Partial<PensionAccount["contributions"]> = {}): PensionAccount {
   return {
@@ -20,6 +26,13 @@ function activeAccount(overrides: Partial<PensionAccount["contributions"]> = {})
       severanceRatePercent: 6,
       ...overrides,
     },
+  };
+}
+
+function insured(deduction: number | null, account: PensionAccount = activeAccount()): PensionAccount {
+  return {
+    ...account,
+    insuranceCoverages: { ...account.insuranceCoverages, monthlyRiskDeduction: deduction },
   };
 }
 
@@ -67,7 +80,46 @@ describe("monthlyContributionForAccount", () => {
   });
 });
 
+describe("monthlyContributionForAccount — risk premium", () => {
+  it("buys cover, not savings: the premium is taken off the deposit", () => {
+    // 18.5% of 10,000 = 1,850, of which 90 pays for the cover.
+    expect(monthlyContributionForAccount(insured(90), 10_000)).toBeCloseTo(1760, 6);
+  });
+
+  it("leaves the deposit alone when no premium is on file, or it is not a positive number", () => {
+    expect(monthlyContributionForAccount(insured(null), 10_000)).toBeCloseTo(1850, 6);
+    expect(monthlyContributionForAccount(insured(0), 10_000)).toBeCloseTo(1850, 6);
+    expect(monthlyContributionForAccount(insured(-40), 10_000)).toBeCloseTo(1850, 6);
+    expect(monthlyRiskDeductionForAccount(insured(-40))).toBe(0);
+    expect(monthlyRiskDeductionForAccount(insured(null))).toBe(0);
+    expect(monthlyRiskDeductionForAccount(insured(90))).toBe(90);
+  });
+
+  it("never goes below zero when the premium is larger than the deposit", () => {
+    // 18.5% of 400 = 74, less than the 90 premium.
+    expect(monthlyContributionForAccount(insured(90, activeAccount({ monthlySalaryBase: 400 })), 10_000)).toBe(0);
+  });
+
+  it("is still zero, not negative, for an account that is not actively contributing", () => {
+    const frozen = insured(90, { ...activeAccount(), accountStatus: "paidUpFrozen" });
+    expect(monthlyContributionForAccount(frozen, 10_000)).toBe(0);
+  });
+});
+
 describe("totalMonthlyContribution", () => {
+  it("takes the risk premium off the deposits of the accounts that carry one", () => {
+    const profile = buildTestProfile({
+      monthlyGrossSalary: 10_000,
+      pensionBalances: [0, 0],
+      pensionAccountOverrides: [
+        insured(90),
+        activeAccount({ employeeRatePercent: 2.5, employerRatePercent: 7.5, severanceRatePercent: 0 }),
+      ],
+    });
+    // (1,850 - 90) + 1,000: the study fund carries no premium.
+    expect(totalMonthlyContribution(profile)).toBeCloseTo(2760, 6);
+  });
+
   it("sums contributions across active accounts only", () => {
     const profile = buildTestProfile({
       monthlyGrossSalary: 10_000,
@@ -124,5 +176,59 @@ describe("futureValueOfMonthlyContributions", () => {
   it("is zero for no contribution or no time", () => {
     expect(futureValueOfMonthlyContributions(0, 0.03, 10)).toBe(0);
     expect(futureValueOfMonthlyContributions(1000, 0.03, 0)).toBe(0);
+  });
+});
+
+describe("risk premium in the sources", () => {
+  const EVALUATED_AT = new Date("2026-06-01T00:00:00Z");
+  const YEARS = 5;
+  const profileWith = (deduction: number | null) =>
+    buildTestProfile({
+      age: 50,
+      retirementAge: 55,
+      monthlyGrossSalary: 25_000,
+      investmentReturnPct: 4,
+      inflationPct: 2,
+      pensionBalances: [900_000],
+      pensionAccountOverrides: [insured(deduction)],
+    });
+
+  it("lowers what is added to the balance by exactly the premium, grown to retirement", () => {
+    const without = buildSources(profileWith(null), 55)[0];
+    const withPremium = buildSources(profileWith(90), 55)[0];
+    const rate = realAnnualReturnRate(profileWith(90).assumptions);
+
+    expect(without.monthlyContribution - withPremium.monthlyContribution).toBeCloseTo(90, 6);
+    expect(without.valueAtRetirement - withPremium.valueAtRetirement).toBeCloseTo(
+      futureValueOfMonthlyContributions(90, rate, YEARS),
+      4,
+    );
+    expect(withPremium.balance).toBe(without.balance);
+  });
+
+  it("records the premium in the trace and still checks out", () => {
+    const profile = profileWith(90);
+    const traced = runTraced(() => buildSources(profile, 55), { evaluatedAt: EVALUATED_AT });
+    expect(traced.result).toEqual(buildSources(profile, 55));
+
+    const step = traced.log.steps.find((s) => s.id.endsWith("/monthlyDeposit"));
+    expect(step?.inputs.monthlyRiskDeduction?.value).toBe(90);
+    expect(step?.output).toBeCloseTo(25_000 * 0.185 - 90, 6);
+
+    const report = checkTrace(traced.log, { profile, constants: constantsSnapshot() });
+    expect(report.issues).toEqual([]);
+  });
+
+  it("keeps the trace clean when the premium would take the deposit below zero", () => {
+    const profile = buildTestProfile({
+      age: 50,
+      retirementAge: 55,
+      monthlyGrossSalary: 400,
+      pensionBalances: [100_000],
+      pensionAccountOverrides: [insured(90)],
+    });
+    const traced = runTraced(() => buildSources(profile, 55), { evaluatedAt: EVALUATED_AT });
+    expect(traced.result[0].monthlyContribution).toBe(0);
+    expect(checkTrace(traced.log, { profile, constants: constantsSnapshot() }).issues).toEqual([]);
   });
 });

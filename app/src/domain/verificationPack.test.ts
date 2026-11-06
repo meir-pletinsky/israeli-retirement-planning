@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { buildTestProfile } from "../test/domainFixtures";
 import { buildTraceCouple } from "../test/traceFixtures";
-import type { ProfileData } from "../types";
+import { createCoverPlan, type ProfileData } from "../types";
 import { MAX_RETIREMENT_SEARCH_AGE } from "./constants";
 import { calculateFundingGap, calculateFundingGapAtAge } from "./fundingGap";
 import { retirementTimingShiftedTo } from "./household";
@@ -343,6 +343,52 @@ describe("verification pack for other targets", () => {
     expect(baseYear?.output).toBe(2033);
     const standard = pack.displayed.ageComparison.find((row) => row.retirementAge === 62);
     expect(standard?.netMonthlyIncome).toBe(pack.displayed.fundingGap.estimatedMonthlyIncome);
+  });
+});
+
+describe("verification pack with a cover plan", () => {
+  const profile = buildTestProfile({
+    age: 50,
+    retirementAge: 55,
+    maritalStatus: "married",
+    pensionBalances: [900_000, 400_000],
+    pensionAccountOverrides: [
+      {
+        accountStatus: "activeContributing",
+        insuranceCoverages: {
+          deathCoverageAmount: 800_000,
+          monthlyDisabilityAmount: null,
+          monthlyRiskDeduction: 90,
+          monthlySurvivorsSpousePension: 4_000,
+          survivorSpousePercent: null,
+        },
+      },
+      { owner: "spouse" },
+    ],
+    otherAssets: 500_000,
+    retirementMonthlyExpenses: 12_000,
+    coverPlan: { ...createCoverPlan("keepPensionInsurance"), needUntilAge: 62 },
+    spouse: { age: 48, retirementAge: 53, coverPlan: { ...createCoverPlan("termLife"), monthlyCost: 250, termEndAge: 58 } },
+  });
+  const { pack } = buildVerificationPack({
+    profile,
+    target: { kind: "scenario", scenario: "standard" },
+    evaluatedAt: EVALUATED_AT,
+  });
+
+  it("keeps the chosen options and the numbers, and re-checks cleanly", () => {
+    const inputs = pack.inputs as ProfileData;
+    expect(inputs.personal.coverPlan).toMatchObject({ option: "keepPensionInsurance", needUntilAge: 62 });
+    expect(inputs.spouse.coverPlan).toMatchObject({ option: "termLife", monthlyCost: 250, termEndAge: 58 });
+    expect(pack.selfCheck.issues).toEqual([]);
+    const ids = pack.trace.steps.map((step) => step.id);
+    expect(ids).toEqual(expect.arrayContaining(["self/cover/monthlyCost", "spouse/cover/endAge"]));
+    expect(pack.constants).toHaveProperty("COVER_RULES");
+  });
+
+  it("holds the cover steps' own option text through the redaction", () => {
+    const step = pack.trace.steps.find((candidate) => candidate.id === "self/cover/monthlyCost");
+    expect(step?.inputs.option.value).toBe("keepPensionInsurance");
   });
 });
 

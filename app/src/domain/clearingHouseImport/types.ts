@@ -38,6 +38,8 @@ export interface ImportedFieldValues {
   deathCoverageAmount: number;
   monthlyDisabilityAmount: number;
   monthlyRiskDeduction: number;
+  monthlySurvivorsSpousePension: number;
+  survivorSpousePercent: number;
   investmentTrackName: string;
   feeFromAccumulationPercent: number;
   feeFromDepositPercent: number;
@@ -65,6 +67,8 @@ export const ACCOUNT_FIELD_KEYS: readonly AccountFieldKey[] = [
   "deathCoverageAmount",
   "monthlyDisabilityAmount",
   "monthlyRiskDeduction",
+  "monthlySurvivorsSpousePension",
+  "survivorSpousePercent",
   "investmentTrackName",
   "feeFromAccumulationPercent",
   "feeFromDepositPercent",

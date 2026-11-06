@@ -13,6 +13,7 @@ import {
 import { clearAllData, saveOnboardedToDb, saveProfileToDb } from "../storage/db";
 import { buildTestProfile } from "../test/domainFixtures";
 import { renderWithProviders } from "../test/renderWithProviders";
+import { createCoverPlan } from "../types";
 import { Dashboard } from "./Dashboard";
 
 beforeEach(async () => {
@@ -961,6 +962,97 @@ describe("Dashboard", () => {
     it("does not mention a spouse for a single person", async () => {
       const section = (await renderChecks(buildTestProfile(plan))) as HTMLElement;
       expect(within(section).queryByText(/Your spouse/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe("cover notice", () => {
+    const covered = {
+      accountStatus: "activeContributing" as const,
+      insuranceCoverages: {
+        deathCoverageAmount: 600_000,
+        monthlyDisabilityAmount: null,
+        monthlyRiskDeduction: 85,
+        monthlySurvivorsSpousePension: 3_500,
+        survivorSpousePercent: null,
+      },
+    };
+    const base = { age: 50, retirementAge: 55, pensionBalances: [100_000], pensionAccountOverrides: [covered] };
+    const heading = { name: "Insurance cover that ends when deposits stop" };
+
+    async function seed(profile: ReturnType<typeof buildTestProfile>) {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+    }
+
+    it("tells a person with cover on file and no choice when it ends, with a link to choose", async () => {
+      await seed(buildTestProfile(base));
+      renderWithProviders(<Dashboard />);
+
+      const card = (await screen.findByRole("heading", heading)).closest("section")!;
+      expect(
+        within(card).getByText(
+          /Your cover ends at about age 55 years 5 months, 4\.6 years before the age it is needed until \(60\)\./,
+        ),
+      ).toBeInTheDocument();
+      expect(within(card).getByRole("link", { name: "Choose what to do" })).toHaveAttribute("href", "/my-data/personal");
+    });
+
+    it("is hidden once a plan is saved", async () => {
+      await seed(buildTestProfile({ ...base, coverPlan: createCoverPlan("none") }));
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      expect(screen.queryByRole("heading", heading)).not.toBeInTheDocument();
+    });
+
+    it("is hidden when no account states any cover", async () => {
+      await seed(buildTestProfile({ age: 50, retirementAge: 55, pensionBalances: [100_000] }));
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      expect(screen.queryByRole("heading", heading)).not.toBeInTheDocument();
+    });
+
+    it("is hidden when the person retires at or after the age the cover is needed until", async () => {
+      await seed(buildTestProfile({ ...base, retirementAge: 62 }));
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      expect(screen.queryByRole("heading", heading)).not.toBeInTheDocument();
+    });
+
+    it("lists the spouse separately", async () => {
+      await seed(
+        buildTestProfile({
+          ...base,
+          maritalStatus: "married",
+          spouse: { age: 48, retirementAge: 52 },
+          pensionBalances: [100_000, 80_000],
+          pensionAccountOverrides: [covered, { ...covered, owner: "spouse" as const }],
+        }),
+      );
+      renderWithProviders(<Dashboard />);
+
+      const card = (await screen.findByRole("heading", heading)).closest("section")!;
+      expect(within(card).getAllByRole("listitem")).toHaveLength(2);
+      expect(within(card).getByText(/Your spouse's cover ends at about age 52 years 5 months, 7\.6 years/)).toBeInTheDocument();
+    });
+
+    it("leaves out a spouse who has already chosen", async () => {
+      await seed(
+        buildTestProfile({
+          ...base,
+          maritalStatus: "married",
+          spouse: { age: 48, retirementAge: 52, coverPlan: createCoverPlan("termLife") },
+          pensionBalances: [100_000, 80_000],
+          pensionAccountOverrides: [covered, { ...covered, owner: "spouse" as const }],
+        }),
+      );
+      renderWithProviders(<Dashboard />);
+
+      const card = (await screen.findByRole("heading", heading)).closest("section")!;
+      expect(within(card).getAllByRole("listitem")).toHaveLength(1);
+      expect(within(card).queryByText(/Your spouse's cover/)).not.toBeInTheDocument();
     });
   });
 });

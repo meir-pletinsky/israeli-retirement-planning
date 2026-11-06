@@ -1,6 +1,7 @@
 import type { ProfileData } from "../types";
 import {
   buildHousehold,
+  coverCostYears,
   primaryAgeAtMemberAge,
   resolveRetirementTiming,
   retirementTimingAtAge,
@@ -31,6 +32,7 @@ function annuityFactor(monthlyRate: number, months: number): number {
 }
 
 interface Stream {
+  /** Negative for a payment the household makes (the cost of survivors' cover). */
   monthly: number;
   /** Months after household retirement until the payments start. */
   startMonth: number;
@@ -226,6 +228,34 @@ function estimateIncome(household: Household): RetirementIncomeEstimate {
         }
       }
 
+      const coverYears = coverCostYears(member);
+      if (member.coverCost && coverYears) {
+        const startMonth = monthsAfterRetirement(coverYears.startYears);
+        const endMonth = monthsAfterRetirement(coverYears.endYears);
+        if (endMonth > startMonth) {
+          streams.push({
+            monthly: -member.coverCost.monthly,
+            startMonth,
+            endMonth,
+            label: `${member.role}: insurance cover cost`,
+          });
+        }
+        recordStreamMonth(
+          "coverCostStartMonth",
+          "Month the cover starts to cost money",
+          member.coverCost.startAge,
+          fromLatestStep(`${member.role}/cover/startAge`),
+          startMonth,
+        );
+        recordStreamMonth(
+          "coverCostEndMonth",
+          "Month the cover stops costing money",
+          member.coverCost.endAge,
+          fromLatestStep(`${member.role}/cover/endAge`),
+          endMonth,
+        );
+      }
+
       for (const source of member.sources) {
         const sourceScope = sourceTraceScope(source);
         const value = source.valueAtRetirement * catchUpGrowth;
@@ -417,7 +447,7 @@ function estimateIncome(household: Household): RetirementIncomeEstimate {
   }
   return {
     ...base,
-    monthlyIncomeTodayMoney: Math.round(monthlyIncome),
+    monthlyIncomeTodayMoney: Math.max(Math.round(monthlyIncome), 0),
     access: {
       ...access,
       bridgeLimited,
@@ -448,7 +478,7 @@ function recordIncomeInputs(trace: IncomeInputsTrace): void {
       stream.startMonth,
       stream.endMonth,
     ]),
-    note: "Months are counted from the household's retirement. Amounts are monthly, in today's money.",
+    note: "Months are counted from the household's retirement. Amounts are monthly, in today's money. A negative amount is a payment the household makes: the cost of survivors' cover.",
   }));
   recordTable("spendable", () => ({
     title: "Capital that can be spent, and when it unlocks",
@@ -620,10 +650,10 @@ function recordSolverSteps(trace: SolverTrace): void {
   }));
   recordStep("monthlyIncomeTodayMoney", () => ({
     title: "Sustainable monthly income (today's money), rounded",
-    formula: "round(monthly income)",
-    expr: "round(monthlyIncome)",
+    formula: "round(monthly income); never below 0, which only the cost of survivors' cover can cause",
+    expr: "max(round(monthlyIncome), 0)",
     inputs: { monthlyIncome: input(trace.monthlyIncome, fromStep(incomeId)) },
-    output: Math.round(trace.monthlyIncome),
+    output: Math.max(Math.round(trace.monthlyIncome), 0),
   }));
   recordStep("unconstrainedMonthlyIncome", () => ({
     title: "Income if nothing were locked (the planning-horizon level), rounded",

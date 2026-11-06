@@ -9,6 +9,7 @@ import { NumberField } from "../../components/fields/NumberField";
 import { SelectField } from "../../components/fields/SelectField";
 import type { Gender, MaritalStatus } from "../../types";
 import { useActivePerson, type Person } from "./activePerson";
+import { CoverPlanSection } from "./CoverPlanSection";
 import { PersonTabs, type PersonTab } from "./PersonTabs";
 import { StepFooter } from "./StepFooter";
 import { SpouseSection } from "./SpouseSection";
@@ -262,6 +263,8 @@ export function PersonalStep() {
           suffix={currency}
         />
       </CollapsibleSection>
+
+      <CoverPlanSection person="self" />
     </>
   );
 

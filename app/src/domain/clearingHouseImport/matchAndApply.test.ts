@@ -12,6 +12,7 @@ import {
   diffField,
   matchCandidates,
   reportInfoFor,
+  writeField,
   type ImportPlan,
   type ImportReportInfo,
 } from "./matchAndApply";
@@ -91,6 +92,20 @@ describe("diffField and defaultSelectedFields", () => {
       annuityParameters: { ...createEmptyPensionAccount().annuityParameters, hasGuaranteedFactor: true },
     });
     expect(diffField(ticked, "hasGuaranteedFactor", true)).toBe("same");
+  });
+
+  it("reads and writes the survivors' fields of an account", () => {
+    const existing = account();
+    expect(diffField(existing, "monthlySurvivorsSpousePension", 4080)).toBe("fillsEmpty");
+    expect(diffField(existing, "survivorSpousePercent", 51)).toBe("fillsEmpty");
+
+    const written = writeField(writeField(existing, "monthlySurvivorsSpousePension", 4080), "survivorSpousePercent", 51);
+    expect(written.insuranceCoverages.monthlySurvivorsSpousePension).toBe(4080);
+    expect(written.insuranceCoverages.survivorSpousePercent).toBe(51);
+    expect(diffField(written, "monthlySurvivorsSpousePension", 4080)).toBe("same");
+    expect(diffField(written, "survivorSpousePercent", 40)).toBe("differs");
+    // The other coverage fields stay as they were.
+    expect(written.insuranceCoverages.deathCoverageAmount).toBe(existing.insuranceCoverages.deathCoverageAmount);
   });
 });
 

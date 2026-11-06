@@ -6,6 +6,7 @@ import { useProfile } from "../app/ProfileContext";
 import { IncomeBreakdownChart } from "../components/charts/IncomeBreakdownChart";
 import { NetIncomeChart } from "../components/charts/NetIncomeChart";
 import { NetWorthChart } from "../components/charts/NetWorthChart";
+import { CoverOptionsCard } from "../components/CoverOptionsCard";
 import { FeasibilityCard } from "../components/FeasibilityCard";
 import { HistoricalBacktestCard } from "../components/HistoricalBacktestCard";
 import { LiquidityLadderCard } from "../components/LiquidityLadderCard";
@@ -24,17 +25,20 @@ import {
   buildRetirementTimeline,
   buildSourceCostTable,
   buildStressTest,
+  compareCoverOptions,
   compareWithdrawalStrategies,
   desiredRetirementMonthly,
   estimateIncomeBreakdown,
   estimateNetIncome,
   findEarliestFeasibleRetirementAge,
   isHouseholdActive,
+  planForOption,
   projectNetWorth,
   runMonteCarlo,
+  savedCoverPlan,
   spouseAgeAt,
 } from "../domain";
-import type { RetirementScenario } from "../types";
+import type { AccountOwner, CoverOption, RetirementScenario } from "../types";
 
 const SCENARIOS: RetirementScenario[] = ["early", "standard", "delayed"];
 
@@ -71,6 +75,15 @@ export function Projections() {
     [profile, scenario],
   );
   const feasibility = findEarliestFeasibleRetirementAge(profile);
+  const coverComparisons = useMemo(() => compareCoverOptions(profile), [profile]);
+  const chooseCover = (person: AccountOwner, option: CoverOption) => {
+    const next = planForOption(savedCoverPlan(profile, person), option);
+    updateProfile(
+      person === "spouse"
+        ? { spouse: { ...profile.spouse, coverPlan: next } }
+        : { personal: { ...profile.personal, coverPlan: next } },
+    );
+  };
   const isCouple = isHouseholdActive(profile);
   const bandLabels: Record<IncomeBandKey, string> = {
     pensionFund: t("projections.sourcePension"),
@@ -208,6 +221,8 @@ export function Projections() {
       <SourceCostCard rows={sourceCosts} isCouple={isCouple} />
 
       <UnvestedSharesCard cost={leavingEarly} />
+
+      <CoverOptionsCard comparisons={coverComparisons} onSelect={chooseCover} />
 
       <StressTestCard stress={stress} />
 

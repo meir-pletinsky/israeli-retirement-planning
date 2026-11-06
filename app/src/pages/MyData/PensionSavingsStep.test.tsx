@@ -86,6 +86,29 @@ describe("PensionSavingsStep — accounts repeater", () => {
       });
     });
   });
+  it("saves the spouse's survivors' pension entered in the Insurance coverages section", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<PensionSavingsStep />, {
+      route: "/my-data/pension-savings",
+    });
+
+    await user.click(await screen.findByRole("button", { name: "Add account" }));
+    await user.type(screen.getByLabelText(/^Provider name/), "Clal");
+    await user.click(screen.getByRole("button", { name: /insurance coverages/i }));
+    await user.type(screen.getByLabelText(/Monthly survivors' pension to a spouse/), "4080");
+    await user.type(screen.getByLabelText(/Spouse's survivors' pension, % of pensionable salary/), "51");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(await screen.findAllByText("Clal")).not.toHaveLength(0);
+    await waitFor(async () => {
+      const stored = await loadProfileFromDb();
+      expect(stored?.pensionSavings.accounts[0].insuranceCoverages).toMatchObject({
+        monthlySurvivorsSpousePension: 4080,
+        survivorSpousePercent: 51,
+      });
+    });
+  });
+
   it("links to the Pension Clearing House import", async () => {
     renderWithProviders(<PensionSavingsStep />, {
       route: "/my-data/pension-savings",

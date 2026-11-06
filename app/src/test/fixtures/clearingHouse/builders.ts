@@ -45,6 +45,9 @@ export interface TrackRow {
 export interface CoverageSpec {
   basicDeath?: number | null;
   pensionDisability?: number | null;
+  /** Placed under `KisuiBKerenPensia`, next to the disability pension. */
+  survivorsSpouse?: number | null;
+  survivorsSpousePercent?: number | null;
   blocks?: { type: number; amount: number | null }[];
 }
 
@@ -193,8 +196,15 @@ export function policy(options: PolicyOptions = {}): XmlNode {
           el(
             "ZihuiKisui",
             cover.basicDeath !== undefined && el("SchumeiBituahYesodi", leaf("SCHUM-BITUAH-LEMAVET", cover.basicDeath)),
-            cover.pensionDisability !== undefined &&
-              el("KisuiBKerenPensia", leaf("SACH-PENSIAT-NECHUT", cover.pensionDisability)),
+            (cover.pensionDisability !== undefined ||
+              cover.survivorsSpouse !== undefined ||
+              cover.survivorsSpousePercent !== undefined) &&
+              el(
+                "KisuiBKerenPensia",
+                opt("SACH-PENSIAT-NECHUT", cover.pensionDisability),
+                opt("KITZBAT-SHEERIM-LEALMAN-O-ALMANA", cover.survivorsSpouse),
+                opt("SHEUR-KISUY-ALMAN-O-ALMANA", cover.survivorsSpousePercent),
+              ),
             ...(cover.blocks ?? []).map((block) =>
               el("PirteiKisuiBeMutzar", leaf("SUG-KISUY-BITOCHI", block.type), leaf("SCHUM-BITUACH", block.amount)),
             ),

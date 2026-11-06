@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { clearAllData, loadProfileFromDb, saveProfileToDb } from "../../storage/db";
 import { buildTestProfile } from "../../test/domainFixtures";
 import { renderWithProviders } from "../../test/renderWithProviders";
+import { createCoverPlan } from "../../types";
 import { ExpensesStep } from "./ExpensesStep";
 import { MyDataLayout } from "./MyDataLayout";
 
@@ -352,3 +353,64 @@ describe("ExpensesStep — suggestions", () => {
     expect(screen.getByRole("checkbox", { name: /^Groceries/ })).not.toBeChecked();
   });
 });
+
+describe("ExpensesStep — insurance cover costs", () => {
+  const coverBase = {
+    age: 50,
+    retirementAge: 55,
+    pensionBalances: [900_000],
+    pensionAccountOverrides: [
+      {
+        accountStatus: "activeContributing" as const,
+        insuranceCoverages: {
+          deathCoverageAmount: 800_000,
+          monthlyDisabilityAmount: null,
+          monthlyRiskDeduction: 90,
+          monthlySurvivorsSpousePension: 4_000,
+          survivorSpousePercent: null,
+        },
+      },
+    ],
+    retirementMonthlyExpenses: 12_000,
+  };
+
+  it("shows nothing when no cover is paid for", async () => {
+    await saveProfileToDb(buildTestProfile({ ...coverBase, coverPlan: createCoverPlan("none") }));
+    renderStep();
+
+    await screen.findByRole("radio", { name: "One total" });
+    expect(screen.queryByTestId("expenses-cover-costs")).not.toBeInTheDocument();
+  });
+
+  it("shows the cost of the saved plan, read only, with the ages it is paid between", async () => {
+    await saveProfileToDb(buildTestProfile({ ...coverBase, coverPlan: createCoverPlan("keepPensionInsurance") }));
+    renderStep();
+
+    const block = await screen.findByRole("region", { name: "Insurance cover costs" });
+    expect(block).toHaveTextContent("Your cover: Keep the pension insurance, ₪90 per month, from age 55 years 5 months to age 60");
+    expect(within(block).queryByRole("textbox")).not.toBeInTheDocument();
+    expect(within(block).queryByRole("spinbutton")).not.toBeInTheDocument();
+    expect(block).toHaveTextContent("You cannot edit it here");
+  });
+
+  it("lists the spouse's own plan next to the user's", async () => {
+    await saveProfileToDb(
+      buildTestProfile({
+        ...coverBase,
+        maritalStatus: "married",
+        coverPlan: createCoverPlan("keepPensionInsurance"),
+        spouse: {
+          age: 48,
+          retirementAge: 53,
+          coverPlan: { ...createCoverPlan("termLife"), monthlyCost: 250, termEndAge: 58 },
+        },
+      }),
+    );
+    renderStep();
+
+    const block = await screen.findByRole("region", { name: "Insurance cover costs" });
+    expect(within(block).getAllByRole("listitem")).toHaveLength(2);
+    expect(block).toHaveTextContent("Your spouse's cover: Term life policy, ₪250 per month, from age 53 years 5 months to age 58");
+  });
+});
+

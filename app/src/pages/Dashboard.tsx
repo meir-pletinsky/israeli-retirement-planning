@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { useProfile } from "../app/ProfileContext";
 import { BituachLeumiCard } from "../components/BituachLeumiCard";
 import { NetWorthChart } from "../components/charts/NetWorthChart";
+import { CoverNoticeCard } from "../components/CoverNoticeCard";
 import { DataGapsCard } from "../components/DataGapsCard";
 import { EmptyState } from "../components/EmptyState";
 import { FeasibilityCard } from "../components/FeasibilityCard";
@@ -24,6 +25,7 @@ import {
   estimateNetIncome,
   estimateRetirementIncome,
   findDataGaps,
+  findCoverNotices,
   findEarliestFeasibleRetirementAge,
   projectNetWorth,
   runMonteCarlo,
@@ -79,6 +81,7 @@ export function Dashboard() {
   const feasibility = findEarliestFeasibleRetirementAge(profile);
   const hasTarget = feasibility.status !== "noTarget";
   const gaps = findDataGaps(profile);
+  const coverNotices = findCoverNotices(profile);
 
   return (
     <div className="flex flex-col gap-6">
@@ -121,6 +124,8 @@ export function Dashboard() {
       <RetirementSnapshot kpis={snapshot.kpis} />
 
       <DataGapsCard gaps={gaps} />
+
+      <CoverNoticeCard notices={coverNotices} />
 
       <FeasibilityCard
         feasibility={feasibility}

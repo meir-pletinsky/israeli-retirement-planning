@@ -8,6 +8,8 @@ import {
   EMPTY_PROFILE,
   EMPTY_SPOUSE,
   WITHDRAWAL_STRATEGIES,
+  createCoverPlan,
+  normalizeCoverPlan,
   normalizeProfile,
 } from "./index";
 
@@ -348,6 +350,85 @@ describe("normalizeProfile", () => {
       pensionSavings: { ...profile.pensionSavings, reports: "nope" },
     } as unknown as Parameters<typeof normalizeProfile>[0]);
     expect(result.pensionSavings.reports).toEqual([]);
+  });
+
+  describe("cover plan", () => {
+    const withPlans = (personal: unknown, spouse: unknown) =>
+      normalizeProfile({
+        ...buildTestProfile({ age: 40 }),
+        personal,
+        spouse,
+      } as unknown as Parameters<typeof normalizeProfile>[0]);
+
+    it("reads a profile saved before cover plans as not decided, for both people", () => {
+      const { coverPlan: _a, ...legacyPersonal } = EMPTY_PROFILE.personal;
+      const { coverPlan: _b, ...legacySpouse } = EMPTY_SPOUSE;
+      const result = withPlans(legacyPersonal, legacySpouse);
+      expect(result.personal.coverPlan).toBeNull();
+      expect(result.spouse.coverPlan).toBeNull();
+    });
+
+    it("keeps each person's own saved plan", () => {
+      const result = withPlans(
+        { ...EMPTY_PROFILE.personal, coverPlan: { ...createCoverPlan("termLife"), monthlyCost: 300, termEndAge: 60 } },
+        { ...EMPTY_SPOUSE, coverPlan: { ...createCoverPlan("keepPensionInsurance"), keepPayingAfterArrangement: false } },
+      );
+      expect(result.personal.coverPlan).toEqual({
+        option: "termLife",
+        needUntilAge: null,
+        monthlyCost: 300,
+        termEndAge: 60,
+        keepPayingAfterArrangement: true,
+      });
+      expect(result.spouse.coverPlan?.option).toBe("keepPensionInsurance");
+      expect(result.spouse.coverPlan?.keepPayingAfterArrangement).toBe(false);
+    });
+
+    it("treats an unknown option or a value that is not a plan as not decided", () => {
+      for (const bad of [{ option: "everything" }, { option: null }, "none", 7, []]) {
+        expect(normalizeCoverPlan(bad)).toBeNull();
+      }
+      expect(normalizeCoverPlan(null)).toBeNull();
+      expect(normalizeCoverPlan(undefined)).toBeNull();
+    });
+
+    it("drops numbers that cannot be right but keeps a zero cost", () => {
+      expect(
+        normalizeCoverPlan({
+          option: "termLife",
+          needUntilAge: -5,
+          monthlyCost: -1,
+          termEndAge: "soon",
+          keepPayingAfterArrangement: "yes",
+        }),
+      ).toEqual({
+        option: "termLife",
+        needUntilAge: null,
+        monthlyCost: null,
+        termEndAge: null,
+        keepPayingAfterArrangement: true,
+      });
+      expect(normalizeCoverPlan({ option: "keepPensionInsurance", monthlyCost: 0 })?.monthlyCost).toBe(0);
+    });
+  });
+
+  it("adds the survivors' fields to accounts saved before they existed", () => {
+    const profile = buildTestProfile({ age: 40, pensionBalances: [1000] });
+    const legacyAccount = {
+      ...profile.pensionSavings.accounts[0],
+      insuranceCoverages: { deathCoverageAmount: 500_000, monthlyDisabilityAmount: null, monthlyRiskDeduction: 120 },
+    };
+    const result = normalizeProfile({
+      ...profile,
+      pensionSavings: { ...profile.pensionSavings, accounts: [legacyAccount] },
+    } as unknown as Parameters<typeof normalizeProfile>[0]);
+    expect(result.pensionSavings.accounts[0].insuranceCoverages).toEqual({
+      deathCoverageAmount: 500_000,
+      monthlyDisabilityAmount: null,
+      monthlyRiskDeduction: 120,
+      monthlySurvivorsSpousePension: null,
+      survivorSpousePercent: null,
+    });
   });
 
   describe("expenses", () => {
