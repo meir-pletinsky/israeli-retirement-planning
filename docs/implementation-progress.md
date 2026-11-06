@@ -2048,6 +2048,17 @@ rest).
   not work there because `main` scrolls, so the bar's offsets are coupled to `AppShell`; the
   mobile nav now has a fixed `h-16` to keep them aligned. "Calculation-critical" is
   approximated as changed-versus-existing or uncertain values.
+- [Review-UX-13] The My Data account tables no longer hide the balance on a phone or widen the
+  page on a desktop. `SummaryTable` (used by the pension, bank-deposit, equity and expense
+  tables) renders each row as a card below the `md` breakpoint (`useMediaQuery`, in
+  `app/useMediaQuery.ts`; it reports "not narrow" where `matchMedia` is missing, as in jsdom).
+  A card shows the first column as its title, the columns flagged `primary` as label / value pairs
+  (pension: category and balance; bank deposits: amount and current value; equity: quantity and
+  shekel value; expenses: amount and per month), every other column under a native
+  `<details>` "More details", then Edit / Remove (still described by the card title) and, after
+  the list, the totals. The card actions are visible buttons, not an overflow menu. The desktop
+  table is unchanged, and the content column of `AppShell` now has `min-w-0`, so a wide table
+  scrolls inside its own container instead of stretching the document past the viewport.
 
 ## Modeling assumptions (by phase)
 

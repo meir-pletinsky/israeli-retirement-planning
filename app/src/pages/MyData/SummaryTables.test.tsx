@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Route, Routes } from "react-router-dom";
 
 import { clearAllData, loadProfileFromDb, saveProfileToDb } from "../../storage/db";
@@ -502,6 +502,142 @@ describe("My Data summary tables — Equity & Investments", () => {
     expect(screen.getByRole("button", { name: "Add ESPP purchase" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add private trade" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add bank deposit" })).toBeInTheDocument();
+  });
+});
+
+describe("My Data summary tables — narrow screens", () => {
+  beforeEach(() => {
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: true,
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("shows each account as a card with its category and balance up front, not as a table", async () => {
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 50,
+        pensionBalances: [100_000, 50_000],
+        pensionAccountOverrides: [
+          {
+            providerName: "Acme Pension",
+            policyNumber: "P-100",
+            productCategory: "comprehensivePension",
+            contributions: {
+              monthlySalaryBase: 20_000,
+              employeeRatePercent: 6,
+              employerRatePercent: 6.5,
+              severanceRatePercent: 6,
+            },
+          },
+          { providerName: "Beta Study Fund", productCategory: "studyFund" },
+        ],
+      }),
+    );
+    renderStep("pension-savings");
+
+    const list = await screen.findByRole("list", { name: "Pension & savings accounts" });
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    const [first, second] = within(list).getAllByRole("listitem");
+    expect(first).toHaveTextContent("Acme Pension");
+    expect(first).toHaveTextContent("Policy P-100");
+
+    const face = within(first).getByText("Total accumulated balance").closest("dl")!;
+    expect(face).toHaveTextContent("Comprehensive pension fund");
+    expect(face).toHaveTextContent(`${SHEKEL}100,000`);
+    expect(second).toHaveTextContent(`${SHEKEL}50,000`);
+
+    const totals = screen.getByRole("group", { name: "Total" });
+    expect(totals).toHaveTextContent(`${SHEKEL}150,000`);
+  });
+
+  it("keeps the secondary figures behind a More details disclosure on each card", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 50,
+        pensionBalances: [100_000],
+        pensionAccountOverrides: [
+          {
+            providerName: "Acme Pension",
+            contributions: {
+              monthlySalaryBase: 20_000,
+              employeeRatePercent: 6,
+              employerRatePercent: 6.5,
+              severanceRatePercent: 6,
+            },
+          },
+        ],
+      }),
+    );
+    renderStep("pension-savings");
+
+    const [card] = within(await screen.findByRole("list", { name: "Pension & savings accounts" })).getAllByRole(
+      "listitem",
+    );
+    const details = card.querySelector("details")!;
+    expect(details).not.toHaveAttribute("open");
+    expect(details).toHaveTextContent("Employee contribution rate");
+    expect(details).toHaveTextContent("6.5%");
+    expect(card.querySelector("dl")).not.toHaveTextContent("Employee contribution rate");
+
+    await user.click(within(card).getByText("More details"));
+    expect(details).toHaveAttribute("open");
+  });
+
+  it("edits and removes the account whose card button was pressed", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 50,
+        pensionBalances: [100_000, 50_000],
+        pensionAccountOverrides: [{ providerName: "Acme Pension" }, { providerName: "Beta Fund" }],
+      }),
+    );
+    renderStep("pension-savings");
+
+    const list = await screen.findByRole("list", { name: "Pension & savings accounts" });
+    const [first, second] = within(list).getAllByRole("listitem");
+    expect(within(first).getByRole("button", { name: "Edit" })).toHaveAccessibleDescription(/Acme Pension/);
+    expect(within(second).getByRole("button", { name: "Remove" })).toHaveAccessibleDescription(/Beta Fund/);
+
+    await user.click(within(second).getByRole("button", { name: "Edit" }));
+    expect(screen.getByLabelText(/^Provider name/)).toHaveValue("Beta Fund");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    await user.click(within(first).getByRole("button", { name: "Remove" }));
+    await user.click(screen.getByRole("button", { name: "Confirm" }));
+    await waitFor(() => expect(within(list).queryByText("Acme Pension")).not.toBeInTheDocument());
+    expect(within(list).getByText("Beta Fund")).toBeInTheDocument();
+  });
+
+  it("shows the quantity and the shekel value of each holding up front", async () => {
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 50,
+        usdToIlsRate: { rate: 3, date: "2026-10-30" },
+        equity: [
+          { category: "employerGrantedStock", ticker: "AAA", quantity: 4, priceUSD: 10 },
+          { category: "employerGrantedStock", ticker: "BBB", quantity: 2, priceUSD: 10 },
+        ],
+      }),
+    );
+    renderStep("equity");
+
+    const list = await screen.findByRole("list", { name: "ESOP / RSU at a glance" });
+    const [first] = within(list).getAllByRole("listitem");
+    expect(first).toHaveTextContent("AAA");
+    const face = within(first).getByText("Quantity (shares)").closest("dl")!;
+    expect(face).toHaveTextContent("4");
+    expect(face).toHaveTextContent(`${SHEKEL}120`);
+    expect(first.querySelector("details")).toHaveTextContent("Current price (USD)");
+    expect(within(first).getByRole("button", { name: "Edit" })).toHaveAccessibleDescription(/AAA/);
   });
 });
 

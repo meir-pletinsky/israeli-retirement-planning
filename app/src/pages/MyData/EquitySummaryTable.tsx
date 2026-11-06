@@ -85,6 +85,7 @@ export function EquityCategoryTable({
       key: "quantity",
       header: t(`${FIELDS}.fields.quantity`),
       numeric: true,
+      primary: true,
       cell: (holding) =>
         holding.quantity === null ? EMPTY_CELL : holding.quantity.toLocaleString(),
     },
@@ -145,6 +146,7 @@ export function EquityCategoryTable({
       key: "valueIls",
       header: t("myData.summary.valueIls"),
       numeric: true,
+      primary: true,
       cell: (holding) =>
         holdingValueUsd(holding) === null
           ? EMPTY_CELL

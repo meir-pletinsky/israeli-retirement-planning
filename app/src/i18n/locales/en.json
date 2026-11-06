@@ -306,7 +306,8 @@
         "boi": "Bank of Israel rate of {{date}}. Type another rate to use your own.",
         "typed": "The rate you entered. Shekel values use it until you switch back to the automatic rate.",
         "fallback": "A rough built-in rate, as no exchange rate has been looked up. Type your own, or allow lookups in Settings."
-      }
+      },
+      "moreDetails": "More details"
     },
     "validation": {
       "required": "This field is required.",

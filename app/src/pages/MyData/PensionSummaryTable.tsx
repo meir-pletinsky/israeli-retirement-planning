@@ -72,6 +72,7 @@ export function PensionSummaryTable({
     {
       key: "category",
       header: t(`${FIELDS}.fields.productCategory`),
+      primary: true,
       cell: (account) => categoryLabel(account) ?? EMPTY_CELL,
     },
     {
@@ -84,6 +85,7 @@ export function PensionSummaryTable({
       key: "balance",
       header: t(`${FIELDS}.fields.totalAccumulatedBalance`),
       numeric: true,
+      primary: true,
       cell: (account) => formatCurrency(account.totalAccumulatedBalance, currency),
       total: formatCurrency(sumBalances(accounts), currency),
     },

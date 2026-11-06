@@ -41,6 +41,7 @@ export function BankDepositsTable({ deposits, toolbar, emptyMessage, onEdit, onR
       key: "amount",
       header: t(`${FIELDS}.fields.amount`),
       numeric: true,
+      primary: true,
       cell: (deposit) => formatCurrency(deposit.amount, currency),
     },
     {
@@ -76,6 +77,7 @@ export function BankDepositsTable({ deposits, toolbar, emptyMessage, onEdit, onR
       key: "currentValue",
       header: t(`${FIELDS}.currentValue`),
       numeric: true,
+      primary: true,
       cell: (deposit) =>
         formatCurrency(Math.round(bankDepositValueIls(deposit, inflationPct, nowMs)), currency),
       total: formatCurrency(Math.round(totalValue), currency),

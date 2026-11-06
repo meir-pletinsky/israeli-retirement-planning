@@ -39,6 +39,7 @@ function CategoryTable({ category, items, onEdit, onRemove }: CategoryTableProps
       key: "amount",
       header: t(`${EXPENSES}.columns.amount`),
       numeric: true,
+      primary: true,
       cell: (item) => formatCurrency(item.amount, currency),
     },
     {
@@ -55,6 +56,7 @@ function CategoryTable({ category, items, onEdit, onRemove }: CategoryTableProps
       key: "perMonth",
       header: t(`${EXPENSES}.columns.perMonth`),
       numeric: true,
+      primary: true,
       cell: (item) => perMonthCell(item, currency),
       total: formatCurrency(Math.round(monthlyTotal), currency),
     },
