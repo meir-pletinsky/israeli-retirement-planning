@@ -1490,4 +1490,113 @@ describe("Dashboard", () => {
       expect(screen.queryByRole("region", { name: "Retirement budget" })).not.toBeInTheDocument();
     });
   });
+
+  describe("irregular costs", () => {
+    const BIDI_MARKS = /[\u2066\u2069]/g;
+    const card = () => screen.getByRole("region", { name: "Irregular costs included in your monthly average" });
+    const rowText = (name: string) =>
+      within(card()).getByRole("row", { name: new RegExp(name) }).textContent!.replace(BIDI_MARKS, "");
+
+    const profile = buildTestProfile({
+      age: 66,
+      retirementAge: 67,
+      pensionBalances: [900_000],
+      expenseItems: [
+        { name: "Rent", amount: 6_000, category: "housing", necessity: "essential" },
+        { name: "Arnona", amount: 1_800, frequency: "bimonthly", category: "housing", necessity: "essential" },
+        { name: "Holidays", amount: 24_000, frequency: "yearly", category: "travel", necessity: "discretionary" },
+        {
+          name: "Car replacement",
+          amount: 60_000,
+          frequency: "everyYears",
+          everyYears: 5,
+          category: "transport",
+          necessity: "discretionary",
+        },
+      ],
+    });
+
+    it("lists the payments made once a year or less often, with how often and what each adds", async () => {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      expect(rowText("Holidays")).toBe("Holidays\u20aa24,000Once a year\u20aa2,000");
+      expect(rowText("Car replacement")).toBe("Car replacement\u20aa60,000Every 5 years\u20aa1,000");
+      expect(within(card()).queryByRole("row", { name: /Rent|Arnona/ })).not.toBeInTheDocument();
+      expect(rowText("Total in your monthly average")).toBe("Total in your monthly average\u20aa3,000");
+    });
+
+    it("says it is an average, not a schedule, and what share of the spending it is", async () => {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      const text = card().textContent!.replace(BIDI_MARKS, "");
+      expect(text).toContain("This is an average, not a payment schedule");
+      expect(text).toContain("the plan does not know when any of them falls due");
+      // 3,000 of the 9,900 a month
+      expect(text).toContain("30% of your planned monthly spending.");
+    });
+
+    it("states the cash the largest payment needs when it falls due", async () => {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      expect(card().textContent!.replace(BIDI_MARKS, "")).toContain(
+        "The largest single payment is \u20aa60,000 (Car replacement).",
+      );
+    });
+
+    it("is pointed to from the planned spending figure, which says how much of it is averaged", async () => {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      const planned = screen.getByText("Planned monthly spending").parentElement as HTMLElement;
+      expect(planned.textContent!.replace(BIDI_MARKS, "")).toContain(
+        "Includes \u20aa3,000 per month of irregular costs, averaged.",
+      );
+      expect(within(planned).getByRole("link", { name: "See which" })).toHaveAttribute("href", "#irregular-costs");
+      expect(card()).toHaveAttribute("id", "irregular-costs");
+    });
+
+    it("is not shown when every cost is regular, and says nothing under the planned spending", async () => {
+      await saveProfileToDb(
+        buildTestProfile({
+          age: 66,
+          retirementAge: 67,
+          pensionBalances: [900_000],
+          expenseItems: [{ amount: 6_000 }, { amount: 900, frequency: "quarterly" }],
+        }),
+      );
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      expect(
+        screen.queryByRole("region", { name: "Irregular costs included in your monthly average" }),
+      ).not.toBeInTheDocument();
+      const planned = screen.getByText("Planned monthly spending").parentElement as HTMLElement;
+      expect(planned.textContent).not.toContain("irregular");
+    });
+
+    it("is not shown for one typed total", async () => {
+      await saveProfileToDb(
+        buildTestProfile({ age: 66, retirementAge: 67, pensionBalances: [900_000], retirementMonthlyExpenses: 8_000 }),
+      );
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      expect(
+        screen.queryByRole("region", { name: "Irregular costs included in your monthly average" }),
+      ).not.toBeInTheDocument();
+    });
+  });
 });

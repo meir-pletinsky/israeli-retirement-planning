@@ -2113,6 +2113,17 @@ rest).
   essential and discretionary cannot be told apart and links to itemising. It states that the
   risk analysis tests the full budget only, so no "essentials covered" status is offered:
   that would need a probability computed for the essential budget (left for the owner).
+- [Review-UX-22] Irregular costs hidden inside the monthly average are listed.
+  `irregularCosts` (`domain/expenses.ts`) collects the itemised expenses paid once a year or
+  less often (twelve or more months between payments; quarterly and bimonthly items are regular),
+  with their per-payment amount, frequency and monthly equivalent (largest-remainder rounding so
+  the rows add up to the total), their share of the planned monthly spending, and the largest
+  single payment. `IrregularCostsCard` (Dashboard after the budget card; Projections after the
+  budget card) shows the table and says plainly that this is an average, not a payment
+  schedule: the inputs hold no due dates, so no dates are invented. The reserve line names the
+  largest single payment as the amount that must be available when it falls due (it is not a
+  modeled sinking-fund balance). The "Planned monthly spending" KPI links down to the card.
+  The card appears only with itemised expenses.
 
 ## Modeling assumptions (by phase)
 

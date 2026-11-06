@@ -1458,6 +1458,44 @@ describe("Projections", () => {
     });
   });
 
+  describe("irregular costs", () => {
+    it("shows the payments hidden in the monthly average, apart from the chosen scenario", async () => {
+      await saveProfileToDb(
+        buildTestProfile({
+          age: 55,
+          retirementAge: 65,
+          pensionBalances: [1_500_000],
+          expenseItems: [
+            { name: "Rent", amount: 6_000 },
+            { name: "Holidays", amount: 24_000, frequency: "yearly" },
+          ],
+        }),
+      );
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      const card = within(await screen.findByRole("region", { name: "Irregular costs included in your monthly average" }));
+      expect(card.getByRole("row", { name: /Holidays/ }).textContent!.replace(/[\u2066\u2069]/g, "")).toBe(
+        "Holidays\u20aa24,000Once a year\u20aa2,000",
+      );
+      expect(card.getByText(/not a payment schedule/)).toBeInTheDocument();
+      expect(card.queryByText("Standard - age 65")).not.toBeInTheDocument();
+    });
+
+    it("is not shown when every cost is regular", async () => {
+      await saveProfileToDb(
+        buildTestProfile({ age: 55, retirementAge: 65, pensionBalances: [1_500_000], retirementMonthlyExpenses: 9_000 }),
+      );
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      await screen.findByRole("region", { name: "Retirement scenario" });
+      expect(
+        screen.queryByRole("region", { name: "Irregular costs included in your monthly average" }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   it("names the assumptions every chart on the page rests on", async () => {
     await saveProfileToDb(
       buildTestProfile({ age: 40, retirementAge: 67, otherAssets: 300_000, investmentReturnPct: 8, inflationPct: 1.5 }),

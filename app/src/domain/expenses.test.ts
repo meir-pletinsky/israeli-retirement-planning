@@ -6,6 +6,7 @@ import { EXPENSE_SUGGESTIONS, itemFromSuggestion } from "./expenseCatalog";
 import {
   budgetBreakdown,
   desiredRetirementMonthly,
+  irregularCosts,
   expenseTotals,
   monthlyEquivalent,
   monthsBetweenPayments,
@@ -112,6 +113,80 @@ describe("budgetBreakdown", () => {
   it("counts an item without a known necessity as discretionary, as the totals do", () => {
     const odd = item({ amount: 500, necessity: "maybe" as unknown as ExpenseItem["necessity"] });
     expect(budgetBreakdown(detailed([odd]))).toMatchObject({ essential: 0, discretionary: 500, total: 500 });
+  });
+});
+
+describe("irregularCosts", () => {
+  const detailed = (items: ExpenseItem[]): ExpensesData => ({ mode: "detailed", retirementMonthly: null, items });
+
+  it("lists the payments made once a year or less often, with what each adds to the monthly average", () => {
+    const car = item({ name: "Car", amount: 60_000, frequency: "everyYears", everyYears: 5 });
+    const travel = item({ name: "Travel", amount: 24_000, frequency: "yearly" });
+    const result = irregularCosts(
+      detailed([
+        item({ name: "Rent", amount: 6_000 }),
+        item({ name: "Arnona", amount: 1_800, frequency: "bimonthly" }),
+        item({ name: "Insurance", amount: 900, frequency: "quarterly" }),
+        car,
+        travel,
+      ]),
+    )!;
+    expect(result.items.map((row) => [row.item.name, row.amount, row.months, row.monthly])).toEqual([
+      ["Travel", 24_000, 12, 2_000],
+      ["Car", 60_000, 60, 1_000],
+    ]);
+    expect(result.monthly).toBe(3_000);
+    expect(result.largest.item).toBe(car);
+  });
+
+  it("measures their share of the planned monthly spending", () => {
+    const result = irregularCosts(
+      detailed([item({ amount: 9_000 }), item({ amount: 36_000, frequency: "yearly" })]),
+    )!;
+    expect(result.monthly).toBe(3_000);
+    expect(result.share).toBeCloseTo(0.25, 10);
+  });
+
+  it("has rows that add up to the monthly figure, even when the shares are fractions of a shekel", () => {
+    const result = irregularCosts(
+      detailed([
+        item({ amount: 100, frequency: "yearly" }),
+        item({ amount: 100, frequency: "yearly" }),
+        item({ amount: 100, frequency: "yearly" }),
+      ]),
+    )!;
+    expect(result.monthly).toBe(25);
+    expect(result.items.reduce((sum, row) => sum + row.monthly, 0)).toBe(25);
+  });
+
+  it("includes essential and discretionary items alike", () => {
+    const result = irregularCosts(
+      detailed([
+        item({ amount: 12_000, frequency: "yearly", necessity: "essential" }),
+        item({ amount: 12_000, frequency: "yearly", necessity: "discretionary" }),
+      ]),
+    )!;
+    expect(result.items).toHaveLength(2);
+    expect(result.monthly).toBe(2_000);
+  });
+
+  it("ignores an item that has no amount or no usable number of years", () => {
+    expect(
+      irregularCosts(
+        detailed([
+          item({ amount: null, frequency: "yearly" }),
+          item({ amount: 5_000, frequency: "everyYears", everyYears: null }),
+          item({ amount: 0, frequency: "yearly" }),
+        ]),
+      ),
+    ).toBeNull();
+  });
+
+  it("is unavailable when every payment is regular, and in one-total mode", () => {
+    expect(irregularCosts(detailed([item({ amount: 1_000 }), item({ amount: 3_000, frequency: "quarterly" })]))).toBeNull();
+    expect(
+      irregularCosts({ mode: "totals", retirementMonthly: 9_000, items: [item({ amount: 12_000, frequency: "yearly" })] }),
+    ).toBeNull();
   });
 });
 

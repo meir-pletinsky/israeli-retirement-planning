@@ -12,6 +12,7 @@ import { CoverOptionsCard } from "../components/CoverOptionsCard";
 import { FeasibilityCard } from "../components/FeasibilityCard";
 import { HistoricalBacktestCard } from "../components/HistoricalBacktestCard";
 import { IncomeSplitNote } from "../components/IncomeSplitNote";
+import { IrregularCostsCard } from "../components/IrregularCostsCard";
 import { LiquidityLadderCard } from "../components/LiquidityLadderCard";
 import { RetirementTimeline } from "../components/RetirementTimeline";
 import { RiskAnalysisCard } from "../components/RiskAnalysisCard";
@@ -162,6 +163,8 @@ export function Projections() {
         netMonthlyIncome={calculateFundingGap(profile, scenario).estimatedMonthlyIncome}
         scenarioTag={scenarioTag}
       />
+
+      <IrregularCostsCard expenses={profile.expenses} />
 
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-2 flex items-center justify-between gap-2">

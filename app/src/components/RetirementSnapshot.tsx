@@ -4,11 +4,15 @@ import type { RetirementKpis } from "../domain";
 import { KpiCard } from "./KpiCard";
 import { useFormatAge } from "./useFormatAge";
 
+const isolate = (text: string) => `\u2066${text}\u2069`;
+
 interface RetirementSnapshotProps {
   kpis: RetirementKpis;
+  /** What irregular costs (paid yearly or less often) add to the planned monthly spending, averaged. */
+  irregularMonthly?: number;
 }
 
-export function RetirementSnapshot({ kpis }: RetirementSnapshotProps) {
+export function RetirementSnapshot({ kpis, irregularMonthly }: RetirementSnapshotProps) {
   const { t } = useTranslation();
   const formatAge = useFormatAge();
   const currencySymbol = t("common.currencySymbol");
@@ -32,7 +36,18 @@ export function RetirementSnapshot({ kpis }: RetirementSnapshotProps) {
         <KpiCard
           label={t("dashboard.snapshot.plannedSpending")}
           value={plannedMonthlySpending === null ? "—" : money(plannedMonthlySpending)}
-          note={plannedMonthlySpending === null ? t("dashboard.snapshot.noSpending") : undefined}
+          note={
+            plannedMonthlySpending === null ? (
+              t("dashboard.snapshot.noSpending")
+            ) : irregularMonthly ? (
+              <div className="flex flex-col gap-1">
+                <p>{t("dashboard.irregular.snapshotNote", { amount: isolate(money(irregularMonthly)) })}</p>
+                <a href="#irregular-costs" className="font-medium text-brand-700 hover:underline">
+                  {t("dashboard.irregular.snapshotLink")}
+                </a>
+              </div>
+            ) : undefined
+          }
         />
         <KpiCard
           label={t("dashboard.snapshot.withdrawalRate")}

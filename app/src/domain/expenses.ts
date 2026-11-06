@@ -125,6 +125,59 @@ export function budgetBreakdown(expenses: ExpensesData): BudgetBreakdown | null 
   return { essential, discretionary: total - essential, total, categories };
 }
 
+/** A payment made once a year or less often is irregular: it is lumpy rather than a running cost. */
+export const IRREGULAR_MIN_MONTHS = 12;
+
+export interface IrregularCost {
+  item: ExpenseItem;
+  /** One payment, in shekels. */
+  amount: number;
+  /** Months from one payment to the next. */
+  months: number;
+  /** What it adds to the monthly average, in whole shekels. */
+  monthly: number;
+}
+
+export interface IrregularCosts {
+  /** The irregular items, the biggest monthly share first. */
+  items: IrregularCost[];
+  /** What they add to the monthly average, in whole shekels; the rows add up to it. */
+  monthly: number;
+  /** The share of the planned monthly spending, 0 to 1. */
+  share: number;
+  /** The single biggest payment: the cash needed at once when it falls due. */
+  largest: IrregularCost;
+}
+
+/**
+ * The itemised expenses that are paid once a year or less often, which the monthly average hides:
+ * how much each is, how often, and what it adds to the average. Null in one-total mode and while
+ * the list has no such item. It knows nothing of due dates; the inputs do not capture them.
+ */
+export function irregularCosts(expenses: ExpensesData): IrregularCosts | null {
+  if (expenses.mode !== "detailed") return null;
+
+  const irregular = expenses.items.flatMap((item) => {
+    const months = monthsBetweenPayments(item);
+    if (months === null || months < IRREGULAR_MIN_MONTHS || item.amount === null || item.amount <= 0) return [];
+    return [{ item, amount: item.amount, months, exact: monthlyEquivalent(item) }];
+  });
+  if (irregular.length === 0) return null;
+
+  const exactSum = irregular.reduce((sum, row) => sum + row.exact, 0);
+  const monthly = Math.round(exactSum);
+  const rounded = roundToSum(
+    irregular.map((row) => row.exact),
+    monthly,
+  );
+  const items = irregular
+    .map(({ item, amount, months }, index) => ({ item, amount, months, monthly: rounded[index] }))
+    .sort((a, b) => b.monthly - a.monthly);
+  const largest = items.reduce((best, row) => (row.amount > best.amount ? row : best), items[0]);
+  const total = expenseTotals(expenses.items).total;
+  return { items, monthly, share: total > 0 ? exactSum / total : 0, largest };
+}
+
 /**
  * The desired monthly spending in retirement, in today's money, that the plan is measured against:
  * the typed figure, or in detailed mode the sum of the items rounded to a whole shekel. Null while

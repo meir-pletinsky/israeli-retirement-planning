@@ -11,6 +11,7 @@ import { CoverNoticeCard } from "../components/CoverNoticeCard";
 import { DataGapsCard } from "../components/DataGapsCard";
 import { EmptyState } from "../components/EmptyState";
 import { FeasibilityCard } from "../components/FeasibilityCard";
+import { IrregularCostsCard } from "../components/IrregularCostsCard";
 import { KpiCard } from "../components/KpiCard";
 import { PortfolioSummaryCard } from "../components/PortfolioSummaryCard";
 import { RetireAgeChecksCard } from "../components/RetireAgeChecksCard";
@@ -33,6 +34,7 @@ import {
   findDataGaps,
   findCoverNotices,
   findEarliestFeasibleRetirementAge,
+  irregularCosts,
   projectNetWorth,
   retirementWhen,
   runMonteCarlo,
@@ -85,6 +87,7 @@ export function Dashboard() {
   const isCouple = members.length > 1;
   const netIncome = estimateNetIncome(profile, "standard");
   const fundingGap = calculateFundingGap(profile, "standard");
+  const irregular = irregularCosts(profile.expenses);
   const isShortfall = fundingGap.status === "shortfall";
   const feasibility = findEarliestFeasibleRetirementAge(profile);
   const hasTarget = feasibility.status !== "noTarget";
@@ -234,9 +237,11 @@ export function Dashboard() {
 
       <PortfolioSummaryCard portfolio={breakdownPortfolio(profile)} />
 
-      <RetirementSnapshot kpis={snapshot.kpis} />
+      <RetirementSnapshot kpis={snapshot.kpis} irregularMonthly={irregular?.monthly} />
 
       <BudgetCard expenses={profile.expenses} netMonthlyIncome={fundingGap.estimatedMonthlyIncome} />
+
+      <IrregularCostsCard expenses={profile.expenses} />
 
       <DataGapsCard gaps={gaps} />
 

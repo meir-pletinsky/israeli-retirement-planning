@@ -295,6 +295,15 @@
       "typedTotal": "Your plan uses one typed monthly figure, so it cannot tell essential spending from discretionary spending. Itemise your expenses to see the essential minimum against your income.",
       "edit": "Edit expenses",
       "itemise": "Itemise my expenses"
+    },
+    "irregular": {
+      "title": "Irregular costs included in your monthly average",
+      "intro": "These are paid once a year or less often. The plan spreads each one evenly over the months between payments, so it shows up as a steady monthly cost. This is an average, not a payment schedule: the plan does not know when any of them falls due.",
+      "total": "Total in your monthly average",
+      "share": "{{percent}} of your planned monthly spending.",
+      "reserve": "The largest single payment is {{amount}} ({{name}}). When it falls due you need that much in funds you can reach; the monthly average does not show it.",
+      "snapshotNote": "Includes {{amount}} per month of irregular costs, averaged.",
+      "snapshotLink": "See which"
     }
   },
   "myData": {
