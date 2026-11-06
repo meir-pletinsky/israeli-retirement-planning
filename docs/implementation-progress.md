@@ -1943,6 +1943,15 @@ rest).
       it is), the field gets `aria-invalid` and `aria-describedby` pointing at its message
       (`NumberField` also links helper text), and a `role="alert"` summary tells screen
       readers why the step did not continue.
+- [x] **UX-10 Stepper shows what is entered, not where the user is.** The check marks no
+      longer mean "the user moved past this step". `pages/MyData/stepStatus.ts` derives each
+      step's state from the saved data: Personal is "Required details complete" or
+      "Required details missing" (amber "!"); Pension & Savings, Equity & Investments
+      (which also holds bank deposits) and Expenses are "Details entered" (checked) or
+      "Nothing entered yet"; Assumptions is "Customized" or "Using defaults". The state is
+      printed under each step name and is part of the button's accessible name; the current
+      step carries `aria-current="step"`. No review flag is stored, so an optional step the
+      user looked at and left empty reads "Nothing entered yet" rather than "skipped".
 
 ## Modeling assumptions (by phase)
 

@@ -229,6 +229,14 @@
   },
   "myData": {
     "title": "Мои данные",
+    "stepStatus": {
+      "requiredComplete": "Обязательные данные заполнены",
+      "requiredMissing": "Не хватает обязательных данных",
+      "entered": "Данные введены",
+      "empty": "Пока ничего не введено",
+      "customized": "Настроено вручную",
+      "defaults": "Значения по умолчанию"
+    },
     "importance": {
       "required": "Обязательно",
       "recommended": "Рекомендуется",

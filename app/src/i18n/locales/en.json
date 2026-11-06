@@ -229,6 +229,14 @@
   },
   "myData": {
     "title": "My Data",
+    "stepStatus": {
+      "requiredComplete": "Required details complete",
+      "requiredMissing": "Required details missing",
+      "entered": "Details entered",
+      "empty": "Nothing entered yet",
+      "customized": "Customized",
+      "defaults": "Using defaults"
+    },
     "importance": {
       "required": "Required",
       "recommended": "Recommended",

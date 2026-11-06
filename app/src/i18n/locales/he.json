@@ -229,6 +229,14 @@
   },
   "myData": {
     "title": "\u05d4\u05e0\u05ea\u05d5\u05e0\u05d9\u05dd \u05e9\u05dc\u05d9",
+    "stepStatus": {
+      "requiredComplete": "פרטי החובה הושלמו",
+      "requiredMissing": "חסרים פרטי חובה",
+      "entered": "הוזנו פרטים",
+      "empty": "עדיין לא הוזן דבר",
+      "customized": "הותאם אישית",
+      "defaults": "ברירות מחדל"
+    },
     "importance": {
       "required": "חובה",
       "recommended": "מומלץ",

@@ -1,10 +1,12 @@
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate, Outlet } from "react-router-dom";
 
+import { useProfile } from "../../app/ProfileContext";
 import { Stepper } from "../../components/Stepper";
 import { ActivePersonProvider } from "./ActivePersonProvider";
 import { FieldLegend } from "./FieldLegend";
 import { STEP_ORDER, type StepKey } from "./stepOrder";
+import { isStepDone, stepStatus } from "./stepStatus";
 
 /**
  * The pension and equity steps show the legend inside their account and holding forms. Expenses
@@ -25,14 +27,21 @@ export function MyDataLayout() {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+  const { profile } = useProfile();
 
   const currentKey: StepKey =
     STEP_ORDER.find((step) => location.pathname.endsWith(step)) ?? "personal";
 
-  const steps = STEP_ORDER.map((key) => ({
-    key,
-    label: t(`myData.steps.${toCamelCase(key)}.label`),
-  }));
+  const steps = STEP_ORDER.map((key) => {
+    const status = stepStatus(profile, key);
+    return {
+      key,
+      label: t(`myData.steps.${toCamelCase(key)}.label`),
+      status: t(`myData.stepStatus.${status}`),
+      done: isStepDone(status),
+      needsAttention: status === "requiredMissing",
+    };
+  });
 
   return (
     <ActivePersonProvider>
