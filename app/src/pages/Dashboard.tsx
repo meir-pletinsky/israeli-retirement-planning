@@ -16,6 +16,7 @@ import { formatSuccessPercent } from "../components/riskFormat";
 import { SourceAccessCard } from "../components/SourceAccessCard";
 import { StatusBanner } from "../components/StatusBanner";
 import { TaxCard } from "../components/TaxCard";
+import { useFormatAge } from "../components/useFormatAge";
 import {
   MAX_PLANNING_AGE,
   MAX_RETIREMENT_SEARCH_AGE,
@@ -29,16 +30,17 @@ import {
   findCoverNotices,
   findEarliestFeasibleRetirementAge,
   projectNetWorth,
+  retirementWhen,
   runMonteCarlo,
   successBand,
   successPercent,
-  yearsToRetirement,
 } from "../domain";
 
 const SUCCESS_STATUS = { strong: "positive", fair: "neutral", weak: "negative" } as const;
 
 export function Dashboard() {
   const { t } = useTranslation();
+  const formatAge = useFormatAge();
   const { onboarded, profile } = useProfile();
   const currencySymbol = t("common.currencySymbol");
   // Only the success rate is shown here, so the search for a dependable spending level is skipped.
@@ -84,13 +86,36 @@ export function Dashboard() {
   const hasTarget = feasibility.status !== "noTarget";
   const gaps = findDataGaps(profile);
   const coverNotices = findCoverNotices(profile);
+  const money = (amount: number) => `${currencySymbol}${amount.toLocaleString()}`;
+  const timing = retirementWhen(profile, "standard");
+  const yearsAway = (yearsToGo: number) =>
+    yearsToGo === 0
+      ? t("dashboard.kpi.retiringNow")
+      : t("dashboard.kpi.yearsAway", { count: yearsToGo });
 
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <KpiCard
           label={t("dashboard.kpi.monthlyIncome")}
-          value={`${currencySymbol}${netIncome.netMonthlyIncome.toLocaleString()}`}
+          value={money(netIncome.netMonthlyIncome)}
+          note={
+            netIncome.lowestNetAge === null ? undefined : (
+              <div className="flex flex-col gap-1">
+                <p>
+                  {t("dashboard.kpi.incomeBasis", { age: Math.floor(netIncome.lowestNetAge) })}
+                </p>
+                <p>
+                  {netIncome.taxMonthly > 0
+                    ? t("dashboard.kpi.incomeReconciliation", {
+                        gross: money(netIncome.grossMonthlyIncome),
+                        tax: money(netIncome.taxMonthly),
+                      })
+                    : t("dashboard.kpi.incomeNoTax", { gross: money(netIncome.grossMonthlyIncome) })}
+                </p>
+              </div>
+            )
+          }
         />
         <KpiCard
           label={t("dashboard.kpi.netWorth")}
@@ -149,8 +174,33 @@ export function Dashboard() {
           }
         />
         <KpiCard
-          label={t("dashboard.kpi.yearsToRetirement")}
-          value={yearsToRetirement(profile, "standard")}
+          label={t(
+            timing.spouse
+              ? "dashboard.kpi.yearsToHouseholdRetirement"
+              : "dashboard.kpi.yearsToRetirement",
+          )}
+          value={timing.householdYears}
+          note={
+            <div className="flex flex-col gap-1">
+              <p>
+                {t("dashboard.kpi.retirementSelf", {
+                  age: formatAge(timing.self.retirementAge),
+                  away: yearsAway(timing.self.yearsToGo),
+                })}
+              </p>
+              {timing.spouse && (
+                <>
+                  <p>
+                    {t("dashboard.kpi.retirementSpouse", {
+                      age: formatAge(timing.spouse.retirementAge),
+                      away: yearsAway(timing.spouse.yearsToGo),
+                    })}
+                  </p>
+                  <p>{t("dashboard.kpi.householdTimingNote")}</p>
+                </>
+              )}
+            </div>
+          }
         />
       </div>
 

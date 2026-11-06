@@ -162,6 +162,9 @@
     },
     "kpi": {
       "monthlyIncome": "Projected Monthly Income After Tax",
+      "incomeBasis": "The lowest year of retirement, at your age {{age}}. After tax, in today's money.",
+      "incomeReconciliation": "{{gross}} before tax, minus {{tax}} tax",
+      "incomeNoTax": "{{gross}} before tax; no tax expected",
       "netWorth": "Net Worth Today",
       "monthlySurplus": "Monthly surplus",
       "monthlyShortfall": "Monthly shortfall",
@@ -175,7 +178,14 @@
       "successQualifier": "Based on your inputs and model assumptions; not a guarantee.",
       "successAssumptions": "Assumes {{returnPct}}% return, {{inflationPct}}% inflation and {{volatilityPct}}% volatility a year.",
       "successLearnMore": "How this is calculated",
-      "yearsToRetirement": "Years to Retirement"
+      "yearsToRetirement": "Years to Retirement",
+      "yearsToHouseholdRetirement": "Years until your household retires",
+      "retirementSelf": "Your retirement: age {{age}}, {{away}}",
+      "retirementSpouse": "Your spouse's retirement: age {{age}}, {{away}}",
+      "householdTimingNote": "Counted until the later of the two.",
+      "retiringNow": "now",
+      "yearsAway_one": "in 1 year",
+      "yearsAway_other": "in {{count}} years"
     },
     "snapshot": {
       "title": "Retirement snapshot",
@@ -187,7 +197,8 @@
       "pension": "Monthly pension income",
       "stateBenefits": "Monthly state benefits",
       "availableFunds": "Funds available at retirement",
-      "fromAge": "From age {{age}}",
+      "pensionFromAge": "Before tax, from age {{age}}",
+      "stateBenefitsFromAge": "Tax-free, from age {{age}}",
       "none": "Not in your projection",
       "lockedNote": "{{amount}} more unlocks at age {{age}}"
     },

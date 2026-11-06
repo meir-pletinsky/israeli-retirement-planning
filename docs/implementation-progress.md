@@ -1966,6 +1966,14 @@ rest).
       that it is not a guarantee, which return / inflation / volatility it assumes, and
       links to the Projections risk analysis. The risk-analysis card repeats the
       qualification and the assumptions outside its collapsed "How this works" section.
+- [x] **UX-05 The Dashboard figures name their basis.** The income KPI says it is the
+      lowest year of retirement (at the user's age in that year), after tax and in today's
+      money, and reconciles it as "gross before tax, minus tax" (or "no tax expected"). The
+      Snapshot labels pension income "Before tax, from age N" and state benefits "Tax-free,
+      from age N". The years KPI shows each person's retirement age and years to go; for a
+      couple it is titled "Years until your household retires" and notes that the later of
+      the two is counted (`retirementWhen` in `domain/profileBasics.ts`, which
+      `yearsToRetirement` now reads).
 
 ## Modeling assumptions (by phase)
 

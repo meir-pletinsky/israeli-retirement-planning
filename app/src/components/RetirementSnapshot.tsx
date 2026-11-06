@@ -15,9 +15,9 @@ export function RetirementSnapshot({ kpis }: RetirementSnapshotProps) {
   const money = (amount: number) => `${currencySymbol}${Math.round(amount).toLocaleString()}`;
   const { plannedMonthlySpending, withdrawalRate, pension, stateBenefits, access } = kpis;
 
-  const startsAt = (income: { monthly: number; fromAge: number | null }) =>
+  const startsAt = (income: { monthly: number; fromAge: number | null }, key: string) =>
     income.monthly > 0 && income.fromAge !== null
-      ? t("dashboard.snapshot.fromAge", { age: formatAge(income.fromAge) })
+      ? t(key, { age: formatAge(income.fromAge) })
       : t("dashboard.snapshot.none");
 
   return (
@@ -50,12 +50,12 @@ export function RetirementSnapshot({ kpis }: RetirementSnapshotProps) {
         <KpiCard
           label={t("dashboard.snapshot.pension")}
           value={pension.monthly > 0 ? money(pension.monthly) : "—"}
-          note={startsAt(pension)}
+          note={startsAt(pension, "dashboard.snapshot.pensionFromAge")}
         />
         <KpiCard
           label={t("dashboard.snapshot.stateBenefits")}
           value={stateBenefits.monthly > 0 ? money(stateBenefits.monthly) : "—"}
-          note={startsAt(stateBenefits)}
+          note={startsAt(stateBenefits, "dashboard.snapshot.stateBenefitsFromAge")}
         />
         <KpiCard
           label={t("dashboard.snapshot.availableFunds")}

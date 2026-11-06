@@ -640,6 +640,51 @@ describe("Dashboard", () => {
       expect(within(incomeKpi as HTMLElement).getByText("\u20aa14,940")).toBeInTheDocument();
     });
 
+    it("names the basis of the income KPI and reconciles it to the gross income", async () => {
+      await seed(
+        buildTestProfile({
+          age: 62,
+          retirementAge: 62,
+          ...zeroRealReturn,
+          pensionBalances: [6_000_000],
+        }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      const incomeKpi = (await screen.findByText("Projected Monthly Income After Tax"))
+        .parentElement as HTMLElement;
+      expect(
+        within(incomeKpi).getByText(
+          "The lowest year of retirement, at your age 62. After tax, in today's money.",
+        ),
+      ).toBeInTheDocument();
+      expect(
+        within(incomeKpi).getByText("\u20aa17,857 before tax, minus \u20aa2,917 tax"),
+      ).toBeInTheDocument();
+    });
+
+    it("says no tax is expected in the income KPI when the exemption and credit points cover the income", async () => {
+      const profile = buildTestProfile({
+        age: 67,
+        retirementAge: 67,
+        ...zeroRealReturn,
+        pensionBalances: [2_400_000],
+      });
+      await seed(profile);
+      const { grossMonthlyIncome } = estimateNetIncome(profile, "standard");
+
+      renderWithProviders(<Dashboard />);
+
+      const incomeKpi = (await screen.findByText("Projected Monthly Income After Tax"))
+        .parentElement as HTMLElement;
+      expect(
+        within(incomeKpi).getByText(
+          `\u20aa${grossMonthlyIncome.toLocaleString()} before tax; no tax expected`,
+        ),
+      ).toBeInTheDocument();
+    });
+
     it("lists what the estimate includes and leaves out", async () => {
       await seed(
         buildTestProfile({
@@ -756,6 +801,41 @@ describe("Dashboard", () => {
       expect(
         screen.getByText("Both of you retire together: you at 67, your spouse at 65."),
       ).toBeInTheDocument();
+    });
+
+    it("labels the years KPI as household timing and shows both retirement dates", async () => {
+      await seed(
+        buildTestProfile({
+          age: 60,
+          retirementAge: 65,
+          ...zeroRealReturn,
+          ...married,
+          spouse: { age: 43, retirementAge: 65 },
+        }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      const kpi = (await screen.findByText("Years until your household retires"))
+        .parentElement as HTMLElement;
+      expect(within(kpi).getByText("22")).toBeInTheDocument();
+      expect(within(kpi).getByText("Your retirement: age 65, in 5 years")).toBeInTheDocument();
+      expect(
+        within(kpi).getByText("Your spouse's retirement: age 65, in 22 years"),
+      ).toBeInTheDocument();
+      expect(within(kpi).getByText("Counted until the later of the two.")).toBeInTheDocument();
+    });
+
+    it("shows a single person's own retirement age and years", async () => {
+      await seed(buildTestProfile({ age: 60, retirementAge: 67, ...zeroRealReturn }));
+
+      renderWithProviders(<Dashboard />);
+
+      const kpi = (await screen.findByText("Years to Retirement")).parentElement as HTMLElement;
+      expect(within(kpi).getByText("7")).toBeInTheDocument();
+      expect(within(kpi).getByText("Your retirement: age 67, in 7 years")).toBeInTheDocument();
+      expect(within(kpi).queryByText(/spouse/i)).not.toBeInTheDocument();
+      expect(screen.queryByText("Years until your household retires")).not.toBeInTheDocument();
     });
 
     it("keeps the single-person feasibility card unchanged", async () => {
@@ -894,7 +974,9 @@ describe("Dashboard", () => {
         within(card("Safe withdrawal rate")).getByText(/first year, before tax/),
       ).toBeInTheDocument();
       expect(within(card("Monthly pension income")).getByText(shekel(pension.monthly))).toBeInTheDocument();
-      expect(within(card("Monthly pension income")).getByText("From age 67")).toBeInTheDocument();
+      expect(
+        within(card("Monthly pension income")).getByText("Before tax, from age 67"),
+      ).toBeInTheDocument();
       expect(
         within(card("Funds available at retirement")).getByText(shekel(access.accessibleAtRetirement)),
       ).toBeInTheDocument();
@@ -918,7 +1000,7 @@ describe("Dashboard", () => {
 
       const stateCard = card("Monthly state benefits");
       expect(within(stateCard).getByText(shekel(3_000))).toBeInTheDocument();
-      expect(within(stateCard).getByText("From age 67")).toBeInTheDocument();
+      expect(within(stateCard).getByText("Tax-free, from age 67")).toBeInTheDocument();
     });
 
     it("notes how much of the savings is still locked at retirement", async () => {

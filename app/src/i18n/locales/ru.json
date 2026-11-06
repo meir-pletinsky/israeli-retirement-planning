@@ -162,6 +162,9 @@
     },
     "kpi": {
       "monthlyIncome": "Расчётный ежемесячный доход на пенсии после налогов",
+      "incomeBasis": "Самый низкий год на пенсии, в вашем возрасте {{age}}. После налогов, в сегодняшних деньгах.",
+      "incomeReconciliation": "{{gross}} до налогов, минус налог {{tax}}",
+      "incomeNoTax": "{{gross}} до налогов; налог не ожидается",
       "netWorth": "Текущий чистый капитал",
       "monthlySurplus": "Ежемесячный излишек",
       "monthlyShortfall": "Ежемесячный дефицит",
@@ -175,7 +178,16 @@
       "successQualifier": "Основано на ваших данных и допущениях модели; не является гарантией.",
       "successAssumptions": "Допущения: доходность {{returnPct}}%, инфляция {{inflationPct}}% и волатильность {{volatilityPct}}% в год.",
       "successLearnMore": "Как это рассчитывается",
-      "yearsToRetirement": "Лет до пенсии"
+      "yearsToRetirement": "Лет до пенсии",
+      "yearsToHouseholdRetirement": "Лет до выхода семьи на пенсию",
+      "retirementSelf": "Ваш выход на пенсию: в {{age}}, {{away}}",
+      "retirementSpouse": "Выход на пенсию супруга(и): в {{age}}, {{away}}",
+      "householdTimingNote": "Считается до более поздней из двух дат.",
+      "retiringNow": "сейчас",
+      "yearsAway_one": "через {{count}} год",
+      "yearsAway_few": "через {{count}} года",
+      "yearsAway_many": "через {{count}} лет",
+      "yearsAway_other": "через {{count}} года"
     },
     "snapshot": {
       "title": "Сводка по пенсии",
@@ -187,7 +199,8 @@
       "pension": "Пенсионный доход в месяц",
       "stateBenefits": "Государственные выплаты в месяц",
       "availableFunds": "Средства, доступные при выходе на пенсию",
-      "fromAge": "С возраста {{age}}",
+      "pensionFromAge": "До налогов, с возраста {{age}}",
+      "stateBenefitsFromAge": "Без налога, с возраста {{age}}",
       "none": "Не учтено в прогнозе",
       "lockedNote": "Ещё {{amount}} откроется в возрасте {{age}}"
     },

@@ -65,6 +65,39 @@ export function resolveSpouseRetirementAge(
   return shiftRetirementAge(profile.spouse.retirementAge ?? DEFAULT_RETIREMENT_AGE, scenario);
 }
 
+/** When one person retires: the age, and the whole years from now (floored at 0). */
+export interface PersonRetirementTiming {
+  retirementAge: number;
+  yearsToGo: number;
+}
+
+export interface RetirementWhen {
+  self: PersonRetirementTiming;
+  /** Null unless the plan covers a spouse (see `isHouseholdActive`). */
+  spouse: PersonRetirementTiming | null;
+  /** Until the later of the two retires; the years `yearsToRetirement` reports. */
+  householdYears: number;
+}
+
+/** When each person retires under the given scenario, and when the household as a whole does. */
+export function retirementWhen(
+  profile: ProfileData,
+  scenario: RetirementScenario = "standard",
+): RetirementWhen {
+  const retirementAge = resolveRetirementAge(profile, scenario);
+  const self = {
+    retirementAge,
+    yearsToGo: Math.max(retirementAge - resolveCurrentAge(profile), 0),
+  };
+  if (!isHouseholdActive(profile)) return { self, spouse: null, householdYears: self.yearsToGo };
+  const spouseRetirementAge = resolveSpouseRetirementAge(profile, scenario);
+  const spouse = {
+    retirementAge: spouseRetirementAge,
+    yearsToGo: Math.max(spouseRetirementAge - resolveSpouseCurrentAge(profile), 0),
+  };
+  return { self, spouse, householdYears: Math.max(self.yearsToGo, spouse.yearsToGo) };
+}
+
 /**
  * Whole years remaining until retirement under the given scenario (floored
  * at 0). For a couple this is when the later spouse retires, which is when
@@ -74,13 +107,7 @@ export function yearsToRetirement(
   profile: ProfileData,
   scenario: RetirementScenario = "standard",
 ): number {
-  const own = Math.max(resolveRetirementAge(profile, scenario) - resolveCurrentAge(profile), 0);
-  if (!isHouseholdActive(profile)) return own;
-  const spouse = Math.max(
-    resolveSpouseRetirementAge(profile, scenario) - resolveSpouseCurrentAge(profile),
-    0,
-  );
-  return Math.max(own, spouse);
+  return retirementWhen(profile, scenario).householdYears;
 }
 
 /**

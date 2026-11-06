@@ -162,6 +162,9 @@
     },
     "kpi": {
       "monthlyIncome": "הכנסה חודשית משוערת בפרישה לאחר מס",
+      "incomeBasis": "השנה הנמוכה ביותר בפרישה, בגיל {{age}} שלכם. לאחר מס, בכסף של היום.",
+      "incomeReconciliation": "{{gross}} לפני מס, פחות {{tax}} מס",
+      "incomeNoTax": "{{gross}} לפני מס; לא צפוי מס",
       "netWorth": "\u05e9\u05d5\u05d5\u05d9 \u05e0\u05e7\u05d9 \u05e0\u05d5\u05db\u05d7\u05d9",
       "monthlySurplus": "עודף חודשי",
       "monthlyShortfall": "גירעון חודשי",
@@ -175,7 +178,16 @@
       "successQualifier": "מבוסס על הנתונים וההנחות שלכם ועל המודל; אינו מהווה הבטחה.",
       "successAssumptions": "בהנחה של תשואה {{returnPct}}%, אינפלציה {{inflationPct}}% ותנודתיות {{volatilityPct}}% בשנה.",
       "successLearnMore": "איך זה מחושב",
-      "yearsToRetirement": "\u05e9\u05e0\u05d9\u05dd \u05e2\u05d3 \u05d4\u05e4\u05e8\u05d9\u05e9\u05d4"
+      "yearsToRetirement": "\u05e9\u05e0\u05d9\u05dd \u05e2\u05d3 \u05d4\u05e4\u05e8\u05d9\u05e9\u05d4",
+      "yearsToHouseholdRetirement": "שנים עד שמשק הבית פורש",
+      "retirementSelf": "הפרישה שלכם: בגיל {{age}}, {{away}}",
+      "retirementSpouse": "הפרישה של בן או בת הזוג: בגיל {{age}}, {{away}}",
+      "householdTimingNote": "נספר עד הפרישה המאוחרת מבין השניים.",
+      "retiringNow": "עכשיו",
+      "yearsAway_one": "בעוד שנה",
+      "yearsAway_two": "בעוד שנתיים",
+      "yearsAway_many": "בעוד {{count}} שנים",
+      "yearsAway_other": "בעוד {{count}} שנים"
     },
     "snapshot": {
       "title": "תמונת מצב לפרישה",
@@ -187,7 +199,8 @@
       "pension": "הכנסה חודשית מפנסיה",
       "stateBenefits": "קצבאות חודשיות מהמדינה",
       "availableFunds": "כספים זמינים בפרישה",
-      "fromAge": "מגיל {{age}}",
+      "pensionFromAge": "לפני מס, מגיל {{age}}",
+      "stateBenefitsFromAge": "פטור ממס, מגיל {{age}}",
       "none": "לא כלול בתחזית",
       "lockedNote": "עוד {{amount}} ייפתחו בגיל {{age}}"
     },

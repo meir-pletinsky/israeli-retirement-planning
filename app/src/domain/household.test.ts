@@ -15,6 +15,7 @@ import {
   aggregateCurrentNetWorth,
   aggregatePensionBalance,
   isHouseholdActive,
+  retirementWhen,
   yearsToRetirement,
 } from "./profileBasics";
 import { estimateRetirementIncome, estimateRetirementIncomeForTiming } from "./retirementIncome";
@@ -124,6 +125,34 @@ describe("retirement timing", () => {
       spouse: { age: 40, retirementAge: 67 },
     });
     expect(yearsToRetirement(spouseLater)).toBe(27);
+  });
+
+  it("reports when each person retires and when the household does", () => {
+    expect(retirementWhen(profile)).toEqual({
+      self: { retirementAge: 65, yearsToGo: 15 },
+      spouse: { retirementAge: 60, yearsToGo: 12 },
+      householdYears: 15,
+    });
+    const spouseLater = buildTestProfile({
+      age: 50,
+      retirementAge: 60,
+      ...MARRIED,
+      spouse: { age: 40, retirementAge: 67 },
+    });
+    expect(retirementWhen(spouseLater)).toEqual({
+      self: { retirementAge: 60, yearsToGo: 10 },
+      spouse: { retirementAge: 67, yearsToGo: 27 },
+      householdYears: 27,
+    });
+  });
+
+  it("has no spouse timing for a single plan and floors years at zero", () => {
+    const single = buildTestProfile({ age: 70, retirementAge: 67, ...MARRIED, spouse: {} });
+    expect(retirementWhen(single)).toEqual({
+      self: { retirementAge: 67, yearsToGo: 0 },
+      spouse: null,
+      householdYears: 0,
+    });
   });
 });
 
