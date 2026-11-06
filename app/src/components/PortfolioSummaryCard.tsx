@@ -31,6 +31,10 @@ export function PortfolioSummaryCard({ portfolio }: { portfolio: PortfolioBreakd
   if (portfolio.rows.length === 0) return null;
 
   const { fx } = portfolio;
+  const employer = portfolio.rows.find((row) => row.key === "employerShares");
+  const employerShare = employer && portfolio.total > 0 ? (employer.amount / portfolio.total) * 100 : null;
+  const employerPercent =
+    employerShare === null ? null : employerShare < 1 ? "<1%" : `${Math.round(employerShare)}%`;
   return (
     <section
       id={PORTFOLIO_SUMMARY_ID}
@@ -80,6 +84,14 @@ export function PortfolioSummaryCard({ portfolio }: { portfolio: PortfolioBreakd
 
       <div className="mt-2 flex flex-col gap-1 text-xs text-slate-500">
         {portfolio.includesSpouse && <p>{t("dashboard.portfolio.householdNote")}</p>}
+        {employerPercent !== null && (
+          <p>
+            {t("dashboard.portfolio.employerShare", { percent: `\u2066${employerPercent}\u2069` })}{" "}
+            <Link to="/projections" className="font-medium text-brand-700 hover:underline">
+              {t("dashboard.portfolio.employerShareLink")}
+            </Link>
+          </p>
+        )}
         {portfolio.unvestedEmployerShares > 0 && (
           <p>
             {t("dashboard.portfolio.unvested", { amount: money(portfolio.unvestedEmployerShares) })}

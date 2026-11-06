@@ -279,7 +279,9 @@
         "fallback": "Share prices are converted at {{rate}} ₪ per US dollar, a built-in rate, because none was entered or looked up.",
         "change": "Change the rate"
       },
-      "total": "Total"
+      "total": "Total",
+      "employerShare": "Employer shares are {{percent}} of this total, all in one company.",
+      "employerShareLink": "See what a fall in their price would do"
     },
     "budget": {
       "title": "Retirement budget",
@@ -946,7 +948,8 @@
       "howCurrency": "This is US history in US purchasing power. The shekel, Israeli inflation and Israeli markets are not modelled.",
       "howTax": "As in the risk analysis, your desired spending is after tax, so it is converted to {{gross}} a month before tax using your plan's tax rate ({{percent}}%).",
       "howSource": "Data: Aswath Damodaran, NYU Stern (yearly, {{range}}).",
-      "notForecast": "The past is only one history. The future can be worse."
+      "notForecast": "The past is only one history. The future can be worse.",
+      "mixHint": "A hypothetical model portfolio. It is not based on your own holdings."
     },
     "compare": {
       "title": "Compare retirement ages",
@@ -1191,6 +1194,17 @@
       "tableNote": "Balances are at the end of each year, in today's money. Capital that has become an annuity is no longer a balance: it is paid out as monthly income. Capital that is still locked until its access age is included.",
       "poolNote": "Bank deposits, shares and other holdings are modeled as one investments pool, shown in the {{pool}} column. The model has no separate path for each of them.",
       "total": "Total"
+    },
+    "riskBasis": {
+      "title": "What the risk tests rest on",
+      "intro": "The risk analysis and the historical backtest below test simple models. They do not replay your bank deposits, shares and pension investments one by one.",
+      "riskLabel": "Risk analysis.",
+      "risk": "All your savings earn the plan's {{returnPct}} a year before inflation, with a typical market swing of {{volatility}} a year. This is one rate for everything, not the return of each of your own holdings.",
+      "backtestLabel": "Historical backtest.",
+      "backtest": "A hypothetical portfolio of US stocks and bonds, starting at {{stocks}} stocks and {{bonds}} bonds. You change the mix in the test itself. It is a model, not a reconstruction of what you own.",
+      "exposureLabel": "Your dollar holdings.",
+      "exposureNote": "Neither test treats them differently from your shekel savings.",
+      "exposureLink": "See what a fall would do"
     }
   },
   "cover": {

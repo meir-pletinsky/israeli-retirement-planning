@@ -2136,6 +2136,17 @@ rest).
   annuitised capital is no longer a balance, and a note that bank deposits, shares and other
   holdings are one investments pool in the model, so no separate path is invented for them.
   Ages are the primary user's, as before. No stacked chart was built (a table was chosen).
+- [Review-UX-23] Risk results say what they rest on. Projections gets a "What the risk tests rest on"
+  card (`RiskBasisCard`, shown when a desired spending is entered) above the risk analysis. It
+  states that the Monte Carlo risk analysis applies the plan's single return and volatility to all
+  savings, that the historical backtest replays a hypothetical US stock/bond portfolio (the
+  default 60/40, changeable in the card) rather than the user's own holdings, and, when there are
+  dollar holdings, how much of the savings at retirement is in dollars and in employer shares
+  (from `buildStressTest`), noting that neither test treats them differently from shekel savings
+  and linking to the stress cases (`#stress-test`). The backtest's mix select now carries a
+  "hypothetical model portfolio" hint. On the Dashboard the portfolio summary adds the share of
+  the total that is employer shares (the concentration), with a link to Projections. The risk
+  models themselves are unchanged: the backtest mix is still independent of the holdings.
 
 ## Modeling assumptions (by phase)
 

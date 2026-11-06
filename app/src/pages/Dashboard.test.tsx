@@ -1338,6 +1338,41 @@ describe("Dashboard", () => {
       );
     });
 
+    it("says how much of the total is employer shares, and where to test a fall", async () => {
+      await saveProfileToDb(
+        buildTestProfile({
+          age: 50,
+          retirementAge: 67,
+          otherAssets: 100_000,
+          usdToIlsRate: { rate: 3 },
+          equity: [{ quantity: 1_000, priceUSD: 100, employerGrant: {} }],
+        }),
+      );
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      expect(rowAmount("Employer shares")).toBe("\u20aa300,000");
+      expect(summary().textContent!.replace(BIDI_MARKS, "")).toContain(
+        "Employer shares are 75% of this total, all in one company.",
+      );
+      expect(within(summary()).getByRole("link", { name: "See what a fall in their price would do" })).toHaveAttribute(
+        "href",
+        "/projections",
+      );
+    });
+
+    it("says a small employer holding is under one percent", async () => {
+      await saveProfileToDb(rich);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      expect(summary().textContent!.replace(BIDI_MARKS, "")).toContain(
+        "Employer shares are <1% of this total, all in one company.",
+      );
+    });
+
     it("has no share notes when there are no shares", async () => {
       await saveProfileToDb(
         buildTestProfile({ age: 50, retirementAge: 67, pensionBalances: [400_000], otherAssets: 10_000 }),
@@ -1349,6 +1384,7 @@ describe("Dashboard", () => {
       const text = summary().textContent!;
       expect(text).not.toContain("Not counted above");
       expect(text).not.toContain("Share prices are converted");
+      expect(text).not.toContain("Employer shares are");
       expect(within(summary()).queryByRole("link", { name: "Change the rate" })).not.toBeInTheDocument();
     });
 

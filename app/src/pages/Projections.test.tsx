@@ -1611,6 +1611,92 @@ describe("Projections", () => {
     });
   });
 
+  describe("what the risk tests rest on", () => {
+    const REGION = "What the risk tests rest on";
+    const plain = (element: HTMLElement) => element.textContent!.replace(/[\u2066\u2069]/g, "");
+    const retired = {
+      age: 60,
+      retirementAge: 60,
+      investmentReturnPct: 5,
+      inflationPct: 3,
+      usdToIlsRate: { rate: 1 },
+      retirementMonthlyExpenses: 5_000,
+    };
+    const employerShares = { quantity: 1_000, priceUSD: 100, employerGrant: {} };
+    const ownShares = { quantity: 1_000, priceUSD: 100, category: "personalBrokeragePurchase" as const };
+
+    const renderPlan = async (overrides: Record<string, unknown> = {}) => {
+      await saveProfileToDb(buildTestProfile({ ...retired, ...overrides }));
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+      return screen.findByRole("region", { name: REGION });
+    };
+
+    it("says the risk analysis applies one return and swing to all savings, not to each holding", async () => {
+      const card = await renderPlan({ equity: [ownShares] });
+
+      expect(plain(card)).toContain("do not replay your bank deposits, shares and pension investments one by one");
+      expect(plain(card)).toContain(
+        "All your savings earn the plan's 5% a year before inflation, with a typical market swing of 12% a year.",
+      );
+      expect(plain(card)).toContain("not the return of each of your own holdings");
+      expect(within(card).getByRole("link", { name: "Change assumptions" })).toHaveAttribute(
+        "href",
+        "/my-data/assumptions",
+      );
+    });
+
+    it("calls the backtest portfolio hypothetical and not a reconstruction of the holdings", async () => {
+      const user = userEvent.setup();
+      const card = await renderPlan({ equity: [ownShares] });
+
+      expect(plain(card)).toContain(
+        "A hypothetical portfolio of US stocks and bonds, starting at 60% stocks and 40% bonds.",
+      );
+      expect(plain(card)).toContain("It is a model, not a reconstruction of what you own.");
+
+      const mix = await screen.findByLabelText("Stocks in the portfolio");
+      expect(mix).toHaveAccessibleDescription("A hypothetical model portfolio. It is not based on your own holdings.");
+      await user.selectOptions(mix, "80% stocks, 20% bonds");
+      expect(mix).toHaveAccessibleDescription("A hypothetical model portfolio. It is not based on your own holdings.");
+    });
+
+    it("names the dollar and employer-share exposure and links to the stress cases", async () => {
+      const card = await renderPlan({ equity: [employerShares, ownShares] });
+
+      expect(plain(card)).toContain(
+        "Your dollar holdings. ₪200,000 of your savings when you start drawing are held in dollars. Of that, ₪100,000 is employer shares. Neither test treats them differently from your shekel savings.",
+      );
+      const link = within(card).getByRole("link", { name: "See what a fall would do" });
+      expect(link).toHaveAttribute("href", "#stress-test");
+      expect(screen.getByRole("region", { name: "If things go wrong" })).toHaveAttribute("id", "stress-test");
+    });
+
+    it("leaves out the employer line when none of the dollar holdings are employer shares", async () => {
+      const card = await renderPlan({ equity: [ownShares] });
+
+      expect(plain(card)).toContain("₪100,000 of your savings when you start drawing are held in dollars.");
+      expect(plain(card)).not.toContain("employer shares");
+    });
+
+    it("leaves out the dollar line when there are no dollar holdings", async () => {
+      const card = await renderPlan({ otherAssets: 50_000 });
+
+      expect(plain(card)).not.toContain("Your dollar holdings");
+      expect(within(card).queryByRole("link", { name: "See what a fall would do" })).not.toBeInTheDocument();
+      expect(plain(card)).toContain("All your savings earn the plan's 5% a year");
+    });
+
+    it("is not shown while there is no desired spending to test", async () => {
+      await saveProfileToDb(buildTestProfile({ ...retired, retirementMonthlyExpenses: undefined, equity: [ownShares] }));
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      await screen.findByRole("heading", { name: "Projections" });
+      expect(screen.queryByRole("region", { name: REGION })).not.toBeInTheDocument();
+    });
+  });
+
   it("names the assumptions every chart on the page rests on", async () => {
     await saveProfileToDb(
       buildTestProfile({ age: 40, retirementAge: 67, otherAssets: 300_000, investmentReturnPct: 8, inflationPct: 1.5 }),

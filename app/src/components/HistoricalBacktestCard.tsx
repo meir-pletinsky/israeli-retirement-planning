@@ -124,6 +124,7 @@ export function HistoricalBacktestCard({
               </label>
               <select
                 id={`${controlsId}-mix`}
+                aria-describedby={`${controlsId}-mix-hint`}
                 value={stockSharePct}
                 onChange={(event) => setStockSharePct(Number(event.target.value))}
                 className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand-500 focus:outline-none"
@@ -134,6 +135,9 @@ export function HistoricalBacktestCard({
                   </option>
                 ))}
               </select>
+              <p id={`${controlsId}-mix-hint`} className="mt-1 text-xs text-slate-500">
+                {t("projections.history.mixHint")}
+              </p>
             </div>
 
             <fieldset>

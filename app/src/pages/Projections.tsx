@@ -18,6 +18,7 @@ import { IrregularCostsCard } from "../components/IrregularCostsCard";
 import { LiquidityLadderCard } from "../components/LiquidityLadderCard";
 import { RetirementTimeline } from "../components/RetirementTimeline";
 import { RiskAnalysisCard } from "../components/RiskAnalysisCard";
+import { RiskBasisCard } from "../components/RiskBasisCard";
 import { ScenarioComparison } from "../components/ScenarioComparison";
 import { ScenarioTag, ScenarioTitle } from "../components/ScenarioTag";
 import { IncomeBasisNote, NetWorthBasisNote } from "../components/SpendingBasisNotes";
@@ -199,6 +200,10 @@ export function Projections() {
           <BalanceTable path={balancePath} />
         )}
       </div>
+
+      {hasTarget && (
+        <RiskBasisCard assumptions={profile.assumptions} stress={stress} scenarioTag={scenarioTag} />
+      )}
 
       <RiskAnalysisCard
         result={riskAnalysis}
