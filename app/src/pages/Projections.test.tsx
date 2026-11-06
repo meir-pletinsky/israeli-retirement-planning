@@ -55,7 +55,7 @@ describe("Projections", () => {
 
     renderWithProviders(<Projections />);
 
-    expect(await screen.findByRole("heading", { name: "Income After Tax" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Sustainable income after tax" })).toBeInTheDocument();
     expect(
       screen.getByText(/split into what you keep and the income tax paid/i),
     ).toBeInTheDocument();
@@ -67,8 +67,86 @@ describe("Projections", () => {
 
     renderWithProviders(<Projections />);
 
-    expect(await screen.findByText("Income by Source")).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Income After Tax" })).not.toBeInTheDocument();
+    expect(await screen.findByText("Sustainable income by source")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Sustainable income after tax" })).not.toBeInTheDocument();
+  });
+
+  describe("which spending each chart follows", () => {
+    // 0% real return: 120,000 pays 12,000 a year for ten years, so 1,000 a month runs out at 77.
+    const retiring = {
+      age: 66,
+      retirementAge: 67,
+      investmentReturnPct: 4,
+      inflationPct: 4,
+      pensionBalances: [120_000],
+    };
+    const BIDI_MARKS = /[\u2066\u2069]/g;
+    const reads = (pattern: RegExp) => (content: string) => pattern.test(content.replace(BIDI_MARKS, ""));
+
+    const renderProjections = async (profile: ReturnType<typeof buildTestProfile>) => {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+      await screen.findByRole("heading", { name: "Net Worth Projection" });
+    };
+
+    it("says the net-worth line draws the planned spending and where it goes unfunded", async () => {
+      await renderProjections(buildTestProfile({ ...retiring, retirementMonthlyExpenses: 1_000 }));
+
+      expect(
+        screen.getByText(reads(/Your savings if you spend ₪1,000 a month from retirement, your planned spending/)),
+      ).toBeInTheDocument();
+      expect(screen.getByText(reads(/From age 77 your usable savings no longer cover it/))).toBeInTheDocument();
+    });
+
+    it("says when the savings cover the planned spending to the end of the plan", async () => {
+      await renderProjections(buildTestProfile({ ...retiring, retirementMonthlyExpenses: 100 }));
+
+      expect(screen.getByText(/Your usable savings cover it through age 90/)).toBeInTheDocument();
+      expect(screen.queryByText(/no longer cover it/)).not.toBeInTheDocument();
+    });
+
+    it("says nothing is drawn when no spending is entered", async () => {
+      await renderProjections(buildTestProfile(retiring));
+
+      expect(screen.getByText(/No retirement spending is entered, so nothing is drawn/)).toBeInTheDocument();
+    });
+
+    it("says the income charts show what the savings can sustain, not the planned spending", async () => {
+      await renderProjections(buildTestProfile({ ...retiring, retirementMonthlyExpenses: 1_000 }));
+
+      const incomeNotes = screen.getAllByText(/This is not your planned spending and does not change when you change it/);
+      // Under the income chart and under the retirement timeline.
+      expect(incomeNotes).toHaveLength(2);
+      expect(screen.getByRole("heading", { name: "Sustainable income by source" })).toBeInTheDocument();
+    });
+
+    it("warns that income from savings stops when the planned spending would exhaust them", async () => {
+      await renderProjections(buildTestProfile({ ...retiring, retirementMonthlyExpenses: 1_000 }));
+
+      const warnings = screen.getAllByText(
+        reads(/At your planned ₪1,000 a month your usable savings run out at age 77/),
+      );
+      expect(warnings).toHaveLength(2);
+    });
+
+    it("does not warn about the income when the planned spending is funded", async () => {
+      await renderProjections(buildTestProfile({ ...retiring, retirementMonthlyExpenses: 100 }));
+
+      expect(screen.queryByText(/your usable savings run out at age/)).not.toBeInTheDocument();
+    });
+
+    it("explains the planned-spending line on the after-tax chart only when spending is entered", async () => {
+      await renderProjections(
+        buildTestProfile({ ...retiring, pensionBalances: [6_000_000], age: 62, retirementAge: 62, retirementMonthlyExpenses: 20_000 }),
+      );
+      expect(screen.getByText(/The dashed line is your planned spending after tax/)).toBeInTheDocument();
+    });
+
+    it("has no planned-spending line to explain without an entered spending", async () => {
+      await renderProjections(buildTestProfile({ ...retiring, pensionBalances: [6_000_000], age: 62, retirementAge: 62 }));
+      expect(screen.queryByText(/dashed line/)).not.toBeInTheDocument();
+    });
   });
 
   it("shows the spouse's age beside each stage of a couple's retirement", async () => {
@@ -1201,7 +1279,7 @@ describe("Projections", () => {
       expect(selector.getByRole("button", { name: "Standard - age 65" })).toHaveAttribute("aria-pressed", "false");
       expect(timeline.getByText("Delayed - age 68")).toBeInTheDocument();
       expect(within(netWorth).getByText("Delayed - age 68")).toBeInTheDocument();
-      for (const name of ["Risk analysis", "Historical backtest", "Income by Source"]) {
+      for (const name of ["Risk analysis", "Historical backtest", "Sustainable income by source"]) {
         const heading = screen.getByRole("heading", { name: new RegExp(`^${name}$`, "i") });
         expect(within(heading.parentElement!).getByText("Delayed - age 68")).toBeInTheDocument();
       }

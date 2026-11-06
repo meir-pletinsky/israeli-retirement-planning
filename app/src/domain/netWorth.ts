@@ -1,14 +1,15 @@
 import type { ProfileData } from "../types";
 import { futureValueOfMonthlyContributions, totalMonthlyContribution } from "./contributions";
-import { simulateDrawdownForScenario } from "./drawdown";
+import { simulateDrawdownForScenario, simulateHouseholdDrawdown } from "./drawdown";
 import { desiredRetirementMonthly } from "./expenses";
-import { selfProfileView } from "./household";
+import { buildHousehold, resolveRetirementTiming, selfProfileView } from "./household";
 import {
   aggregateOtherBalance,
   aggregatePensionBalance,
   realAnnualReturnRate,
   resolveCurrentAge,
 } from "./profileBasics";
+import { UNMET_TOLERANCE } from "./spendingTest";
 import { engineNowMs } from "./trace";
 import type { NetWorthPoint, RetirementScenario } from "./types";
 import { momentAfterYears } from "./vesting";
@@ -69,4 +70,29 @@ export function projectNetWorth(
   return simulateDrawdownForScenario(profile, scenario, desiredRetirementMonthly(profile.expenses) ?? 0).map(
     ({ age, netWorth }) => ({ age, netWorth: Math.round(netWorth) }),
   );
+}
+
+/** Whether the savings fund the spending the net-worth projection draws. */
+export interface SpendingFunding {
+  /** The monthly retirement spending the projection draws, today's money; 0 when none is entered. */
+  monthlySpending: number;
+  /** The primary user's age in the first year the usable savings cannot fund it; null when they can through the horizon. */
+  shortfallAge: number | null;
+}
+
+/**
+ * Where the spending that `projectNetWorth` draws first goes unfunded. The net-worth path
+ * follows the planned spending, so it may run out of usable capital well before the planning
+ * horizon, unlike the sustainable income (`retirementIncome.ts`), which is sized to last to it.
+ */
+export function projectSpendingFunding(
+  profile: ProfileData,
+  scenario: RetirementScenario = "standard",
+): SpendingFunding {
+  const monthlySpending = desiredRetirementMonthly(profile.expenses) ?? 0;
+  if (monthlySpending <= 0) return { monthlySpending: 0, shortfallAge: null };
+  const household = buildHousehold(profile, resolveRetirementTiming(profile, scenario));
+  const rows = simulateHouseholdDrawdown(household, monthlySpending, { lean: true });
+  const short = rows.find((row) => row.unmet > UNMET_TOLERANCE);
+  return { monthlySpending, shortfallAge: short ? short.age : null };
 }

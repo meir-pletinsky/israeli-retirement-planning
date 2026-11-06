@@ -15,12 +15,17 @@ import { formatAxisMoney } from "./formatAxisMoney";
 interface NetWorthChartProps {
   data: NetWorthPoint[];
   retirementAge?: number;
+  /** The age at which the planned spending first goes unfunded, marked on the line. */
+  shortfallAge?: number | null;
+  shortfallLabel?: string;
   currencySymbol: string;
 }
 
 export function NetWorthChart({
   data,
   retirementAge,
+  shortfallAge,
+  shortfallLabel,
   currencySymbol,
 }: NetWorthChartProps) {
   return (
@@ -43,6 +48,14 @@ export function NetWorthChart({
             x={retirementAge}
             stroke="#0b6e99"
             strokeDasharray="4 4"
+          />
+        )}
+        {shortfallAge != null && (
+          <ReferenceLine
+            x={shortfallAge}
+            stroke="#e11d48"
+            strokeDasharray="4 4"
+            label={{ value: shortfallLabel, position: "insideTopRight", fontSize: 11, fill: "#be123c" }}
           />
         )}
         <Line

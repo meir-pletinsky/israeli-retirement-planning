@@ -15,6 +15,7 @@ import { RetirementTimeline } from "../components/RetirementTimeline";
 import { RiskAnalysisCard } from "../components/RiskAnalysisCard";
 import { ScenarioComparison } from "../components/ScenarioComparison";
 import { ScenarioTag, ScenarioTitle } from "../components/ScenarioTag";
+import { IncomeBasisNote, NetWorthBasisNote } from "../components/SpendingBasisNotes";
 import { SourceCostCard } from "../components/SourceCostCard";
 import { StressTestCard } from "../components/StressTestCard";
 import { UnvestedSharesCard } from "../components/UnvestedSharesCard";
@@ -38,6 +39,7 @@ import {
   isHouseholdActive,
   planForOption,
   projectNetWorth,
+  projectSpendingFunding,
   resolveRetirementAge,
   runMonteCarlo,
   savedCoverPlan,
@@ -67,6 +69,7 @@ export function Projections() {
   const hasTarget = desiredMonthly !== null && desiredMonthly > 0;
 
   const netWorthData = projectNetWorth(profile, scenario);
+  const funding = projectSpendingFunding(profile, scenario);
   const incomeData = estimateIncomeBreakdown(profile, scenario);
   const netIncomeYears = estimateNetIncome(profile, scenario).years;
   const hasNetIncome = netIncomeYears.some((year) => year.grossMonthly > 0);
@@ -163,8 +166,14 @@ export function Projections() {
               : t("projections.viewChart")}
           </button>
         </div>
+        <NetWorthBasisNote funding={funding} />
         {view === "chart" ? (
-          <NetWorthChart data={netWorthData} currencySymbol={currencySymbol} />
+          <NetWorthChart
+            data={netWorthData}
+            currencySymbol={currencySymbol}
+            shortfallAge={funding.shortfallAge}
+            shortfallLabel={t("projections.basis.shortfallMarker")}
+          />
         ) : (
           <div className="max-h-72 overflow-y-auto">
             <table className="w-full text-sm">
@@ -211,6 +220,7 @@ export function Projections() {
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-2">
           <ScenarioTitle tag={scenarioTag}>{t("projections.incomeChart")}</ScenarioTitle>
+          <IncomeBasisNote funding={funding} />
         </div>
         <IncomeBreakdownChart
           data={incomeData}
@@ -222,12 +232,17 @@ export function Projections() {
       {hasNetIncome && (
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <ScenarioTitle tag={scenarioTag}>{t("projections.netIncomeChart")}</ScenarioTitle>
-          <p className="mb-2 mt-1 text-xs text-slate-500">{t("projections.netIncomeNote")}</p>
+          <p className="mb-2 mt-1 text-xs text-slate-500">
+            {t("projections.netIncomeNote")}
+            {funding.monthlySpending > 0 && ` ${t("projections.netIncomePlannedNote")}`}
+          </p>
           <NetIncomeChart
             data={netIncomeYears}
             currencySymbol={currencySymbol}
             netLabel={t("projections.netIncomeKept")}
             taxLabel={t("projections.netIncomeTax")}
+            plannedMonthly={funding.monthlySpending}
+            plannedLabel={t("projections.netIncomePlanned")}
           />
         </div>
       )}
@@ -268,6 +283,7 @@ export function Projections() {
         currencySymbol={currencySymbol}
         spouseAgeAt={isCouple ? (age) => spouseAgeAt(profile, age) : undefined}
         scenarioTag={scenarioTag}
+        basisNote={<IncomeBasisNote funding={funding} />}
       />
     </div>
   );

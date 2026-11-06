@@ -2069,6 +2069,18 @@ rest).
   "Reference only" (it does stop interest accruing in the current value) and carries a helper
   saying that it is not used to time withdrawals. Contract-aware deposits (early-withdrawal
   penalties, maturity and renewal, a bank rung in the ladder) are a modeling change left open.
+- [Review-UX-20] The Projections charts say which spending case they describe. The net-worth
+  curve follows the planned retirement spending; the income charts show the sustainable income
+  (sized to last to age 90) and ignore the budget. `domain/netWorth.ts` gains
+  `projectSpendingFunding` (a lean household drawdown that reports the age at which planned
+  spending is first not fully funded). `SpendingBasisNotes` puts a one-line basis note under the
+  net-worth title ("Your savings if you spend X a month ... covers it through 90 / runs out at
+  age N") and under the income charts and timeline (sustainable income, not planned spending,
+  with a shortfall warning). `NetWorthChart` marks the shortfall age with a dashed "Unfunded from
+  here" line, and `NetIncomeChart` draws the planned after-tax spending as a dashed line. The
+  income chart titles became "Sustainable income by source / after tax". The connected annual
+  cash-flow view (income, withdrawals, essential and full expenses, unfunded spending) and a
+  planned-spending line on the gross by-source chart are left open.
 
 ## Modeling assumptions (by phase)
 

@@ -3,6 +3,7 @@ import {
   BarChart,
   CartesianGrid,
   Legend,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -17,10 +18,20 @@ interface NetIncomeChartProps {
   currencySymbol: string;
   netLabel: string;
   taxLabel: string;
+  /** The planned monthly spending after tax, drawn as a line to compare the bars with. */
+  plannedMonthly?: number;
+  plannedLabel?: string;
 }
 
 /** Each bar is a year's gross income: the part kept (net) with the tax stacked on top. */
-export function NetIncomeChart({ data, currencySymbol, netLabel, taxLabel }: NetIncomeChartProps) {
+export function NetIncomeChart({
+  data,
+  currencySymbol,
+  netLabel,
+  taxLabel,
+  plannedMonthly,
+  plannedLabel,
+}: NetIncomeChartProps) {
   return (
     <ResponsiveContainer width="100%" height={280}>
       <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
@@ -43,6 +54,16 @@ export function NetIncomeChart({ data, currencySymbol, netLabel, taxLabel }: Net
           fill="#e11d48"
           radius={[4, 4, 0, 0]}
         />
+        {plannedMonthly != null && plannedMonthly > 0 && (
+          <ReferenceLine
+            y={plannedMonthly}
+            ifOverflow="extendDomain"
+            stroke="#d97706"
+            strokeDasharray="6 4"
+            strokeWidth={2}
+            label={{ value: plannedLabel, position: "insideTopRight", fontSize: 11, fill: "#b45309" }}
+          />
+        )}
       </BarChart>
     </ResponsiveContainer>
   );

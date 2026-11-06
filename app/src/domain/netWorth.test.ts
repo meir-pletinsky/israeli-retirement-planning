@@ -10,6 +10,7 @@ import {
   holdingValueIls,
   projectBalanceAtAge,
   projectNetWorth,
+  projectSpendingFunding,
   realAnnualReturnRate,
   resolveCurrentAge,
   resolveRetirementAge,
@@ -338,6 +339,47 @@ describe("projectNetWorth", () => {
       const atRetirement = projectNetWorth(profile).find((p) => p.age === 55)!.netWorth;
       expect(Math.abs(atRetirement - projectBalanceAtAge(profile, 55))).toBeLessThanOrEqual(1);
     });
+  });
+});
+
+describe("projectSpendingFunding", () => {
+  // 0% real return, so 120,000 pays 12,000 a year for exactly ten years.
+  const base = {
+    age: 66,
+    retirementAge: 67,
+    investmentReturnPct: 4,
+    inflationPct: 4,
+    pensionBalances: [120_000],
+  };
+
+  it("is the planned spending, with no shortfall when none is entered", () => {
+    expect(projectSpendingFunding(buildTestProfile(base))).toEqual({ monthlySpending: 0, shortfallAge: null });
+  });
+
+  it("names the first age the usable savings cannot fund the spending", () => {
+    const funding = projectSpendingFunding(buildTestProfile({ ...base, retirementMonthlyExpenses: 1_000 }));
+    expect(funding.monthlySpending).toBe(1_000);
+    expect(funding.shortfallAge).toBe(77);
+  });
+
+  it("agrees with the net-worth path, which reaches zero at that age", () => {
+    const profile = buildTestProfile({ ...base, retirementMonthlyExpenses: 1_000 });
+    const { shortfallAge } = projectSpendingFunding(profile);
+    const path = projectNetWorth(profile);
+    expect(path.find((p) => p.age === shortfallAge! - 1)!.netWorth).toBe(0);
+    expect(path.find((p) => p.age === shortfallAge! - 2)!.netWorth).toBeGreaterThan(0);
+  });
+
+  it("has no shortfall when the savings last to the horizon", () => {
+    const funding = projectSpendingFunding(buildTestProfile({ ...base, retirementMonthlyExpenses: 100 }));
+    expect(funding).toEqual({ monthlySpending: 100, shortfallAge: null });
+  });
+
+  it("moves with the retirement scenario", () => {
+    const profile = buildTestProfile({ ...base, age: 60, retirementAge: 67, retirementMonthlyExpenses: 1_000 });
+    const standard = projectSpendingFunding(profile, "standard").shortfallAge!;
+    const delayed = projectSpendingFunding(profile, "delayed").shortfallAge!;
+    expect(delayed).toBeGreaterThan(standard);
   });
 });
 

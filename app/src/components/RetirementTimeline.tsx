@@ -13,6 +13,8 @@ interface RetirementTimelineProps {
   spouseAgeAt?: (selfAge: number) => number;
   /** Names the retirement scenario shown, beside the title. */
   scenarioTag?: ReactNode;
+  /** Says what the income figures are, under the intro. */
+  basisNote?: ReactNode;
 }
 
 export function RetirementTimeline({
@@ -21,6 +23,7 @@ export function RetirementTimeline({
   currencySymbol,
   spouseAgeAt,
   scenarioTag,
+  basisNote,
 }: RetirementTimelineProps) {
   const { t } = useTranslation();
   const formatRange = (from: number, to: number) =>
@@ -35,6 +38,7 @@ export function RetirementTimeline({
         {t("projections.timeline.title")}
       </ScenarioTitle>
       <p className="mt-1 text-xs text-slate-500">{t("projections.timeline.intro")}</p>
+      {basisNote}
       <div className="mt-3 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>

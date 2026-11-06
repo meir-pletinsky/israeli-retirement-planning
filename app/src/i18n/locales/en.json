@@ -819,9 +819,9 @@
     "scenarioScope": "Applies to the charts and cards below. The age comparison above is separate and does not follow this choice.",
     "scenarioEarlyFloor": "In these scenarios Early never goes below age {{age}}, so for your plan it matches Standard. The age comparison above can go lower.",
     "netWorthChart": "Net Worth Projection",
-    "incomeChart": "Income by Source",
-    "netIncomeChart": "Income After Tax",
-    "netIncomeNote": "Each bar is one year's income before tax, split into what you keep and the income tax paid.",
+    "incomeChart": "Sustainable income by source",
+    "netIncomeChart": "Sustainable income after tax",
+    "netIncomeNote": "Each bar is one year's sustainable income before tax, split into what you keep and the income tax paid.",
     "netIncomeKept": "Income after tax",
     "netIncomeTax": "Income tax",
     "householdNote": "The plan covers your whole household and ages are yours. Early and delayed scenarios move both retirement dates.",
@@ -1110,7 +1110,18 @@
       "range": "{{from}}–{{to}}",
       "spouseAges": "Spouse:"
     },
-    "bankDepositsNote": "Your bank deposits are counted in “Other Investments”: the plan treats them as money you can use at any time, growing at the plan's return. Each deposit's own maturity date, early-withdrawal terms and renewal are not modeled individually."
+    "bankDepositsNote": "Your bank deposits are counted in “Other Investments”: the plan treats them as money you can use at any time, growing at the plan's return. Each deposit's own maturity date, early-withdrawal terms and renewal are not modeled individually.",
+    "netIncomePlannedNote": "The dashed line is your planned spending after tax.",
+    "netIncomePlanned": "Planned spending",
+    "basis": {
+      "netWorthNoSpending": "No retirement spending is entered, so nothing is drawn after you retire: this line shows your savings growing, not running out. Add your expected expenses in My Data to see how long they last.",
+      "netWorth": "Your savings if you spend {{amount}} a month from retirement, your planned spending, in today's money.",
+      "netWorthFunded": "Your usable savings cover it through age {{age}}.",
+      "netWorthShortfall": "From age {{age}} your usable savings no longer cover it, and the unfunded part is not shown on this line.",
+      "shortfallMarker": "Unfunded from here",
+      "income": "The most your savings and pensions are estimated to pay each month, before tax, so that they last to age {{age}}. This is not your planned spending and does not change when you change it.",
+      "incomeShortfall": "At your planned {{amount}} a month your usable savings run out at age {{age}} (see Net Worth Projection), so payments from savings would not continue at this level after that age."
+    }
   },
   "cover": {
     "section": {
