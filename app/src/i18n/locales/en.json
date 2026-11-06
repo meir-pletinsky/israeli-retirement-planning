@@ -280,6 +280,21 @@
         "change": "Change the rate"
       },
       "total": "Total"
+    },
+    "budget": {
+      "title": "Retirement budget",
+      "intro": "Your estimated net income in retirement is {{income}} per month. Here is how it compares with the essential minimum and with your full planned budget.",
+      "budget": "Budget",
+      "perMonth": "Per month",
+      "comparison": "Against your income",
+      "essential": "Essential budget",
+      "full": "Full planned budget",
+      "byCategory": "Where the budget goes",
+      "category": "Category",
+      "caveat": "Both budgets are compared with the same estimated net income. The risk analysis tests the full planned budget, so being above the essential line does not make the essentials certain.",
+      "typedTotal": "Your plan uses one typed monthly figure, so it cannot tell essential spending from discretionary spending. Itemise your expenses to see the essential minimum against your income.",
+      "edit": "Edit expenses",
+      "itemise": "Itemise my expenses"
     }
   },
   "myData": {

@@ -1406,6 +1406,58 @@ describe("Projections", () => {
     });
   });
 
+  describe("retirement budget", () => {
+    const BIDI_MARKS = /[\u2066\u2069]/g;
+    const profile = buildTestProfile({
+      age: 55,
+      retirementAge: 65,
+      monthlyGrossSalary: 20_000,
+      pensionBalances: [1_500_000],
+      otherAssets: 200_000,
+      investmentReturnPct: 4,
+      inflationPct: 4,
+      expenseItems: [
+        { amount: 6_000, category: "housing", necessity: "essential" },
+        { amount: 2_000, category: "food", necessity: "essential" },
+        { amount: 1_000, category: "travel", necessity: "discretionary" },
+      ],
+    });
+    const budget = () => screen.getByRole("region", { name: "Retirement budget" });
+    const rowText = (name: string) =>
+      within(budget()).getByRole("row", { name: new RegExp(name) }).textContent!.replace(BIDI_MARKS, "");
+
+    it("compares the essential and the full budget with the income of the chosen scenario", async () => {
+      const user = userEvent.setup();
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      await screen.findByRole("region", { name: "Retirement budget" });
+      expect(within(budget()).getByText("Standard - age 65")).toBeInTheDocument();
+      expect(rowText("Essential budget")).toContain("\u20aa8,000");
+      expect(rowText("Full planned budget")).toContain("\u20aa9,000");
+      const standardEssential = rowText("Essential budget");
+
+      await user.click(
+        within(screen.getByRole("region", { name: "Retirement scenario" })).getByRole("button", {
+          name: "Delayed - age 68",
+        }),
+      );
+
+      expect(within(budget()).getByText("Delayed - age 68")).toBeInTheDocument();
+      expect(rowText("Essential budget")).not.toBe(standardEssential);
+    });
+
+    it("is not shown when no spending has been entered", async () => {
+      await saveProfileToDb(buildTestProfile({ age: 55, retirementAge: 65, pensionBalances: [1_500_000] }));
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      await screen.findByRole("region", { name: "Retirement scenario" });
+      expect(screen.queryByRole("region", { name: "Retirement budget" })).not.toBeInTheDocument();
+    });
+  });
+
   it("names the assumptions every chart on the page rests on", async () => {
     await saveProfileToDb(
       buildTestProfile({ age: 40, retirementAge: 67, otherAssets: 300_000, investmentReturnPct: 8, inflationPct: 1.5 }),

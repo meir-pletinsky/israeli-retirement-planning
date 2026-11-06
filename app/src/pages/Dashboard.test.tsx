@@ -1380,4 +1380,114 @@ describe("Dashboard", () => {
       expect(screen.queryByRole("region", { name: "What Net Worth Today is made of" })).not.toBeInTheDocument();
     });
   });
+
+  describe("retirement budget", () => {
+    const BIDI_MARKS = /[\u2066\u2069]/g;
+    const budget = () => screen.getByRole("region", { name: "Retirement budget" });
+    const rowText = (name: string) =>
+      within(budget()).getByRole("row", { name: new RegExp(name) }).textContent!.replace(BIDI_MARKS, "");
+
+    const itemised = buildTestProfile({
+      age: 66,
+      retirementAge: 67,
+      pensionBalances: [900_000],
+      expenseItems: [
+        { amount: 5_000, category: "housing", necessity: "essential" },
+        { amount: 1_500, category: "food", necessity: "essential" },
+        { amount: 2_400, category: "travel", frequency: "yearly", necessity: "discretionary" },
+        { amount: 1_000, category: "lifestyle", necessity: "discretionary" },
+      ],
+    });
+
+    it("shows the essential and the full budget, each with its gap against the net income", async () => {
+      await saveProfileToDb(itemised);
+      await saveOnboardedToDb(true);
+      const income = calculateFundingGap(itemised, "standard").estimatedMonthlyIncome;
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      const gap = (budgetAmount: number) => {
+        const diff = Math.round(income - budgetAmount);
+        return diff >= 0
+          ? `\u20aa${diff.toLocaleString()} per month to spare`
+          : `\u20aa${(-diff).toLocaleString()} per month short`;
+      };
+      expect(rowText("Essential budget")).toBe(`Essential budget\u20aa6,500${gap(6_500)}`);
+      expect(rowText("Full planned budget")).toBe(`Full planned budget\u20aa7,700${gap(7_700)}`);
+    });
+
+    it("uses the planned spending shown elsewhere as the full budget", async () => {
+      await saveProfileToDb(itemised);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      const planned = within(screen.getByRole("region", { name: "Retirement snapshot" }));
+      expect(planned.getByText("\u20aa7,700")).toBeInTheDocument();
+    });
+
+    it("breaks the budget down by category, largest first, with the totals adding up", async () => {
+      await saveProfileToDb(itemised);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      const rows = within(budget())
+        .getAllByRole("row")
+        .map((row) => row.textContent!.replace(BIDI_MARKS, ""));
+      const categoryRows = rows.filter((text) => /^(Housing|Food|Travel|Personal)/.test(text));
+      expect(categoryRows).toEqual([
+        "Housing\u20aa5,000\u2014",
+        "Food and household\u20aa1,500\u2014",
+        "Personal and lifestyle\u2014\u20aa1,000",
+        "Travel and leisure\u2014\u20aa200",
+      ]);
+    });
+
+    it("links to the expenses step", async () => {
+      await saveProfileToDb(itemised);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      expect(within(budget()).getByRole("link", { name: "Edit expenses" })).toHaveAttribute(
+        "href",
+        "/my-data/expenses",
+      );
+    });
+
+    it("explains that the budgets are compared with the same income", async () => {
+      await saveProfileToDb(itemised);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      expect(budget().textContent).toContain("Both budgets are compared with the same estimated net income.");
+    });
+
+    it("asks to itemise when the plan has one typed total, and shows no split", async () => {
+      await saveProfileToDb(
+        buildTestProfile({ age: 66, retirementAge: 67, pensionBalances: [900_000], retirementMonthlyExpenses: 8_000 }),
+      );
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      expect(budget().textContent).toContain("cannot tell essential spending from discretionary spending");
+      expect(within(budget()).queryByRole("table")).not.toBeInTheDocument();
+      expect(within(budget()).getByRole("link", { name: "Itemise my expenses" })).toHaveAttribute(
+        "href",
+        "/my-data/expenses",
+      );
+    });
+
+    it("is not shown when no spending has been entered", async () => {
+      await saveProfileToDb(buildTestProfile({ age: 66, retirementAge: 67, pensionBalances: [900_000] }));
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      expect(screen.queryByRole("region", { name: "Retirement budget" })).not.toBeInTheDocument();
+    });
+  });
 });

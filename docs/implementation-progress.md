@@ -2103,6 +2103,16 @@ rest).
   employer shares apart as not counted today (projections add what vests by retirement), states
   the USD/ILS rate behind the share values (Bank of Israel date, typed, or built-in) with a link
   to change it, and notes when a spouse's accounts are included. The Net Worth KPI links to it.
+- [Review-UX-19] The decision screens show the essential/discretionary structure of the budget.
+  `budgetBreakdown` (`domain/expenses.ts`) splits the itemised list into the essential and the
+  full budget (the full figure is `desiredRetirementMonthly`, the number every projection is
+  measured against) and by category, in whole shekels per month with largest-remainder rounding
+  so the parts add up to the total. `BudgetCard` (Dashboard after the snapshot; Projections for
+  the selected scenario) compares the same estimated net income with each budget ("to spare" /
+  "short"), lists the categories and links to the expenses step. With one typed total it says
+  essential and discretionary cannot be told apart and links to itemising. It states that the
+  risk analysis tests the full budget only, so no "essentials covered" status is offered:
+  that would need a probability computed for the essential budget (left for the owner).
 
 ## Modeling assumptions (by phase)
 

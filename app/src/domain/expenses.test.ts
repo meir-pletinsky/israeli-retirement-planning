@@ -4,6 +4,7 @@ import { buildTestProfile } from "../test/domainFixtures";
 import { createEmptyExpenseItem, EXPENSE_CATEGORIES, type ExpenseItem, type ExpensesData } from "../types";
 import { EXPENSE_SUGGESTIONS, itemFromSuggestion } from "./expenseCatalog";
 import {
+  budgetBreakdown,
   desiredRetirementMonthly,
   expenseTotals,
   monthlyEquivalent,
@@ -56,6 +57,61 @@ describe("expenseTotals", () => {
 
   it("is zero for an empty list", () => {
     expect(expenseTotals([])).toEqual({ essential: 0, discretionary: 0, total: 0 });
+  });
+});
+
+describe("budgetBreakdown", () => {
+  const detailed = (items: ExpenseItem[]): ExpensesData => ({ mode: "detailed", retirementMonthly: 99_999, items });
+
+  it("splits the budget by necessity and by category, the largest category first", () => {
+    const breakdown = budgetBreakdown(
+      detailed([
+        item({ amount: 6_000, category: "housing", necessity: "essential" }),
+        item({ amount: 1_800, category: "food", frequency: "bimonthly", necessity: "essential" }),
+        item({ amount: 24_000, category: "travel", frequency: "yearly", necessity: "discretionary" }),
+        item({ amount: 60_000, category: "transport", frequency: "everyYears", everyYears: 5, necessity: "discretionary" }),
+        item({ amount: 600, category: "housing", necessity: "discretionary" }),
+      ]),
+    );
+    expect(breakdown).toEqual({
+      essential: 6_900,
+      discretionary: 3_600,
+      total: 10_500,
+      categories: [
+        { category: "housing", essential: 6_000, discretionary: 600 },
+        { category: "travel", essential: 0, discretionary: 2_000 },
+        { category: "transport", essential: 0, discretionary: 1_000 },
+        { category: "food", essential: 900, discretionary: 0 },
+      ],
+    });
+  });
+
+  it("totals the same figure the plan is measured against, with parts that add up to it", () => {
+    const expenses = detailed([
+      item({ amount: 7_000, frequency: "everyYears", everyYears: 10, category: "housing", necessity: "essential" }),
+      item({ amount: 7_000, frequency: "everyYears", everyYears: 10, category: "food", necessity: "essential" }),
+      item({ amount: 7_000, frequency: "everyYears", everyYears: 10, category: "health", necessity: "discretionary" }),
+      item({ amount: 1_000, category: "other", necessity: "discretionary" }),
+    ]);
+    const breakdown = budgetBreakdown(expenses)!;
+    expect(breakdown.total).toBe(desiredRetirementMonthly(expenses));
+    const parts = breakdown.categories.reduce((sum, row) => sum + row.essential + row.discretionary, 0);
+    expect(parts).toBe(breakdown.total);
+    expect(breakdown.essential + breakdown.discretionary).toBe(breakdown.total);
+  });
+
+  it("is unavailable for one typed total, where nothing says what is essential", () => {
+    expect(budgetBreakdown({ mode: "totals", retirementMonthly: 9_000, items: [item({ amount: 100 })] })).toBeNull();
+  });
+
+  it("is unavailable while no item has an amount", () => {
+    expect(budgetBreakdown(detailed([]))).toBeNull();
+    expect(budgetBreakdown(detailed([item({ amount: null })]))).toBeNull();
+  });
+
+  it("counts an item without a known necessity as discretionary, as the totals do", () => {
+    const odd = item({ amount: 500, necessity: "maybe" as unknown as ExpenseItem["necessity"] });
+    expect(budgetBreakdown(detailed([odd]))).toMatchObject({ essential: 0, discretionary: 500, total: 500 });
   });
 });
 

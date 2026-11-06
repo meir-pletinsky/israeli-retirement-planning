@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { useProfile } from "../app/ProfileContext";
 import { ActiveAssumptions } from "../components/ActiveAssumptions";
+import { BudgetCard } from "../components/BudgetCard";
 import { IncomeBreakdownChart } from "../components/charts/IncomeBreakdownChart";
 import { NetIncomeChart } from "../components/charts/NetIncomeChart";
 import { NetWorthChart } from "../components/charts/NetWorthChart";
@@ -31,6 +32,7 @@ import {
   buildRetirementTimeline,
   buildSourceCostTable,
   buildStressTest,
+  calculateFundingGap,
   compareCoverOptions,
   compareWithdrawalStrategies,
   desiredRetirementMonthly,
@@ -154,6 +156,12 @@ export function Projections() {
         )}
         {isCouple && <p className="mt-2 text-xs text-slate-500">{t("projections.householdNote")}</p>}
       </section>
+
+      <BudgetCard
+        expenses={profile.expenses}
+        netMonthlyIncome={calculateFundingGap(profile, scenario).estimatedMonthlyIncome}
+        scenarioTag={scenarioTag}
+      />
 
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-2 flex items-center justify-between gap-2">

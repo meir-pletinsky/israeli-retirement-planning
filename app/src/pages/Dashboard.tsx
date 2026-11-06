@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { useProfile } from "../app/ProfileContext";
 import { ActiveAssumptions } from "../components/ActiveAssumptions";
 import { BituachLeumiCard } from "../components/BituachLeumiCard";
+import { BudgetCard } from "../components/BudgetCard";
 import { NetWorthChart } from "../components/charts/NetWorthChart";
 import { CoverNoticeCard } from "../components/CoverNoticeCard";
 import { DataGapsCard } from "../components/DataGapsCard";
@@ -234,6 +235,8 @@ export function Dashboard() {
       <PortfolioSummaryCard portfolio={breakdownPortfolio(profile)} />
 
       <RetirementSnapshot kpis={snapshot.kpis} />
+
+      <BudgetCard expenses={profile.expenses} netMonthlyIncome={fundingGap.estimatedMonthlyIncome} />
 
       <DataGapsCard gaps={gaps} />
 
