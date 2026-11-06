@@ -234,6 +234,60 @@ describe("PersonalStep — what is required", () => {
 
     expect(await screen.findAllByText("This field is required.")).toHaveLength(2);
   });
+
+  it("moves focus to the first invalid field, marks it invalid and links its error", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+
+    const age = await screen.findByLabelText(/^Age/);
+    expect(age).not.toHaveAttribute("aria-invalid");
+    await user.click(screen.getByRole("button", { name: "Next" }));
+
+    await waitFor(() => expect(age).toHaveFocus());
+    expect(age).toHaveAttribute("aria-invalid", "true");
+    expect(age).toHaveAccessibleDescription("This field is required.");
+    expect(screen.getByLabelText(/^Desired retirement age/)).toHaveAttribute("aria-invalid", "true");
+    expect(await screen.findByRole("alert")).toHaveTextContent(/required details need fixing/);
+  });
+
+  it("focuses the retirement age when only it is wrong, and clears the marking once fixed", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(buildTestProfile({ age: 45, retirementAge: 40 }));
+    renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+
+    const retirement = await screen.findByLabelText(/^Desired retirement age/);
+    await user.click(screen.getByRole("button", { name: "Next" }));
+
+    await waitFor(() => expect(retirement).toHaveFocus());
+    expect(retirement).toHaveAccessibleDescription(/must be greater than your current age/);
+    expect(screen.getByLabelText(/^Age/)).not.toHaveAttribute("aria-invalid");
+
+    await user.clear(retirement);
+    await user.type(retirement, "62");
+    expect(retirement).not.toHaveAttribute("aria-invalid");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("focuses the partner's retirement age after opening the Partner tab", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(
+      buildTestProfile({ age: 50, retirementAge: 65, maritalStatus: "married", spouse: { age: 48 } }),
+    );
+    renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+
+    await user.click(await screen.findByRole("button", { name: "Next" }));
+
+    const spouseRetirement = await screen.findByLabelText(/^Spouse's retirement age/);
+    await waitFor(() => expect(spouseRetirement).toHaveFocus());
+    expect(spouseRetirement).toHaveAttribute("aria-invalid", "true");
+  });
+
+  it("keeps a helper text linked to its field when there is no error", async () => {
+    renderWithProviders(<PersonalStep />, { route: "/my-data/personal" });
+
+    const salary = await screen.findByLabelText(/Monthly gross salary/);
+    expect(salary).toHaveAccessibleDescription(/\S/);
+  });
 });
 
 describe("PersonalStep — monthly gross salary", () => {

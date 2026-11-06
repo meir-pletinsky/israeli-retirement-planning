@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useProfile } from "../../app/ProfileContext";
@@ -27,6 +27,8 @@ export function PersonalStep() {
   const { personal, taxExemptionBasket, bituachLeumi } = profile;
   const currency = t("common.currencySymbol");
   const [showErrors, setShowErrors] = useState(false);
+  const [attempts, setAttempts] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // These two fields drive every domain calculation (see app/src/domain);
   // require them explicitly so the dashboard never silently substitutes
@@ -79,7 +81,14 @@ export function PersonalStep() {
     setShowErrors(true);
     // Show the person whose fields need fixing.
     if (isMarried) setPerson(selfHasError ? "self" : "spouse");
+    setAttempts((count) => count + 1);
   }
+
+  // Runs after the errors (and the right person's tab) have rendered, so the field to fix exists.
+  useEffect(() => {
+    if (attempts === 0) return;
+    containerRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+  }, [attempts]);
 
   const selfFields = (
     <>
@@ -269,7 +278,7 @@ export function PersonalStep() {
   );
 
   return (
-    <div className="flex max-w-lg flex-col gap-4">
+    <div ref={containerRef} className="flex max-w-lg flex-col gap-4">
       {isMarried ? (
         <PersonTabs id="personal" tabs={tabs} active={person} onChange={setPerson}>
           {person === "self" ? selfFields : <SpouseSection error={showErrors ? spouseError : null} />}
@@ -278,6 +287,11 @@ export function PersonalStep() {
         selfFields
       )}
 
+      {showErrors && !isValid && (
+        <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+          {t("myData.validation.summary")}
+        </p>
+      )}
       <StepFooter
         currentKey="personal"
         isValid={isValid}

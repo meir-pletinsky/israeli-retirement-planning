@@ -274,6 +274,7 @@
     },
     "validation": {
       "required": "This field is required.",
+      "summary": "Some required details need fixing before you can continue. The first one is highlighted.",
       "retirementAfterAge": "Retirement age must be greater than your current age.",
       "spouseRetirementBeforeAge": "Your spouse's retirement age can't be lower than their current age."
     },

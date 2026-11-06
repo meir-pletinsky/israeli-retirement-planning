@@ -1938,6 +1938,11 @@ rest).
       empty plan applies at once. `i18n/localeParity.test.ts` now checks that he and ru
       have every English key with the same placeholders. The Welcome page's "load my saved
       data file" is unchanged: there is nothing to lose before a plan exists.
+- [x] **UX-15 Form errors reach the user.** After a blocked Next on the Personal step,
+      focus moves to the first invalid field (opening the partner's tab when that is where
+      it is), the field gets `aria-invalid` and `aria-describedby` pointing at its message
+      (`NumberField` also links helper text), and a `role="alert"` summary tells screen
+      readers why the step did not continue.
 
 ## Modeling assumptions (by phase)
 
