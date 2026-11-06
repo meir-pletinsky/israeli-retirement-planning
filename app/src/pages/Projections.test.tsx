@@ -1496,6 +1496,121 @@ describe("Projections", () => {
     });
   });
 
+  describe("balance path", () => {
+    const annuityParameters = {
+      hasGuaranteedFactor: false,
+      conversionFactor: 200,
+      estimatedMonthlyAnnuity: null,
+      annuityTaxType: null,
+      guaranteedPaymentMonths: null,
+    };
+    const planned = {
+      age: 50,
+      retirementAge: 60,
+      investmentReturnPct: 4,
+      inflationPct: 4,
+      pensionBalances: [400_000, 100_000],
+      pensionAccountOverrides: [
+        { productCategory: "pensionFund" as const, annuityParameters },
+        { productCategory: "studyFund" as const },
+      ],
+      otherAssets: 50_000,
+      retirementMonthlyExpenses: 3_000,
+    };
+
+    async function renderPlan(overrides: Partial<typeof planned> & Record<string, unknown> = {}) {
+      await saveProfileToDb(buildTestProfile({ ...planned, ...overrides }));
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+      const heading = await screen.findByRole("heading", { name: "Net Worth Projection" });
+      return heading.parentElement!.parentElement!.parentElement!;
+    }
+
+    const plain = (element: HTMLElement) => element.textContent!.replace(/[\u2066\u2069]/g, "");
+
+    it("explains the steps in the line: drawing starts and a pension becomes an annuity", async () => {
+      const card = await renderPlan();
+
+      const events = within(card).getByRole("region", { name: "What shapes this path" });
+      const items = within(events).getAllByRole("listitem");
+      expect(items).toHaveLength(1);
+      expect(plain(items[0])).toContain("Age 60: you retire and start drawing on your savings.");
+      expect(plain(items[0])).toMatch(
+        /Age 60: Pension Fund\. The ₪[\d,]+ of capital becomes an annuity of ₪[\d,]+ a month\. It is paid out as monthly income, so it is no longer a balance you can spend/,
+      );
+      expect(items[0]).toHaveTextContent("1");
+    });
+
+    it("words the retirement for a household", async () => {
+      const card = await renderPlan({
+        maritalStatus: "married",
+        spouse: { age: 48, retirementAge: 62 },
+      });
+
+      const events = within(card).getByRole("region", { name: "What shapes this path" });
+      expect(plain(events)).toContain(
+        "the later of you two has retired, and the household starts drawing on its savings.",
+      );
+    });
+
+    it("lists only the retirement when no savings become an annuity", async () => {
+      const card = await renderPlan({
+        pensionBalances: [100_000],
+        pensionAccountOverrides: [{ productCategory: "studyFund" as const }],
+      });
+
+      const events = within(card).getByRole("region", { name: "What shapes this path" });
+      expect(plain(events)).toContain("Age 60: you retire and start drawing on your savings.");
+      expect(plain(events)).not.toContain("becomes an annuity");
+    });
+
+    it("shows the table with the balance of each source and a total", async () => {
+      const user = userEvent.setup();
+      const card = await renderPlan();
+
+      await user.click(within(card).getByRole("button", { name: "Show as table" }));
+
+      const table = within(card).getByRole("table");
+      const headers = within(table)
+        .getAllByRole("columnheader")
+        .map((header) => header.textContent);
+      expect(headers).toEqual(["Age", "Pension Fund", "Study Fund", "Other Investments", "Total"]);
+      const first = within(table).getAllByRole("row")[1];
+      const cells = within(first).getAllByRole("cell");
+      const amounts = cells.slice(1).map((cell) => Number(cell.textContent!.replace(/[₪,]/g, "")));
+      expect(cells[0]).toHaveTextContent("50");
+      expect(amounts[0] + amounts[1] + amounts[2]).toBe(amounts[3]);
+      expect(within(card).queryByRole("region", { name: "What shapes this path" })).not.toBeInTheDocument();
+    });
+
+    it("says the table is end-of-year, drops annuity capital, and pools the investments", async () => {
+      const user = userEvent.setup();
+      const card = await renderPlan();
+
+      await user.click(within(card).getByRole("button", { name: "Show as table" }));
+
+      expect(within(card).getByText(/Balances are at the end of each year, in today's money\./)).toBeInTheDocument();
+      expect(within(card).getByText(/no longer a balance: it is paid out as monthly income/)).toBeInTheDocument();
+      expect(plain(card)).toContain(
+        "Bank deposits, shares and other holdings are modeled as one investments pool, shown in the Other Investments column.",
+      );
+    });
+
+    it("leaves out the pool note and column when there are no investments", async () => {
+      const user = userEvent.setup();
+      const card = await renderPlan({ otherAssets: 0 });
+
+      await user.click(within(card).getByRole("button", { name: "Show as table" }));
+
+      expect(within(card).queryByText(/modeled as one investments pool/)).not.toBeInTheDocument();
+      expect(
+        within(within(card).getByRole("table"))
+          .getAllByRole("columnheader")
+          .map((header) => header.textContent),
+      ).toEqual(["Age", "Pension Fund", "Study Fund", "Total"]);
+    });
+  });
+
   it("names the assumptions every chart on the page rests on", async () => {
     await saveProfileToDb(
       buildTestProfile({ age: 40, retirementAge: 67, otherAssets: 300_000, investmentReturnPct: 8, inflationPct: 1.5 }),

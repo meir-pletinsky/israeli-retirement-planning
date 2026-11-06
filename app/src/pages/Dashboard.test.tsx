@@ -1599,4 +1599,52 @@ describe("Dashboard", () => {
       ).not.toBeInTheDocument();
     });
   });
+
+  describe("net worth path events", () => {
+    const annuityParameters = {
+      hasGuaranteedFactor: false,
+      conversionFactor: 200,
+      estimatedMonthlyAnnuity: null,
+      annuityTaxType: null,
+      guaranteedPaymentMonths: null,
+    };
+    const plain = (element: HTMLElement) => element.textContent!.replace(/[\u2066\u2069]/g, "");
+
+    it("explains when drawing starts and when a pension becomes an annuity under the chart", async () => {
+      await saveProfileToDb(
+        buildTestProfile({
+          age: 50,
+          retirementAge: 60,
+          pensionBalances: [400_000],
+          pensionAccountOverrides: [{ productCategory: "pensionFund", annuityParameters }],
+          retirementMonthlyExpenses: 3_000,
+        }),
+      );
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      const events = await screen.findByRole("region", { name: "What shapes this path" });
+      expect(within(events).getAllByRole("listitem")).toHaveLength(1);
+      expect(plain(events)).toContain("Age 60: you retire and start drawing on your savings.");
+      expect(plain(events)).toMatch(/Age 60: Pension Fund\. The ₪[\d,]+ of capital becomes an annuity of ₪[\d,]+ a month\./);
+    });
+
+    it("words the retirement for a household", async () => {
+      await saveProfileToDb(
+        buildTestProfile({
+          age: 50,
+          retirementAge: 60,
+          maritalStatus: "married",
+          spouse: { age: 48, retirementAge: 62 },
+          pensionBalances: [400_000],
+          retirementMonthlyExpenses: 3_000,
+        }),
+      );
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      const events = await screen.findByRole("region", { name: "What shapes this path" });
+      expect(plain(events)).toContain("the later of you two has retired, and the household starts drawing on its savings.");
+    });
+  });
 });

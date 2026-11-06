@@ -4,10 +4,12 @@ import { useTranslation } from "react-i18next";
 
 import { useProfile } from "../app/ProfileContext";
 import { ActiveAssumptions } from "../components/ActiveAssumptions";
+import { BalanceTable, PathEventsList } from "../components/BalancePathNotes";
 import { BudgetCard } from "../components/BudgetCard";
 import { IncomeBreakdownChart } from "../components/charts/IncomeBreakdownChart";
 import { NetIncomeChart } from "../components/charts/NetIncomeChart";
 import { NetWorthChart } from "../components/charts/NetWorthChart";
+import { netWorthMarkers } from "../components/charts/netWorthMarkers";
 import { CoverOptionsCard } from "../components/CoverOptionsCard";
 import { FeasibilityCard } from "../components/FeasibilityCard";
 import { HistoricalBacktestCard } from "../components/HistoricalBacktestCard";
@@ -40,9 +42,10 @@ import {
   estimateIncomeBreakdown,
   estimateNetIncome,
   findEarliestFeasibleRetirementAge,
+  groupPathEvents,
   isHouseholdActive,
   planForOption,
-  projectNetWorth,
+  projectBalancePath,
   projectSpendingFunding,
   resolveRetirementAge,
   runMonteCarlo,
@@ -72,7 +75,8 @@ export function Projections() {
   const desiredMonthly = desiredRetirementMonthly(profile.expenses);
   const hasTarget = desiredMonthly !== null && desiredMonthly > 0;
 
-  const netWorthData = projectNetWorth(profile, scenario);
+  const balancePath = projectBalancePath(profile, scenario);
+  const eventGroups = groupPathEvents(balancePath.events);
   const funding = projectSpendingFunding(profile, scenario);
   const incomeData = estimateIncomeBreakdown(profile, scenario);
   const netIncomeYears = estimateNetIncome(profile, scenario).years;
@@ -181,38 +185,18 @@ export function Projections() {
         </div>
         <NetWorthBasisNote funding={funding} />
         {view === "chart" ? (
-          <NetWorthChart
-            data={netWorthData}
-            currencySymbol={currencySymbol}
-            shortfallAge={funding.shortfallAge}
-            shortfallLabel={t("projections.basis.shortfallMarker")}
-          />
+          <>
+            <NetWorthChart
+              data={balancePath.points}
+              markers={netWorthMarkers(eventGroups)}
+              currencySymbol={currencySymbol}
+              shortfallAge={funding.shortfallAge}
+              shortfallLabel={t("projections.basis.shortfallMarker")}
+            />
+            <PathEventsList groups={eventGroups} />
+          </>
         ) : (
-          <div className="max-h-72 overflow-y-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr>
-                  <th className="py-1 text-start text-slate-500">
-                    {t("myData.steps.personal.age")}
-                  </th>
-                  <th className="py-1 text-start text-slate-500">
-                    {t("dashboard.kpi.netWorth")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {netWorthData.map((point) => (
-                  <tr key={point.age} className="border-t border-slate-100">
-                    <td className="py-1">{point.age}</td>
-                    <td className="py-1">
-                      {currencySymbol}
-                      {point.netWorth.toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <BalanceTable path={balancePath} />
         )}
       </div>
 

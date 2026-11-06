@@ -4,9 +4,11 @@ import { Link } from "react-router-dom";
 
 import { useProfile } from "../app/ProfileContext";
 import { ActiveAssumptions } from "../components/ActiveAssumptions";
+import { PathEventsList } from "../components/BalancePathNotes";
 import { BituachLeumiCard } from "../components/BituachLeumiCard";
 import { BudgetCard } from "../components/BudgetCard";
 import { NetWorthChart } from "../components/charts/NetWorthChart";
+import { netWorthMarkers } from "../components/charts/netWorthMarkers";
 import { CoverNoticeCard } from "../components/CoverNoticeCard";
 import { DataGapsCard } from "../components/DataGapsCard";
 import { EmptyState } from "../components/EmptyState";
@@ -34,8 +36,9 @@ import {
   findDataGaps,
   findCoverNotices,
   findEarliestFeasibleRetirementAge,
+  groupPathEvents,
   irregularCosts,
-  projectNetWorth,
+  projectBalancePath,
   retirementWhen,
   runMonteCarlo,
   successBand,
@@ -80,10 +83,10 @@ export function Dashboard() {
     );
   }
 
-  const data = projectNetWorth(profile, "standard");
+  const balancePath = projectBalancePath(profile, "standard");
+  const eventGroups = groupPathEvents(balancePath.events);
   const netWorthToday = aggregateCurrentNetWorth(profile);
-  const { monthlyIncomeTodayMoney, members, access, householdRetirementAge } =
-    estimateRetirementIncome(profile, "standard");
+  const { monthlyIncomeTodayMoney, members, access } = estimateRetirementIncome(profile, "standard");
   const isCouple = members.length > 1;
   const netIncome = estimateNetIncome(profile, "standard");
   const fundingGap = calculateFundingGap(profile, "standard");
@@ -282,10 +285,11 @@ export function Dashboard() {
           </Link>
         </div>
         <NetWorthChart
-          data={data}
-          retirementAge={householdRetirementAge}
+          data={balancePath.points}
+          markers={netWorthMarkers(eventGroups)}
           currencySymbol={currencySymbol}
         />
+        <PathEventsList groups={eventGroups} />
         {isCouple && (
           <p className="mt-2 text-xs text-slate-500">{t("dashboard.householdChartNote")}</p>
         )}

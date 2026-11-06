@@ -62,6 +62,15 @@ export interface DrawdownHolding {
   ordinaryFraction: number;
 }
 
+/** A source whose balance turned into a monthly annuity in a year. */
+export interface DrawdownConversion {
+  kind: SourceKind;
+  /** The balance that left the pot and became the annuity, in today's money. */
+  capital: number;
+  /** What the annuity pays each month, in today's money. */
+  monthly: number;
+}
+
 export interface DrawdownYear {
   /** The primary user's age. For a couple, the spouse is `age` minus the age gap. */
   age: number;
@@ -69,6 +78,13 @@ export interface DrawdownYear {
   yearsFromNow: number;
   /** Total of all sources at the end of this year, in today's money (unrounded). */
   netWorth: number;
+  /**
+   * The same total by kind, after the year's draw. A source whose annuity has started has no
+   * balance: its capital is paid out as monthly income. Capital that is still locked counts.
+   */
+  balances: Record<SourceKind, number>;
+  /** The sources whose balance became an annuity this year; empty in most years. */
+  conversions: DrawdownConversion[];
   /** Fixed monthly payments active at this age (state pension and account annuities), by band. */
   streams: Record<PaymentSource, number>;
   /**
@@ -101,7 +117,7 @@ export interface DrawdownOptions {
    * the list uses the household's rate. Contributions earn that year's return too.
    */
   yearlyRates?: readonly number[];
-  /** Leaves out the shares and holdings the tax layer reads; balances, streams, `unmet`, `spendable` and `drawn` are still filled. Always draws pro rata, which changes who is drawn on but not how much. */
+  /** Leaves out the shares and holdings the tax layer reads; balances, conversions, streams, `unmet`, `spendable` and `drawn` are still filled. Always draws pro rata, which changes who is drawn on but not how much. */
   lean?: boolean;
   /** Draws in this order instead of the household's own `withdrawalStrategy`; ignored when `lean`. */
   withdrawalStrategy?: WithdrawalStrategy;
@@ -124,6 +140,8 @@ interface SourceState {
   basis: number;
   ordinaryLayer: number;
   annualContribution: number;
+  /** Set once the source's annuity has started and its balance has been paid into it. */
+  converted: boolean;
 }
 
 /** How a withdrawal from a source is taxed, from its current balance, cost basis and ordinary layer. */
@@ -379,6 +397,7 @@ function simulate(
       basis: Math.min(source.costBasis, source.balance),
       ordinaryLayer: Math.min(source.ordinaryLayer, Math.max(source.balance - source.costBasis, 0)),
       annualContribution: futureValueOfMonthlyContributions(source.monthlyContribution, rate, 1),
+      converted: false,
     })),
   );
   if (isTracing()) {
@@ -390,6 +409,7 @@ function simulate(
 
   const rows: DrawdownYear[] = [];
   for (let years = 0; years <= horizonYears; years += 1) {
+    const conversions: DrawdownConversion[] = [];
     if (years > 0) {
       const yearRate = yearlyRates?.[years - 1] ?? rate;
       for (const entry of state) {
@@ -403,6 +423,14 @@ function simulate(
           entry.basis += entry.source.monthlyContribution * 12;
         }
         if (entry.source.annuity && age >= entry.source.annuity.startAge) {
+          if (!entry.converted) {
+            entry.converted = true;
+            conversions.push({
+              kind: entry.source.kind,
+              capital: entry.balance,
+              monthly: entry.source.annuity.monthly,
+            });
+          }
           entry.balance = 0;
           entry.basis = 0;
           entry.ordinaryLayer = 0;
@@ -506,10 +534,14 @@ function simulate(
       ...PAYMENT_SOURCES.map((band) => streams[band]),
       ...state.map((entry) => entry.balance),
     ]);
+    const balances = emptyByKind();
+    for (const entry of state) balances[entry.source.kind] += entry.balance;
     rows.push({
       age: primary.currentAge + years,
       yearsFromNow: years,
       netWorth: state.reduce((sum, entry) => sum + entry.balance, 0),
+      balances,
+      conversions,
       streams,
       capitalShare,
       holdings,

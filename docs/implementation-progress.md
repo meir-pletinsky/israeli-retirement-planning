@@ -2124,6 +2124,18 @@ rest).
   largest single payment as the amount that must be available when it falls due (it is not a
   modeled sinking-fund balance). The "Planned monthly spending" KPI links down to the card.
   The card appears only with itemised expenses.
+- [Review-UX-21] The net-worth path explains its steps and splits by source. The simulation
+  (`domain/drawdown.ts`) now records, per year, each kind's end-of-year balance and the
+  sources whose capital became an annuity that year (the balance is zeroed because it is
+  paid out as monthly income). `projectBalancePath` (`domain/balancePath.ts`) turns that into
+  rounded per-kind points (largest-remainder rounding, `domain/rounding.ts`, so the parts add
+  up to the net worth) and a list of events: drawing starts, and one annuity start per kind
+  (same-kind sources combined). Both result screens number those events on the chart and list
+  them under it ("What shapes this path"); the Projections table now has one column per kind
+  with a balance plus a total, a note that balances are end-of-year in today's money and that
+  annuitised capital is no longer a balance, and a note that bank deposits, shares and other
+  holdings are one investments pool in the model, so no separate path is invented for them.
+  Ages are the primary user's, as before. No stacked chart was built (a table was chosen).
 
 ## Modeling assumptions (by phase)
 
