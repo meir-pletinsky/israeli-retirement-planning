@@ -511,6 +511,7 @@
           "companyName": "Название компании",
           "custodianOrBroker": "Депозитарий / брокер",
           "quantity": "Количество (акций)",
+          "vestedQuantity": "Закреплённое количество (акций)",
           "currentMarketPriceUSD": "Текущая рыночная цена",
           "currentMarketPriceHelper": "Сегодняшняя цена за акцию, в долларах. По ней считается стоимость позиции.",
           "entryDateGeneric": "Дата покупки / предоставления",

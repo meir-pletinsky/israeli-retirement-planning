@@ -507,6 +507,7 @@
           "companyName": "Company name",
           "custodianOrBroker": "Custodian / broker",
           "quantity": "Quantity (shares)",
+          "vestedQuantity": "Vested quantity (shares)",
           "currentMarketPriceUSD": "Current market price",
           "currentMarketPriceHelper": "Today's price per share, in USD. It gives the holding its value.",
           "entryDateGeneric": "Purchase / grant date",

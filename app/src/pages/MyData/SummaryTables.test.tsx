@@ -361,6 +361,47 @@ describe("My Data summary tables — Equity & Investments", () => {
     expect(totals).toHaveTextContent(`${SHEKEL}9,250`);
   });
 
+  it("shows the vested quantity, worked out from the vesting batches, in the ESOP table only", async () => {
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 50,
+        equity: [
+          {
+            category: "employerGrantedStock",
+            ticker: "AAA",
+            quantity: 100,
+            priceUSD: 200,
+            employerGrant: {
+              vestingTranches: [
+                { vestDate: "2020-01-01", quantity: 40 },
+                { vestDate: "2099-01-01", quantity: 60 },
+              ],
+            },
+          },
+          { category: "employerGrantedStock", ticker: "BBB", quantity: 5, priceUSD: 100 },
+          { category: "employerEsppDiscount", ticker: "CCC", quantity: 7, priceUSD: 100 },
+        ],
+      }),
+    );
+    renderStep("equity");
+
+    const esop = await screen.findByRole("table", { name: "ESOP / RSU at a glance" });
+    const headers = within(esop).getAllByRole("columnheader");
+    const quantityIndex = headers.findIndex((header) => header.textContent === "Quantity (shares)");
+    const vestedIndex = headers.findIndex((header) => header.textContent === "Vested quantity (shares)");
+    expect(quantityIndex).toBeGreaterThanOrEqual(0);
+    expect(vestedIndex).toBe(quantityIndex + 1);
+
+    const [, partlyVested, noSchedule] = within(esop).getAllByRole("row");
+    const cellsOf = (row: HTMLElement) => within(row).getAllByRole("cell");
+    expect(cellsOf(partlyVested)[quantityIndex]).toHaveTextContent("100");
+    expect(cellsOf(partlyVested)[vestedIndex]).toHaveTextContent("40");
+    expect(cellsOf(noSchedule)[vestedIndex]).toHaveTextContent("5");
+
+    const espp = screen.getByRole("table", { name: "ESPP at a glance" });
+    expect(within(espp).queryByRole("columnheader", { name: "Vested quantity (shares)" })).toBeNull();
+  });
+
   it("shows every table even when only one category has holdings, with no all-category total", async () => {
     await saveProfileToDb(
       buildTestProfile({

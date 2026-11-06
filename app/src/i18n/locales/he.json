@@ -511,6 +511,7 @@
           "companyName": "שם החברה",
           "custodianOrBroker": "גוף משמורת / ברוקר",
           "quantity": "כמות (מניות)",
+          "vestedQuantity": "כמות שהבשילה (מניות)",
           "currentMarketPriceUSD": "מחיר שוק נוכחי",
           "currentMarketPriceHelper": "מחיר המניה היום, בדולרים. ממנו נגזר שווי האחזקה.",
           "entryDateGeneric": "תאריך רכישה / הענקה",

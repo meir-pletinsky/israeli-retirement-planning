@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useProfile } from "../../app/ProfileContext";
-import { formatDate, holdingValueIls, usdToIlsRate } from "../../domain";
+import { engineNowMs, formatDate, holdingValueIls, usdToIlsRate, vestedQuantityAt } from "../../domain";
 import type { InvestmentCategory, ProfileData, StockHolding } from "../../types";
 import { entryDate, entryPriceUsd } from "./holdingEntry";
 import { RowActions } from "./RowActions";
@@ -89,6 +89,20 @@ export function EquityCategoryTable({
         holding.quantity === null ? EMPTY_CELL : holding.quantity.toLocaleString(),
     },
   ];
+
+  // Worked out from the vesting batches as of today; never stored in the profile.
+  if (category === "employerGrantedStock") {
+    const nowMs = engineNowMs();
+    columns.push({
+      key: "vestedQuantity",
+      header: t(`${FIELDS}.fields.vestedQuantity`),
+      numeric: true,
+      cell: (holding) =>
+        holding.quantity === null
+          ? EMPTY_CELL
+          : vestedQuantityAt(holding, nowMs).toLocaleString(undefined, { maximumFractionDigits: 3 }),
+    });
+  }
 
   columns.push(
     {
