@@ -1,4 +1,9 @@
-import { normalizeProfile, type ProfileData } from "../types";
+import {
+  normalizeProfile,
+  PROFILE_SECTIONS,
+  type ProfileData,
+  type ProfileSection,
+} from "../types";
 
 const EXPORT_FILENAME_PREFIX = "israeli-retirement-planning";
 
@@ -32,15 +37,21 @@ const PROFILE_SHAPE_KEYS: (keyof ProfileData)[] = [
   "assumptions",
 ];
 
+export interface ProfileFile {
+  /** The file's content, normalized: parts it lacks hold their empty defaults. */
+  profile: ProfileData;
+  /** The sections the file actually carries; the others only look empty because of the defaults. */
+  sections: ProfileSection[];
+}
+
 /**
  * Parses and loosely validates an uploaded JSON file, returning a fully
  * normalized `ProfileData` (missing/mismatched fields fall back to safe
- * defaults via `normalizeProfile`). Throws if the file isn't readable JSON
- * or doesn't look like a profile export at all.
+ * defaults via `normalizeProfile`) and which sections the file carried.
+ * Throws if the file isn't readable JSON or doesn't look like a profile
+ * export at all.
  */
-export async function importProfileFromFile(
-  file: File,
-): Promise<ProfileData> {
+export async function readProfileFile(file: File): Promise<ProfileFile> {
   const text = await file.text();
 
   let parsed: unknown;
@@ -62,5 +73,15 @@ export async function importProfileFromFile(
     );
   }
 
-  return normalizeProfile(parsed as Partial<ProfileData>);
+  const record = parsed as Record<string, unknown>;
+  return {
+    profile: normalizeProfile(parsed as Partial<ProfileData>),
+    sections: PROFILE_SECTIONS.filter((section) => record[section] != null),
+  };
+}
+
+export async function importProfileFromFile(
+  file: File,
+): Promise<ProfileData> {
+  return (await readProfileFile(file)).profile;
 }

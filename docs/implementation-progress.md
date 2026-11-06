@@ -1918,6 +1918,27 @@ a Mediterranean palette (sea blue, warm Jerusalem-stone page background, sun gol
 Not done: an `apple-touch-icon` and a web manifest (both need PNG files, and the project
 has no image tooling). `public/icons.svg` is an unused Vite template leftover.
 
+## UX review fixes (`[Review-UX-n]` commits)
+
+Fixes for the findings in the UX/usability review, one commit per finding, in the order
+the review recommended (data protection, accessibility, financial interpretation, then the
+rest).
+
+- [x] **UX-02 Accessible dialogs.** `components/ModalFrame.tsx` is the one dialog frame
+      (`role="dialog"`, `aria-modal`, labelled by its title, focus moved in and restored,
+      Tab trapped, Escape closes the topmost dialog, the page behind made `inert`).
+      `FormModal` and `ConfirmModal` are thin wrappers over it; build new dialogs on it.
+- [x] **UX-01 Import protects the current plan.** Importing over a plan that has data no
+      longer replaces it silently. `ImportPreviewDialog` compares the current plan with
+      the file (`domain/planSummary.ts`), warns about areas the file has nothing for
+      (`readProfileFile` reports which sections the file carries), and only replaces on
+      confirmation. The plan is first saved as a restore point (Dexie schema version 2,
+      `restorePoints` table; only the latest is kept, and Reset all data deletes it) and
+      Settings offers "Restore the plan from before the last import". Importing into an
+      empty plan applies at once. `i18n/localeParity.test.ts` now checks that he and ru
+      have every English key with the same placeholders. The Welcome page's "load my saved
+      data file" is unchanged: there is nothing to lose before a plan exists.
+
 ## Modeling assumptions (by phase)
 
 - **Tax modeling assumptions (Phase I).**

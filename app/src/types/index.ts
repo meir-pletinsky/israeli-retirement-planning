@@ -953,4 +953,24 @@ export function hasProfileData(profile: ProfileData): boolean {
   return !isSameValue(profile, EMPTY_PROFILE);
 }
 
+/** The top-level parts of a profile that an exported file carries, each of which can be present or absent. */
+export const PROFILE_SECTIONS = [
+  "personal",
+  "spouse",
+  "taxExemptionBasket",
+  "bituachLeumi",
+  "pensionSavings",
+  "equity",
+  "bankDeposits",
+  "expenses",
+  "assumptions",
+] as const;
+
+export type ProfileSection = (typeof PROFILE_SECTIONS)[number];
+
+/** True once the section differs from a fresh profile's. */
+export function profileSectionHasData(profile: ProfileData, section: ProfileSection): boolean {
+  return !isSameValue(profile[section], EMPTY_PROFILE[section]);
+}
+
 export type RetirementScenario = "standard" | "early" | "delayed";

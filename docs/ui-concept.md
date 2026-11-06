@@ -164,7 +164,8 @@ per entry.
 
 - Language (English/Russian/עברית) — immediate switch, persists.
 - Currency display preference (₪ primary; later phases may add FX display).
-- Data management: Export data (download JSON), Import data, Reset all
+- Data management: Export data (download JSON), Import data (shows a comparison with the
+  current plan first, saves a restore point, and can be undone from Settings), Reset all
   data (confirmation modal, destructive-action styling).
 - About / data sources & assumptions disclosure.
 

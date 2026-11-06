@@ -1333,6 +1333,45 @@
     "exportSuccess": "Data exported.",
     "importSuccess": "Data imported successfully.",
     "importError": "Couldn't import this file. Please choose a valid exported profile JSON.",
+    "importSuccessWithRestore": "Data imported. Your previous plan is saved and can be restored from Data management.",
+    "importPreview": {
+      "title": "Replace your current plan?",
+      "intro": "Importing {{fileName}} replaces everything in your current plan. The two are not merged.",
+      "detailColumn": "Detail",
+      "currentColumn": "Current plan",
+      "fileColumn": "In the file",
+      "rows": {
+        "age": "Age",
+        "retirementAge": "Retirement age",
+        "spouse": "Spouse in the plan",
+        "pensionAccounts": "Pension & savings accounts",
+        "holdings": "Equity holdings",
+        "bankDeposits": "Bank deposits",
+        "expenseItems": "Expense items",
+        "retirementMonthly": "Desired monthly spending"
+      },
+      "yes": "Yes",
+      "no": "No",
+      "emptiedWarning": "The file has nothing for: {{areas}}. Those parts of your plan will be emptied.",
+      "areas": {
+        "personal": "Personal details",
+        "pensionSavings": "Pension & savings",
+        "equity": "Equity & investments",
+        "bankDeposits": "Bank deposits",
+        "expenses": "Expenses",
+        "assumptions": "Assumptions"
+      },
+      "restoreNote": "Your current plan is saved first, so you can undo this from Settings → Data management.",
+      "confirm": "Replace my plan"
+    },
+    "restore": {
+      "button": "Restore the plan from before the last import",
+      "hint": "Saved {{date}}. Only the latest one is kept.",
+      "confirmTitle": "Restore your previous plan?",
+      "confirmBody": "This replaces your current plan with the one you had before the last import (saved {{date}}). Changes made since the import will be lost.",
+      "confirm": "Restore",
+      "done": "Previous plan restored."
+    },
     "verification": {
       "title": "Calculation verification",
       "intro": "Export every calculation step behind your results so an independent reviewer (a person or an AI session) can re-check the numbers offline.",

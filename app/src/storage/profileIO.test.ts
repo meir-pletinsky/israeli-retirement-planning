@@ -4,10 +4,11 @@ import {
   EMPTY_ACCOUNT_CONTRIBUTIONS,
   EMPTY_BITUACH_LEUMI,
   EMPTY_PROFILE,
+  PROFILE_SECTIONS,
   createEmptyPensionAccount,
   type ProfileData,
 } from "../types";
-import { exportProfileToFile, importProfileFromFile } from "./profileIO";
+import { exportProfileToFile, importProfileFromFile, readProfileFile } from "./profileIO";
 
 function makeJsonFile(content: string, name = "profile.json"): File {
   return new File([content], name, { type: "application/json" });
@@ -102,6 +103,36 @@ describe("importProfileFromFile", () => {
     );
 
     expect(result.bituachLeumi).toEqual(bituachLeumi);
+  });
+});
+
+describe("readProfileFile", () => {
+  it("reports the sections a file carries", async () => {
+    const result = await readProfileFile(
+      makeJsonFile(JSON.stringify({ personal: { age: 50 }, expenses: { mode: "totals" } })),
+    );
+
+    expect(result.sections).toEqual(["personal", "expenses"]);
+    expect(result.profile.personal.age).toBe(50);
+  });
+
+  it("does not count a section that is null in the file", async () => {
+    const result = await readProfileFile(
+      makeJsonFile(JSON.stringify({ personal: { age: 50 }, equity: null })),
+    );
+
+    expect(result.sections).toEqual(["personal"]);
+  });
+
+  it("lists every section for a full export", async () => {
+    const result = await readProfileFile(makeJsonFile(JSON.stringify(EMPTY_PROFILE)));
+
+    expect(result.sections).toEqual(PROFILE_SECTIONS);
+  });
+
+  it("rejects what importProfileFromFile rejects", async () => {
+    await expect(readProfileFile(makeJsonFile("not json"))).rejects.toThrow();
+    await expect(readProfileFile(makeJsonFile(JSON.stringify({ foo: 1 })))).rejects.toThrow();
   });
 });
 

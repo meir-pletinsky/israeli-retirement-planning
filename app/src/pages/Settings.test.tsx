@@ -1,15 +1,20 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resetFxCache } from "../fx/client";
 import {
   clearAllData,
+  loadBeforeImportRestorePoint,
   loadCpiLookupEnabledFromDb,
   loadFxLookupEnabledFromDb,
+  loadProfileFromDb,
+  saveBeforeImportRestorePoint,
   saveCpiLookupEnabledToDb,
   saveFxLookupEnabledToDb,
+  saveProfileToDb,
 } from "../storage/db";
+import { buildTestProfile } from "../test/domainFixtures";
 import { renderWithProviders } from "../test/renderWithProviders";
 import { Settings } from "./Settings";
 
@@ -145,6 +150,143 @@ describe("Settings — inflation data", () => {
     await cpiBox();
 
     expect(fetchMock.mock.calls.every(([url]) => !String(url).includes("cbs.gov.il"))).toBe(true);
+  });
+});
+
+describe("Settings — import protects the current plan", () => {
+  const savedPlan = buildTestProfile({ age: 52, retirementAge: 65, pensionBalances: [400_000, 100_000] });
+  const fileProfile = buildTestProfile({ age: 38, retirementAge: 60, pensionBalances: [90_000] });
+
+  function jsonFile(content: unknown, name = "my-plan.json") {
+    return new File([JSON.stringify(content)], name, { type: "application/json" });
+  }
+
+  async function chooseFile(user: ReturnType<typeof userEvent.setup>, file: File) {
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]');
+    if (!input) throw new Error("no file input");
+    await user.upload(input, file);
+  }
+
+  const savedAge = async () => (await loadProfileFromDb())?.personal.age;
+
+  it("imports straight away when there is no plan to lose", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<Settings />, { route: "/settings" });
+    await screen.findByRole("heading", { name: "Settings" });
+
+    await chooseFile(user, jsonFile(fileProfile));
+
+    expect(await screen.findByText("Data imported successfully.")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await waitFor(async () => expect(await savedAge()).toBe(38));
+    expect(await loadBeforeImportRestorePoint()).toBeUndefined();
+    expect(screen.queryByRole("button", { name: /Restore the plan/ })).not.toBeInTheDocument();
+  });
+
+  it("asks first, comparing the current plan with the file, and changes nothing until confirmed", async () => {
+    await saveProfileToDb(savedPlan);
+    const user = userEvent.setup();
+    renderWithProviders(<Settings />, { route: "/settings" });
+    await screen.findByRole("heading", { name: "Settings" });
+
+    await chooseFile(user, jsonFile(fileProfile));
+
+    const dialog = await screen.findByRole("dialog", { name: "Replace your current plan?" });
+    expect(dialog).toHaveTextContent("Importing my-plan.json replaces everything in your current plan.");
+    const ageRow = within(dialog).getByRole("row", { name: /^Age/ });
+    expect(within(ageRow).getAllByRole("cell").map((cell) => cell.textContent)).toEqual(["52", "38"]);
+    const accountsRow = within(dialog).getByRole("row", { name: /^Pension & savings accounts/ });
+    expect(within(accountsRow).getAllByRole("cell").map((cell) => cell.textContent)).toEqual(["2", "1"]);
+    expect(await savedAge()).toBe(52);
+    expect(await loadBeforeImportRestorePoint()).toBeUndefined();
+  });
+
+  it("leaves the plan alone when cancelled", async () => {
+    await saveProfileToDb(savedPlan);
+    const user = userEvent.setup();
+    renderWithProviders(<Settings />, { route: "/settings" });
+    await screen.findByRole("heading", { name: "Settings" });
+    await chooseFile(user, jsonFile(fileProfile));
+
+    await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(await savedAge()).toBe(52);
+    expect(await loadBeforeImportRestorePoint()).toBeUndefined();
+    expect(screen.queryByText("Data imported successfully.")).not.toBeInTheDocument();
+  });
+
+  it("warns about parts of the plan the file has nothing for", async () => {
+    await saveProfileToDb(savedPlan);
+    const user = userEvent.setup();
+    renderWithProviders(<Settings />, { route: "/settings" });
+    await screen.findByRole("heading", { name: "Settings" });
+
+    await chooseFile(user, jsonFile({ ...fileProfile, pensionSavings: undefined }));
+
+    const warning = await within(await screen.findByRole("dialog")).findByRole("alert");
+    expect(warning).toHaveTextContent("The file has nothing for: Pension & savings.");
+  });
+
+  it("does not warn when the file carries everything the plan has", async () => {
+    await saveProfileToDb(savedPlan);
+    const user = userEvent.setup();
+    renderWithProviders(<Settings />, { route: "/settings" });
+    await screen.findByRole("heading", { name: "Settings" });
+
+    await chooseFile(user, jsonFile(fileProfile));
+
+    await screen.findByRole("dialog");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("saves the plan first when confirmed, then lets the user restore it", async () => {
+    await saveProfileToDb(savedPlan);
+    const user = userEvent.setup();
+    renderWithProviders(<Settings />, { route: "/settings" });
+    await screen.findByRole("heading", { name: "Settings" });
+    await chooseFile(user, jsonFile(fileProfile));
+
+    await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Replace my plan" }));
+
+    expect(await screen.findByText(/Your previous plan is saved/)).toBeInTheDocument();
+    await waitFor(async () => expect(await savedAge()).toBe(38));
+    expect((await loadBeforeImportRestorePoint())?.data.personal.age).toBe(52);
+
+    await user.click(await screen.findByRole("button", { name: "Restore the plan from before the last import" }));
+    const confirm = await screen.findByRole("dialog", { name: "Restore your previous plan?" });
+    await user.click(within(confirm).getByRole("button", { name: "Restore" }));
+
+    expect(await screen.findByText("Previous plan restored.")).toBeInTheDocument();
+    await waitFor(async () => expect(await savedAge()).toBe(52));
+    expect(await loadBeforeImportRestorePoint()).toBeUndefined();
+    expect(screen.queryByRole("button", { name: /Restore the plan/ })).not.toBeInTheDocument();
+  });
+
+  it("offers a restore point saved in an earlier visit, and keeps the plan if the restore is declined", async () => {
+    await saveProfileToDb(fileProfile);
+    await saveBeforeImportRestorePoint(savedPlan);
+    const user = userEvent.setup();
+    renderWithProviders(<Settings />, { route: "/settings" });
+
+    await user.click(await screen.findByRole("button", { name: "Restore the plan from before the last import" }));
+    await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Cancel" }));
+
+    expect(await savedAge()).toBe(38);
+    expect((await loadBeforeImportRestorePoint())?.data.personal.age).toBe(52);
+  });
+
+  it("rejects a file that is not an export without touching the plan", async () => {
+    await saveProfileToDb(savedPlan);
+    const user = userEvent.setup();
+    renderWithProviders(<Settings />, { route: "/settings" });
+    await screen.findByRole("heading", { name: "Settings" });
+
+    await chooseFile(user, jsonFile({ foo: "bar" }));
+
+    expect(await screen.findByText(/Couldn't import this file/)).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(await savedAge()).toBe(52);
   });
 });
 

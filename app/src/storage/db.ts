@@ -18,9 +18,18 @@ interface MetaRecord {
   value: boolean;
 }
 
+/** The plan as it was just before an import replaced it. */
+export interface RestorePoint {
+  id: string;
+  /** ISO timestamp of when the plan was set aside. */
+  savedAt: string;
+  data: ProfileData;
+}
+
 class IrpDatabase extends Dexie {
   profile!: EntityTable<ProfileRecord, "id">;
   meta!: EntityTable<MetaRecord, "key">;
+  restorePoints!: EntityTable<RestorePoint, "id">;
 
   constructor() {
     super("IsraeliRetirementPlanningDB");
@@ -30,12 +39,18 @@ class IrpDatabase extends Dexie {
       profile: "id",
       meta: "key",
     });
+    this.version(2).stores({
+      profile: "id",
+      meta: "key",
+      restorePoints: "id",
+    });
   }
 }
 
 export const db = new IrpDatabase();
 
 const PROFILE_ID = "current";
+const BEFORE_IMPORT_ID = "before-import";
 const ONBOARDED_KEY = "onboarded";
 const FX_LOOKUP_OFF_KEY = "fxLookupOff";
 const CPI_LOOKUP_OFF_KEY = "cpiLookupOff";
@@ -78,10 +93,25 @@ export async function saveCpiLookupEnabledToDb(enabled: boolean): Promise<void> 
   await db.meta.put({ key: CPI_LOOKUP_OFF_KEY, value: !enabled });
 }
 
+/** Sets the current plan aside so an import can be undone; only the latest one is kept. */
+export async function saveBeforeImportRestorePoint(data: ProfileData): Promise<void> {
+  await db.restorePoints.put({ id: BEFORE_IMPORT_ID, savedAt: new Date().toISOString(), data });
+}
+
+export async function loadBeforeImportRestorePoint(): Promise<RestorePoint | undefined> {
+  const record = await db.restorePoints.get(BEFORE_IMPORT_ID);
+  return record ? { ...record, data: normalizeProfile(record.data) } : undefined;
+}
+
+export async function clearBeforeImportRestorePoint(): Promise<void> {
+  await db.restorePoints.delete(BEFORE_IMPORT_ID);
+}
+
 /** Wipes all locally stored app data (used by Settings → Reset). */
 export async function clearAllData(): Promise<void> {
   await db.profile.clear();
   await db.meta.clear();
+  await db.restorePoints.clear();
 }
 
 const LEGACY_PROFILE_KEY = "irp_profile";

@@ -1,13 +1,22 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
-import { exportProfileToFile, importProfileFromFile } from "../storage/profileIO";
+import {
+  clearBeforeImportRestorePoint,
+  loadBeforeImportRestorePoint,
+  saveBeforeImportRestorePoint,
+  type RestorePoint,
+} from "../storage/db";
+import { exportProfileToFile, readProfileFile, type ProfileFile } from "../storage/profileIO";
 import { formatDate } from "../domain/dates";
+import { areasEmptiedByImport, summarizePlan } from "../domain/planSummary";
+import { hasProfileData, type ProfileData } from "../types";
 import { useProfile } from "../app/ProfileContext";
 import { useLatestUsdIlsRate } from "../app/useLatestUsdIlsRate";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { CheckboxField } from "../components/fields/CheckboxField";
+import { ImportPreviewDialog } from "../components/ImportPreviewDialog";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { Toast } from "../components/Toast";
 import { VerificationExport } from "../components/VerificationExport";
@@ -27,9 +36,22 @@ export function Settings() {
   } = useProfile();
   const { rate: latestRate, settled: rateSettled } = useLatestUsdIlsRate(fxLookupEnabled);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingImport, setPendingImport] = useState<(ProfileFile & { fileName: string }) | null>(null);
+  const [restorePoint, setRestorePoint] = useState<RestorePoint | null>(null);
+  const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [toastTone, setToastTone] = useState<"default" | "error">("default");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadBeforeImportRestorePoint().then((point) => {
+      if (!cancelled) setRestorePoint(point ?? null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function handleExport() {
     exportProfileToFile(profile);
@@ -39,15 +61,52 @@ export function Settings() {
 
   async function handleImportFile(file: File) {
     try {
-      const imported = await importProfileFromFile(file);
-      updateProfile(imported);
-      completeOnboarding();
-      setToastTone("default");
-      setToast(t("settings.importSuccess"));
+      const read = await readProfileFile(file);
+      if (hasProfileData(profile)) {
+        setPendingImport({ ...read, fileName: file.name });
+      } else {
+        await applyImport(read.profile);
+      }
     } catch {
       setToastTone("error");
       setToast(t("settings.importError"));
     }
+  }
+
+  async function applyImport(imported: ProfileData) {
+    const replacing = hasProfileData(profile);
+    if (replacing) {
+      await saveBeforeImportRestorePoint(profile);
+      setRestorePoint(await loadBeforeImportRestorePoint() ?? null);
+    }
+    updateProfile(imported);
+    completeOnboarding();
+    setToastTone("default");
+    setToast(t(replacing ? "settings.importSuccessWithRestore" : "settings.importSuccess"));
+  }
+
+  async function confirmImport() {
+    const pending = pendingImport;
+    setPendingImport(null);
+    if (!pending) return;
+    try {
+      await applyImport(pending.profile);
+    } catch {
+      setToastTone("error");
+      setToast(t("settings.importError"));
+    }
+  }
+
+  async function restorePreviousPlan() {
+    const point = restorePoint;
+    setRestoreConfirmOpen(false);
+    if (!point) return;
+    updateProfile(point.data);
+    completeOnboarding();
+    await clearBeforeImportRestorePoint();
+    setRestorePoint(null);
+    setToastTone("default");
+    setToast(t("settings.restore.done"));
   }
 
   return (
@@ -143,6 +202,20 @@ export function Settings() {
               if (file) void handleImportFile(file);
             }}
           />
+          {restorePoint && (
+            <div>
+              <button
+                type="button"
+                onClick={() => setRestoreConfirmOpen(true)}
+                className="w-full rounded-md border border-slate-300 px-4 py-2 text-start text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                {t("settings.restore.button")}
+              </button>
+              <p className="mt-1 text-xs text-slate-500">
+                {t("settings.restore.hint", { date: formatDate(restorePoint.savedAt) })}
+              </p>
+            </div>
+          )}
           <button
             type="button"
             onClick={() => setConfirmOpen(true)}
@@ -158,6 +231,28 @@ export function Settings() {
           setToastTone(tone);
           setToast(message);
         }}
+      />
+
+      {pendingImport && (
+        <ImportPreviewDialog
+          fileName={pendingImport.fileName}
+          current={summarizePlan(profile)}
+          incoming={summarizePlan(pendingImport.profile)}
+          emptiedAreas={areasEmptiedByImport(profile, pendingImport.sections)}
+          onConfirm={() => void confirmImport()}
+          onCancel={() => setPendingImport(null)}
+        />
+      )}
+      <ConfirmModal
+        open={restoreConfirmOpen && restorePoint !== null}
+        title={t("settings.restore.confirmTitle")}
+        body={t("settings.restore.confirmBody", {
+          date: restorePoint ? formatDate(restorePoint.savedAt) : "",
+        })}
+        confirmLabel={t("settings.restore.confirm")}
+        cancelLabel={t("common.cancel")}
+        onCancel={() => setRestoreConfirmOpen(false)}
+        onConfirm={() => void restorePreviousPlan()}
       />
 
       <ConfirmModal
