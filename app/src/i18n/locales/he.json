@@ -194,7 +194,9 @@
       "yearsAway_one": "בעוד שנה",
       "yearsAway_two": "בעוד שנתיים",
       "yearsAway_many": "בעוד {{count}} שנים",
-      "yearsAway_other": "בעוד {{count}} שנים"
+      "yearsAway_other": "בעוד {{count}} שנים",
+      "netWorthNote": "כל מה שהזנתם, לפי השווי היום.",
+      "netWorthBreakdown": "ממה זה מורכב"
     },
     "snapshot": {
       "title": "תמונת מצב לפרישה",
@@ -255,7 +257,32 @@
     },
     "emptyTitle": "\u05d0\u05d9\u05df \u05e2\u05d3\u05d9\u05d9\u05df \u05e0\u05ea\u05d5\u05e0\u05d9\u05dd",
     "emptyBody": "\u05d4\u05e9\u05dc\u05dd \u05d0\u05ea \u05d4\u05e4\u05e8\u05d5\u05e4\u05d9\u05dc \u05e9\u05dc\u05da \u05db\u05d3\u05d9 \u05dc\u05e8\u05d0\u05d5\u05ea \u05ea\u05d7\u05d6\u05d9\u05ea \u05e4\u05e8\u05d9\u05e9\u05d4 \u05d0\u05d9\u05e9\u05d9\u05ea.",
-    "emptyCta": "\u05de\u05dc\u05d0 \u05d0\u05ea \u05d4\u05e0\u05ea\u05d5\u05e0\u05d9\u05dd \u05e9\u05dc\u05d9"
+    "emptyCta": "\u05de\u05dc\u05d0 \u05d0\u05ea \u05d4\u05e0\u05ea\u05d5\u05e0\u05d9\u05dd \u05e9\u05dc\u05d9",
+    "portfolio": {
+      "title": "ממה מורכב השווי הנקי הנוכחי",
+      "intro": "השורות מסתכמות בשווי הנקי הנוכחי שמוצג למעלה. לחצו על שורה כדי לראות או לשנות את מה שהזנתם.",
+      "kind": "סוג נכס",
+      "amount": "סכום",
+      "rows": {
+        "pensionFund": "קרנות פנסיה",
+        "providentFund": "קופות גמל",
+        "managersInsurance": "ביטוח מנהלים",
+        "studyFund": "קרנות השתלמות",
+        "bankDeposits": "פיקדונות בנקאיים",
+        "privateShares": "מניות פרטיות ו-ESPP",
+        "employerShares": "מניות מהמעסיק (שהבשילו)",
+        "cashAndOther": "מזומן ונכסים אחרים"
+      },
+      "householdNote": "כולל את החשבונות של בן או בת הזוג.",
+      "unvested": "לא נכלל למעלה: {{amount}} במניות מהמעסיק שטרם הבשילו. התחזיות מוסיפות את החלק שיבשיל עד הפרישה.",
+      "fx": {
+        "boi": "מחירי המניות מומרים לפי {{rate}} ₪ לדולר (שער בנק ישראל מתאריך {{date}}).",
+        "typed": "מחירי המניות מומרים לפי {{rate}} ₪ לדולר, השער שהקלדתם.",
+        "fallback": "מחירי המניות מומרים לפי {{rate}} ₪ לדולר, שער מובנה, כי לא הוזן שער ולא נשלף שער עדכני.",
+        "change": "שינוי השער"
+      },
+      "total": "סה״כ"
+    }
   },
   "myData": {
     "title": "\u05d4\u05e0\u05ea\u05d5\u05e0\u05d9\u05dd \u05e9\u05dc\u05d9",

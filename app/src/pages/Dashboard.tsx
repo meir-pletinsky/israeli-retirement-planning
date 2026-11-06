@@ -11,6 +11,7 @@ import { DataGapsCard } from "../components/DataGapsCard";
 import { EmptyState } from "../components/EmptyState";
 import { FeasibilityCard } from "../components/FeasibilityCard";
 import { KpiCard } from "../components/KpiCard";
+import { PortfolioSummaryCard } from "../components/PortfolioSummaryCard";
 import { RetireAgeChecksCard } from "../components/RetireAgeChecksCard";
 import { RetirementSnapshot } from "../components/RetirementSnapshot";
 import { formatSuccessPercent } from "../components/riskFormat";
@@ -22,6 +23,7 @@ import {
   MAX_PLANNING_AGE,
   MAX_RETIREMENT_SEARCH_AGE,
   aggregateCurrentNetWorth,
+  breakdownPortfolio,
   calculateFundingGap,
   calculateRetirementKpis,
   checkRetirementAges,
@@ -121,6 +123,17 @@ export function Dashboard() {
         <KpiCard
           label={t("dashboard.kpi.netWorth")}
           value={`${currencySymbol}${Math.round(netWorthToday).toLocaleString()}`}
+          note={
+            <div className="flex flex-col gap-1">
+              <p>{t("dashboard.kpi.netWorthNote")}</p>
+              <a
+                href="#portfolio-summary"
+                className="font-medium text-brand-700 hover:underline"
+              >
+                {t("dashboard.kpi.netWorthBreakdown")}
+              </a>
+            </div>
+          }
         />
         <KpiCard
           label={t(
@@ -217,6 +230,8 @@ export function Dashboard() {
           }
         />
       )}
+
+      <PortfolioSummaryCard portfolio={breakdownPortfolio(profile)} />
 
       <RetirementSnapshot kpis={snapshot.kpis} />
 

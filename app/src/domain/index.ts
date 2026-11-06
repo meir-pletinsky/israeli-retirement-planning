@@ -23,6 +23,7 @@ export * from "./liquidityLadder";
 export * from "./monteCarlo";
 export * from "./netIncome";
 export * from "./netWorth";
+export * from "./portfolioBreakdown";
 export * from "./purchaseLots";
 export * from "./retirementIncome";
 export * from "./scenarioComparison";

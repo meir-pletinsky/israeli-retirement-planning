@@ -2094,6 +2094,15 @@ rest).
   it also says Other Investments is one pool (bank deposits, private and vested employer shares,
   cash, other assets). A bank / private-stock / employer-stock drill-down is not possible because
   the drawdown draws that pool as one bucket.
+- [Review-UX-16] The Dashboard shows what Net Worth Today is made of. `breakdownPortfolio`
+  (`domain/portfolioBreakdown.ts`) splits `aggregateCurrentNetWorth` into pension, provident,
+  managers insurance, study fund, bank deposits, private shares (including ESPP and holdings with
+  no category), vested employer shares and cash / other assets. Rows are rounded to whole shekels
+  and the rounding difference goes to the largest row, so they add up exactly to the figure.
+  `PortfolioSummaryCard` lists them (each row links to where it is entered), lists the unvested
+  employer shares apart as not counted today (projections add what vests by retirement), states
+  the USD/ILS rate behind the share values (Bank of Israel date, typed, or built-in) with a link
+  to change it, and notes when a spouse's accounts are included. The Net Worth KPI links to it.
 
 ## Modeling assumptions (by phase)
 

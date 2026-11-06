@@ -192,7 +192,9 @@
       "householdTimingNote": "Counted until the later of the two.",
       "retiringNow": "now",
       "yearsAway_one": "in 1 year",
-      "yearsAway_other": "in {{count}} years"
+      "yearsAway_other": "in {{count}} years",
+      "netWorthNote": "Everything you have entered, at today's values.",
+      "netWorthBreakdown": "See what it is made of"
     },
     "snapshot": {
       "title": "Retirement snapshot",
@@ -253,7 +255,32 @@
     },
     "emptyTitle": "No data yet",
     "emptyBody": "Complete your profile to see your personalized retirement projection.",
-    "emptyCta": "Start My Data"
+    "emptyCta": "Start My Data",
+    "portfolio": {
+      "title": "What Net Worth Today is made of",
+      "intro": "The rows add up to the Net Worth Today figure above. Select a row to see or change what you entered.",
+      "kind": "Kind of asset",
+      "amount": "Amount",
+      "rows": {
+        "pensionFund": "Pension funds",
+        "providentFund": "Provident funds",
+        "managersInsurance": "Managers insurance",
+        "studyFund": "Study funds",
+        "bankDeposits": "Bank deposits",
+        "privateShares": "Private shares and ESPP",
+        "employerShares": "Employer shares (vested)",
+        "cashAndOther": "Cash and other assets"
+      },
+      "householdNote": "Includes your spouse's accounts.",
+      "unvested": "Not counted above: {{amount}} of employer shares that have not vested yet. The projections add the part that will have vested by retirement.",
+      "fx": {
+        "boi": "Share prices are converted at {{rate}} ₪ per US dollar (Bank of Israel rate on {{date}}).",
+        "typed": "Share prices are converted at {{rate}} ₪ per US dollar, the rate you typed.",
+        "fallback": "Share prices are converted at {{rate}} ₪ per US dollar, a built-in rate, because none was entered or looked up.",
+        "change": "Change the rate"
+      },
+      "total": "Total"
+    }
   },
   "myData": {
     "title": "My Data",

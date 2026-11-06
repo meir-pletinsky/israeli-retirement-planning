@@ -1241,4 +1241,143 @@ describe("Dashboard", () => {
       expect(screen.queryByRole("note", { name: "Assumptions in use" })).not.toBeInTheDocument();
     });
   });
+
+  describe("portfolio summary", () => {
+    const BIDI_MARKS = /[\u2066\u2069]/g;
+    const summary = () => screen.getByRole("region", { name: "What Net Worth Today is made of" });
+    const rowAmount = (name: string) =>
+      within(within(summary()).getByRole("row", { name: new RegExp(name) }))
+        .getByText(/^\u20aa/)
+        .textContent!.replace(BIDI_MARKS, "");
+
+    const rich = buildTestProfile({
+      age: 50,
+      retirementAge: 67,
+      pensionBalances: [500_000, 100_000],
+      pensionAccountOverrides: [{ productCategory: "comprehensivePension" }, { productCategory: "studyFund" }],
+      otherAssets: 20_000,
+      bankDeposits: [{ amount: 200_000 }],
+      usdToIlsRate: { rate: 3, date: "2026-06-01" },
+      equity: [
+        {
+          quantity: 200,
+          priceUSD: 10,
+          employerGrant: {
+            vestingTranches: [
+              { vestDate: "2025-01-01", quantity: 120 },
+              { vestDate: "2027-01-01", quantity: 80 },
+            ],
+          },
+        },
+      ],
+    });
+
+    it("lists what the Net Worth Today figure is made of, adding up to it", async () => {
+      await saveProfileToDb(rich);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      expect(rowAmount("Pension funds")).toBe("\u20aa500,000");
+      expect(rowAmount("Study funds")).toBe("\u20aa100,000");
+      expect(rowAmount("Bank deposits")).toBe("\u20aa200,000");
+      expect(rowAmount("Employer shares")).toBe("\u20aa3,600");
+      expect(rowAmount("Cash and other assets")).toBe("\u20aa20,000");
+      const total = Math.round(aggregateCurrentNetWorth(rich)).toLocaleString();
+      expect(total).toBe("823,600");
+      expect(rowAmount("Total")).toBe(`\u20aa${total}`);
+      const kpi = screen.getByText("Net Worth Today").parentElement as HTMLElement;
+      expect(within(kpi).getByText(`\u20aa${total}`)).toBeInTheDocument();
+    });
+
+    it("leaves out the kinds of assets that have nothing in them", async () => {
+      await saveProfileToDb(rich);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      expect(within(summary()).queryByText("Provident funds")).not.toBeInTheDocument();
+      expect(within(summary()).queryByText("Private shares and ESPP")).not.toBeInTheDocument();
+    });
+
+    it("links each row to where it is entered, and the figure to the summary", async () => {
+      await saveProfileToDb(rich);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      expect(within(summary()).getByRole("link", { name: "Bank deposits" })).toHaveAttribute(
+        "href",
+        "/my-data/pension-savings",
+      );
+      expect(within(summary()).getByRole("link", { name: "Employer shares (vested)" })).toHaveAttribute(
+        "href",
+        "/my-data/equity",
+      );
+      expect(screen.getByRole("link", { name: "See what it is made of" })).toHaveAttribute(
+        "href",
+        "#portfolio-summary",
+      );
+      expect(summary()).toHaveAttribute("id", "portfolio-summary");
+    });
+
+    it("says what is left out because it has not vested, and the exchange rate used", async () => {
+      await saveProfileToDb(rich);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      const text = summary().textContent!.replace(BIDI_MARKS, "");
+      expect(text).toContain(
+        "Not counted above: \u20aa2,400 of employer shares that have not vested yet.",
+      );
+      expect(text).toContain("Share prices are converted at 3 \u20aa per US dollar (Bank of Israel rate on 01/06/2026).");
+      expect(within(summary()).getByRole("link", { name: "Change the rate" })).toHaveAttribute(
+        "href",
+        "/my-data/equity",
+      );
+    });
+
+    it("has no share notes when there are no shares", async () => {
+      await saveProfileToDb(
+        buildTestProfile({ age: 50, retirementAge: 67, pensionBalances: [400_000], otherAssets: 10_000 }),
+      );
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      const text = summary().textContent!;
+      expect(text).not.toContain("Not counted above");
+      expect(text).not.toContain("Share prices are converted");
+      expect(within(summary()).queryByRole("link", { name: "Change the rate" })).not.toBeInTheDocument();
+    });
+
+    it("says when the plan covers a spouse's accounts too", async () => {
+      await saveProfileToDb(
+        buildTestProfile({
+          age: 50,
+          retirementAge: 67,
+          maritalStatus: "married",
+          spouse: { age: 48 },
+          pensionBalances: [300_000, 150_000],
+          pensionAccountOverrides: [{}, { owner: "spouse" }],
+        }),
+      );
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      expect(within(summary()).getByText("Includes your spouse's accounts.")).toBeInTheDocument();
+      expect(rowAmount("Pension funds")).toBe("\u20aa450,000");
+    });
+
+    it("is not shown when nothing has been entered", async () => {
+      await saveProfileToDb(buildTestProfile({ age: 50, retirementAge: 67 }));
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      expect(screen.queryByRole("region", { name: "What Net Worth Today is made of" })).not.toBeInTheDocument();
+    });
+  });
 });
