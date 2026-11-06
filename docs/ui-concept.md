@@ -59,12 +59,13 @@ Primary sections:
 ### 2. Dashboard
 
 - KPI cards row: Projected Monthly Retirement Income, Net Worth Today,
-  Funding Gap, Years to Retirement.
+  Monthly surplus / Monthly shortfall (named by its sign; the amount is
+  shown without a minus), Probability of Success, Years to Retirement.
 - Net worth projection chart (line, today → life expectancy), with a
   vertical marker at target retirement age.
 - "Retirement readiness" status banner (on-track / shortfall), plain-language
-  summary sentence, not just a number. Hidden, and the Funding Gap KPI shows
-  "—", until the user has entered a desired retirement spending.
+  summary sentence, not just a number. Hidden, and the surplus/shortfall KPI
+  shows "—", until the user has entered a desired retirement spending.
 - "Improve your estimate" card: the optional details that would change the
   result (desired spending, savings, a spouse's age, account type / status /
   contribution rates, salary, gender), each linking to the My Data step that

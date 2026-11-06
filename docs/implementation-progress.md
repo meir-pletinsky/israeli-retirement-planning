@@ -434,7 +434,7 @@ Field tiers (what the badge on each label means):
       The in-app help makes no claims about any government system.
 - [x] K5. Dashboard: a "Improve your estimate" card
       (`components/DataGapsCard.tsx`) links each gap to its My Data step. With
-      no desired spending the Funding Gap KPI shows "—" and the status
+      no desired spending the surplus/shortfall KPI (formerly "Funding Gap") shows "—" and the status
       banner is hidden instead of a misleading gap. The "accounts with no
       product type" note moved from the Access card into the gaps card.
 - [x] K6. Charts and Projections: `charts/formatAxisMoney.ts` gives compact
@@ -1952,6 +1952,12 @@ rest).
       printed under each step name and is part of the button's accessible name; the current
       step carries `aria-current="step"`. No review flag is stored, so an optional step the
       user looked at and left empty reads "Nothing entered yet" rather than "skipped".
+- [x] **UX-06 The Dashboard gap KPI names its sign.** "Funding Gap" is now "Monthly
+      surplus" or "Monthly shortfall" depending on the sign (the neutral "Monthly surplus
+      or shortfall" while no spending is entered). The amount is shown as an absolute value
+      under a one-line note ("to spare each month after your planned spending" / "short of
+      your planned spending each month" / "Enter your planned spending to see this."), so a
+      plain number is never read as a gap that is good or bad by itself.
 
 ## Modeling assumptions (by phase)
 

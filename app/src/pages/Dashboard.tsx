@@ -95,9 +95,26 @@ export function Dashboard() {
           value={`${currencySymbol}${Math.round(netWorthToday).toLocaleString()}`}
         />
         <KpiCard
-          label={t("dashboard.kpi.fundingGap")}
-          value={hasTarget ? `${currencySymbol}${fundingGap.monthlyGap.toLocaleString()}` : "—"}
+          label={t(
+            !hasTarget
+              ? "dashboard.kpi.surplusOrShortfall"
+              : isShortfall
+                ? "dashboard.kpi.monthlyShortfall"
+                : "dashboard.kpi.monthlySurplus",
+          )}
+          value={
+            hasTarget
+              ? `${currencySymbol}${Math.abs(fundingGap.monthlyGap).toLocaleString()}`
+              : "—"
+          }
           status={hasTarget ? (isShortfall ? "negative" : "positive") : "neutral"}
+          note={t(
+            !hasTarget
+              ? "dashboard.kpi.noSpendingNote"
+              : isShortfall
+                ? "dashboard.kpi.shortfallNote"
+                : "dashboard.kpi.surplusNote",
+          )}
         />
         <KpiCard
           label={t("dashboard.kpi.successProbability")}

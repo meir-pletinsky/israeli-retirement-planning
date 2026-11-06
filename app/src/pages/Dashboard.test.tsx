@@ -61,7 +61,7 @@ describe("Dashboard", () => {
       within(incomeKpi as HTMLElement).getByText(`\u20aa${netMonthlyIncome.toLocaleString()}`),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(`\u20aa${fundingGap.monthlyGap.toLocaleString()}`),
+      screen.getByText(`\u20aa${Math.abs(fundingGap.monthlyGap).toLocaleString()}`),
     ).toBeInTheDocument();
     expect(screen.getByText(String(years))).toBeInTheDocument();
   });
@@ -290,8 +290,9 @@ describe("Dashboard", () => {
 
       renderWithProviders(<Dashboard />);
 
-      const gapKpi = (await screen.findByText("Funding Gap")).parentElement as HTMLElement;
+      const gapKpi = (await screen.findByText("Monthly surplus or shortfall")).parentElement as HTMLElement;
       expect(within(gapKpi).getByText("—")).toBeInTheDocument();
+      expect(within(gapKpi).getByText("Enter your planned spending to see this.")).toBeInTheDocument();
       expect(screen.queryByText("You're on track to meet your retirement goal.")).not.toBeInTheDocument();
       expect(screen.queryByText("You may need additional savings to meet your retirement goal.")).not.toBeInTheDocument();
     });
@@ -312,8 +313,30 @@ describe("Dashboard", () => {
       expect(
         await screen.findByText("You may need additional savings to meet your retirement goal."),
       ).toBeInTheDocument();
-      const gapKpi = screen.getByText("Funding Gap").parentElement as HTMLElement;
+      const gapKpi = screen.getByText("Monthly shortfall").parentElement as HTMLElement;
       expect(within(gapKpi).queryByText("—")).not.toBeInTheDocument();
+      // The sign is said in words, and the amount is not shown with a minus.
+      expect(within(gapKpi).getByText("short of your planned spending each month")).toBeInTheDocument();
+      expect(within(gapKpi).getByText(/^\u20aa[\d,]+$/)).toBeInTheDocument();
+    });
+
+    it("calls an excess of income over spending a surplus, not a gap", async () => {
+      await seed(
+        buildTestProfile({
+          age: 40,
+          retirementAge: 67,
+          retirementMonthlyExpenses: 1_000,
+          otherAssets: 5_000_000,
+          ...zeroRealReturn,
+        }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      const gapKpi = (await screen.findByText("Monthly surplus")).parentElement as HTMLElement;
+      expect(within(gapKpi).getByText("to spare each month after your planned spending")).toBeInTheDocument();
+      expect(screen.queryByText(/Funding Gap/i)).not.toBeInTheDocument();
+      expect(screen.queryByText("Monthly shortfall")).not.toBeInTheDocument();
     });
 
     it("shows the probability of success only once spending is entered", async () => {

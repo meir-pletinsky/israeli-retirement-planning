@@ -163,7 +163,12 @@
     "kpi": {
       "monthlyIncome": "Projected Monthly Income After Tax",
       "netWorth": "Net Worth Today",
-      "fundingGap": "Funding Gap",
+      "monthlySurplus": "Monthly surplus",
+      "monthlyShortfall": "Monthly shortfall",
+      "surplusOrShortfall": "Monthly surplus or shortfall",
+      "surplusNote": "to spare each month after your planned spending",
+      "shortfallNote": "short of your planned spending each month",
+      "noSpendingNote": "Enter your planned spending to see this.",
       "successProbability": "Probability of Success",
       "yearsToRetirement": "Years to Retirement"
     },

@@ -163,7 +163,12 @@
     "kpi": {
       "monthlyIncome": "הכנסה חודשית משוערת בפרישה לאחר מס",
       "netWorth": "\u05e9\u05d5\u05d5\u05d9 \u05e0\u05e7\u05d9 \u05e0\u05d5\u05db\u05d7\u05d9",
-      "fundingGap": "\u05e4\u05e2\u05e8 \u05de\u05d9\u05de\u05d5\u05df",
+      "monthlySurplus": "עודף חודשי",
+      "monthlyShortfall": "גירעון חודשי",
+      "surplusOrShortfall": "עודף או גירעון חודשי",
+      "surplusNote": "פנויים בכל חודש לאחר ההוצאות המתוכננות",
+      "shortfallNote": "חסרים בכל חודש להוצאות המתוכננות",
+      "noSpendingNote": "הזינו הוצאות מתוכננות כדי לראות זאת.",
       "successProbability": "סיכוי להצלחה",
       "yearsToRetirement": "\u05e9\u05e0\u05d9\u05dd \u05e2\u05d3 \u05d4\u05e4\u05e8\u05d9\u05e9\u05d4"
     },

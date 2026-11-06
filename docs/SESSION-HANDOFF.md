@@ -567,7 +567,7 @@ shows them.
     dropped by `normalizeProfile()` when malformed).
   - `domain/inputGuidance.ts` `findDataGaps(profile)` feeds the Dashboard's
     "Improve your estimate" card (`components/DataGapsCard.tsx`). Without
-    desired spending the Funding Gap KPI shows "—" and the status banner is
+    desired spending the surplus/shortfall KPI (formerly "Funding Gap") shows "—" and the status banner is
     hidden.
   - Single person: nothing beyond the two ages is needed. Married without a
     spouse age is still a single-person plan (flagged by the `spouseMissing`
