@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { useDeferredValue, useId, useMemo, useState } from "react";
+import { type ReactNode, useDeferredValue, useId, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
@@ -15,12 +15,15 @@ import {
 import type { ProfileData, RetirementScenario } from "../types";
 import { BacktestChart } from "./charts/BacktestChart";
 import { BACKTEST_COLOURS } from "./charts/backtestColours";
+import { ScenarioTitle } from "./ScenarioTag";
 
 interface HistoricalBacktestCardProps {
   profile: ProfileData;
   scenario: RetirementScenario;
   /** Whether the user has entered desired retirement spending. */
   hasTarget: boolean;
+  /** Names the retirement scenario shown, beside the title. */
+  scenarioTag?: ReactNode;
 }
 
 const BAND_CLASSES = {
@@ -49,7 +52,12 @@ function formatYearRuns(years: readonly number[]): string {
     .join(", ");
 }
 
-export function HistoricalBacktestCard({ profile, scenario, hasTarget }: HistoricalBacktestCardProps) {
+export function HistoricalBacktestCard({
+  profile,
+  scenario,
+  hasTarget,
+  scenarioTag,
+}: HistoricalBacktestCardProps) {
   const { t } = useTranslation();
   const controlsId = useId();
   const [stockSharePct, setStockSharePct] = useState(DEFAULT_BACKTEST_STOCK_SHARE_PCT);
@@ -84,9 +92,9 @@ export function HistoricalBacktestCard({ profile, scenario, hasTarget }: Histori
         updating && "opacity-50",
       )}
     >
-      <h2 id="history-title" className="text-sm font-semibold text-slate-700">
+      <ScenarioTitle id="history-title" tag={scenarioTag}>
         {t("projections.history.title")}
-      </h2>
+      </ScenarioTitle>
 
       {!hasTarget && (
         <p className="mt-2 text-sm text-slate-600">

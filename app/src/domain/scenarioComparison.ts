@@ -1,5 +1,5 @@
 import type { ProfileData } from "../types";
-import { MAX_RETIREMENT_SEARCH_AGE } from "./constants";
+import { DELAYED_RETIREMENT_OFFSET_YEARS, EARLY_RETIREMENT_OFFSET_YEARS, MAX_RETIREMENT_SEARCH_AGE } from "./constants";
 import { desiredRetirementMonthly } from "./expenses";
 import { buildHousehold, retirementTimingShiftedTo } from "./household";
 import { estimateNetIncomeForHousehold } from "./netIncome";
@@ -47,17 +47,24 @@ export function isValidComparisonAge(profile: ProfileData, age: number | null): 
 }
 
 /**
- * The three ages shown at first: the Early, Standard and Delayed scenarios'
- * ages for the primary user, never before today and never after the standard
- * age for the early one.
+ * The three ages shown at first, always different where the bounds allow it:
+ * an early age up to `EARLY_RETIREMENT_OFFSET_YEARS` before the standard one
+ * (never before today or `COMPARISON_MIN_AGE`; unlike the Early scenario it is
+ * not held at `MIN_RETIREMENT_AGE`, so a plan for 60 still gets an earlier
+ * column), the standard age and the Delayed scenario's age. When no earlier
+ * age is possible (the standard age is today's), the standard age is followed
+ * by two later ones instead.
  */
 export function defaultComparisonAges(profile: ProfileData): [number, number, number] {
   const standard = resolveRetirementAge(profile, "standard");
-  const early = Math.min(
-    standard,
-    Math.max(resolveRetirementAge(profile, "early"), Math.ceil(resolveCurrentAge(profile))),
+  const early = Math.max(
+    COMPARISON_MIN_AGE,
+    Math.ceil(resolveCurrentAge(profile)),
+    standard - EARLY_RETIREMENT_OFFSET_YEARS,
   );
-  return [early, standard, resolveRetirementAge(profile, "delayed")];
+  const later = (years: number) => Math.min(COMPARISON_MAX_AGE, standard + years);
+  if (early < standard) return [early, standard, later(DELAYED_RETIREMENT_OFFSET_YEARS)];
+  return [standard, later(DELAYED_RETIREMENT_OFFSET_YEARS), later(2 * DELAYED_RETIREMENT_OFFSET_YEARS)];
 }
 
 /**

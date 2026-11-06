@@ -4,18 +4,25 @@ import { useTranslation } from "react-i18next";
 
 import type { WithdrawalStrategyComparison, WithdrawalStrategyResult } from "../domain";
 import type { WithdrawalStrategy } from "../types";
+import { ScenarioTitle } from "./ScenarioTag";
 import { useFormatAge } from "./useFormatAge";
 
 interface WithdrawalStrategyCardProps {
   comparison: WithdrawalStrategyComparison;
   /** Saves the chosen order as the one the whole plan uses. */
   onSelect: (strategy: WithdrawalStrategy) => void;
+  /** Names the retirement scenario shown, beside the title. */
+  scenarioTag?: ReactNode;
 }
 
 /** Keeps digits reading left to right when inserted into a right-to-left sentence. */
 const isolate = (text: string) => `\u2066${text}\u2069`;
 
-export function WithdrawalStrategyCard({ comparison, onSelect }: WithdrawalStrategyCardProps) {
+export function WithdrawalStrategyCard({
+  comparison,
+  onSelect,
+  scenarioTag,
+}: WithdrawalStrategyCardProps) {
   const { t } = useTranslation();
   const formatAge = useFormatAge();
   const currencySymbol = t("common.currencySymbol");
@@ -114,9 +121,9 @@ export function WithdrawalStrategyCard({ comparison, onSelect }: WithdrawalStrat
       aria-labelledby="withdrawal-strategy-title"
       className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
     >
-      <h2 id="withdrawal-strategy-title" className="text-sm font-semibold text-slate-700">
+      <ScenarioTitle id="withdrawal-strategy-title" tag={scenarioTag}>
         {t("projections.withdrawal.title")}
-      </h2>
+      </ScenarioTitle>
       <p className="mt-1 text-xs text-slate-500">{t("projections.withdrawal.intro")}</p>
 
       {identical ? (

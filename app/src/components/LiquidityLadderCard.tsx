@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -6,12 +7,15 @@ import {
   type LadderItem,
   type LiquidityLadder,
 } from "../domain";
+import { ScenarioTitle } from "./ScenarioTag";
 import { useFormatAge } from "./useFormatAge";
 
 interface LiquidityLadderCardProps {
   ladder: LiquidityLadder;
   /** Whether the plan covers a spouse, so each line says whose it is. */
   isCouple: boolean;
+  /** Names the retirement scenario shown, beside the title. */
+  scenarioTag?: ReactNode;
 }
 
 const ITEM_LABEL_KEYS: Record<LadderItem["kind"], string> = {
@@ -30,7 +34,7 @@ const isolate = (text: string) => `\u2066${text}\u2069`;
 
 const formatDate = (iso: string) => isolate(formatIsoDate(iso));
 
-export function LiquidityLadderCard({ ladder, isCouple }: LiquidityLadderCardProps) {
+export function LiquidityLadderCard({ ladder, isCouple, scenarioTag }: LiquidityLadderCardProps) {
   const { t } = useTranslation();
   const formatAge = useFormatAge();
   const currencySymbol = t("common.currencySymbol");
@@ -59,9 +63,9 @@ export function LiquidityLadderCard({ ladder, isCouple }: LiquidityLadderCardPro
       aria-labelledby="liquidity-ladder-title"
       className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
     >
-      <h2 id="liquidity-ladder-title" className="text-sm font-semibold text-slate-700">
+      <ScenarioTitle id="liquidity-ladder-title" tag={scenarioTag}>
         {t("projections.ladder.title")}
-      </h2>
+      </ScenarioTitle>
       <p className="mt-1 text-xs text-slate-500">{t("projections.ladder.intro")}</p>
 
       <div className="mt-3 overflow-x-auto">

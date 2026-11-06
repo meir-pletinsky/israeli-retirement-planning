@@ -1109,6 +1109,93 @@ describe("Projections", () => {
     });
   });
 
+  describe("retirement scenario", () => {
+    const planned = {
+      age: 55,
+      retirementAge: 65,
+      monthlyGrossSalary: 20_000,
+      pensionBalances: [1_500_000],
+      retirementMonthlyExpenses: 9_000,
+      otherAssets: 200_000,
+      investmentReturnPct: 4,
+      inflationPct: 4,
+    };
+
+    async function renderScenarios(overrides: Partial<typeof planned> = {}) {
+      await saveProfileToDb(buildTestProfile({ ...planned, ...overrides }));
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+      return within(await screen.findByRole("region", { name: "Retirement scenario" }));
+    }
+
+    it("names each scenario with the retirement age it stands for", async () => {
+      const selector = await renderScenarios();
+
+      expect(selector.getByRole("button", { name: "Early - age 60" })).toBeInTheDocument();
+      expect(selector.getByRole("button", { name: "Standard - age 65" })).toHaveAttribute("aria-pressed", "true");
+      expect(selector.getByRole("button", { name: "Delayed - age 68" })).toHaveAttribute("aria-pressed", "false");
+      expect(selector.queryByText(/never goes below age 60/i)).not.toBeInTheDocument();
+    });
+
+    it("says which scenario the charts and cards beneath it show, and follows the choice", async () => {
+      const user = userEvent.setup();
+      const selector = await renderScenarios();
+
+      const timeline = within(await screen.findByRole("region", { name: "Retirement timeline" }));
+      expect(timeline.getByText("Standard - age 65")).toBeInTheDocument();
+      expect(timeline.getByRole("heading", { name: "Retirement timeline" })).toBeInTheDocument();
+      const netWorth = screen.getByRole("heading", { name: "Net Worth Projection" }).parentElement!;
+      expect(within(netWorth).getByText("Standard - age 65")).toBeInTheDocument();
+
+      await user.click(selector.getByRole("button", { name: "Delayed - age 68" }));
+
+      expect(selector.getByRole("button", { name: "Delayed - age 68" })).toHaveAttribute("aria-pressed", "true");
+      expect(selector.getByRole("button", { name: "Standard - age 65" })).toHaveAttribute("aria-pressed", "false");
+      expect(timeline.getByText("Delayed - age 68")).toBeInTheDocument();
+      expect(within(netWorth).getByText("Delayed - age 68")).toBeInTheDocument();
+      for (const name of ["Risk analysis", "Historical backtest", "Income by Source"]) {
+        const heading = screen.getByRole("heading", { name: new RegExp(`^${name}$`, "i") });
+        expect(within(heading.parentElement!).getByText("Delayed - age 68")).toBeInTheDocument();
+      }
+    });
+
+    it("separates the scenario choice from the age comparison", async () => {
+      const selector = await renderScenarios();
+
+      expect(selector.getByText(/age comparison above is separate/i)).toBeInTheDocument();
+      const comparison = within(screen.getByRole("region", { name: "Compare retirement ages" }));
+      expect(comparison.getByText(/has its own ages/i)).toBeInTheDocument();
+    });
+
+    it("explains that Early does not go below the floor in these scenarios", async () => {
+      const selector = await renderScenarios({ retirementAge: 60 });
+
+      expect(selector.getByRole("button", { name: "Early - age 60" })).toBeInTheDocument();
+      expect(selector.getByRole("button", { name: "Standard - age 60" })).toBeInTheDocument();
+      expect(selector.getByText(/never goes below age 60/i)).toBeInTheDocument();
+    });
+
+    it("never makes Early later than the age the user chose", async () => {
+      const selector = await renderScenarios({ retirementAge: 58 });
+
+      expect(selector.getByRole("button", { name: "Early - age 58" })).toBeInTheDocument();
+      expect(selector.getByRole("button", { name: "Standard - age 58" })).toBeInTheDocument();
+    });
+
+    it("compares three different ages by default, even for a plan to retire at 60", async () => {
+      await saveProfileToDb(buildTestProfile({ ...planned, retirementAge: 60 }));
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      const comparison = within(await screen.findByRole("region", { name: "Compare retirement ages" }));
+      expect(comparison.getAllByRole("columnheader").map((header) => header.textContent)).toEqual([
+        "Age 55",
+        "Age 60Your plan",
+        "Age 63",
+      ]);
+    });
+  });
+
   it("names the assumptions every chart on the page rests on", async () => {
     await saveProfileToDb(
       buildTestProfile({ age: 40, retirementAge: 67, otherAssets: 300_000, investmentReturnPct: 8, inflationPct: 1.5 }),

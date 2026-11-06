@@ -1,9 +1,13 @@
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { formatDate as formatIsoDate, type LeavingEarlyCost } from "../domain";
+import { ScenarioTitle } from "./ScenarioTag";
 
 interface UnvestedSharesCardProps {
   cost: LeavingEarlyCost | null;
+  /** Names the retirement scenario shown, beside the title. */
+  scenarioTag?: ReactNode;
 }
 
 /** Keeps digits reading left to right when inserted into a right-to-left sentence. */
@@ -12,7 +16,7 @@ const isolate = (text: string) => `\u2066${text}\u2069`;
 const formatDate = (iso: string) => isolate(formatIsoDate(iso));
 
 /** What leaving before the company shares vest costs, and what waiting for the next batch would earn back. */
-export function UnvestedSharesCard({ cost }: UnvestedSharesCardProps) {
+export function UnvestedSharesCard({ cost, scenarioTag }: UnvestedSharesCardProps) {
   const { t } = useTranslation();
   const currencySymbol = t("common.currencySymbol");
 
@@ -29,9 +33,9 @@ export function UnvestedSharesCard({ cost }: UnvestedSharesCardProps) {
       aria-labelledby="unvested-shares-title"
       className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
     >
-      <h2 id="unvested-shares-title" className="text-sm font-semibold text-slate-700">
+      <ScenarioTitle id="unvested-shares-title" tag={scenarioTag}>
         {t("projections.unvested.title")}
-      </h2>
+      </ScenarioTitle>
       <p className="mt-1 text-xs text-slate-500">{t("projections.unvested.intro")}</p>
 
       <p role="status" className="mt-3 text-sm text-amber-800">

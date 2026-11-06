@@ -138,7 +138,7 @@ describe("compareRetirementAge", () => {
 });
 
 describe("defaultComparisonAges", () => {
-  it("offers the early, standard and delayed scenarios' ages", () => {
+  it("offers an early age, the standard age and the Delayed scenario's age", () => {
     expect(defaultComparisonAges(single)).toEqual([60, 65, 68]);
   });
 
@@ -146,9 +146,23 @@ describe("defaultComparisonAges", () => {
     expect(defaultComparisonAges(buildTestProfile({ age: 50 }))).toEqual([62, 67, 70]);
   });
 
-  it("never offers an early age before today or after the standard age", () => {
-    expect(defaultComparisonAges(buildTestProfile({ age: 62, retirementAge: 62 }))).toEqual([62, 62, 65]);
-    expect(defaultComparisonAges(buildTestProfile({ age: 52, retirementAge: 55 }))).toEqual([55, 55, 58]);
+  it("keeps the three ages different even when the Early scenario is held at its floor", () => {
+    // The Early scenario cannot go below 60, but the comparison can (down to 50).
+    expect(defaultComparisonAges(buildTestProfile({ age: 52, retirementAge: 60 }))).toEqual([55, 60, 63]);
+    expect(defaultComparisonAges(buildTestProfile({ age: 40, retirementAge: 58 }))).toEqual([53, 58, 61]);
+  });
+
+  it("never offers an early age before today", () => {
+    expect(defaultComparisonAges(buildTestProfile({ age: 52, retirementAge: 55 }))).toEqual([52, 55, 58]);
+    expect(defaultComparisonAges(buildTestProfile({ age: 58, retirementAge: 60 }))).toEqual([58, 60, 63]);
+  });
+
+  it("follows the standard age with two later ones when it is today's", () => {
+    expect(defaultComparisonAges(buildTestProfile({ age: 62, retirementAge: 62 }))).toEqual([62, 65, 68]);
+  });
+
+  it("stays within the comparison's maximum age", () => {
+    expect(defaultComparisonAges(buildTestProfile({ age: 78, retirementAge: 78 }))).toEqual([78, 80, 80]);
   });
 });
 

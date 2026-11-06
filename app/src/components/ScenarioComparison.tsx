@@ -133,6 +133,7 @@ export function ScenarioComparison({ profile }: ScenarioComparisonProps) {
         {t("projections.compare.title")}
       </h2>
       <p className="mt-1 text-xs text-slate-500">{t("projections.compare.intro")}</p>
+      <p className="mt-1 text-xs text-slate-500">{t("projections.compare.independent")}</p>
       {isCouple && (
         <p className="mt-1 text-xs text-slate-500">{t("projections.compare.coupleNote")}</p>
       )}

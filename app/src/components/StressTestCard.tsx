@@ -1,9 +1,13 @@
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { StressOutcome, StressRow, StressTest } from "../domain";
+import { ScenarioTitle } from "./ScenarioTag";
 
 interface StressTestCardProps {
   stress: StressTest | null;
+  /** Names the retirement scenario shown, beside the title. */
+  scenarioTag?: ReactNode;
 }
 
 /** Keeps digits reading left to right when inserted into a right-to-left sentence. */
@@ -13,7 +17,7 @@ const isolate = (text: string) => `\u2066${text}\u2069`;
 const formatPercent = (value: number) =>
   Math.abs(value) < 10 ? Number(Math.abs(value).toFixed(1)) : Math.round(Math.abs(value));
 
-export function StressTestCard({ stress }: StressTestCardProps) {
+export function StressTestCard({ stress, scenarioTag }: StressTestCardProps) {
   const { t } = useTranslation();
   const currencySymbol = t("common.currencySymbol");
   const money = (amount: number) => isolate(`${currencySymbol}${Math.round(amount).toLocaleString()}`);
@@ -59,9 +63,9 @@ export function StressTestCard({ stress }: StressTestCardProps) {
       aria-labelledby="stress-title"
       className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
     >
-      <h2 id="stress-title" className="text-sm font-semibold text-slate-700">
+      <ScenarioTitle id="stress-title" tag={scenarioTag}>
         {t("projections.stress.title")}
-      </h2>
+      </ScenarioTitle>
       <p className="mt-1 text-xs text-slate-500">{t("projections.stress.intro")}</p>
       <p className="mt-1 text-xs text-slate-500">
         {t("projections.stress.exposureDollar", { amount: money(stress.dollarValue) })}

@@ -1,7 +1,9 @@
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { IncomeBandKey, TimelineSegment } from "../domain";
 import { INCOME_BAND_COLORS } from "./charts/incomeBandColors";
+import { ScenarioTitle } from "./ScenarioTag";
 
 interface RetirementTimelineProps {
   segments: TimelineSegment[];
@@ -9,6 +11,8 @@ interface RetirementTimelineProps {
   currencySymbol: string;
   /** For a couple: the spouse's age when the primary user is the given age. */
   spouseAgeAt?: (selfAge: number) => number;
+  /** Names the retirement scenario shown, beside the title. */
+  scenarioTag?: ReactNode;
 }
 
 export function RetirementTimeline({
@@ -16,6 +20,7 @@ export function RetirementTimeline({
   labels,
   currencySymbol,
   spouseAgeAt,
+  scenarioTag,
 }: RetirementTimelineProps) {
   const { t } = useTranslation();
   const formatRange = (from: number, to: number) =>
@@ -26,9 +31,9 @@ export function RetirementTimeline({
       aria-labelledby="retirement-timeline-title"
       className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
     >
-      <h2 id="retirement-timeline-title" className="text-sm font-semibold text-slate-700">
+      <ScenarioTitle id="retirement-timeline-title" tag={scenarioTag}>
         {t("projections.timeline.title")}
-      </h2>
+      </ScenarioTitle>
       <p className="mt-1 text-xs text-slate-500">{t("projections.timeline.intro")}</p>
       <div className="mt-3 overflow-x-auto">
         <table className="w-full text-sm">

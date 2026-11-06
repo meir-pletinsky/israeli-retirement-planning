@@ -46,6 +46,11 @@ describe("resolveRetirementAge", () => {
     expect(resolveRetirementAge(youngRetiree, "early")).toBe(60);
   });
 
+  it("early scenario is never later than the entered age, even below the floor", () => {
+    expect(resolveRetirementAge(buildTestProfile({ retirementAge: 60 }), "early")).toBe(60);
+    expect(resolveRetirementAge(buildTestProfile({ retirementAge: 58 }), "early")).toBe(58);
+  });
+
   it("falls back to the default retirement age when unset", () => {
     expect(resolveRetirementAge(buildTestProfile({}), "standard")).toBe(67);
   });

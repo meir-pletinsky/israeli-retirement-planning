@@ -366,8 +366,10 @@ feasibility solver), so the user's own entered age equals the Dashboard.
       per age the years from now, savings when the household starts drawing,
       gross / tax / net income (the lowest after-tax year, as on the
       Dashboard), the gap to desired spending and a status (`onTrack`,
-      `shortfall`, `noTarget`); `defaultComparisonAges` (the Early, Standard
-      and Delayed ages) and `isValidComparisonAge` (from today, 50–80).
+      `shortfall`, `noTarget`); `defaultComparisonAges` (an early age up to
+      five years before the standard one, the standard age and the Delayed
+      age; always three different ages where the bounds allow) and
+      `isValidComparisonAge` (from today, 50–80).
 - [x] J3. UI + i18n (en/ru/he). `components/ScenarioComparison.tsx` on the
       Projections page: three `NumberField`s and a table (scrolls
       horizontally on mobile) with the user's entered age marked "Your
@@ -2007,6 +2009,20 @@ rest).
   accumulation fee are used), while the disability amount, survivors' %, track name, deposit
   fee, profit-sharing fee and yield-guarantee flag carry the field tag. Groups where nothing is
   used (balance breakdown, ESPP details) stay tagged.
+- [Review-UX-9] The scenario selector is now its own "Retirement scenario" section; each
+  button reads "Early - age 60 / Standard - age 65 / Delayed - age 68" (`aria-pressed` marks
+  the active one) and a note says it applies to the charts and cards below, not to the age
+  comparison above. Every scenario-dependent title (net worth, income by source, income after
+  tax, risk analysis, historical backtest, withdrawal order, liquidity ladder, source costs,
+  unvested shares, stress tests, timeline) carries a small tag with the active scenario
+  (`ScenarioTag` / `ScenarioTitle` in `components/ScenarioTag.tsx`, label helper in
+  `useScenarioLabel.ts`); the heading's own accessible name is unchanged. The age comparison
+  says it has its own ages. `defaultComparisonAges` now offers an early age up to 5 years
+  before the standard one (not held at the 60 floor, but never before today or 50), so a plan
+  for 60 starts at 55 / 60 / 63 rather than two identical columns; if no earlier age exists it
+  offers the standard age and two later ones. `Early` is also never later than the entered age
+  (a plan for 58 no longer gets "Early - age 60"), and when Early equals Standard because of
+  the floor the selector says so.
 
 ## Modeling assumptions (by phase)
 

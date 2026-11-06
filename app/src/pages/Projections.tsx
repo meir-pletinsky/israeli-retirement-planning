@@ -14,12 +14,15 @@ import { LiquidityLadderCard } from "../components/LiquidityLadderCard";
 import { RetirementTimeline } from "../components/RetirementTimeline";
 import { RiskAnalysisCard } from "../components/RiskAnalysisCard";
 import { ScenarioComparison } from "../components/ScenarioComparison";
+import { ScenarioTag, ScenarioTitle } from "../components/ScenarioTag";
 import { SourceCostCard } from "../components/SourceCostCard";
 import { StressTestCard } from "../components/StressTestCard";
 import { UnvestedSharesCard } from "../components/UnvestedSharesCard";
+import { useScenarioLabel } from "../components/useScenarioLabel";
 import { WithdrawalStrategyCard } from "../components/WithdrawalStrategyCard";
 import {
   MAX_RETIREMENT_SEARCH_AGE,
+  MIN_RETIREMENT_AGE,
   type IncomeBandKey,
   buildLeavingEarlyCost,
   buildLiquidityLadder,
@@ -35,6 +38,7 @@ import {
   isHouseholdActive,
   planForOption,
   projectNetWorth,
+  resolveRetirementAge,
   runMonteCarlo,
   savedCoverPlan,
   spouseAgeAt,
@@ -43,16 +47,16 @@ import type { AccountOwner, CoverOption, RetirementScenario } from "../types";
 
 const SCENARIOS: RetirementScenario[] = ["early", "standard", "delayed"];
 
-function scenarioLabelKey(scenario: RetirementScenario): string {
-  return `projections.scenario${scenario.charAt(0).toUpperCase()}${scenario.slice(1)}`;
-}
-
 export function Projections() {
   const { t } = useTranslation();
   const { profile, updateProfile } = useProfile();
   const [scenario, setScenario] = useState<RetirementScenario>("standard");
   const [view, setView] = useState<"chart" | "table">("chart");
   const currencySymbol = t("common.currencySymbol");
+  const scenarioLabel = useScenarioLabel(profile);
+  const scenarioTag = <ScenarioTag profile={profile} scenario={scenario} />;
+  const earlyAtStandard =
+    resolveRetirementAge(profile, "early") === resolveRetirementAge(profile, "standard");
 
   // The simulation is the slowest calculation here, so it only reruns when the plan or scenario
   // changes, and a deferred scenario lets the scenario buttons answer before it finishes.
@@ -107,15 +111,24 @@ export function Projections() {
 
       <ScenarioComparison profile={profile} />
 
-      <div>
-        <span className="text-sm font-medium text-slate-700">
+      <section
+        aria-labelledby="scenario-title"
+        className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      >
+        <h2 id="scenario-title" className="text-sm font-semibold text-slate-700">
           {t("projections.scenario")}
-        </span>
-        <div className="mt-2 inline-flex rounded-full bg-slate-100 p-1">
+        </h2>
+        <p className="mt-1 text-xs text-slate-500">{t("projections.scenarioScope")}</p>
+        <div
+          role="group"
+          aria-labelledby="scenario-title"
+          className="mt-3 flex flex-wrap gap-1 rounded-2xl bg-slate-100 p-1"
+        >
           {SCENARIOS.map((s) => (
             <button
               key={s}
               type="button"
+              aria-pressed={scenario === s}
               onClick={() => setScenario(s)}
               className={clsx(
                 "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
@@ -124,21 +137,21 @@ export function Projections() {
                   : "text-slate-500",
               )}
             >
-              {t(scenarioLabelKey(s))}
+              {scenarioLabel(s)}
             </button>
           ))}
         </div>
-      </div>
-
-      {isCouple && (
-        <p className="-mt-3 text-xs text-slate-500">{t("projections.householdNote")}</p>
-      )}
+        {earlyAtStandard && (
+          <p className="mt-2 text-xs text-slate-500">
+            {t("projections.scenarioEarlyFloor", { age: MIN_RETIREMENT_AGE })}
+          </p>
+        )}
+        {isCouple && <p className="mt-2 text-xs text-slate-500">{t("projections.householdNote")}</p>}
+      </section>
 
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-700">
-            {t("projections.netWorthChart")}
-          </h2>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <ScenarioTitle tag={scenarioTag}>{t("projections.netWorthChart")}</ScenarioTitle>
           <button
             type="button"
             onClick={() => setView(view === "chart" ? "table" : "chart")}
@@ -180,14 +193,24 @@ export function Projections() {
         )}
       </div>
 
-      <RiskAnalysisCard result={riskAnalysis} hasTarget={hasTarget} updating={riskUpdating} />
+      <RiskAnalysisCard
+        result={riskAnalysis}
+        hasTarget={hasTarget}
+        updating={riskUpdating}
+        scenarioTag={scenarioTag}
+      />
 
-      <HistoricalBacktestCard profile={profile} scenario={scenario} hasTarget={hasTarget} />
+      <HistoricalBacktestCard
+        profile={profile}
+        scenario={scenario}
+        hasTarget={hasTarget}
+        scenarioTag={scenarioTag}
+      />
 
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <h2 className="mb-2 text-sm font-semibold text-slate-700">
-          {t("projections.incomeChart")}
-        </h2>
+        <div className="mb-2">
+          <ScenarioTitle tag={scenarioTag}>{t("projections.incomeChart")}</ScenarioTitle>
+        </div>
         <IncomeBreakdownChart
           data={incomeData}
           currencySymbol={currencySymbol}
@@ -197,9 +220,7 @@ export function Projections() {
 
       {hasNetIncome && (
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-slate-700">
-            {t("projections.netIncomeChart")}
-          </h2>
+          <ScenarioTitle tag={scenarioTag}>{t("projections.netIncomeChart")}</ScenarioTitle>
           <p className="mb-2 mt-1 text-xs text-slate-500">{t("projections.netIncomeNote")}</p>
           <NetIncomeChart
             data={netIncomeYears}
@@ -216,24 +237,26 @@ export function Projections() {
           onSelect={(withdrawalStrategy) =>
             updateProfile({ assumptions: { ...profile.assumptions, withdrawalStrategy } })
           }
+          scenarioTag={scenarioTag}
         />
       )}
 
-      <LiquidityLadderCard ladder={ladder} isCouple={isCouple} />
+      <LiquidityLadderCard ladder={ladder} isCouple={isCouple} scenarioTag={scenarioTag} />
 
-      <SourceCostCard rows={sourceCosts} isCouple={isCouple} />
+      <SourceCostCard rows={sourceCosts} isCouple={isCouple} scenarioTag={scenarioTag} />
 
-      <UnvestedSharesCard cost={leavingEarly} />
+      <UnvestedSharesCard cost={leavingEarly} scenarioTag={scenarioTag} />
 
       <CoverOptionsCard comparisons={coverComparisons} onSelect={chooseCover} />
 
-      <StressTestCard stress={stress} />
+      <StressTestCard stress={stress} scenarioTag={scenarioTag} />
 
       <RetirementTimeline
         segments={timeline}
         labels={bandLabels}
         currencySymbol={currencySymbol}
         spouseAgeAt={isCouple ? (age) => spouseAgeAt(profile, age) : undefined}
+        scenarioTag={scenarioTag}
       />
     </div>
   );

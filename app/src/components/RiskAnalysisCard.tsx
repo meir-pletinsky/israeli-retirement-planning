@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
@@ -12,6 +13,7 @@ import {
 } from "../domain";
 import { MonteCarloFanChart } from "./charts/MonteCarloFanChart";
 import { formatSuccessPercent } from "./riskFormat";
+import { ScenarioTitle } from "./ScenarioTag";
 
 interface RiskAnalysisCardProps {
   /** Null when there is nothing to test (see `hasTarget`) or no drawing years before the horizon. */
@@ -20,6 +22,8 @@ interface RiskAnalysisCardProps {
   hasTarget: boolean;
   /** True while the figures below still belong to the previous scenario. */
   updating?: boolean;
+  /** Names the retirement scenario shown, beside the title. */
+  scenarioTag?: ReactNode;
 }
 
 const BAND_CLASSES = {
@@ -28,7 +32,12 @@ const BAND_CLASSES = {
   weak: "text-amber-600",
 } as const;
 
-export function RiskAnalysisCard({ result, hasTarget, updating = false }: RiskAnalysisCardProps) {
+export function RiskAnalysisCard({
+  result,
+  hasTarget,
+  updating = false,
+  scenarioTag,
+}: RiskAnalysisCardProps) {
   const { t } = useTranslation();
   const currencySymbol = t("common.currencySymbol");
   const money = (amount: number) => `${currencySymbol}${amount.toLocaleString()}`;
@@ -41,9 +50,9 @@ export function RiskAnalysisCard({ result, hasTarget, updating = false }: RiskAn
         updating ? "opacity-50" : ""
       }`}
     >
-      <h2 id="risk-title" className="text-sm font-semibold text-slate-700">
+      <ScenarioTitle id="risk-title" tag={scenarioTag}>
         {t("projections.risk.title")}
-      </h2>
+      </ScenarioTitle>
 
       {!hasTarget && (
         <p className="mt-2 text-sm text-slate-600">

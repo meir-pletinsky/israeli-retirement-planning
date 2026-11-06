@@ -157,8 +157,11 @@ per entry.
 
 ### 4. Projections
 
-- Scenario selector: Standard / Early / Delayed retirement age (segmented
-  control), updates the charts live.
+- Scenario selector: Early / Standard / Delayed, each button showing the
+  retirement age it stands for ("Early - age 60"). It sits in its own section
+  beneath the age comparison, says it applies only to the charts and cards
+  below it, and updates them live; each of those titles carries a tag naming
+  the active scenario.
 - Earliest feasible retirement age card (or a link to add expenses when
   there is no desired spending yet).
 - Retirement age comparison card: three freely chosen retirement ages side

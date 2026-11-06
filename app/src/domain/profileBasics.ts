@@ -43,7 +43,8 @@ export function resolveSpouseCurrentAge(profile: ProfileData): number {
 function shiftRetirementAge(standard: number, scenario: RetirementScenario): number {
   switch (scenario) {
     case "early":
-      return Math.max(MIN_RETIREMENT_AGE, standard - EARLY_RETIREMENT_OFFSET_YEARS);
+      // Never later than the entered age itself, even when that is below the floor.
+      return Math.min(standard, Math.max(MIN_RETIREMENT_AGE, standard - EARLY_RETIREMENT_OFFSET_YEARS));
     case "delayed":
       return standard + DELAYED_RETIREMENT_OFFSET_YEARS;
     case "standard":

@@ -806,6 +806,9 @@
     "scenarioStandard": "Standard",
     "scenarioEarly": "Early",
     "scenarioDelayed": "Delayed",
+    "scenarioOption": "{{name}} - age {{age}}",
+    "scenarioScope": "Applies to the charts and cards below. The age comparison above is separate and does not follow this choice.",
+    "scenarioEarlyFloor": "In these scenarios Early never goes below age {{age}}, so for your plan it matches Standard. The age comparison above can go lower.",
     "netWorthChart": "Net Worth Projection",
     "incomeChart": "Income by Source",
     "netIncomeChart": "Income After Tax",
@@ -888,6 +891,7 @@
     "compare": {
       "title": "Compare retirement ages",
       "intro": "Pick any three ages at which you could retire to see how your income and savings change. Per month, in today's money.",
+      "independent": "This comparison has its own ages. It does not follow the retirement scenario chosen below.",
       "coupleNote": "Your spouse's retirement moves by the same number of years as yours.",
       "ageLabel": "Retirement age, option {{index}}",
       "ageSuffix": "years",
