@@ -10,6 +10,7 @@ export * from "./matchAndApply";
 export * from "./ownerCheck";
 export { fingerprintPeople, sharesKey } from "./reportPeople";
 export * from "./sample";
+export * from "./sampleImport";
 export { annuityFieldsFor, nearestProjection, withAnnuityFields } from "./annuity";
 export { mapClearingHouseReport, mergeReportResults, parseReportDate } from "./mapReport";
 export { readReportFiles } from "./readFiles";

@@ -535,6 +535,11 @@ user's own data and is never recognised on a later import. Where the browser
 has no Web Crypto the fingerprints stay empty, and the importer falls back to
 the age and gender checks.
 
+Because its accounts are made up but sit in the same plan as real ones, every page
+shows a "Sample accounts are part of your results" notice while any account points
+at a `sample` record, with one action that removes those accounts and the sample
+records and leaves the rest of the plan alone (`removeSampleImport`).
+
 ### 6.8 Not in the app's model (gaps)
 
 1. **Balance "as of" date.** The report states the valuation date for every

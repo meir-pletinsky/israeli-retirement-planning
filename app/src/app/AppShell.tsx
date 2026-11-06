@@ -6,6 +6,7 @@ import { BuildInfo } from "../components/BuildInfo";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { LogoMark } from "../components/LogoMark";
 import { PrivacyBanner } from "../components/PrivacyBanner";
+import { SampleDataBanner } from "../pages/ClearingHouseImport/SampleDataBanner";
 import { useUsdToIlsRateRefresh } from "./useUsdToIlsRateRefresh";
 
 const NAV_ITEMS = [
@@ -70,6 +71,7 @@ export function AppShell() {
           <PrivacyBanner variant="strip" />
         </div>
         <main className="flex-1 overflow-y-auto p-4 pb-24 md:p-6 md:pb-6">
+          <SampleDataBanner />
           <Outlet />
           <BuildInfo />
         </main>

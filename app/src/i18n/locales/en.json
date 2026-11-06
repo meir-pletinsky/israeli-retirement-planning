@@ -1156,7 +1156,13 @@
       "confirmHelp": "Your plan already has data. The sample accounts would be added next to it and would change your results. The sample never updates your existing accounts.",
       "doneTitle": "Sample accounts added",
       "doneSummary": "Made-up accounts added: {{accounts}}. Profile details filled in: {{personal}}.",
-      "doneReminder": "These accounts are for demonstration only. Delete them from Pension & savings when you are done, or clear everything with \"Reset all data\" in Settings."
+      "doneReminder": "These accounts are for demonstration only. When you are done, use \"Remove sample accounts\" in the notice at the top of the page, or clear everything with \"Reset all data\" in Settings.",
+      "dataTitle": "Sample accounts are part of your results",
+      "dataBody_one": "1 made-up account from the sample report is counted in every figure in the app. These results are not your own.",
+      "dataBody_other": "{{count}} made-up accounts from the sample report are counted in every figure in the app. These results are not your own.",
+      "remove": "Remove sample accounts",
+      "removeConfirmTitle": "Remove the sample accounts?",
+      "removeConfirmBody": "Only the accounts that came from the sample report are removed. Accounts you added or imported yourself stay. Profile details the sample filled in, such as age or salary, also stay; check them on the Personal step."
     },
     "backToAccounts": "Back to pension & savings",
     "source": {

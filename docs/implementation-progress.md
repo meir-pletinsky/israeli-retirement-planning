@@ -1974,6 +1974,15 @@ rest).
       couple it is titled "Years until your household retires" and notes that the later of
       the two is counted (`retirementWhen` in `domain/profileBasics.ts`, which
       `yearsToRetirement` now reads).
+- [x] **UX-03 Sample accounts cannot be mistaken for the user's own.** While any account
+      points at a sample report, every page shows a "Sample accounts are part of your
+      results" notice (the number of made-up accounts, with the Sample badge) above the page
+      content. Its "Remove sample accounts" action asks for confirmation and then removes
+      only the accounts that came from the sample and the sample report records
+      (`removeSampleImport`); accounts typed in or imported from a real report stay. Profile
+      details the sample filled into an empty plan are ordinary values and stay; the
+      confirmation says so. A separate disposable demo plan was not built; it would need a
+      way to hold two plans and switch between them.
 
 ## Modeling assumptions (by phase)
 
