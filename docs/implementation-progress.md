@@ -1983,6 +1983,10 @@ rest).
       details the sample filled into an empty plan are ordinary values and stay; the
       confirmation says so. A separate disposable demo plan was not built; it would need a
       way to hold two plans and switch between them.
+- [Review-UX-14] The preset row on the Assumptions step (`AssumptionsStep.tsx`) now wraps
+  (`flex-wrap`, `max-w-full` buttons) instead of running past a 320 px screen in Russian, and
+  each preset button reports `aria-pressed`. jsdom cannot measure layout, so the test asserts
+  the wrapping classes and the pressed state.
 
 ## Modeling assumptions (by phase)
 

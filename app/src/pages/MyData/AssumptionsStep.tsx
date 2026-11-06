@@ -4,11 +4,14 @@ import { useTranslation } from "react-i18next";
 
 import { useProfile } from "../../app/ProfileContext";
 import { NumberField } from "../../components/fields/NumberField";
-import { ASSUMPTION_PRESETS, MAX_VOLATILITY_PCT, type AssumptionPreset } from "../../types";
+import {
+  ASSUMPTION_PRESET_KEYS,
+  ASSUMPTION_PRESETS,
+  MAX_VOLATILITY_PCT,
+  type AssumptionPreset,
+} from "../../types";
 import { StepFooter } from "./StepFooter";
 import { InflationReference } from "./InflationReference";
-
-const PRESET_KEYS: AssumptionPreset[] = ["conservative", "base", "optimistic"];
 
 export function AssumptionsStep() {
   const { t } = useTranslation();
@@ -26,14 +29,15 @@ export function AssumptionsStep() {
         <span className="text-sm font-medium text-slate-700">
           {t("myData.steps.assumptions.preset")}
         </span>
-        <div className="mt-2 flex gap-2">
-          {PRESET_KEYS.map((preset) => (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {ASSUMPTION_PRESET_KEYS.map((preset) => (
             <button
               key={preset}
               type="button"
+              aria-pressed={assumptions.preset === preset}
               onClick={() => selectPreset(preset)}
               className={clsx(
-                "rounded-full px-3 py-1.5 text-sm font-medium",
+                "max-w-full rounded-full px-3 py-1.5 text-sm font-medium",
                 assumptions.preset === preset
                   ? "bg-brand-600 text-white"
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200",

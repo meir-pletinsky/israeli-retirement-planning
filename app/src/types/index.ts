@@ -35,6 +35,13 @@ export const DEFAULT_VOLATILITY_PCT = 12;
 /** The highest volatility the Monte Carlo accepts; beyond this, yearly returns stop being credible. */
 export const MAX_VOLATILITY_PCT = 50;
 
+export const ASSUMPTION_PRESET_KEYS: readonly AssumptionPreset[] = [
+  "conservative",
+  "base",
+  "optimistic",
+];
+
+/** Both rates are yearly and nominal: inflation is taken off them when results are shown in today's money. */
 export const ASSUMPTION_PRESETS: Record<
   AssumptionPreset,
   { investmentReturnPct: number; inflationPct: number }
