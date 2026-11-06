@@ -1138,7 +1138,8 @@ Decisions (the user chose the first two):
   fall back to 12 (`normalizeAssumptions`).
 - **Placement.** A "Risk analysis" card on Projections (success chance, the spending that
   holds up in 90% of histories, a p10/p50/p90 net-worth fan chart, a collapsed "How this
-  works") and one Dashboard KPI, "Probability of Success".
+  works") and one Dashboard KPI, "Simulated spending coverage to age 90" (formerly
+  "Probability of Success").
 - **Only the return is random.** `ln(1 + r_t) = ln(1 + r) + σ·z`, so the median path stays on
   the deterministic projection and success at the deterministic sustainable level is about
   50%. The same return applies to every source (cautious). Bituach Leumi, annuities and
@@ -1958,6 +1959,13 @@ rest).
       under a one-line note ("to spare each month after your planned spending" / "short of
       your planned spending each month" / "Enter your planned spending to see this."), so a
       plain number is never read as a gap that is good or bad by itself.
+- [x] **UX-04 The simulated success figure is not presented as a promise.** The Dashboard
+      KPI "Probability of Success" is now "Simulated spending coverage to age 90". Under the
+      figure it says what the number is (the share of the simulated market histories that
+      fund the spending, and, at 100%, that all of them do and that this is not certainty),
+      that it is not a guarantee, which return / inflation / volatility it assumes, and
+      links to the Projections risk analysis. The risk-analysis card repeats the
+      qualification and the assumptions outside its collapsed "How this works" section.
 
 ## Modeling assumptions (by phase)
 

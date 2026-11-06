@@ -341,7 +341,8 @@ shows them.
 - **Phase V (Monte Carlo risk analysis): DONE and pushed (`ff913f4`).** The plan is replayed on
   2,000 seeded random real-return sequences (`domain/monteCarlo.ts`, `runMonteCarlo`).
   Projections has a "Risk analysis" card (success chance, the spending that holds up in 90%
-  of histories, a p10/p50/p90 fan chart); the Dashboard has a "Probability of Success" KPI.
+  of histories, a p10/p50/p90 fan chart); the Dashboard has a "Simulated spending coverage" KPI
+  (formerly "Probability of Success").
   One new assumption: `assumptions.volatilityPct` (default 12, max 50, Assumptions →
   Advanced; old profiles fall back to 12 through `normalizeAssumptions`). Only the market
   return is random; tax is grossed up once, not recomputed per path. It never runs under a

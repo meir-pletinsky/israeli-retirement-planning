@@ -60,7 +60,9 @@ Primary sections:
 
 - KPI cards row: Projected Monthly Retirement Income, Net Worth Today,
   Monthly surplus / Monthly shortfall (named by its sign; the amount is
-  shown without a minus), Probability of Success, Years to Retirement.
+  shown without a minus), Simulated spending coverage to age 90 (with a
+  "not a guarantee" qualifier, the return / inflation / volatility it
+  assumes, and a link to the risk analysis), Years to Retirement.
 - Net worth projection chart (line, today → life expectancy), with a
   vertical marker at target retirement age.
 - "Retirement readiness" status banner (on-track / shortfall), plain-language

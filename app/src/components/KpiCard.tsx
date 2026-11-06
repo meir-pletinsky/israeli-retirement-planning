@@ -5,7 +5,7 @@ interface KpiCardProps {
   label: string;
   value: ReactNode;
   status?: "positive" | "negative" | "neutral";
-  /** A short line under the value that qualifies it, such as the age it starts at. */
+  /** Text or short lines under the value that qualify it, such as the age it starts at. */
   note?: ReactNode;
 }
 
@@ -27,7 +27,7 @@ export function KpiCard({ label, value, status = "neutral", note }: KpiCardProps
       >
         {value}
       </p>
-      {note && <p className="mt-1 text-xs text-slate-500">{note}</p>}
+      {note && <div className="mt-1 text-xs text-slate-500">{note}</div>}
     </div>
   );
 }

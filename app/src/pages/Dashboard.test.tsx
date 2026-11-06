@@ -339,12 +339,12 @@ describe("Dashboard", () => {
       expect(screen.queryByText("Monthly shortfall")).not.toBeInTheDocument();
     });
 
-    it("shows the probability of success only once spending is entered", async () => {
+    it("shows the simulated spending coverage only once spending is entered", async () => {
       await seed(buildTestProfile({ age: 40, retirementAge: 67, pensionBalances: [100_000], ...zeroRealReturn }));
 
       const { unmount } = renderWithProviders(<Dashboard />);
 
-      const emptyKpi = (await screen.findByText("Probability of Success")).parentElement as HTMLElement;
+      const emptyKpi = (await screen.findByText("Simulated spending coverage to age 90")).parentElement as HTMLElement;
       expect(within(emptyKpi).getByText("—")).toBeInTheDocument();
       unmount();
 
@@ -362,9 +362,49 @@ describe("Dashboard", () => {
       );
       renderWithProviders(<Dashboard />);
 
-      const kpi = (await screen.findByText("Probability of Success")).parentElement as HTMLElement;
+      const kpi = (await screen.findByText("Simulated spending coverage to age 90")).parentElement as HTMLElement;
       expect(within(kpi).getByText(/^\d+%$/)).toBeInTheDocument();
       expect(within(kpi).queryByText("—")).not.toBeInTheDocument();
+    });
+
+    it("qualifies the simulation and states the assumptions behind it", async () => {
+      await seed(
+        buildTestProfile({
+          age: 40,
+          retirementAge: 67,
+          gender: "male",
+          monthlyGrossSalary: 20_000,
+          retirementMonthlyExpenses: 1_500,
+          pensionBalances: [900_000, 300_000],
+          investmentReturnPct: 5,
+          inflationPct: 2,
+        }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      const kpi = (await screen.findByText("Simulated spending coverage to age 90")).parentElement as HTMLElement;
+      expect(within(kpi).getByText(/not a guarantee/)).toBeInTheDocument();
+      expect(within(kpi).getByText(/Assumes 5% return, 2% inflation and [\d.]+% volatility a year\./)).toBeInTheDocument();
+      expect(within(kpi).getByRole("link", { name: "How this is calculated" })).toHaveAttribute("href", "/projections");
+    });
+
+    it("says that 100% means every simulated history, not certainty", async () => {
+      await seed(
+        buildTestProfile({
+          age: 40,
+          retirementAge: 67,
+          retirementMonthlyExpenses: 1_000,
+          otherAssets: 5_000_000,
+          ...zeroRealReturn,
+        }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      const kpi = (await screen.findByText("Simulated spending coverage to age 90")).parentElement as HTMLElement;
+      expect(within(kpi).getByText("100%")).toBeInTheDocument();
+      expect(within(kpi).getByText(/^All [\d,]+ simulated market histories fund your spending\. That is not certainty about real outcomes\./)).toBeInTheDocument();
     });
 
     it("shows a near-zero probability when the spending is out of reach", async () => {
@@ -380,7 +420,7 @@ describe("Dashboard", () => {
 
       renderWithProviders(<Dashboard />);
 
-      const kpi = (await screen.findByText("Probability of Success")).parentElement as HTMLElement;
+      const kpi = (await screen.findByText("Simulated spending coverage to age 90")).parentElement as HTMLElement;
       expect(within(kpi).getByText("0%")).toBeInTheDocument();
     });
 

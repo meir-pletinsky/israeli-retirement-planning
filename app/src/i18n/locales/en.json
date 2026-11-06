@@ -169,7 +169,12 @@
       "surplusNote": "to spare each month after your planned spending",
       "shortfallNote": "short of your planned spending each month",
       "noSpendingNote": "Enter your planned spending to see this.",
-      "successProbability": "Probability of Success",
+      "successProbability": "Simulated spending coverage to age {{age}}",
+      "successNoteAll": "All {{paths}} simulated market histories fund your spending. That is not certainty about real outcomes.",
+      "successNoteShare": "Share of {{paths}} simulated market histories that fund your spending.",
+      "successQualifier": "Based on your inputs and model assumptions; not a guarantee.",
+      "successAssumptions": "Assumes {{returnPct}}% return, {{inflationPct}}% inflation and {{volatilityPct}}% volatility a year.",
+      "successLearnMore": "How this is calculated",
       "yearsToRetirement": "Years to Retirement"
     },
     "snapshot": {
@@ -813,7 +818,10 @@
       "howTax": "Your desired spending is after tax, so it is converted to {{gross}} a month before tax using your plan's tax rate ({{percent}}%). Tax is not recalculated for each history.",
       "howSeed": "The same random histories are used every time, so the same inputs always give the same result.",
       "notForecast": "A model, not a forecast. Real markets can do worse than any of these histories.",
-      "changeVolatility": "Change market volatility"
+      "changeVolatility": "Change market volatility",
+      "qualifier": "Based on your inputs and model assumptions; not a guarantee.",
+      "allPaths": "All {{paths}} simulated histories fund your spending. That is not certainty about real outcomes.",
+      "assumptions": "Assumes {{returnPct}}% return, {{inflationPct}}% inflation and {{volatilityPct}}% volatility a year."
     },
     "history": {
       "title": "Historical backtest",

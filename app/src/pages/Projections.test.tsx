@@ -320,6 +320,19 @@ describe("Projections", () => {
       expect(details).not.toHaveAttribute("open");
     });
 
+    it("states the qualification and active assumptions outside the closed section", async () => {
+      await saveProfileToDb(planned);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      const card = await screen.findByRole("region", { name: "Risk analysis" });
+      const qualifier = within(card).getByText(/not a guarantee/);
+      expect(qualifier.closest("details")).toBeNull();
+      expect(
+        within(card).getByText(/Assumes 5% return, 2% inflation and [\d.]+% volatility a year\./),
+      ).toBeInTheDocument();
+    });
+
     it("shows high confidence for modest spending and low confidence for lavish spending", async () => {
       await saveProfileToDb(plan(1_500));
       await saveOnboardedToDb(true);

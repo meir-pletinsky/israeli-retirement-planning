@@ -17,6 +17,7 @@ import { SourceAccessCard } from "../components/SourceAccessCard";
 import { StatusBanner } from "../components/StatusBanner";
 import { TaxCard } from "../components/TaxCard";
 import {
+  MAX_PLANNING_AGE,
   MAX_RETIREMENT_SEARCH_AGE,
   aggregateCurrentNetWorth,
   calculateFundingGap,
@@ -30,6 +31,7 @@ import {
   projectNetWorth,
   runMonteCarlo,
   successBand,
+  successPercent,
   yearsToRetirement,
 } from "../domain";
 
@@ -117,9 +119,34 @@ export function Dashboard() {
           )}
         />
         <KpiCard
-          label={t("dashboard.kpi.successProbability")}
+          label={t("dashboard.kpi.successProbability", { age: MAX_PLANNING_AGE })}
           value={risk ? formatSuccessPercent(risk.successProbability) : "—"}
           status={risk ? SUCCESS_STATUS[successBand(risk.successProbability)] : "neutral"}
+          note={
+            risk ? (
+              <div className="flex flex-col gap-1">
+                <p>
+                  {t(
+                    successPercent(risk.successProbability) === 100
+                      ? "dashboard.kpi.successNoteAll"
+                      : "dashboard.kpi.successNoteShare",
+                    { paths: risk.paths.toLocaleString() },
+                  )}
+                </p>
+                <p>{t("dashboard.kpi.successQualifier")}</p>
+                <p>
+                  {t("dashboard.kpi.successAssumptions", {
+                    returnPct: profile.assumptions.investmentReturnPct,
+                    inflationPct: profile.assumptions.inflationPct,
+                    volatilityPct: Math.round(risk.volatilityPct * 10) / 10,
+                  })}
+                </p>
+                <Link to="/projections" className="font-medium text-brand-700 hover:underline">
+                  {t("dashboard.kpi.successLearnMore")}
+                </Link>
+              </div>
+            ) : undefined
+          }
         />
         <KpiCard
           label={t("dashboard.kpi.yearsToRetirement")}

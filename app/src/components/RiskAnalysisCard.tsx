@@ -2,11 +2,13 @@ import clsx from "clsx";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
+import { useProfile } from "../app/ProfileContext";
 import {
   MAX_PLANNING_AGE,
   MONTE_CARLO_CONFIDENCE,
   type MonteCarloResult,
   successBand,
+  successPercent,
 } from "../domain";
 import { MonteCarloFanChart } from "./charts/MonteCarloFanChart";
 import { formatSuccessPercent } from "./riskFormat";
@@ -73,6 +75,7 @@ function RiskResults({
   currencySymbol: string;
 }) {
   const { t } = useTranslation();
+  const { profile } = useProfile();
   const band = successBand(result.successProbability);
   const confidentPercent = Math.round(MONTE_CARLO_CONFIDENCE * 100);
 
@@ -91,6 +94,11 @@ function RiskResults({
             <span dir="ltr">{formatSuccessPercent(result.successProbability)}</span>
           </p>
           <p className="mt-1 text-xs text-slate-600">{t(`projections.risk.band.${band}`)}</p>
+          {successPercent(result.successProbability) === 100 && (
+            <p className="mt-1 text-xs text-slate-600">
+              {t("projections.risk.allPaths", { paths: result.paths.toLocaleString() })}
+            </p>
+          )}
         </div>
 
         {result.confidentNetMonthly !== null && (
@@ -107,6 +115,15 @@ function RiskResults({
           </div>
         )}
       </div>
+
+      <p className="mt-3 text-xs text-slate-600">
+        {t("projections.risk.qualifier")}{" "}
+        {t("projections.risk.assumptions", {
+          returnPct: profile.assumptions.investmentReturnPct,
+          inflationPct: profile.assumptions.inflationPct,
+          volatilityPct: Math.round(result.volatilityPct * 10) / 10,
+        })}
+      </p>
 
       {result.medianShortfallAge !== null && (
         <p className="mt-3 text-sm text-slate-700">
