@@ -1998,6 +1998,15 @@ rest).
   A new `ActiveAssumptions` line ("Base - investment return 6% (before inflation), inflation
   2.5%, market volatility 12%. All per year." with a "Change assumptions" link) tops the
   Dashboard and Projections.
+- [Review-UX-8] "Reference only" no longer sits on groups that contain calculation-relevant
+  fields. The employer-grant group in `EquityHoldingForm.tsx` is now titled "Tax and vesting -
+  affects your estimate" (tax track, vesting schedule, keeps-vesting and trustee-period
+  checkboxes all feed the estimate) and only "Estimated tax on vesting/sale" is tagged. The
+  same rule was applied to the pension account form: the Insurance coverages and Investment
+  track & fees groups lost the group tag (death cover, risk premium, survivors' pension and the
+  accumulation fee are used), while the disability amount, survivors' %, track name, deposit
+  fee, profit-sharing fee and yield-guarantee flag carry the field tag. Groups where nothing is
+  used (balance breakdown, ESPP details) stay tagged.
 
 ## Modeling assumptions (by phase)
 

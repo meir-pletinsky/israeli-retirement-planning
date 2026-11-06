@@ -162,6 +162,30 @@ describe("PensionSavingsStep — accounts repeater", () => {
     expect(labelOf(/^Liquidity date/)).toHaveTextContent("Recommended");
   });
 
+  it("tags only the individual fields that do not feed the calculation inside mixed sections", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
+    await user.click(await screen.findByRole("button", { name: "Add account" }));
+
+    const balanceSection = screen.getByRole("button", { name: /^Balance breakdown/ });
+    expect(balanceSection).toHaveTextContent("Reference only");
+    const insuranceSection = screen.getByRole("button", { name: /^Insurance coverages/ });
+    const feesSection = screen.getByRole("button", { name: /^Investment track & fees/ });
+    expect(insuranceSection).not.toHaveTextContent("Reference only");
+    expect(feesSection).not.toHaveTextContent("Reference only");
+
+    await user.click(insuranceSection);
+    await user.click(feesSection);
+    const labelOf = (name: RegExp) => screen.getByLabelText(name).closest("label");
+    expect(labelOf(/^Death coverage amount/)).not.toHaveTextContent("Reference only");
+    expect(labelOf(/^Monthly risk premium deduction/)).not.toHaveTextContent("Reference only");
+    expect(labelOf(/^Monthly survivors' pension to a spouse/)).not.toHaveTextContent("Reference only");
+    expect(labelOf(/^Fee from accumulation/)).not.toHaveTextContent("Reference only");
+    expect(labelOf(/^Monthly disability amount/)).toHaveTextContent("Reference only");
+    expect(labelOf(/^Investment track name/)).toHaveTextContent("Reference only");
+    expect(labelOf(/^Fee from deposit/)).toHaveTextContent("Reference only");
+  });
+
   describe("life annuity from 60 (investment provident fund)", () => {
     const CHECKBOX = /^Take as a life annuity from age 60/;
     const NUDGE = /Nothing changes yet: enter a conversion factor/;

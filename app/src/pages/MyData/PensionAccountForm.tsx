@@ -346,7 +346,7 @@ export function PensionAccountForm({
         />
       </CollapsibleSection>
 
-      <CollapsibleSection title={f("sectionInsuranceCoverages")} importance="reference">
+      <CollapsibleSection title={f("sectionInsuranceCoverages")}>
         <NumberField
           label={f("deathCoverageAmount")}
           value={insuranceCoverages.deathCoverageAmount}
@@ -359,6 +359,7 @@ export function PensionAccountForm({
         />
         <NumberField
           label={f("monthlyDisabilityAmount")}
+          importance="reference"
           value={insuranceCoverages.monthlyDisabilityAmount}
           onChange={(v) =>
             onChange({
@@ -399,6 +400,7 @@ export function PensionAccountForm({
         />
         <NumberField
           label={f("survivorSpousePercent")}
+          importance="reference"
           value={insuranceCoverages.survivorSpousePercent}
           onChange={(v) =>
             onChange({
@@ -412,9 +414,10 @@ export function PensionAccountForm({
         />
       </CollapsibleSection>
 
-      <CollapsibleSection title={f("sectionInvestmentAndFees")} importance="reference">
+      <CollapsibleSection title={f("sectionInvestmentAndFees")}>
         <TextField
           label={f("investmentTrackName")}
+          importance="reference"
           value={investmentAndFees.investmentTrackName}
           onChange={(v) =>
             onChange({
@@ -439,6 +442,7 @@ export function PensionAccountForm({
         />
         <NumberField
           label={f("feeFromDepositPercent")}
+          importance="reference"
           value={investmentAndFees.feeFromDepositPercent}
           onChange={(v) =>
             onChange({
@@ -454,6 +458,7 @@ export function PensionAccountForm({
         />
         <NumberField
           label={f("profitSharingFeePercent")}
+          importance="reference"
           value={investmentAndFees.profitSharingFeePercent}
           onChange={(v) =>
             onChange({
@@ -469,6 +474,7 @@ export function PensionAccountForm({
         />
         <CheckboxField
           label={f("hasStateYieldGuarantee")}
+          importance="reference"
           checked={investmentAndFees.hasStateYieldGuarantee}
           onChange={(v) =>
             onChange({

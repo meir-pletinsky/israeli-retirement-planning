@@ -134,9 +134,13 @@ inside the account and holding forms instead):
   gender, account type / status / balance / contribution rates, desired
   retirement spending, equity quantity and price).
 - **Reference only** — saved and exported, but used by no calculation:
-  provider, policy number, fund ID ("mispar kupa"), fees, insurance
-  coverages, balance breakdown, Form 161D, and similar cross-reference
-  details.
+  provider, policy number, fund ID ("mispar kupa"), the deposit and
+  profit-sharing fees, the balance breakdown, Form 161D, the ESPP details,
+  and similar cross-reference details. A group is tagged only when none of
+  its fields feed a calculation (balance breakdown, ESPP); in a mixed group
+  (insurance coverages, investment track and fees, the employer grant's
+  "Tax and vesting - affects your estimate") only the individual fields
+  that do not are tagged.
 - No badge — an optional refinement with a sensible default.
 
 A person without a partner needs only the two ages; the spouse section is

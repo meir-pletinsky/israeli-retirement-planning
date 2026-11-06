@@ -190,6 +190,32 @@ describe("EquityStep — simple purchase / grant entry", () => {
   });
 });
 
+describe("EquityStep — importance tags", () => {
+  const labelOf = (name: RegExp) => screen.getByLabelText(name).closest("label");
+
+  it("does not call the grant's tax and vesting group reference-only, only the fields that feed nothing", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
+
+    await openAddHolding(user, "employerGrantedStock");
+    const group = screen.getByRole("button", { name: /^Tax and vesting - affects your estimate/ });
+    expect(group).not.toHaveTextContent("Reference only");
+    expect(labelOf(/^Tax track/)).toHaveTextContent("Recommended");
+    expect(labelOf(/^Number of batches/)).not.toHaveTextContent("Reference only");
+    expect(labelOf(/^This grant keeps vesting after I leave/)).not.toHaveTextContent("Reference only");
+    expect(labelOf(/^24-month trustee holding period met/)).not.toHaveTextContent("Reference only");
+    expect(labelOf(/^Estimated tax on vesting\/sale/)).toHaveTextContent("Reference only");
+  });
+
+  it("keeps the ESPP group reference-only because none of its fields feed a calculation", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
+
+    await openAddHolding(user, "employerEsppDiscount");
+    expect(screen.getByRole("button", { name: /^More details: ESPP/ })).toHaveTextContent("Reference only");
+  });
+});
+
 describe("EquityStep — vesting schedule", () => {
   it("derives the vesting batches from one schedule and saves both", async () => {
     const user = userEvent.setup();

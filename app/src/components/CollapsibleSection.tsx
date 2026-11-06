@@ -4,7 +4,7 @@ import { ImportanceBadge, type FieldImportance } from "./fields/FieldLabel";
 
 interface CollapsibleSectionProps {
   title: string;
-  /** Tags the whole section, e.g. "reference" when none of its fields feed the calculation. */
+  /** Tags the whole section, e.g. "reference" when none of its fields feed the calculation. Mixed sections stay untagged; their individual fields carry the tag. */
   importance?: FieldImportance;
   children: ReactNode;
   defaultOpen?: boolean;

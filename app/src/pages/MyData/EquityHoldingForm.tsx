@@ -201,11 +201,7 @@ export function EquityHoldingForm({
       </div>
 
       {category === "employerGrantedStock" && (
-        <CollapsibleSection
-          title={f("sectionEmployerGrantDetails")}
-          importance="reference"
-          defaultOpen={detailsOpen}
-        >
+        <CollapsibleSection title={f("sectionEmployerGrantDetails")} defaultOpen={detailsOpen}>
           <p className="text-xs text-slate-500">{f("employerGrantIntro")}</p>
           <SelectField
             label={f("taxTrack")}
@@ -260,6 +256,7 @@ export function EquityHoldingForm({
           />
           <NumberField
             label={f("estimatedMarginalTaxOnVesting")}
+            importance="reference"
             value={employerGrantDetails.estimatedMarginalTaxOnVesting}
             onChange={(v) =>
               onChange({

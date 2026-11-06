@@ -555,7 +555,7 @@
           "personalPurchasePrice": "Purchase price per share",
           "personalPurchasePriceHelper": "Per share, in USD: what you paid on the purchase date.",
           "totalValue": "Total value",
-          "sectionEmployerGrantDetails": "More details: employer grant (tax track, vesting schedule)",
+          "sectionEmployerGrantDetails": "Tax and vesting - affects your estimate",
           "employerGrantIntro": "Used to tax these shares at sale: under Section 102 (capital gains route) the grant-date value is taxed at your marginal rate and the growth above it at the capital gains rate.",
           "grantDate": "Grant date",
           "taxTrack": "Tax track",

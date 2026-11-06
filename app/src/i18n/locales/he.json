@@ -561,7 +561,7 @@
           "personalPurchasePrice": "מחיר רכישה למניה",
           "personalPurchasePriceHelper": "למניה אחת, בדולרים: מה ששילמתם בתאריך הרכישה.",
           "totalValue": "שווי כולל",
-          "sectionEmployerGrantDetails": "פרטים נוספים: הענקה מהמעסיק (מסלול מיסוי, לוח הבשלה)",
+          "sectionEmployerGrantDetails": "מס והבשלה - משפיע על ההערכה שלך",
           "employerGrantIntro": "משמש לחישוב המס במכירת המניות: לפי סעיף 102 (מסלול רווח הון) שווי המניה במועד ההענקה ממוסה לפי המס השולי שלך, והעלייה מעבר אליו לפי שיעור מס רווח הון.",
           "grantDate": "תאריך הענקה",
           "taxTrack": "מסלול מיסוי",
