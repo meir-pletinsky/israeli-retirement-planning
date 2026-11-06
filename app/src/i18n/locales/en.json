@@ -768,9 +768,15 @@
         "conservative": "Conservative",
         "base": "Base",
         "optimistic": "Optimistic",
-        "investmentReturn": "Investment return",
-        "inflation": "Inflation",
-        "volatility": "Market volatility",
+        "custom": "Custom",
+        "presetReturn": "{{value}} return per year",
+        "presetInflation": "{{value}} inflation per year",
+        "presetRealReturn": "Real return about {{value}} per year (after inflation)",
+        "basisNote": "Return and inflation are yearly, nominal rates. The plan takes inflation off, so results are shown in today's money.",
+        "volatilityNote": "Market volatility is set separately (now {{value}} per year) and stays the same for every preset.",
+        "investmentReturn": "Investment return per year (before inflation)",
+        "inflation": "Inflation per year",
+        "volatility": "Market volatility per year",
         "volatilityHelp": "How much yearly returns typically swing up or down. Used only by the risk analysis. A diversified portfolio is often 8% to 18%.",
         "advanced": "Advanced overrides",
         "cpi": {
@@ -788,6 +794,11 @@
         }
       }
     }
+  },
+  "assumptionsSummary": {
+    "label": "Assumptions in use",
+    "values": "Investment return {{returnPct}} (before inflation), inflation {{inflation}}, market volatility {{volatility}}. All per year.",
+    "change": "Change assumptions"
   },
   "projections": {
     "title": "Projections",

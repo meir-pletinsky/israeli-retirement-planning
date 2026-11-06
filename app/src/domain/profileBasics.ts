@@ -1,4 +1,12 @@
-import type { Assumptions, PensionAccount, ProfileData, StockHolding } from "../types";
+import {
+  ASSUMPTION_PRESET_KEYS,
+  ASSUMPTION_PRESETS,
+  type Assumptions,
+  type AssumptionPreset,
+  type PensionAccount,
+  type ProfileData,
+  type StockHolding,
+} from "../types";
 import { aggregateBankDepositsBalance } from "./bankDeposits";
 import {
   DEFAULT_CURRENT_AGE,
@@ -121,6 +129,23 @@ export function realAnnualReturnRate(assumptions: Assumptions): number {
     (1 + assumptions.investmentReturnPct / 100) /
       (1 + assumptions.inflationPct / 100) -
     1
+  );
+}
+
+/**
+ * The preset whose return and inflation the plan currently uses, or "custom" once either was
+ * changed by hand. Volatility is not part of a preset, so changing it never leaves "Base".
+ * Derived from the values, so a hand-edit, an inflation figure picked from the Bureau of
+ * Statistics list or an imported file can never leave a preset wrongly marked.
+ */
+export function matchingPreset(assumptions: Assumptions): AssumptionPreset | "custom" {
+  const same = (a: number, b: number) => Math.abs(a - b) < 1e-9;
+  return (
+    ASSUMPTION_PRESET_KEYS.find(
+      (key) =>
+        same(assumptions.investmentReturnPct, ASSUMPTION_PRESETS[key].investmentReturnPct) &&
+        same(assumptions.inflationPct, ASSUMPTION_PRESETS[key].inflationPct),
+    ) ?? "custom"
   );
 }
 

@@ -20,6 +20,7 @@ export const WITHDRAWAL_STRATEGIES: readonly WithdrawalStrategy[] = [
 export const DEFAULT_WITHDRAWAL_STRATEGY: WithdrawalStrategy = "proRata";
 
 export interface Assumptions {
+  /** The last preset picked. Whether the values still match it is `matchingPreset` (domain/profileBasics). */
   preset: AssumptionPreset;
   investmentReturnPct: number;
   inflationPct: number;

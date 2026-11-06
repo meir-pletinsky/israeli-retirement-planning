@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import { useProfile } from "../app/ProfileContext";
+import { ActiveAssumptions } from "../components/ActiveAssumptions";
 import { BituachLeumiCard } from "../components/BituachLeumiCard";
 import { NetWorthChart } from "../components/charts/NetWorthChart";
 import { CoverNoticeCard } from "../components/CoverNoticeCard";
@@ -203,6 +204,8 @@ export function Dashboard() {
           }
         />
       </div>
+
+      <ActiveAssumptions assumptions={profile.assumptions} />
 
       {hasTarget && (
         <StatusBanner

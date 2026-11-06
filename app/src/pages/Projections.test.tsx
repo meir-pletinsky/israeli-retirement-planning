@@ -1108,4 +1108,21 @@ describe("Projections", () => {
       expect(screen.queryByRole("region", { name: REGION })).not.toBeInTheDocument();
     });
   });
+
+  it("names the assumptions every chart on the page rests on", async () => {
+    await saveProfileToDb(
+      buildTestProfile({ age: 40, retirementAge: 67, otherAssets: 300_000, investmentReturnPct: 8, inflationPct: 1.5 }),
+    );
+    await saveOnboardedToDb(true);
+    renderWithProviders(<Projections />);
+
+    const summary = await screen.findByRole("note", { name: "Assumptions in use" });
+    const text = summary.textContent!.replace(/[\u2066\u2069]/g, "");
+    expect(text).toContain("Optimistic");
+    expect(text).toContain("Investment return 8% (before inflation), inflation 1.5%, market volatility 12%. All per year.");
+    expect(within(summary).getByRole("link", { name: "Change assumptions" })).toHaveAttribute(
+      "href",
+      "/my-data/assumptions",
+    );
+  });
 });

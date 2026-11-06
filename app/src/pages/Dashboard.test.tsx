@@ -1200,4 +1200,45 @@ describe("Dashboard", () => {
       expect(within(card).queryByText(/Your spouse's cover/)).not.toBeInTheDocument();
     });
   });
+
+  describe("assumptions in use", () => {
+    const BIDI_MARKS = /[\u2066\u2069]/g;
+    const summary = () => screen.getByRole("note", { name: "Assumptions in use" });
+
+    it("names the preset and the yearly values the figures rest on, with a way to change them", async () => {
+      await saveProfileToDb(buildTestProfile({ age: 40, retirementAge: 67, otherAssets: 300_000 }));
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      const text = summary().textContent!.replace(BIDI_MARKS, "");
+      expect(text).toContain("Base");
+      expect(text).toContain("Investment return 6% (before inflation), inflation 2.5%, market volatility 12%. All per year.");
+      expect(within(summary()).getByRole("link", { name: "Change assumptions" })).toHaveAttribute(
+        "href",
+        "/my-data/assumptions",
+      );
+    });
+
+    it("says Custom, not a preset, once a value has been changed", async () => {
+      await saveProfileToDb(
+        buildTestProfile({ age: 40, retirementAge: 67, otherAssets: 300_000, investmentReturnPct: 9 }),
+      );
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      const text = summary().textContent!.replace(BIDI_MARKS, "");
+      expect(text).toContain("Custom");
+      expect(text).not.toContain("Base");
+      expect(text).toContain("Investment return 9%");
+    });
+
+    it("is not shown before there is a plan", async () => {
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Complete your profile to see your personalized retirement projection.");
+      expect(screen.queryByRole("note", { name: "Assumptions in use" })).not.toBeInTheDocument();
+    });
+  });
 });

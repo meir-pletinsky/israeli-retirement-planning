@@ -1987,6 +1987,17 @@ rest).
   (`flex-wrap`, `max-w-full` buttons) instead of running past a 320 px screen in Russian, and
   each preset button reports `aria-pressed`. jsdom cannot measure layout, so the test asserts
   the wrapping classes and the pressed state.
+- [Review-UX-7] The Assumptions presets are no longer opaque. Each preset is a card showing its
+  yearly return, inflation and the real return they leave (Base: 6%, 2.5%, about 3.4%), the field
+  labels say "per year" (and the return "before inflation"), and a note says the rates are
+  nominal and that volatility is set separately. Which preset is marked is now derived from the
+  values (`matchingPreset` in `domain/profileBasics.ts`), so changing the return or inflation by
+  hand, or picking a Bureau of Statistics figure, switches the marking to a "Custom" card (which
+  opens the fields); `assumptions.preset` is kept only as the last preset picked, so no
+  migration was needed. Volatility is not part of any preset, so changing it keeps Base marked.
+  A new `ActiveAssumptions` line ("Base - investment return 6% (before inflation), inflation
+  2.5%, market volatility 12%. All per year." with a "Change assumptions" link) tops the
+  Dashboard and Projections.
 
 ## Modeling assumptions (by phase)
 

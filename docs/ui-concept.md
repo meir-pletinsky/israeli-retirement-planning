@@ -112,9 +112,11 @@ Steps, each its own screen on mobile / tab on desktop:
    or years are spread into a monthly amount). The itemised view shows the
    planned total, the essential-only "minimum budget", per-category tables and
    a "Choose from suggestions" picker with about 60 common Israeli expenses.
-5. **Assumptions** — investment return & inflation: three preset chips
-   (Conservative/Base/Optimistic) plus an "advanced" expand to override the
-   raw percentages.
+5. **Assumptions** — investment return & inflation: three preset cards
+   (Conservative/Base/Optimistic), each showing its yearly return, inflation and the
+   real return they leave, plus an "advanced" expand to override the raw percentages.
+   Overriding either rate switches the selection to a "Custom" card. A one-line summary
+   of the assumptions in use (with a link back here) tops the Dashboard and Projections.
 
 Each step: clear field labels + helper text (units, e.g. "monthly, in ₪"),
 inline validation, Next/Back, progress indicator. Completing all steps

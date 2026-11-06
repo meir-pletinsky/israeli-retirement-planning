@@ -3,6 +3,7 @@ import { useDeferredValue, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useProfile } from "../app/ProfileContext";
+import { ActiveAssumptions } from "../components/ActiveAssumptions";
 import { IncomeBreakdownChart } from "../components/charts/IncomeBreakdownChart";
 import { NetIncomeChart } from "../components/charts/NetIncomeChart";
 import { NetWorthChart } from "../components/charts/NetWorthChart";
@@ -99,6 +100,8 @@ export function Projections() {
       <h1 className="text-xl font-semibold text-slate-900">
         {t("projections.title")}
       </h1>
+
+      <ActiveAssumptions assumptions={profile.assumptions} />
 
       <FeasibilityCard feasibility={feasibility} maxSearchAge={MAX_RETIREMENT_SEARCH_AGE} />
 
