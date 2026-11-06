@@ -12,6 +12,13 @@
     "edit": "Edit",
     "remove": "Remove",
     "close": "Close",
+    "viewResults": "View my results",
+    "autosave": {
+      "note": "Changes save automatically on this device.",
+      "saving": "Saving\u2026",
+      "saved": "Saved",
+      "error": "Your latest change could not be saved on this device. Check that your browser lets this site store data, and use \u201cExport data\u201d in Settings to keep a copy."
+    },
     "currencySymbol": "\u20aa",
     "pickDate": "Pick a date"
   },

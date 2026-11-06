@@ -28,6 +28,8 @@ import {
   type ProfileData,
 } from "../types";
 
+import { SaveStatusContext, type SaveStatus } from "./saveStatus";
+
 interface ProfileContextValue {
   profile: ProfileData;
   updateProfile: (patch: Partial<ProfileData>) => void;
@@ -63,6 +65,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [fxLookupEnabled, setFxLookupEnabled] = useState(true);
   const [cpiLookupEnabled, setCpiLookupEnabled] = useState(true);
   const [isReady, setIsReady] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
+  const saveCountRef = useRef(0);
   const hasLoadedRef = useRef(false);
 
   // Load persisted state from IndexedDB (via Dexie) once on mount. Routing
@@ -94,7 +98,17 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!hasLoadedRef.current) return;
-    void saveProfileToDb(profile);
+    const saveNumber = ++saveCountRef.current;
+    setSaveStatus("saving");
+    // Only the newest write decides the status, so a slow earlier one cannot mask it.
+    saveProfileToDb(profile).then(
+      () => {
+        if (saveNumber === saveCountRef.current) setSaveStatus("saved");
+      },
+      () => {
+        if (saveNumber === saveCountRef.current) setSaveStatus("error");
+      },
+    );
   }, [profile]);
 
   useEffect(() => {
@@ -152,7 +166,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
   return (
     <ProfileContext.Provider value={value}>
-      {children}
+      <SaveStatusContext.Provider value={saveStatus}>{children}</SaveStatusContext.Provider>
     </ProfileContext.Provider>
   );
 }

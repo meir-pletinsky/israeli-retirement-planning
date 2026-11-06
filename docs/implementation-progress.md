@@ -2023,6 +2023,15 @@ rest).
   offers the standard age and two later ones. `Early` is also never later than the entered age
   (a plan for 58 no longer gets "Early - age 60"), and when Early equals Standard because of
   the floor the selector says so.
+- [Review-UX-11] My Data saves every change as it is made, and the footer now says so: a note
+  "Changes save automatically on this device." with a small "Saving…" / "Saved" status
+  (`SaveStatus` in `components/SaveStatus.tsx`, state from `ProfileContext` through the
+  separate `SaveStatusContext` in `app/saveStatus.ts`, so a status flip re-renders only its
+  readers). Only the newest write sets the status. If the browser refuses a write the footer
+  shows an alert telling the user to check browser storage and use Export data in Settings,
+  and it clears on the next successful write. The last step's button is "View my results"
+  instead of "Save" (it still marks the plan as started and opens the Dashboard). Record
+  dialogs keep their explicit Save / Cancel, since those really are a commit/discard choice.
 
 ## Modeling assumptions (by phase)
 

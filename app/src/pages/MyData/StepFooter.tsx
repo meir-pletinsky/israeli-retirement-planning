@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import { useProfile } from "../../app/ProfileContext";
+import { SaveStatus } from "../../components/SaveStatus";
 import { nextStep, prevStep, type StepKey } from "./stepOrder";
 
 interface StepFooterProps {
@@ -32,22 +33,25 @@ export function StepFooter({ currentKey, isValid = true, onInvalidAttempt }: Ste
   };
 
   return (
-    <div className="mt-2 flex justify-between">
-      <button
-        type="button"
-        disabled={!prev}
-        onClick={() => prev && navigate(`/my-data/${prev}`)}
-        className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:invisible"
-      >
-        {t("common.back")}
-      </button>
-      <button
-        type="button"
-        onClick={handleNext}
-        className="rounded-md bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700"
-      >
-        {next ? t("common.next") : t("common.save")}
-      </button>
+    <div className="mt-2 flex flex-col gap-3">
+      <SaveStatus />
+      <div className="flex justify-between">
+        <button
+          type="button"
+          disabled={!prev}
+          onClick={() => prev && navigate(`/my-data/${prev}`)}
+          className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:invisible"
+        >
+          {t("common.back")}
+        </button>
+        <button
+          type="button"
+          onClick={handleNext}
+          className="rounded-md bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+        >
+          {next ? t("common.next") : t("common.viewResults")}
+        </button>
+      </div>
     </div>
   );
 }
