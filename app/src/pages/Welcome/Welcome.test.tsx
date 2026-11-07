@@ -46,13 +46,51 @@ describe("Welcome page — new visitor", () => {
     expect(steps).toEqual([
       "Personal",
       "Pension & Savings",
-      "Equity & Investments",
+      "Investments & Deposits",
       "Expenses",
       "Assumptions",
       "See your results",
     ]);
     expect(within(flow).getAllByText("Fast track fills most of this")).toHaveLength(2);
     expect(within(flow).getAllByText("Optional")).toHaveLength(2);
+  });
+
+  it("names where deposits live and what the expenses step asks", async () => {
+    await renderWelcome();
+
+    const flow = screen.getByRole("region", { name: "Get started" });
+    expect(flow).toHaveTextContent(/bank deposits/);
+    expect(flow).toHaveTextContent("What you expect to spend in retirement.");
+    expect(flow).not.toHaveTextContent("What you spend now");
+  });
+
+  it("makes every step card a link to its My Data step", async () => {
+    await renderWelcome();
+
+    const flow = screen.getByRole("region", { name: "Get started" });
+    const hrefs = [
+      ["Personal", "/my-data/personal"],
+      ["Pension & Savings", "/my-data/pension-savings"],
+      ["Investments & Deposits", "/my-data/equity"],
+      ["Expenses", "/my-data/expenses"],
+      ["Assumptions", "/my-data/assumptions"],
+    ];
+    for (const [name, href] of hrefs) {
+      expect(within(flow).getByRole("link", { name })).toHaveAttribute("href", href);
+    }
+  });
+
+  it("opens the chosen step from its card", async () => {
+    const user = userEvent.setup();
+    await renderWelcome();
+
+    const flow = screen.getByRole("region", { name: "Get started" });
+    await user.click(within(flow).getByRole("link", { name: "Expenses" }));
+
+    expect(await screen.findByRole("button", { name: /^Expenses/ })).toHaveAttribute(
+      "aria-current",
+      "step",
+    );
   });
 
   it("recommends the Clearing House import and lists what it fills in", async () => {
@@ -66,7 +104,9 @@ describe("Welcome page — new visitor", () => {
     expect(
       within(fastTrack).getByText("Estimated monthly pension and conversion factor"),
     ).toBeInTheDocument();
-    expect(fastTrack).toHaveTextContent("desired retirement age, expenses, stock holdings and assumptions");
+    expect(fastTrack).toHaveTextContent(
+      "desired retirement age, expenses, stock holdings, bank deposits, other assets and assumptions",
+    );
     expect(
       within(fastTrack).getByRole("link", { name: "Import Clearing House report" }),
     ).toHaveAttribute("href", "/import/clearing-house");

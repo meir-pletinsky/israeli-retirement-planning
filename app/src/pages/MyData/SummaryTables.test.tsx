@@ -283,7 +283,7 @@ describe("My Data summary tables — Pension & Savings", () => {
   });
 });
 
-describe("My Data summary tables — Equity & Investments", () => {
+describe("My Data summary tables — Investments & Deposits", () => {
   it("shows one table per category with its own totals", async () => {
     await saveProfileToDb(
       buildTestProfile({

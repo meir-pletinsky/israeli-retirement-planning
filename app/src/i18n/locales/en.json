@@ -96,8 +96,8 @@
       "steps": {
         "personal": "Your age, gender, salary and family details.",
         "pensionSavings": "Pension, provident and study funds, with balances, deposits and fees.",
-        "equity": "Stocks, employee share plans (ESPP, EOSP) and other investments.",
-        "expenses": "What you spend now and expect to spend in retirement.",
+        "equity": "Stocks, employee share plans (ESPP, EOSP), bank deposits and other investments.",
+        "expenses": "What you expect to spend in retirement.",
         "assumptions": "Returns, inflation and other settings. Sensible defaults are used if you skip this."
       },
       "result": {
@@ -124,7 +124,7 @@
         "cover": "Death and disability cover"
       },
       "stillYoursTitle": "Still yours to fill in:",
-      "stillYours": "your desired retirement age, expenses, stock holdings and assumptions.",
+      "stillYours": "your desired retirement age, expenses, stock holdings, bank deposits, other assets and assumptions.",
       "howOrder": "Order the report at swiftness.co.il (the Pension Clearing House service). You verify your identity and pay a small fee.",
       "howImport": "It arrives by email, usually within about one business day, as a password-protected file. Choose that file here.",
       "howReview": "Review the suggested values and apply the ones you want. The file is read on this device only.",
@@ -630,7 +630,7 @@
         }
       },
       "equity": {
-        "label": "Equity & Investments",
+        "label": "Investments & Deposits",
         "holdingsTitle": "Stock & equity holdings",
         "addEsop": "Add ESOP / RSU grant",
         "noEsop": "No ESOP/RSU grants added yet. Add one if your employer grants you shares or options.",

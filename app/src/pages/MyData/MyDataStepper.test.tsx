@@ -34,7 +34,7 @@ describe("MyDataLayout — stepper reports what is entered, not where the user i
     renderAt("/my-data/assumptions");
     await screen.findByText("assumptions step");
 
-    for (const name of [/^Pension & Savings/, /^Equity & Investments/, /^Expenses/]) {
+    for (const name of [/^Pension & Savings/, /^Investments & Deposits/, /^Expenses/]) {
       expect(step(name)).toHaveTextContent("Nothing entered yet");
       expect(step(name)).not.toHaveTextContent("✓");
     }

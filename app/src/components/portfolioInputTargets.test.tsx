@@ -50,7 +50,7 @@ describe("Portfolio summary links land on a section of the step they name", () =
     expect(document.getElementById("other-assets")?.tagName).toBe("INPUT");
   });
 
-  it("every Equity & Investments target exists on that step, deposits included", async () => {
+  it("every Investments & Deposits target exists on that step, deposits included", async () => {
     renderStep("/my-data/equity", <EquityStep />);
     await screen.findByRole("button", { name: "Add ESPP purchase" });
 
@@ -65,7 +65,7 @@ describe("Portfolio summary links land on a section of the step they name", () =
     for (const id of ids) expect(document.getElementById(id), id).not.toBeNull();
   });
 
-  it("sends bank deposits to the Equity & Investments step, where they are entered", () => {
+  it("sends bank deposits to the Investments & Deposits step, where they are entered", () => {
     expect(PORTFOLIO_INPUT_TARGET.bankDeposits.startsWith("/my-data/equity#")).toBe(true);
   });
 });

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { ImportanceBadge } from "../../components/fields/FieldLabel";
 import { BoltIcon } from "./WelcomeCard";
@@ -9,6 +9,8 @@ type StepKey = "personal" | "pensionSavings" | "equity" | "expenses" | "assumpti
 
 interface FlowStep {
   key: StepKey;
+  /** The step's route under `/my-data` (see `pages/MyData/stepOrder.ts`). */
+  path: string;
   importance: "required" | "recommended" | "optional";
   /** The Clearing House import fills most of this step. */
   fastTrack: boolean;
@@ -16,11 +18,11 @@ interface FlowStep {
 
 /** The My Data steps in their order (see `pages/MyData/stepOrder.ts`). */
 const FLOW_STEPS: readonly FlowStep[] = [
-  { key: "personal", importance: "required", fastTrack: true },
-  { key: "pensionSavings", importance: "recommended", fastTrack: true },
-  { key: "equity", importance: "optional", fastTrack: false },
-  { key: "expenses", importance: "recommended", fastTrack: false },
-  { key: "assumptions", importance: "optional", fastTrack: false },
+  { key: "personal", path: "personal", importance: "required", fastTrack: true },
+  { key: "pensionSavings", path: "pension-savings", importance: "recommended", fastTrack: true },
+  { key: "equity", path: "equity", importance: "optional", fastTrack: false },
+  { key: "expenses", path: "expenses", importance: "recommended", fastTrack: false },
+  { key: "assumptions", path: "assumptions", importance: "optional", fastTrack: false },
 ];
 
 /** A line with an arrowhead that leads the eye from one step to the next. */
@@ -80,9 +82,17 @@ export function GetStartedFlow({ id }: { id: string }) {
               <Marker tone="step">{index + 1}</Marker>
               <Connector />
             </div>
-            <div className="mb-3 flex-1 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <div className="relative mb-3 flex-1 rounded-lg border border-slate-200 bg-slate-50 p-3 transition-colors focus-within:border-brand-400 hover:border-brand-300 hover:bg-white">
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="font-semibold text-slate-900">{t(`myData.steps.${step.key}.label`)}</h3>
+                <h3 className="font-semibold text-slate-900">
+                  {/* The link's ::after covers the whole card, so the card is one click target. */}
+                  <Link
+                    to={`/my-data/${step.path}`}
+                    className="outline-none after:absolute after:inset-0 after:rounded-lg hover:text-brand-700 hover:underline focus-visible:after:ring-2 focus-visible:after:ring-brand-500"
+                  >
+                    {t(`myData.steps.${step.key}.label`)}
+                  </Link>
+                </h3>
                 {step.importance === "optional" ? (
                   <OptionalBadge />
                 ) : (

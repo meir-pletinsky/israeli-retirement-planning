@@ -2548,6 +2548,19 @@ of its section 10 (UXB-14 is skipped on request).
       the Dashboard, persisting results. Tests: `domain/heavyTasks.test.ts`,
       `app/heavyCompute.test.ts`, `pages/HeavyWorker.test.tsx`, `StatusBanner.test.tsx`,
       `FeasibilityCard.test.tsx`.
+- [x] **UXB-25 Step names and onboarding copy do not match where data lives**. The My Data
+      step that holds stocks, employee share plans and bank deposits is now called
+      "Investments & Deposits" (was "Equity & Investments"; he "השקעות ופיקדונות", ru
+      "Инвестиции и депозиты"), and its Welcome description names the bank deposits. The
+      expenses description now says "What you expect to spend in retirement", because the app
+      never asks for current spending. The fast-track card's "Still yours to fill in" adds bank
+      deposits and other assets (the "Other assets" field is on Pension & Savings). Each
+      "Get started" step card is now a link to its step (the heading is the link and its
+      `::after` covers the whole card), which makes the intro's "jump to any of them" true.
+      The replace-plan summary area "Equity & investments" was left as it is, because bank
+      deposits are listed there as a separate area. Checked in a browser: the link area
+      covers the card and a click on its blank part opens the step. Tests: `Welcome.test.tsx`,
+      `MyDataStepper.test.tsx`, `Dashboard.test.tsx`.
 
 ## Modeling assumptions (by phase)
 

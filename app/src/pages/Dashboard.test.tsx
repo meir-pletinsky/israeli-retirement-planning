@@ -351,7 +351,7 @@ describe("Dashboard", () => {
       expect(
         within(card).getByText(/ESPP or private shareholdings with no purchase price and no declared gain: 1\./),
       ).toBeInTheDocument();
-      expect(within(card).getByRole("link", { name: "Open Equity & Investments" })).toHaveAttribute(
+      expect(within(card).getByRole("link", { name: "Open Investments & Deposits" })).toHaveAttribute(
         "href",
         "/my-data/equity",
       );
