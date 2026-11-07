@@ -9,6 +9,7 @@ import {
   ownAccounts,
   spouseAccounts,
 } from "./profileBasics";
+import { lacksAnnuityInputs } from "./sources";
 
 /**
  * Inputs the plan can run without, but whose absence silently changes the
@@ -22,6 +23,7 @@ export type DataGapId =
   | "spouseMissing"
   | "accountType"
   | "accountStatus"
+  | "annuityInputs"
   | "salary"
   | "spouseSalary"
   | "contributionRates"
@@ -80,6 +82,7 @@ export function findDataGaps(profile: ProfileData): DataGap[] {
 
   add("accountType", "pension-savings", counted.filter((a) => a.productCategory === null).length);
   add("accountStatus", "pension-savings", counted.filter((a) => a.accountStatus === null).length);
+  add("annuityInputs", "pension-savings", counted.filter(lacksAnnuityInputs).length);
 
   const usesPersonalSalary = (account: PensionAccount) =>
     isContributing(account) && (account.contributions.monthlySalaryBase ?? 0) <= 0;

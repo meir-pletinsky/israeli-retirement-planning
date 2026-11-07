@@ -6,9 +6,18 @@ import { findDataGaps, type DataGapId } from "./inputGuidance";
 const ids = (profile: Parameters<typeof findDataGaps>[0]): DataGapId[] =>
   findDataGaps(profile).map((gap) => gap.id);
 
+const WITH_FACTOR = {
+  hasGuaranteedFactor: false,
+  conversionFactor: 200,
+  estimatedMonthlyAnnuity: null,
+  annuityTaxType: null,
+  guaranteedPaymentMonths: null,
+};
+
 const ACTIVE = {
   accountStatus: "activeContributing" as const,
   productCategory: "comprehensivePension" as const,
+  annuityParameters: WITH_FACTOR,
   contributions: { monthlySalaryBase: null, employeeRatePercent: 6, employerRatePercent: 6.5, severanceRatePercent: 6 },
 };
 
@@ -103,7 +112,9 @@ describe("findDataGaps", () => {
       monthlyGrossSalary: 15_000,
       retirementMonthlyExpenses: 10_000,
       pensionBalances: [100_000],
-      pensionAccountOverrides: [{ productCategory: "comprehensivePension", accountStatus: "activeContributing" }],
+      pensionAccountOverrides: [
+        { productCategory: "comprehensivePension", accountStatus: "activeContributing", annuityParameters: WITH_FACTOR },
+      ],
     });
     expect(ids(profile)).toEqual(["contributionRates"]);
   });
@@ -131,7 +142,14 @@ describe("findDataGaps", () => {
         {
           productCategory: "comprehensivePension",
           accountStatus: "activeContributing",
-          contributions: { ...ACTIVE.contributions, monthlySalaryBase: 15_000, employeeRatePercent: null, employerRatePercent: null, severanceRatePercent: null },
+          annuityParameters: WITH_FACTOR,
+          contributions: {
+            ...ACTIVE.contributions,
+            monthlySalaryBase: 15_000,
+            employeeRatePercent: null,
+            employerRatePercent: null,
+            severanceRatePercent: null,
+          },
         },
       ],
     });
@@ -223,6 +241,91 @@ describe("findDataGaps", () => {
         pensionAccountOverrides: [ACTIVE, { ...ACTIVE, owner: "spouse" }],
       });
       expect(findDataGaps(profile)).toEqual([]);
+    });
+  });
+
+  describe("annuity inputs", () => {
+    const base = { age: 40, retirementAge: 67, gender: "male" as const, retirementMonthlyExpenses: 10_000 };
+    const PAID_UP = "paidUpFrozen" as const;
+    const gapCount = (profile: Parameters<typeof findDataGaps>[0]) =>
+      findDataGaps(profile).find((gap) => gap.id === "annuityInputs");
+
+    it("counts the pension accounts that have neither a conversion factor nor a monthly estimate", () => {
+      const profile = buildTestProfile({
+        ...base,
+        pensionBalances: [100_000, 200_000, 300_000],
+        pensionAccountOverrides: [
+          { productCategory: "comprehensivePension", accountStatus: PAID_UP },
+          { productCategory: "comprehensivePension", accountStatus: PAID_UP, annuityParameters: WITH_FACTOR },
+          { productCategory: "managersInsurance", accountStatus: PAID_UP },
+        ],
+      });
+      expect(gapCount(profile)).toMatchObject({ step: "pension-savings", count: 2 });
+    });
+
+    it("is satisfied by a monthly estimate instead of a factor", () => {
+      const profile = buildTestProfile({
+        ...base,
+        pensionBalances: [100_000],
+        pensionAccountOverrides: [
+          {
+            productCategory: "comprehensivePension",
+            accountStatus: PAID_UP,
+            annuityParameters: { ...WITH_FACTOR, conversionFactor: null, estimatedMonthlyAnnuity: 1_500 },
+          },
+        ],
+      });
+      expect(gapCount(profile)).toBeUndefined();
+    });
+
+    it("needs managers insurance to be marked as having a guaranteed factor", () => {
+      const insurance = (hasGuaranteedFactor: boolean) =>
+        buildTestProfile({
+          ...base,
+          pensionBalances: [100_000],
+          pensionAccountOverrides: [
+            {
+              productCategory: "managersInsurance",
+              accountStatus: PAID_UP,
+              annuityParameters: { ...WITH_FACTOR, hasGuaranteedFactor },
+            },
+          ],
+        });
+      expect(gapCount(insurance(false))?.count).toBe(1);
+      expect(gapCount(insurance(true))).toBeUndefined();
+    });
+
+    it("leaves out accounts that are never paid as a lifelong pension", () => {
+      const profile = buildTestProfile({
+        ...base,
+        pensionBalances: [100_000, 100_000],
+        pensionAccountOverrides: [
+          { productCategory: "studyFund", accountStatus: PAID_UP },
+          { productCategory: "providentFund", accountStatus: PAID_UP },
+        ],
+      });
+      expect(gapCount(profile)).toBeUndefined();
+    });
+
+    it("leaves out accounts without a product type, which the product-type gap asks about first", () => {
+      const profile = buildTestProfile({
+        ...base,
+        pensionBalances: [100_000],
+        pensionAccountOverrides: [{ accountStatus: PAID_UP }],
+      });
+      expect(gapCount(profile)).toBeUndefined();
+    });
+
+    it("leaves out accounts without a balance", () => {
+      const profile = buildTestProfile({
+        ...base,
+        pensionBalances: [0, 100_000],
+        pensionAccountOverrides: [
+          { productCategory: "comprehensivePension", accountStatus: PAID_UP },
+          { productCategory: "comprehensivePension", accountStatus: PAID_UP, annuityParameters: WITH_FACTOR },
+        ],
+      });
+      expect(gapCount(profile)).toBeUndefined();
     });
   });
 });

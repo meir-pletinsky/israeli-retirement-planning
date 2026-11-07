@@ -8,6 +8,7 @@ import {
   buildSources,
   countUncategorizedAccounts,
   employerStockRoute,
+  lacksAnnuityInputs,
   sourceKindForCategory,
 } from "./sources";
 import { projectBalanceAtAge } from "./netWorth";
@@ -768,5 +769,54 @@ describe("countUncategorizedAccounts", () => {
       pensionAccountOverrides: [{}, {}, { productCategory: "studyFund" }],
     });
     expect(countUncategorizedAccounts(profile)).toBe(1);
+  });
+});
+
+describe("lacksAnnuityInputs", () => {
+  const factor = (hasGuaranteedFactor: boolean) => ({
+    hasGuaranteedFactor,
+    conversionFactor: 200,
+    estimatedMonthlyAnnuity: null,
+    annuityTaxType: null,
+    guaranteedPaymentMonths: null,
+  });
+  const noInputs = { ...factor(false), conversionFactor: null };
+  const estimate = { ...noInputs, estimatedMonthlyAnnuity: 1_500 };
+  const inputs = { none: noInputs, factor: factor(false), guaranteedFactor: factor(true), estimate };
+
+  const categories: Array<Partial<PensionAccount>> = [
+    { productCategory: "comprehensivePension" },
+    { productCategory: "generalPension" },
+    { productCategory: "managersInsurance" },
+    { productCategory: "providentFund" },
+    { productCategory: "iraProvidentFund" },
+    { productCategory: "studyFund" },
+    { productCategory: "investmentProvidentFund", lifeAnnuityFrom60: false },
+    { productCategory: "investmentProvidentFund", lifeAnnuityFrom60: true },
+  ];
+
+  // The gap must name exactly the accounts the projection drains as capital although they could pay an annuity.
+  it("matches the accounts buildSources leaves without an annuity", () => {
+    const canPay = (account: Partial<PensionAccount>) =>
+      ["comprehensivePension", "generalPension", "managersInsurance"].includes(account.productCategory as string) ||
+      account.lifeAnnuityFrom60 === true;
+
+    for (const account of categories) {
+      for (const [name, annuityParameters] of Object.entries(inputs)) {
+        const profile = buildTestProfile({
+          age: 45,
+          retirementAge: 62,
+          pensionBalances: [1_000_000],
+          pensionAccountOverrides: [{ ...account, annuityParameters }],
+        });
+        const [source] = buildSources(profile, 62);
+        const lacks = lacksAnnuityInputs(profile.pensionSavings.accounts[0]);
+        expect(lacks, `${account.productCategory} with ${name}`).toBe(canPay(account) && source.annuity === null);
+      }
+    }
+  });
+
+  it("ignores an account without a product type", () => {
+    expect(lacksAnnuityInputs(accountWith({ productCategory: null }))).toBe(false);
   });
 });

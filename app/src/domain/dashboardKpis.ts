@@ -3,7 +3,7 @@ import { simulateHouseholdDrawdown } from "./drawdown";
 import { desiredRetirementMonthly } from "./expenses";
 import { calculateFundingGapAtAge } from "./fundingGap";
 import { buildHousehold, resolveRetirementTiming, spouseAgeAt } from "./household";
-import { estimateIncomeBreakdownForTiming, type IncomeBreakdownPoint } from "./incomeBreakdown";
+import { estimateIncomeBreakdownForTiming, recurringAmount, type IncomeBreakdownPoint } from "./incomeBreakdown";
 import { isHouseholdActive, resolveCurrentAge } from "./profileBasics";
 import { estimateHouseholdRetirementIncome } from "./retirementIncome";
 import type { ReadinessStatus, RetirementAccessSummary, RetirementScenario } from "./types";
@@ -26,16 +26,30 @@ export interface RetirementKpis {
    * pay. Null when no spending is planned or no savings are spendable then.
    */
   withdrawalRate: number | null;
-  /** Monthly income paid from the pension, provident and managers-insurance accounts. */
-  pension: IncomeFromAge;
+  /**
+   * Monthly income paid for life by the pension, provident and managers-insurance accounts that
+   * have a usable conversion factor or monthly estimate. Zero for accounts that are drawn down as
+   * capital instead: those are in `pensionWithdrawals`.
+   */
+  lifelongPension: IncomeFromAge;
+  /**
+   * Monthly income taken out of those same accounts as capital, in the first year it is. It is not
+   * a lifelong pension: the plan sizes it so the savings last to the end of the planning horizon.
+   */
+  pensionWithdrawals: IncomeFromAge;
   /** The largest monthly Bituach Leumi payment (with any spouse supplement) over retirement. */
   stateBenefits: IncomeFromAge;
   /** How much of the savings can be spent at retirement, and how much opens later. */
   access: RetirementAccessSummary;
 }
 
-const pensionBands = (point: IncomeBreakdownPoint): number =>
-  point.pensionFund + point.providentFund + point.managersInsurance;
+const PENSION_BAND_KEYS = ["pensionFund", "providentFund", "managersInsurance"] as const;
+
+const pensionPayments = (point: IncomeBreakdownPoint): number =>
+  PENSION_BAND_KEYS.reduce((sum, band) => sum + recurringAmount(point, band), 0);
+
+const pensionWithdrawn = (point: IncomeBreakdownPoint): number =>
+  PENSION_BAND_KEYS.reduce((sum, band) => sum + point.withdrawn[band], 0);
 
 /**
  * The retirement KPIs for `scenario`, from the same income estimate, drawdown and income
@@ -64,15 +78,22 @@ export function calculateRetirementKpis(
       : null;
 
   const points = estimateIncomeBreakdownForTiming(profile, timing);
-  const firstPension = points.find((point) => pensionBands(point) > 0);
+  const firstWithdrawal = points.find((point) => pensionWithdrawn(point) > 0);
   const firstStateBenefit = points.find((point) => point.bituachLeumi > 0);
+  // Annuities start at different ages, so the pension is what is paid once they all have.
+  const lifelongMonthly = Math.max(0, ...points.map(pensionPayments));
+  const firstFullPension = points.find((point) => pensionPayments(point) === lifelongMonthly);
 
   return {
     plannedMonthlySpending,
     withdrawalRate,
-    pension: {
-      monthly: firstPension ? pensionBands(firstPension) : 0,
-      fromAge: firstPension?.age ?? null,
+    lifelongPension: {
+      monthly: lifelongMonthly,
+      fromAge: lifelongMonthly > 0 ? (firstFullPension?.age ?? null) : null,
+    },
+    pensionWithdrawals: {
+      monthly: firstWithdrawal ? pensionWithdrawn(firstWithdrawal) : 0,
+      fromAge: firstWithdrawal?.age ?? null,
     },
     stateBenefits: {
       monthly: Math.max(0, ...points.map((point) => point.bituachLeumi)),

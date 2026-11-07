@@ -98,27 +98,69 @@ describe("calculateRetirementKpis", () => {
     });
   });
 
-  describe("pension income", () => {
-    it("is the income paid from the pension accounts, from the retirement age", () => {
+  describe("pension withdrawals", () => {
+    it("is the income drawn from the pension accounts, from the retirement age", () => {
       const profile = plan();
-      const { pension } = calculateRetirementKpis(profile);
+      const { pensionWithdrawals } = calculateRetirementKpis(profile);
       const income = estimateRetirementIncome(profile).monthlyIncomeTodayMoney;
 
-      expect(pension.fromAge).toBe(67);
-      expect(Math.abs(pension.monthly - income)).toBeLessThanOrEqual(1);
+      expect(pensionWithdrawals.fromAge).toBe(67);
+      expect(Math.abs(pensionWithdrawals.monthly - income)).toBeLessThanOrEqual(1);
     });
 
     it("leaves out savings held outside the pension accounts", () => {
-      const { pension } = calculateRetirementKpis(plan({ pensionBalances: [], otherAssets: 1_000_000 }));
-      expect(pension).toEqual({ monthly: 0, fromAge: null });
+      const { pensionWithdrawals, lifelongPension } = calculateRetirementKpis(
+        plan({ pensionBalances: [], otherAssets: 1_000_000 }),
+      );
+      expect(pensionWithdrawals).toEqual({ monthly: 0, fromAge: null });
+      expect(lifelongPension).toEqual({ monthly: 0, fromAge: null });
     });
 
     it("starts only when the accounts unlock if the user retires earlier", () => {
-      const { pension } = calculateRetirementKpis(
+      const { pensionWithdrawals } = calculateRetirementKpis(
         plan({ retirementAge: 55, otherAssets: 600_000, pensionAccountOverrides: LOCKED_ACCOUNTS }),
       );
-      expect(pension.fromAge).toBe(60);
-      expect(pension.monthly).toBeGreaterThan(0);
+      expect(pensionWithdrawals.fromAge).toBe(60);
+      expect(pensionWithdrawals.monthly).toBeGreaterThan(0);
+    });
+  });
+
+  describe("lifelong pension", () => {
+    const WITH_FACTOR = {
+      productCategory: "comprehensivePension" as const,
+      annuityParameters: {
+        hasGuaranteedFactor: false,
+        conversionFactor: 200,
+        estimatedMonthlyAnnuity: null,
+        annuityTaxType: null,
+        guaranteedPaymentMonths: null,
+      },
+    };
+
+    it("is zero when the accounts have no conversion factor or monthly estimate", () => {
+      const { lifelongPension, pensionWithdrawals } = calculateRetirementKpis(
+        plan({ pensionAccountOverrides: LOCKED_ACCOUNTS }),
+      );
+      expect(lifelongPension).toEqual({ monthly: 0, fromAge: null });
+      expect(pensionWithdrawals.monthly).toBeGreaterThan(0);
+    });
+
+    it("is the annuity the conversion factor produces, paid from the retirement age", () => {
+      const { lifelongPension, pensionWithdrawals } = calculateRetirementKpis(
+        plan({ pensionAccountOverrides: [WITH_FACTOR, WITH_FACTOR] }),
+      );
+      // 1,200,000 / 200 a month, in the money of the year it starts.
+      expect(lifelongPension.fromAge).toBe(67);
+      expect(lifelongPension.monthly).toBeGreaterThan(0);
+      expect(pensionWithdrawals).toEqual({ monthly: 0, fromAge: null });
+    });
+
+    it("keeps the annuity out of the amount drawn from savings", () => {
+      const annuitised = calculateRetirementKpis(plan({ pensionAccountOverrides: [WITH_FACTOR, WITH_FACTOR] }));
+      const drawnDown = calculateRetirementKpis(plan({ pensionAccountOverrides: LOCKED_ACCOUNTS }));
+      expect(annuitised.lifelongPension.monthly).toBeGreaterThan(0);
+      expect(drawnDown.lifelongPension.monthly).toBe(0);
+      expect(annuitised.pensionWithdrawals.monthly).toBeLessThan(drawnDown.pensionWithdrawals.monthly);
     });
   });
 

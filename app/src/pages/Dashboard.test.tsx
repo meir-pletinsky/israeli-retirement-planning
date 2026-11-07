@@ -279,7 +279,19 @@ describe("Dashboard", () => {
           retirementMonthlyExpenses: 6000,
           maritalStatus: "single",
           pensionBalances: [100_000],
-          pensionAccountOverrides: [{ productCategory: "pensionFund", accountStatus: "inactive" }],
+          pensionAccountOverrides: [
+            {
+              productCategory: "pensionFund",
+              accountStatus: "inactive",
+              annuityParameters: {
+                hasGuaranteedFactor: false,
+                conversionFactor: 200,
+                estimatedMonthlyAnnuity: null,
+                annuityTaxType: null,
+                guaranteedPaymentMonths: null,
+              },
+            },
+          ],
           ...zeroRealReturn,
         }),
       );
@@ -288,6 +300,34 @@ describe("Dashboard", () => {
 
       await screen.findByText("Net Worth Today");
       expect(screen.queryByRole("heading", { name: "Improve your estimate" })).not.toBeInTheDocument();
+    });
+
+    it("asks for a conversion factor when a pension account has neither that nor a monthly estimate", async () => {
+      await seed(
+        buildTestProfile({
+          age: 40,
+          gender: "female",
+          retirementAge: 67,
+          retirementMonthlyExpenses: 6000,
+          maritalStatus: "single",
+          pensionBalances: [100_000],
+          pensionAccountOverrides: [{ productCategory: "comprehensivePension", accountStatus: "inactive" }],
+          ...zeroRealReturn,
+        }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      const card = (await screen.findByRole("heading", { name: "Improve your estimate" })).closest("section")!;
+      expect(
+        within(card).getByText(
+          /Pension accounts without a conversion factor or monthly pension estimate: 1\. They are treated as savings spent by age 90, not as a lifelong pension\./,
+        ),
+      ).toBeInTheDocument();
+      expect(within(card).getByRole("link", { name: "Open Pension & Savings" })).toHaveAttribute(
+        "href",
+        "/my-data/pension-savings",
+      );
     });
 
     it("shows no funding gap or status message until retirement spending is entered", async () => {
@@ -1010,9 +1050,9 @@ describe("Dashboard", () => {
       return { section, card };
     }
 
-    it("shows the planned spending, withdrawal rate, pension income and available funds", async () => {
+    it("shows the planned spending, withdrawal rate, pension withdrawals and available funds", async () => {
       const profile = buildTestProfile(plan);
-      const { withdrawalRate, pension, access } = calculateRetirementKpis(profile);
+      const { withdrawalRate, pensionWithdrawals, access } = calculateRetirementKpis(profile);
       const { card } = await renderSnapshot(profile);
 
       expect(within(card("Planned monthly spending")).getByText(shekel(9_000))).toBeInTheDocument();
@@ -1029,13 +1069,49 @@ describe("Dashboard", () => {
         within(card("Your withdrawal rate")).getByText(/Rates above about 4% rely more on investment returns/),
       ).toBeInTheDocument();
       expect(screen.queryByText(/Safe withdrawal rate/)).not.toBeInTheDocument();
-      expect(within(card("Monthly pension income")).getByText(shekel(pension.monthly))).toBeInTheDocument();
       expect(
-        within(card("Monthly pension income")).getByText("Before tax, from age 67"),
+        within(card("Drawn from pension savings")).getByText(shekel(pensionWithdrawals.monthly)),
+      ).toBeInTheDocument();
+      expect(
+        within(card("Drawn from pension savings")).getByText(
+          "Before tax, from age 67. Not for life: it comes from savings the plan runs down by age 90.",
+        ),
       ).toBeInTheDocument();
       expect(
         within(card("Funds available at retirement")).getByText(shekel(access.accessibleAtRetirement)),
       ).toBeInTheDocument();
+    });
+
+    it("shows no lifelong pension when the accounts have no conversion factor or estimate", async () => {
+      const { card } = await renderSnapshot(buildTestProfile(plan));
+
+      const pensionCard = card("Lifelong pension (annuity)");
+      expect(within(pensionCard).getByText("—")).toBeInTheDocument();
+      expect(
+        within(pensionCard).getByText("None: your pension savings are spent as capital, not paid for life"),
+      ).toBeInTheDocument();
+    });
+
+    it("shows the lifelong pension, and no withdrawals card, when the accounts have a conversion factor", async () => {
+      const withFactor = {
+        productCategory: "comprehensivePension" as const,
+        annuityParameters: {
+          hasGuaranteedFactor: false,
+          conversionFactor: 200,
+          estimatedMonthlyAnnuity: null,
+          annuityTaxType: null,
+          guaranteedPaymentMonths: null,
+        },
+      };
+      const profile = buildTestProfile({ ...plan, pensionAccountOverrides: [withFactor, withFactor] });
+      const { lifelongPension } = calculateRetirementKpis(profile);
+      const { card, section } = await renderSnapshot(profile);
+
+      expect(lifelongPension.monthly).toBeGreaterThan(0);
+      const pensionCard = card("Lifelong pension (annuity)");
+      expect(within(pensionCard).getByText(shekel(lifelongPension.monthly))).toBeInTheDocument();
+      expect(within(pensionCard).getByText("Before tax, from age 67")).toBeInTheDocument();
+      expect(within(section).queryByText("Drawn from pension savings")).not.toBeInTheDocument();
     });
 
     it("says the state pension is not in the projection when it is left out", async () => {

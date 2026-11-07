@@ -437,6 +437,36 @@ function canAnnuitize(kind: SourceKind, gemelAnnuity: boolean): boolean {
 const GEMEL_ANNUITY_NOTE =
   "Investment provident fund taken as a life annuity from age 60 (rule U, not confirmed): the balance moves to a paying fund and the annuity is tax-free, so no tax is charged on it here.";
 
+/**
+ * Whether the conversion factor entered for an account can be used. A pension fund's factor is the
+ * fund's own and applies whether or not the statement calls it guaranteed; managers insurance may
+ * use a different one at retirement, so its factor counts only when the user marks it guaranteed.
+ * An investment provident fund has no factor of its own: the one entered is the paying fund's, so
+ * it counts as soon as the user chose the annuity.
+ */
+function conversionFactorApplies(kind: SourceKind, hasGuaranteedFactor: boolean, gemelAnnuity: boolean): boolean {
+  return hasGuaranteedFactor || kind === "pensionFund" || gemelAnnuity;
+}
+
+/**
+ * Whether an account that could pay a lifelong annuity has neither a monthly estimate nor a usable
+ * conversion factor, so the plan draws it down as capital instead. An account without a product
+ * type is left out: the product-type gap asks for that first.
+ */
+export function lacksAnnuityInputs(account: PensionAccount): boolean {
+  if (account.productCategory === null) return false;
+  const gemelAnnuity = takesGemelAnnuity(account);
+  const kind = sourceKindForCategory(account.productCategory);
+  if (!canAnnuitize(kind, gemelAnnuity)) return false;
+  const { estimatedMonthlyAnnuity, hasGuaranteedFactor, conversionFactor } = account.annuityParameters;
+  if (estimatedMonthlyAnnuity !== null && estimatedMonthlyAnnuity > 0) return false;
+  return !(
+    conversionFactorApplies(kind, hasGuaranteedFactor, gemelAnnuity) &&
+    conversionFactor !== null &&
+    conversionFactor > 0
+  );
+}
+
 /** Step ids and the profile-path helper an account's trace steps refer back to. */
 interface AccountTraceRefs {
   retirementAge: string;
@@ -525,12 +555,7 @@ function buildAnnuity(
     }));
     return { monthly: estimatedMonthlyAnnuity, startAge, origin: "override" };
   }
-  // A pension fund's factor is the fund's own and applies whether or not the
-  // statement calls it guaranteed; managers insurance may use a different one
-  // at retirement, so its factor counts only when the user marks it guaranteed.
-  // An investment provident fund has no factor of its own: the one entered is
-  // the paying fund's, so it counts as soon as the user chose the annuity.
-  const factorApplies = hasGuaranteedFactor || kind === "pensionFund" || gemelAnnuity;
+  const factorApplies = conversionFactorApplies(kind, hasGuaranteedFactor, gemelAnnuity);
   if (factorApplies && conversionFactor !== null && conversionFactor > 0) {
     const balanceAtStart = valueAtRetirement * Math.pow(1 + rate, Math.max(startAge - retirementAge, 0));
     const balanceAtStartId = recordStep("annuityBalanceAtStart", () => ({

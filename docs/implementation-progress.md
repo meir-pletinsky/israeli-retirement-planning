@@ -2271,6 +2271,20 @@ of its section 10 (UXB-14 is skipped on request).
       `StatusBanner` gains a `caution` state, details and an action. Tests: `StatusBanner.test.tsx`,
       `FeasibilityCard.test.tsx`, `Dashboard.test.tsx`, `Projections.test.tsx`,
       `feasibility.test.ts`, `monteCarlo.test.ts`.
+- [x] **UXB-04 Pension income is split into lifelong pension and withdrawals from savings.**
+      A pension account with neither a conversion factor nor a monthly estimate is drawn down as
+      capital, yet the Dashboard called its payout "Monthly pension income". The snapshot now
+      shows two cards: "Lifelong pension (annuity)", only what the factor or estimate produces
+      (`RetirementKpis.lifelongPension`, the recurring part of the pension bands), and "Drawn from
+      pension savings" (`pensionWithdrawals`, the first year's withdrawn part), noted as not for
+      life and run down by age 90. The lifelong card says so when it is empty but savings are drawn.
+      A new data gap, `annuityInputs`, counts the annuity-capable accounts that lack both inputs
+      (`lacksAnnuityInputs` in `sources.ts`, built on the same `conversionFactorApplies` rule
+      `buildAnnuity` uses; accounts without a product type are left for the product-type gap).
+      Pending the owner: the review's third idea, a typical default conversion factor, was not
+      built. It contradicts the earlier "no default conversion factor" decision and needs
+      agreed factor values. Tests: `sources.test.ts`, `inputGuidance.test.ts`,
+      `dashboardKpis.test.ts`, `Dashboard.test.tsx`.
 
 ## Modeling assumptions (by phase)
 
