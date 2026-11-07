@@ -34,7 +34,7 @@ export function InflationReference() {
     },
     ...summary.averages.map(({ years, pct }) => ({
       key: `average-${years}`,
-      label: t("myData.steps.assumptions.cpi.average", { years }),
+      label: t("myData.steps.assumptions.cpi.average", { years, count: years }),
       pct,
     })),
   ];

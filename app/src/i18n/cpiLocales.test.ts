@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import en from "./locales/en.json";
 import he from "./locales/he.json";
 import ru from "./locales/ru.json";
+import { localized } from "./localeTestUtils";
 
 const LOCALES = { en, he, ru };
 
@@ -29,12 +30,12 @@ describe.each(Object.entries(LOCALES))("inflation reference strings in %s", (_la
   const strings = flatten(locale as unknown as Strings);
 
   it("has every key the English text has", () => {
-    for (const key of Object.keys(ENGLISH)) expect(strings[key], key).toBeTruthy();
+    for (const key of Object.keys(ENGLISH)) expect(localized(strings, key), key).toBeTruthy();
   });
 
   it("uses the same placeholders as the English text", () => {
     for (const [key, english] of Object.entries(ENGLISH)) {
-      expect(placeholders(strings[key] ?? ""), key).toEqual(placeholders(english));
+      expect(placeholders(localized(strings, key) ?? ""), key).toEqual(placeholders(english));
     }
   });
 });

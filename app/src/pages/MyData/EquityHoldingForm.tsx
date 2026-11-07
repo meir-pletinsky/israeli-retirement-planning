@@ -199,6 +199,7 @@ export function EquityHoldingForm({
             (
             {t("myData.steps.equity.splits.totalAsReported", {
               quantity: quantity.toLocaleString("en-US", { maximumFractionDigits: 6 }),
+              count: quantity,
               value: `$${(quantity * price).toLocaleString()}`,
             })}
             )

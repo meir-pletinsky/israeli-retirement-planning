@@ -147,7 +147,7 @@ export function ScenarioComparison({ profile }: ScenarioComparisonProps) {
           <NumberField
             key={index}
             label={t("projections.compare.ageLabel", { index: index + 1 })}
-            suffix={t("projections.compare.ageSuffix")}
+            suffix={t("projections.compare.ageSuffix", { count: age })}
             value={age}
             min={minAge}
             max={COMPARISON_MAX_AGE}

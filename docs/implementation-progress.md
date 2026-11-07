@@ -2613,6 +2613,20 @@ of its section 10 (UXB-14 is skipped on request).
       "изъятие"); "влияют" agrees with the plural subject. The choices are recorded in the
       new `docs/i18n-glossary.md`. Tests: `Projections.test.tsx` (en-dash labels), the
       locale parity tests.
+- [x] **UXB-29 (follow-up) Russian number agreement**. Russian needs three forms (1 год,
+      2 года, 5 лет), but the numbers beside counted nouns were fixed texts ("54 лет",
+      "144 месяцев", "{{quantity}} акций"). Texts where a count is a quantity of something
+      now have `_one` / `_few` / `_many` / `_other` forms and the call sites pass a numeric
+      `count`: the cover notice and options, the cover plan section, the Compare-ages
+      suffix, the study-fund liquidity rule, the inflation averages and the stock-split
+      notes. Ages are written as "возраст {{age}}" ("до возраста 62") so they need no
+      plural, and the Bituach Leumi eligibility text uses the abbreviation "мес.". The
+      English and Hebrew texts stay plain; i18next falls back to the plain key when no
+      plural form exists. Tests: `localeParity.test.ts` (plural-aware key and placeholder
+      checks, a check that no Russian text puts a number placeholder before a counted noun
+      without plural forms, every Russian plural category present, rendered agreement for
+      1 / 2 / 5 / 11 / 21 and fractions); `localeTestUtils.ts` shares the plural helpers
+      with the cover, ladder and inflation locale tests.
 
 ## Modeling assumptions (by phase)
 

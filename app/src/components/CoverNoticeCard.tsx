@@ -40,6 +40,7 @@ export function CoverNoticeCard({ notices }: CoverNoticeCardProps) {
                 endAge: formatAge(notice.windows.gapStartAge),
                 needAge: formatAge(notice.windows.needEndAge),
                 years: oneDecimal(notice.windows.gapYears),
+                count: Number(oneDecimal(notice.windows.gapYears)),
               })}
             </span>
             <Link

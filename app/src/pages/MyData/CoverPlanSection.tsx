@@ -152,6 +152,7 @@ export function CoverPlanSection({ person }: CoverPlanSectionProps) {
                     from: formatAge(analysis.windows.gapStartAge),
                     to: formatAge(analysis.windows.needEndAge),
                     years: oneDecimal(analysis.windows.gapYears),
+                    count: Number(oneDecimal(analysis.windows.gapYears)),
                   })
                 : t("cover.section.derivedNoGap", { age: formatAge(analysis.windows.needEndAge) })}
             </li>
@@ -164,6 +165,7 @@ export function CoverPlanSection({ person }: CoverPlanSectionProps) {
                     total: money(analysis.totalCost),
                     monthly: money(analysis.monthlyCost),
                     years: oneDecimal(analysis.windows.costYears),
+                    count: Number(oneDecimal(analysis.windows.costYears)),
                   })}
                 </li>
               ))}

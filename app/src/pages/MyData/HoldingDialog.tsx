@@ -182,6 +182,7 @@ export function HoldingDialog({ holding, isNew, onClose, onSave }: HoldingDialog
                   quantity: (restated.holding.quantity ?? 0).toLocaleString("en-US", {
                     maximumFractionDigits: 6,
                   }),
+                  count: restated.holding.quantity ?? 0,
                 })}
               </p>
             )}

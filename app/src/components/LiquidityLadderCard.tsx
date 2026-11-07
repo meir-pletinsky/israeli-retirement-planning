@@ -142,6 +142,7 @@ export function LiquidityLadderCard({ ladder, isCouple, scenarioTag, hasBankDepo
             {t("projections.ladder.howRules", {
               age: ACCESS_RULES.earliestAnnuityAge,
               years: ACCESS_RULES.studyFundLiquidityYears,
+              count: ACCESS_RULES.studyFundLiquidityYears,
             })}
           </li>
           <li>{t("projections.ladder.howPayments")}</li>

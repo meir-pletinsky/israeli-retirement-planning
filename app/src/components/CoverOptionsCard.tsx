@@ -40,7 +40,10 @@ export function CoverOptionsCard({ comparisons, onSelect }: CoverOptionsCardProp
         row.windows.gapYears > 0 ? (
           <>
             <span className="block font-medium tabular-nums">
-              {t("projections.cover.years", { years: oneDecimal(row.windows.gapYears) })}
+              {t("projections.cover.years", {
+                years: oneDecimal(row.windows.gapYears),
+                count: Number(oneDecimal(row.windows.gapYears)),
+              })}
             </span>
             <span className="block text-xs text-slate-500">
               {t("projections.cover.range", {
@@ -102,7 +105,10 @@ export function CoverOptionsCard({ comparisons, onSelect }: CoverOptionsCardProp
           <>
             <span className="block font-medium tabular-nums">{money(row.totalCost)}</span>
             <span className="block text-xs text-slate-500">
-              {t("projections.cover.overYears", { years: oneDecimal(row.windows.costYears) })}
+              {t("projections.cover.overYears", {
+                years: oneDecimal(row.windows.costYears),
+                count: Number(oneDecimal(row.windows.costYears)),
+              })}
             </span>
           </>
         ),
