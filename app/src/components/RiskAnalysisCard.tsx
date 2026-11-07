@@ -11,6 +11,9 @@ import {
   successBand,
   successPercent,
 } from "../domain";
+import { ChartFrame } from "./charts/ChartFrame";
+import { FanTable } from "./charts/ChartTables";
+import { useChartTakeaways } from "./charts/chartTakeaways";
 import { MonteCarloFanChart } from "./charts/MonteCarloFanChart";
 import { formatSuccessPercent } from "./riskFormat";
 import { ScenarioTitle } from "./ScenarioTag";
@@ -87,6 +90,7 @@ function RiskResults({
   const { profile } = useProfile();
   const band = successBand(result.successProbability);
   const confidentPercent = Math.round(MONTE_CARLO_CONFIDENCE * 100);
+  const fanTakeaway = useChartTakeaways().fan(result.fan);
 
   return (
     <>
@@ -143,13 +147,20 @@ function RiskResults({
       <h3 className="mb-2 mt-5 text-sm font-semibold text-slate-700">
         {t("projections.risk.chartTitle")}
       </h3>
-      <MonteCarloFanChart
-        data={result.fan}
-        drawdownStartAge={result.drawdownStartAge}
-        currencySymbol={currencySymbol}
-        bandLabel={t("projections.risk.bandLabel")}
-        medianLabel={t("projections.risk.medianLabel")}
-      />
+      <ChartFrame
+        takeaway={fanTakeaway}
+        table={<FanTable fan={result.fan} caption={t("projections.risk.chartTitle")} />}
+      >
+        <MonteCarloFanChart
+          name={t("projections.risk.chartTitle")}
+          description={fanTakeaway ?? t("projections.risk.chartTitle")}
+          data={result.fan}
+          drawdownStartAge={result.drawdownStartAge}
+          currencySymbol={currencySymbol}
+          bandLabel={t("projections.risk.bandLabel")}
+          medianLabel={t("projections.risk.medianLabel")}
+        />
+      </ChartFrame>
 
       <details className="mt-3 text-sm text-slate-700">
         <summary className="cursor-pointer text-xs font-medium text-brand-700">

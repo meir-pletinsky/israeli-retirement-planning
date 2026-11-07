@@ -7,6 +7,9 @@ import { ActiveAssumptions } from "../components/ActiveAssumptions";
 import { AssumedRetirementAgeBanner } from "../components/AssumedRetirementAgeBanner";
 import { BalanceTable, PathEventsList } from "../components/BalancePathNotes";
 import { BudgetCard } from "../components/BudgetCard";
+import { ChartFrame } from "../components/charts/ChartFrame";
+import { IncomeBreakdownTable, NetIncomeTable } from "../components/charts/ChartTables";
+import { useChartTakeaways } from "../components/charts/chartTakeaways";
 import { IncomeBreakdownChart } from "../components/charts/IncomeBreakdownChart";
 import { NetIncomeChart } from "../components/charts/NetIncomeChart";
 import { NetWorthChart } from "../components/charts/NetWorthChart";
@@ -64,6 +67,7 @@ export function Projections() {
   const [chosenScenario, setScenario] = useState<RetirementScenario>("standard");
   const [view, setView] = useState<"chart" | "table">("chart");
   const currencySymbol = t("common.currencySymbol");
+  const takeaways = useChartTakeaways();
   const scenarioLabel = useScenarioLabel(profile);
   const earlyAtStandard =
     resolveRetirementAge(profile, "early") === resolveRetirementAge(profile, "standard");
@@ -107,6 +111,12 @@ export function Projections() {
     );
   };
   const isCouple = isHouseholdActive(profile);
+  const netWorthTakeaway = takeaways.netWorth(balancePath.points, funding.shortfallAge);
+  const incomeTakeaway = takeaways.income(incomeData);
+  const netIncomeTakeaway = takeaways.netIncome(
+    netIncomeYears,
+    funding.monthlySpending > 0 ? funding.monthlySpending : undefined,
+  );
   const bandLabels: Record<IncomeBandKey, string> = {
     pensionFund: t("projections.sourcePension"),
     providentFund: t("projections.sourceProvidentFund"),
@@ -193,9 +203,12 @@ export function Projections() {
           </button>
         </div>
         <NetWorthBasisNote funding={funding} />
+        {netWorthTakeaway && <p className="mb-2 text-sm text-slate-700">{netWorthTakeaway}</p>}
         {view === "chart" ? (
           <>
             <NetWorthChart
+              name={t("projections.netWorthChart")}
+              description={netWorthTakeaway ?? t("projections.netWorthChart")}
               data={balancePath.points}
               markers={netWorthMarkers(eventGroups)}
               currencySymbol={currencySymbol}
@@ -233,18 +246,31 @@ export function Projections() {
           <IncomeBasisNote funding={funding} />
           <IncomeSplitNote variant="full" showInvestmentsPool={hasInvestmentsBand} />
         </div>
-        <IncomeBreakdownChart
-          data={incomeData}
-          currencySymbol={currencySymbol}
-          labels={bandLabels}
-          texts={{
-            payments: t("projections.split.payments"),
-            withdrawals: t("projections.split.withdrawals"),
-            total: t("projections.split.total"),
-            paymentOf: (source) => t("projections.split.paymentOf", { source }),
-            withdrawalOf: (source) => t("projections.split.withdrawalOf", { source }),
-          }}
-        />
+        <ChartFrame
+          takeaway={incomeTakeaway}
+          table={
+            <IncomeBreakdownTable
+              points={incomeData}
+              labels={bandLabels}
+              caption={t("projections.incomeChart")}
+            />
+          }
+        >
+          <IncomeBreakdownChart
+            name={t("projections.incomeChart")}
+            description={incomeTakeaway ?? t("projections.incomeChart")}
+            data={incomeData}
+            currencySymbol={currencySymbol}
+            labels={bandLabels}
+            texts={{
+              payments: t("projections.split.payments"),
+              withdrawals: t("projections.split.withdrawals"),
+              total: t("projections.split.total"),
+              paymentOf: (source) => t("projections.split.paymentOf", { source }),
+              withdrawalOf: (source) => t("projections.split.withdrawalOf", { source }),
+            }}
+          />
+        </ChartFrame>
       </div>
 
       {hasNetIncome && (
@@ -254,14 +280,21 @@ export function Projections() {
             {t("projections.netIncomeNote")}
             {funding.monthlySpending > 0 && ` ${t("projections.netIncomePlannedNote")}`}
           </p>
-          <NetIncomeChart
-            data={netIncomeYears}
-            currencySymbol={currencySymbol}
-            netLabel={t("projections.netIncomeKept")}
-            taxLabel={t("projections.netIncomeTax")}
-            plannedMonthly={funding.monthlySpending}
-            plannedLabel={t("projections.netIncomePlanned")}
-          />
+          <ChartFrame
+            takeaway={netIncomeTakeaway}
+            table={<NetIncomeTable years={netIncomeYears} caption={t("projections.netIncomeChart")} />}
+          >
+            <NetIncomeChart
+              name={t("projections.netIncomeChart")}
+              description={netIncomeTakeaway ?? t("projections.netIncomeChart")}
+              data={netIncomeYears}
+              currencySymbol={currencySymbol}
+              netLabel={t("projections.netIncomeKept")}
+              taxLabel={t("projections.netIncomeTax")}
+              plannedMonthly={funding.monthlySpending}
+              plannedLabel={t("projections.netIncomePlanned")}
+            />
+          </ChartFrame>
         </div>
       )}
 

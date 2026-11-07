@@ -16,6 +16,8 @@ import {
   resolveRetirementAge,
 } from "../domain";
 import type { ProfileData } from "../types";
+import { ChartFrame } from "./charts/ChartFrame";
+import { useChartTakeaways } from "./charts/chartTakeaways";
 import { ComparisonChart } from "./charts/ComparisonChart";
 import { NumberField } from "./fields/NumberField";
 
@@ -56,6 +58,8 @@ export function ScenarioComparison({ profile }: ScenarioComparisonProps) {
       ? [{ age: outcome.retirementAge, netMonthly: outcome.netMonthlyIncome }]
       : [],
   );
+
+  const compareTakeaway = useChartTakeaways().compare(chartData);
 
   type Row = {
     key: string;
@@ -204,14 +208,18 @@ export function ScenarioComparison({ profile }: ScenarioComparisonProps) {
 
       {chartData.length > 0 && (
         <div className="mt-4">
-          <ComparisonChart
-            data={chartData}
-            target={noTarget ? null : desiredMonthly}
-            planAge={planAge}
-            currencySymbol={currencySymbol}
-            netLabel={t("projections.compare.net")}
-            targetLabel={t("projections.compare.expenses")}
-          />
+          <ChartFrame takeaway={compareTakeaway}>
+            <ComparisonChart
+              name={t("charts.compareName")}
+              description={compareTakeaway ?? t("charts.compareName")}
+              data={chartData}
+              target={noTarget ? null : desiredMonthly}
+              planAge={planAge}
+              currencySymbol={currencySymbol}
+              netLabel={t("projections.compare.net")}
+              targetLabel={t("projections.compare.expenses")}
+            />
+          </ChartFrame>
         </div>
       )}
 

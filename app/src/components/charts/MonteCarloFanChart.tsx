@@ -11,9 +11,15 @@ import {
 } from "recharts";
 
 import type { MonteCarloFanPoint } from "../../domain";
+import { chartA11y } from "./chartA11y";
+import { CHART_COLORS } from "./chartPalette";
 import { formatAxisMoney } from "./formatAxisMoney";
 
 interface MonteCarloFanChartProps {
+  /** The chart's accessible name. */
+  name: string;
+  /** What the chart shows in a sentence, for screen readers. */
+  description: string;
   data: MonteCarloFanPoint[];
   /** The age at which the household starts drawing, marked on the chart. */
   drawdownStartAge: number;
@@ -24,6 +30,8 @@ interface MonteCarloFanChartProps {
 
 /** Net worth across many random market histories: the middle 80% as a band, the median as a line. */
 export function MonteCarloFanChart({
+  name,
+  description,
   data,
   drawdownStartAge,
   currencySymbol,
@@ -35,7 +43,7 @@ export function MonteCarloFanChart({
 
   return (
     <ResponsiveContainer width="100%" height={280}>
-      <ComposedChart data={points} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+      <ComposedChart data={points} margin={{ top: 8, right: 8, left: 8, bottom: 0 }} {...chartA11y(name, description)}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
         <XAxis dataKey="age" tick={{ fontSize: 12 }} stroke="#94a3b8" />
         <YAxis
@@ -48,21 +56,21 @@ export function MonteCarloFanChart({
             Array.isArray(value) ? `${money(value[0])} – ${money(value[1])}` : money(Number(value))
           }
         />
-        <ReferenceLine x={drawdownStartAge} stroke="#0b6e99" strokeDasharray="4 4" />
+        <ReferenceLine x={drawdownStartAge} stroke={CHART_COLORS.marker} strokeDasharray="4 4" />
         <Area
           type="monotone"
           dataKey="band"
           name={bandLabel}
           stroke="none"
-          fill="#0b6e99"
-          fillOpacity={0.18}
+          fill={CHART_COLORS.total}
+          fillOpacity={0.15}
           isAnimationActive={false}
         />
         <Line
           type="monotone"
           dataKey="p50"
           name={medianLabel}
-          stroke="#0b6e99"
+          stroke={CHART_COLORS.total}
           strokeWidth={2}
           dot={false}
           isAnimationActive={false}

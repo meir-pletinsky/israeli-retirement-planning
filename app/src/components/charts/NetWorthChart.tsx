@@ -10,6 +10,8 @@ import {
 } from "recharts";
 
 import type { NetWorthPoint } from "../../domain";
+import { chartA11y } from "./chartA11y";
+import { CHART_COLORS } from "./chartPalette";
 import { formatAxisMoney } from "./formatAxisMoney";
 
 export interface NetWorthMarker {
@@ -19,6 +21,10 @@ export interface NetWorthMarker {
 }
 
 interface NetWorthChartProps {
+  /** The chart's accessible name. */
+  name: string;
+  /** What the chart shows in a sentence, for screen readers. */
+  description: string;
   data: NetWorthPoint[];
   /** Numbered lines for the events that explain the path (retirement, annuity start). */
   markers?: NetWorthMarker[];
@@ -29,6 +35,8 @@ interface NetWorthChartProps {
 }
 
 export function NetWorthChart({
+  name,
+  description,
   data,
   markers = [],
   shortfallAge,
@@ -37,7 +45,7 @@ export function NetWorthChart({
 }: NetWorthChartProps) {
   return (
     <ResponsiveContainer width="100%" height={280}>
-      <LineChart data={data} margin={{ top: 20, right: 8, left: 8, bottom: 0 }}>
+      <LineChart data={data} margin={{ top: 20, right: 8, left: 8, bottom: 0 }} {...chartA11y(name, description)}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
         <XAxis dataKey="age" tick={{ fontSize: 12 }} stroke="#94a3b8" />
         <YAxis
@@ -54,23 +62,23 @@ export function NetWorthChart({
           <ReferenceLine
             key={marker.age}
             x={marker.age}
-            stroke="#0b6e99"
+            stroke={CHART_COLORS.marker}
             strokeDasharray="4 4"
-            label={{ value: marker.label, position: "top", fontSize: 11, fontWeight: 600, fill: "#0b6e99" }}
+            label={{ value: marker.label, position: "top", fontSize: 11, fontWeight: 600, fill: CHART_COLORS.marker }}
           />
         ))}
         {shortfallAge != null && (
           <ReferenceLine
             x={shortfallAge}
-            stroke="#e11d48"
+            stroke={CHART_COLORS.shortfall}
             strokeDasharray="4 4"
-            label={{ value: shortfallLabel, position: "insideTopRight", fontSize: 11, fill: "#be123c" }}
+            label={{ value: shortfallLabel, position: "insideTopRight", fontSize: 11, fill: CHART_COLORS.shortfall }}
           />
         )}
         <Line
           type="monotone"
           dataKey="netWorth"
-          stroke="#0b6e99"
+          stroke={CHART_COLORS.total}
           strokeWidth={2}
           dot={false}
         />

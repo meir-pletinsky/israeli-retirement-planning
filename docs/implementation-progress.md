@@ -2244,6 +2244,16 @@ of its section 10 (UXB-14 is skipped on request).
       ×4 split). `EquityHoldingForm` now takes the restated quantity from `HoldingDialog`, shows the
       value on that quantity and keeps the typed figures in brackets ("as reported: 10 shares ·
       $150", `splits.totalAsReported`). Tests: `BulkHoldings.test.tsx`.
+- [x] **UXB-36 Chart colours, names and tables are consistent.**
+      `charts/chartPalette.ts` gives every colour one meaning: dark slate for totals (net worth, the
+      median, income kept), grey for deducted or secondary amounts (tax, the other compared ages),
+      one dashed magenta line for the planned spending in the Compare and Net-income charts, and
+      red only for a shortfall; the income-band and backtest colours were darkened to 3:1 on white.
+      Every chart's svg now has `role="img"`, an accessible name and a description (`chartA11y`).
+      Each chart shows a one-sentence takeaway above it (`useChartTakeaways`), and the net-worth,
+      income, net-income, risk and history charts gain a "Show as table" switch (`ChartFrame`,
+      `ChartTables`; the table is the same numbers the chart draws). Strings are under `charts.*`.
+      Tests: `chartConsistency.test.tsx`, `chartTakeaways.test.tsx`.
 
 ## Modeling assumptions (by phase)
 

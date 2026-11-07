@@ -1,11 +1,11 @@
 import type { IncomeBandKey } from "../../domain";
 
-/** Series colors, shared by the income chart and the retirement timeline. */
+/** Series colors, shared by the income chart and the band swatches. Each is at least 3:1 against white. */
 export const INCOME_BAND_COLORS: Record<IncomeBandKey, string> = {
   pensionFund: "#0b6e99",
-  providentFund: "#2dd4bf",
+  providentFund: "#0d9488",
   managersInsurance: "#6366f1",
-  studyFund: "#84cc16",
-  investments: "#94a3b8",
-  bituachLeumi: "#f59e0b",
+  studyFund: "#65a30d",
+  investments: "#64748b",
+  bituachLeumi: "#d97706",
 };

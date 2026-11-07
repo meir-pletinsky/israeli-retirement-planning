@@ -15,6 +15,9 @@ import {
 import type { ProfileData, RetirementScenario } from "../types";
 import { BacktestChart } from "./charts/BacktestChart";
 import { BACKTEST_COLOURS } from "./charts/backtestColours";
+import { ChartFrame } from "./charts/ChartFrame";
+import { BacktestTable } from "./charts/ChartTables";
+import { useChartTakeaways } from "./charts/chartTakeaways";
 import { ScenarioTitle } from "./ScenarioTag";
 
 interface HistoricalBacktestCardProps {
@@ -192,6 +195,7 @@ function Results({
   const band = successBand(result.successProbability);
   const { worstWindow } = result;
   const total = result.windows.length;
+  const backtestTakeaway = useChartTakeaways().backtest(result);
 
   return (
     <>
@@ -249,13 +253,20 @@ function Results({
       </p>
 
       <h3 className="mb-2 mt-5 text-sm font-semibold text-slate-700">{t("projections.history.chartTitle")}</h3>
-      <BacktestChart
-        windows={result.windows}
-        worstStartYear={worstWindow.startYear}
-        currentAge={result.currentAge}
-        drawdownStartAge={result.drawdownStartAge}
-        currencySymbol={currencySymbol}
-      />
+      <ChartFrame
+        takeaway={backtestTakeaway}
+        table={<BacktestTable windows={result.windows} caption={t("projections.history.chartTitle")} />}
+      >
+        <BacktestChart
+          name={t("projections.history.chartTitle")}
+          description={backtestTakeaway}
+          windows={result.windows}
+          worstStartYear={worstWindow.startYear}
+          currentAge={result.currentAge}
+          drawdownStartAge={result.drawdownStartAge}
+          currencySymbol={currencySymbol}
+        />
+      </ChartFrame>
       <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
         {(
           [

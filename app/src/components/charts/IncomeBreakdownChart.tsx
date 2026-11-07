@@ -17,6 +17,7 @@ import {
   type IncomeBreakdownPoint,
 } from "../../domain";
 import { BandSwatch } from "./BandSwatch";
+import { chartA11y } from "./chartA11y";
 import { formatAxisMoney } from "./formatAxisMoney";
 import { INCOME_BAND_COLORS } from "./incomeBandColors";
 
@@ -31,6 +32,10 @@ export interface IncomeBreakdownTexts {
 }
 
 interface IncomeBreakdownChartProps {
+  /** The chart's accessible name. */
+  name: string;
+  /** What the chart shows in a sentence, for screen readers. */
+  description: string;
   data: IncomeBreakdownPoint[];
   currencySymbol: string;
   labels: Record<IncomeBandKey, string>;
@@ -47,6 +52,8 @@ interface Series {
 const withdrawalKey = (band: IncomeBandKey) => `${band}Withdrawn`;
 
 export function IncomeBreakdownChart({
+  name,
+  description,
   data,
   currencySymbol,
   labels,
@@ -93,7 +100,7 @@ export function IncomeBreakdownChart({
   return (
     <div>
       <ResponsiveContainer width="100%" height={280}>
-        <BarChart data={rows} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+        <BarChart data={rows} margin={{ top: 8, right: 8, left: 8, bottom: 0 }} {...chartA11y(name, description)}>
           <defs>
             {withdrawals.map(({ band }) => (
               <pattern

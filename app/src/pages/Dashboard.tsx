@@ -8,6 +8,9 @@ import { AssumedRetirementAgeBanner } from "../components/AssumedRetirementAgeBa
 import { PathEventsList } from "../components/BalancePathNotes";
 import { BituachLeumiCard } from "../components/BituachLeumiCard";
 import { BudgetCard } from "../components/BudgetCard";
+import { ChartFrame } from "../components/charts/ChartFrame";
+import { NetWorthTable } from "../components/charts/ChartTables";
+import { useChartTakeaways } from "../components/charts/chartTakeaways";
 import { NetWorthChart } from "../components/charts/NetWorthChart";
 import { netWorthMarkers } from "../components/charts/netWorthMarkers";
 import { CoverNoticeCard } from "../components/CoverNoticeCard";
@@ -56,6 +59,7 @@ export function Dashboard() {
   const formatAge = useFormatAge();
   const { onboarded, profile } = useProfile();
   const currencySymbol = t("common.currencySymbol");
+  const takeaways = useChartTakeaways();
   // Only the success rate is shown here, so the search for a dependable spending level is skipped.
   const risk = useMemo(
     () => runMonteCarlo(profile, "standard", { findConfidentSpending: false }),
@@ -105,6 +109,7 @@ export function Dashboard() {
   const gaps = findDataGaps(profile);
   const coverNotices = findCoverNotices(profile);
   const money = (amount: number) => `${currencySymbol}${amount.toLocaleString()}`;
+  const netWorthTakeaway = takeaways.netWorth(balancePath.points, funding.shortfallAge);
   const timing = retirementWhen(profile, "standard");
   const assumedAges = assumedRetirementAges(profile);
   const ageText = (age: number, assumed: boolean) =>
@@ -317,13 +322,20 @@ export function Dashboard() {
           </Link>
         </div>
         <NetWorthBasisNote funding={funding} />
-        <NetWorthChart
-          data={balancePath.points}
-          markers={netWorthMarkers(eventGroups)}
-          currencySymbol={currencySymbol}
-          shortfallAge={funding.shortfallAge}
-          shortfallLabel={t("projections.basis.shortfallMarker")}
-        />
+        <ChartFrame
+          takeaway={netWorthTakeaway}
+          table={<NetWorthTable points={balancePath.points} caption={t("dashboard.chartTitle")} />}
+        >
+          <NetWorthChart
+            name={t("dashboard.chartTitle")}
+            description={netWorthTakeaway ?? t("dashboard.chartTitle")}
+            data={balancePath.points}
+            markers={netWorthMarkers(eventGroups)}
+            currencySymbol={currencySymbol}
+            shortfallAge={funding.shortfallAge}
+            shortfallLabel={t("projections.basis.shortfallMarker")}
+          />
+        </ChartFrame>
         <PathEventsList groups={eventGroups} funding={funding} />
         {isCouple && (
           <p className="mt-2 text-xs text-slate-500">{t("dashboard.householdChartNote")}</p>

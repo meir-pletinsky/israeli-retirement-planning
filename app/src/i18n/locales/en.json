@@ -22,6 +22,33 @@
     "currencySymbol": "\u20aa",
     "pickDate": "Pick a date"
   },
+  "charts": {
+    "compareName": "Income after tax for each compared retirement age",
+    "takeaway": {
+      "netWorth": "Net worth peaks at {{peak}} at age {{peakAge}} and ends at {{end}} at age {{endAge}}, in today's money.",
+      "netWorthRising": "Net worth grows to {{end}} by age {{endAge}}, in today's money.",
+      "netWorthShortfall": "Net worth peaks at {{peak}} at age {{peakAge}}, but your planned spending is no longer fully covered from age {{shortfallAge}}.",
+      "fan": "By age {{age}}, the middle 80% of simulated outcomes range from {{low}} to {{high}}, with a typical outcome of {{median}}, in today's money.",
+      "backtest": "Replaying {{total}} historical starting years, {{funded}} fund your planned spending to age {{age}}.",
+      "income": "Sustainable income is {{first}} a month at age {{firstAge}} and {{last}} at age {{lastAge}}, before tax, in today's money.",
+      "netIncome": "After tax, your lowest year is {{net}} a month at age {{age}}, when {{tax}} a month goes to tax.",
+      "netIncomePlanned": "After tax, your lowest year is {{net}} a month at age {{age}}, against planned spending of {{planned}} a month.",
+      "compare": "Retiring at {{fromAge}} gives {{fromNet}} a month after tax; retiring at {{toAge}} gives {{toNet}}.",
+      "compareOne": "Retiring at {{age}} gives {{net}} a month after tax."
+    },
+    "table": {
+      "age": "Age",
+      "netWorth": "Net worth",
+      "low": "Low end",
+      "median": "Typical (median)",
+      "high": "High end",
+      "startYear": "Starting year",
+      "result": "Result",
+      "finalNetWorth": "Net worth at the end",
+      "shortAt": "Ran short at age {{age}}",
+      "gross": "Income before tax"
+    }
+  },
   "nav": {
     "dashboard": "Dashboard",
     "myData": "My Data",
