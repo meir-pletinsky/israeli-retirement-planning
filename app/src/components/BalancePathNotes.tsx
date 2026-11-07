@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import type { BalancePath, PathEvent, PathEventGroup, SourceKind } from "../domain";
+import type { BalancePath, PathEvent, PathEventGroup, SourceKind, SpendingFunding } from "../domain";
 
 const isolate = (text: string) => `\u2066${text}\u2069`;
 
@@ -18,7 +18,7 @@ function useKindLabel() {
   return (kind: SourceKind) => t(KIND_LABELS[kind]);
 }
 
-function PathEventText({ event }: { event: PathEvent }) {
+function PathEventText({ event, drawing }: { event: PathEvent; drawing: boolean }) {
   const { t } = useTranslation();
   const kindLabel = useKindLabel();
   const currencySymbol = t("common.currencySymbol");
@@ -26,11 +26,14 @@ function PathEventText({ event }: { event: PathEvent }) {
   const age = isolate(String(event.age));
 
   if (event.type === "retirement") {
-    return (
-      <>
-        {t(event.household ? "projections.path.retireHousehold" : "projections.path.retire", { age })}
-      </>
-    );
+    const key = event.household
+      ? drawing
+        ? "projections.path.retireHousehold"
+        : "projections.path.retireHouseholdNoSpending"
+      : drawing
+        ? "projections.path.retire"
+        : "projections.path.retireNoSpending";
+    return <>{t(key, { age })}</>;
   }
   return (
     <>
@@ -46,16 +49,21 @@ function PathEventText({ event }: { event: PathEvent }) {
 
 interface PathEventsListProps {
   groups: readonly PathEventGroup[];
+  /** What the planned spending does to the savings; without it the list says nothing about spending. */
+  funding?: SpendingFunding;
 }
 
 /**
  * The events behind the steps of the balance chart, numbered like the lines on it: when drawing
- * on savings starts, and when a kind of savings stops being a balance because it became an
- * annuity (the chart shows the balance you could spend, and an annuity is paid as monthly income).
+ * on savings starts (or that nothing is drawn, when no spending is entered), and when a kind of
+ * savings stops being a balance because it became an annuity (the chart shows the balance you
+ * could spend, and an annuity is paid as monthly income). The age at which the planned spending
+ * goes unfunded follows, unnumbered, because the chart marks it with its own line.
  */
-export function PathEventsList({ groups }: PathEventsListProps) {
+export function PathEventsList({ groups, funding }: PathEventsListProps) {
   const { t } = useTranslation();
   if (groups.length === 0) return null;
+  const drawing = funding === undefined || funding.monthlySpending > 0;
 
   return (
     <section aria-labelledby="path-events-title" className="mt-3">
@@ -74,13 +82,24 @@ export function PathEventsList({ groups }: PathEventsListProps) {
             <span className="space-y-1">
               {group.events.map((event, eventIndex) => (
                 <span key={eventIndex} className="block">
-                  <PathEventText event={event} />
+                  <PathEventText event={event} drawing={drawing} />
                 </span>
               ))}
             </span>
           </li>
         ))}
       </ol>
+      {funding?.shortfallAge != null && (
+        <p className="mt-1.5 flex items-start gap-2 text-xs font-medium text-rose-700">
+          <span
+            aria-hidden="true"
+            className="mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-rose-50 text-[10px] font-semibold"
+          >
+            !
+          </span>
+          <span>{t("projections.path.shortfall", { age: isolate(String(funding.shortfallAge)) })}</span>
+        </p>
+      )}
     </section>
   );
 }

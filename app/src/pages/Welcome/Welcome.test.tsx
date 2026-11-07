@@ -131,7 +131,7 @@ describe("Welcome page — loading a saved file", () => {
       new File([saved], "israeli-retirement-planning-2026-01-01.json", { type: "application/json" }),
     );
 
-    expect(await screen.findByText("Projected Monthly Income After Tax")).toBeInTheDocument();
+    expect(await screen.findByText("Sustainable income after tax")).toBeInTheDocument();
   });
 
   it("shows an error for a file that is not a saved plan", async () => {

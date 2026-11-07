@@ -169,7 +169,10 @@
       "source": "Source: Israel Tax Authority"
     },
     "kpi": {
-      "monthlyIncome": "Projected Monthly Income After Tax",
+      "monthlyIncome": "Sustainable income after tax",
+      "incomeSustained": "The most your savings can pay each month so that they last to age {{age}}.",
+      "incomePlanFunded": "At your planned {{amount}} a month your usable savings last through age {{age}}.",
+      "incomePlanShortfall": "At your planned {{amount}} a month your usable savings run out at age {{age}}.",
       "incomeBasis": "The lowest year of retirement, at your age {{age}}. After tax, in today's money.",
       "incomeReconciliation": "{{gross}} before tax, minus {{tax}} tax",
       "incomeNoTax": "{{gross}} before tax; no tax expected",
@@ -1203,7 +1206,10 @@
     "path": {
       "title": "What shapes this path",
       "retire": "Age {{age}}: you retire and start drawing on your savings.",
+      "retireNoSpending": "Age {{age}}: you retire. No spending is entered, so nothing is drawn from your savings.",
       "retireHousehold": "Age {{age}}: the later of you two has retired, and the household starts drawing on its savings.",
+      "retireHouseholdNoSpending": "Age {{age}}: the later of you two has retired. No spending is entered, so nothing is drawn from your savings.",
+      "shortfall": "Age {{age}}: at your planned spending your usable savings run out.",
       "annuity": "Age {{age}}: {{kind}}. The {{capital}} of capital becomes an annuity of {{monthly}} a month. It is paid out as monthly income, so it is no longer a balance you can spend and it leaves the line.",
       "tableNote": "Balances are at the end of each year, in today's money. Capital that has become an annuity is no longer a balance: it is paid out as monthly income. Capital that is still locked until its access age is included.",
       "poolNote": "Bank deposits, shares and other holdings are modeled as one investments pool, shown in the {{pool}} column. The model has no separate path for each of them.",

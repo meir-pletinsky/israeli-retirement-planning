@@ -2203,6 +2203,17 @@ of its section 10 (UXB-14 is skipped on request).
       "—" with a reason when no spending is planned or no savings are spendable.
       `RetirementKpis.withdrawalRate` (`domain/dashboardKpis.ts`) changed meaning accordingly.
       Tests: `dashboardKpis.test.ts`, `Dashboard.test.tsx`.
+- [x] **UXB-02 The Dashboard says which spending each figure follows.**
+      The income KPI (now "Sustainable income after tax") says it is the most the savings can pay
+      so they last to age 90, and adds the plan line "At your planned ₪X a month your usable
+      savings last through age 90 / run out at age N" (`PlannedSpendingLine`,
+      `components/SpendingBasisNotes.tsx`). The net-worth chart carries the same basis note as
+      the Projections page (`NetWorthBasisNote`) and the red "Unfunded from here" marker. "What
+      shapes this path" (`PathEventsList`, shared with Projections) gained an unnumbered
+      "Age N: at your planned spending your usable savings run out" row, and with no spending
+      entered says "No spending is entered, so nothing is drawn" instead of "start drawing".
+      Tests: `Dashboard.test.tsx` ("which spending the figures follow"), plus the KPI rename in
+      `App.test.tsx`, `Welcome.test.tsx`.
 
 ## Modeling assumptions (by phase)
 

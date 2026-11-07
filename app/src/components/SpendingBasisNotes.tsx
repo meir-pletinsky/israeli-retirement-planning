@@ -45,3 +45,20 @@ export function IncomeBasisNote({ funding }: { funding: SpendingFunding }) {
     </div>
   );
 }
+
+/**
+ * How long the savings last at the planned spending, for the screens that lead with the
+ * sustainable income: the two answers differ whenever the plan asks for more than the savings
+ * can pay to the horizon. Nothing when no spending is entered.
+ */
+export function PlannedSpendingLine({ funding }: { funding: SpendingFunding }) {
+  const { t, amount, age } = useSpendingText(funding);
+  if (funding.monthlySpending <= 0) return null;
+  return (
+    <p>
+      {age === null
+        ? t("dashboard.kpi.incomePlanFunded", { amount, age: MAX_PLANNING_AGE })
+        : t("dashboard.kpi.incomePlanShortfall", { amount, age })}
+    </p>
+  );
+}

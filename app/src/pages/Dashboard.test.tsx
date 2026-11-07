@@ -56,7 +56,7 @@ describe("Dashboard", () => {
     expect(
       within(netWorthKpi).getByText(`\u20aa${netWorthToday.toLocaleString()}`),
     ).toBeInTheDocument();
-    const incomeKpi = screen.getByText("Projected Monthly Income After Tax").parentElement;
+    const incomeKpi = screen.getByText("Sustainable income after tax").parentElement;
     expect(
       within(incomeKpi as HTMLElement).getByText(`\u20aa${netMonthlyIncome.toLocaleString()}`),
     ).toBeInTheDocument();
@@ -456,7 +456,7 @@ describe("Dashboard", () => {
 
         renderWithProviders(<Dashboard />);
 
-        expect(await screen.findByText("Projected Monthly Income After Tax")).toBeInTheDocument();
+        expect(await screen.findByText("Sustainable income after tax")).toBeInTheDocument();
         expect(screen.getByText("Years to Retirement")).toBeInTheDocument();
         expect(screen.queryByText(/Your spouse/)).not.toBeInTheDocument();
         expect(screen.queryByText(/Each spouse is taxed/)).not.toBeInTheDocument();
@@ -636,7 +636,7 @@ describe("Dashboard", () => {
         expect.stringContaining("gov.il"),
       );
 
-      const incomeKpi = screen.getByText("Projected Monthly Income After Tax").parentElement;
+      const incomeKpi = screen.getByText("Sustainable income after tax").parentElement;
       expect(within(incomeKpi as HTMLElement).getByText("\u20aa14,940")).toBeInTheDocument();
     });
 
@@ -652,7 +652,7 @@ describe("Dashboard", () => {
 
       renderWithProviders(<Dashboard />);
 
-      const incomeKpi = (await screen.findByText("Projected Monthly Income After Tax"))
+      const incomeKpi = (await screen.findByText("Sustainable income after tax"))
         .parentElement as HTMLElement;
       expect(
         within(incomeKpi).getByText(
@@ -676,7 +676,7 @@ describe("Dashboard", () => {
 
       renderWithProviders(<Dashboard />);
 
-      const incomeKpi = (await screen.findByText("Projected Monthly Income After Tax"))
+      const incomeKpi = (await screen.findByText("Sustainable income after tax"))
         .parentElement as HTMLElement;
       expect(
         within(incomeKpi).getByText(
@@ -1724,6 +1724,75 @@ describe("Dashboard", () => {
 
       const events = await screen.findByRole("region", { name: "What shapes this path" });
       expect(plain(events)).toContain("the later of you two has retired, and the household starts drawing on its savings.");
+    });
+  });
+
+  describe("which spending the figures follow", () => {
+    // 0% real return: 120,000 pays 12,000 a year for ten years, so 1,000 a month runs out at 77.
+    const retiring = {
+      age: 66,
+      retirementAge: 67,
+      investmentReturnPct: 4,
+      inflationPct: 4,
+      pensionBalances: [120_000],
+    };
+    const plain = (element: HTMLElement) => element.textContent!.replace(/[\u2066\u2069]/g, "");
+
+    async function renderDashboard(profile: ReturnType<typeof buildTestProfile>) {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+      const incomeKpi = (await screen.findByText("Sustainable income after tax")).parentElement as HTMLElement;
+      return { incomeKpi, pathEvents: screen.queryByRole("region", { name: "What shapes this path" }) };
+    }
+
+    it("says the income KPI is sized to last to the horizon and where the planned spending runs out", async () => {
+      const { incomeKpi, pathEvents } = await renderDashboard(
+        buildTestProfile({ ...retiring, retirementMonthlyExpenses: 1_000 }),
+      );
+
+      expect(plain(incomeKpi)).toContain("The most your savings can pay each month so that they last to age 90.");
+      expect(plain(incomeKpi)).toContain("At your planned ₪1,000 a month your usable savings run out at age 77.");
+      expect(plain(screen.getByText(/Your savings if you spend/))).toContain(
+        "From age 77 your usable savings no longer cover it",
+      );
+      expect(plain(pathEvents as HTMLElement)).toContain(
+        "Age 77: at your planned spending your usable savings run out.",
+      );
+      // The unfunded age is not one of the numbered events behind the chart's lines.
+      expect(within(pathEvents as HTMLElement).getAllByRole("listitem")).toHaveLength(1);
+    });
+
+    it("says the savings last when the planned spending is funded", async () => {
+      const { incomeKpi, pathEvents } = await renderDashboard(
+        buildTestProfile({ ...retiring, retirementMonthlyExpenses: 100 }),
+      );
+
+      expect(plain(incomeKpi)).toContain("At your planned ₪100 a month your usable savings last through age 90.");
+      expect(screen.getByText(/Your usable savings cover it through age 90/)).toBeInTheDocument();
+      expect(screen.queryByText(/usable savings run out/)).not.toBeInTheDocument();
+      expect(plain(pathEvents as HTMLElement)).not.toContain("run out");
+    });
+
+    it("says nothing is drawn when no spending is entered", async () => {
+      const { incomeKpi, pathEvents } = await renderDashboard(buildTestProfile(retiring));
+
+      expect(plain(incomeKpi)).not.toContain("At your planned");
+      expect(screen.getByText(/No retirement spending is entered, so nothing is drawn/)).toBeInTheDocument();
+      expect(plain(pathEvents as HTMLElement)).toContain(
+        "Age 67: you retire. No spending is entered, so nothing is drawn from your savings.",
+      );
+      expect(plain(pathEvents as HTMLElement)).not.toContain("start drawing");
+    });
+
+    it("words the no-spending retirement for a household", async () => {
+      const { pathEvents } = await renderDashboard(
+        buildTestProfile({ ...retiring, maritalStatus: "married", spouse: { age: 64, retirementAge: 66 } }),
+      );
+
+      expect(plain(pathEvents as HTMLElement)).toContain(
+        "the later of you two has retired. No spending is entered, so nothing is drawn from your savings.",
+      );
     });
   });
 });

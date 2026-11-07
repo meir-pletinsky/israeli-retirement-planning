@@ -21,6 +21,7 @@ import { RetireAgeChecksCard } from "../components/RetireAgeChecksCard";
 import { RetirementSnapshot } from "../components/RetirementSnapshot";
 import { formatSuccessPercent } from "../components/riskFormat";
 import { SourceAccessCard } from "../components/SourceAccessCard";
+import { NetWorthBasisNote, PlannedSpendingLine } from "../components/SpendingBasisNotes";
 import { StatusBanner } from "../components/StatusBanner";
 import { TaxCard } from "../components/TaxCard";
 import { useFormatAge } from "../components/useFormatAge";
@@ -41,6 +42,7 @@ import {
   groupPathEvents,
   irregularCosts,
   projectBalancePath,
+  projectSpendingFunding,
   retirementWhen,
   runMonteCarlo,
   successBand,
@@ -90,6 +92,7 @@ export function Dashboard() {
 
   const balancePath = projectBalancePath(profile, "standard");
   const eventGroups = groupPathEvents(balancePath.events);
+  const funding = projectSpendingFunding(profile, "standard");
   const netWorthToday = aggregateCurrentNetWorth(profile);
   const { monthlyIncomeTodayMoney, members, access } = estimateRetirementIncome(profile, "standard");
   const isCouple = members.length > 1;
@@ -122,21 +125,25 @@ export function Dashboard() {
           label={t("dashboard.kpi.monthlyIncome")}
           value={money(netIncome.netMonthlyIncome)}
           note={
-            netIncome.lowestNetAge === null ? undefined : (
-              <div className="flex flex-col gap-1">
-                <p>
-                  {t("dashboard.kpi.incomeBasis", { age: Math.floor(netIncome.lowestNetAge) })}
-                </p>
-                <p>
-                  {netIncome.taxMonthly > 0
-                    ? t("dashboard.kpi.incomeReconciliation", {
-                        gross: money(netIncome.grossMonthlyIncome),
-                        tax: money(netIncome.taxMonthly),
-                      })
-                    : t("dashboard.kpi.incomeNoTax", { gross: money(netIncome.grossMonthlyIncome) })}
-                </p>
-              </div>
-            )
+            <div className="flex flex-col gap-1">
+              <p>{t("dashboard.kpi.incomeSustained", { age: MAX_PLANNING_AGE })}</p>
+              {netIncome.lowestNetAge !== null && (
+                <>
+                  <p>
+                    {t("dashboard.kpi.incomeBasis", { age: Math.floor(netIncome.lowestNetAge) })}
+                  </p>
+                  <p>
+                    {netIncome.taxMonthly > 0
+                      ? t("dashboard.kpi.incomeReconciliation", {
+                          gross: money(netIncome.grossMonthlyIncome),
+                          tax: money(netIncome.taxMonthly),
+                        })
+                      : t("dashboard.kpi.incomeNoTax", { gross: money(netIncome.grossMonthlyIncome) })}
+                  </p>
+                </>
+              )}
+              <PlannedSpendingLine funding={funding} />
+            </div>
           }
         />
         <KpiCard
@@ -296,12 +303,15 @@ export function Dashboard() {
             {t("dashboard.adjustAssumptions")}
           </Link>
         </div>
+        <NetWorthBasisNote funding={funding} />
         <NetWorthChart
           data={balancePath.points}
           markers={netWorthMarkers(eventGroups)}
           currencySymbol={currencySymbol}
+          shortfallAge={funding.shortfallAge}
+          shortfallLabel={t("projections.basis.shortfallMarker")}
         />
-        <PathEventsList groups={eventGroups} />
+        <PathEventsList groups={eventGroups} funding={funding} />
         {isCouple && (
           <p className="mt-2 text-xs text-slate-500">{t("dashboard.householdChartNote")}</p>
         )}

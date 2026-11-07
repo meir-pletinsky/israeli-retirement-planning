@@ -197,7 +197,7 @@ export function Projections() {
               shortfallAge={funding.shortfallAge}
               shortfallLabel={t("projections.basis.shortfallMarker")}
             />
-            <PathEventsList groups={eventGroups} />
+            <PathEventsList groups={eventGroups} funding={funding} />
           </>
         ) : (
           <BalanceTable path={balancePath} />

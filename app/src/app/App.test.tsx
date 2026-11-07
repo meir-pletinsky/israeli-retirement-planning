@@ -28,7 +28,7 @@ describe("App start page", () => {
 
     renderWithProviders(<App />);
 
-    expect(await screen.findByText("Projected Monthly Income After Tax")).toBeInTheDocument();
+    expect(await screen.findByText("Sustainable income after tax")).toBeInTheDocument();
     expect(screen.queryByText(WELCOME_TITLE)).not.toBeInTheDocument();
   });
 
@@ -38,7 +38,7 @@ describe("App start page", () => {
 
     renderWithProviders(<App />);
 
-    expect(await screen.findByText("Projected Monthly Income After Tax")).toBeInTheDocument();
+    expect(await screen.findByText("Sustainable income after tax")).toBeInTheDocument();
     expect(screen.queryByText(WELCOME_TITLE)).not.toBeInTheDocument();
   });
 
