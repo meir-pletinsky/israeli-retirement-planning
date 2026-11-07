@@ -180,6 +180,25 @@ describe("chart tables", () => {
       expect(table.querySelectorAll("tbody th[scope='row']")).toHaveLength(rows);
     }
   });
+
+  it("shows every row and leaves the vertical scrolling to the page", async () => {
+    const longRun = Array.from({ length: 40 }, (_, index) => ({ age: 60 + index, netWorth: 1_000_000 - index }));
+    renderWithProviders(
+      <>
+        <NetWorthTable points={longRun} caption="Long net worth" />
+        <FanTable
+          fan={longRun.map((point) => ({ age: point.age, yearsFromNow: point.age - 60, p10: 1, p50: 2, p90: 3 }))}
+          caption="Long fan"
+        />
+      </>,
+    );
+    await screen.findByRole("table", { name: "Long net worth" });
+    for (const caption of ["Long net worth", "Long fan"]) {
+      const table = screen.getByRole("table", { name: caption });
+      expect(table.querySelectorAll("tbody tr")).toHaveLength(40);
+      expect(table.closest(".overflow-auto, .overflow-y-auto, [class*='max-h-']")).toBeNull();
+    }
+  });
 });
 
 describe("chart captions and tooltips", () => {

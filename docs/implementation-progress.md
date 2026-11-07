@@ -2587,6 +2587,18 @@ of its section 10 (UXB-14 is skipped on request).
       only got the captions. The plot area is about 14 px shorter and the Y axis 20 px wider
       because of the captions. Tests: `chartConsistency.test.tsx` (captions on each chart,
       tooltip content, hook texts), `BalancesByKindChart.test.tsx`.
+- [x] **UXB-28 Nested scrolling inside the "Show as table" tables**. The yearly tables
+      (net worth, balance by kind, income by source, net income, cash flow, the market
+      simulation and the backtest) sat in a fixed-height box with its own scrollbar, so
+      scrolling the page over one scrolled the table instead and only about nine rows were
+      visible. They now show every row and the page does the scrolling (the net-worth table is
+      about 36 rows). Only a table wider than the screen scrolls, and only sideways, with the
+      age column kept in view on the balance and cash-flow tables. The sticky column header
+      was dropped with the inner scroll area, because a sticky header cannot work inside the
+      sideways-scrolling box and a page-level one would have to sit below the sticky plan bar
+      and the mobile header, whose heights vary. Tests: `chartConsistency.test.tsx`,
+      `Projections.test.tsx`, `CashFlowCard.test.tsx` (no vertical scroll area around the
+      table, every row present).
 
 ## Modeling assumptions (by phase)
 

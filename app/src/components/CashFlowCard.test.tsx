@@ -83,6 +83,7 @@ describe("CashFlowCard", () => {
     const table = screen.getByRole("table", { name: "Cash flow by year" });
     const rows = within(table).getAllByRole("row").slice(1);
     expect(rows).toHaveLength(plan.years.length);
+    expect(table.closest(".overflow-auto, .overflow-y-auto, [class*='max-h-']")).toBeNull();
 
     const marked = rows.filter((row) => row.getAttribute("data-first-unfunded") === "true");
     expect(marked).toHaveLength(1);

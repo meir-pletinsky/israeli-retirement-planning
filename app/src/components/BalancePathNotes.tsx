@@ -166,21 +166,19 @@ export function BalanceTable({ path }: BalanceTableProps) {
         )}
         {unvestedText && <p>{unvestedText}</p>}
       </div>
-      <div className="max-h-72 overflow-auto">
+      <div className="overflow-x-auto">
         <table className="w-full min-w-max text-sm">
           <thead>
             <tr>
-              <th className="sticky start-0 top-0 z-10 bg-white py-1 pe-3 text-start text-slate-500">
+              <th className="sticky start-0 z-10 bg-white py-1 pe-3 text-start text-slate-500">
                 {t("myData.steps.personal.age")}
               </th>
               {path.kinds.map((kind) => (
-                <th key={kind} className="sticky top-0 bg-white py-1 pe-3 text-start font-medium text-slate-500">
+                <th key={kind} className="py-1 pe-3 text-start font-medium text-slate-500">
                   {kindLabel(kind)}
                 </th>
               ))}
-              <th className="sticky top-0 bg-white py-1 text-start font-semibold text-slate-700">
-                {t("projections.path.total")}
-              </th>
+              <th className="py-1 text-start font-semibold text-slate-700">{t("projections.path.total")}</th>
             </tr>
           </thead>
           <tbody>

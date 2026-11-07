@@ -18,19 +18,20 @@ interface DataTableProps {
   rows: ReactNode[][];
 }
 
+/**
+ * Every row is shown and the page does the scrolling: a table with its own vertical scrollbar
+ * would catch the page scroll while the pointer is over it. Only a table wider than the screen
+ * scrolls, and only sideways.
+ */
 function DataTable({ caption, headers, rows }: DataTableProps) {
   return (
-    <div className="max-h-72 overflow-auto">
+    <div className="overflow-x-auto">
       <table className="w-full min-w-max text-sm">
         <caption className="sr-only">{caption}</caption>
         <thead>
           <tr>
             {headers.map((header, index) => (
-              <th
-                key={index}
-                scope="col"
-                className="sticky top-0 bg-white py-1 pe-3 text-start font-medium text-slate-500"
-              >
+              <th key={index} scope="col" className="py-1 pe-3 text-start font-medium text-slate-500">
                 {header}
               </th>
             ))}

@@ -2012,6 +2012,7 @@ describe("Projections", () => {
       const amounts = cells.slice(1).map((cell) => Number(cell.textContent!.replace(/[₪,]/g, "")));
       expect(cells[0]).toHaveTextContent("50");
       expect(amounts[0] + amounts[1] + amounts[2]).toBe(amounts[3]);
+      expect(table.closest(".overflow-auto, .overflow-y-auto, [class*='max-h-']")).toBeNull();
       expect(within(card).queryByRole("region", { name: "What shapes this path" })).not.toBeInTheDocument();
     });
 

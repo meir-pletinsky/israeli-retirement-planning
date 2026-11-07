@@ -11,9 +11,10 @@ interface CashFlowTableProps {
 }
 
 /**
- * The year-by-year cash flow at the planned spending. The age stays in view while the table
- * scrolls sideways, and the first year the usable savings cannot pay the spending is marked with
- * words, not only a color, so it can be found at a glance.
+ * The year-by-year cash flow at the planned spending. Every year is shown and the page does the
+ * scrolling; the age stays in view while a table wider than the screen scrolls sideways. The
+ * first year the usable savings cannot pay the spending is marked with words, not only a color,
+ * so it can be found at a glance.
  */
 export function CashFlowTable({ years, columns, caption }: CashFlowTableProps) {
   const { t } = useTranslation();
@@ -22,18 +23,15 @@ export function CashFlowTable({ years, columns, caption }: CashFlowTableProps) {
   const firstShort = years.find((year) => year.short);
 
   return (
-    <div className="max-h-96 overflow-auto">
+    <div className="overflow-x-auto">
       <table className="w-full min-w-max text-sm">
         <caption className="sr-only">{caption}</caption>
         <thead>
           <tr>
-            <th
-              scope="col"
-              className="sticky start-0 top-0 z-20 bg-white py-1 pe-3 text-start font-medium text-slate-500"
-            >
+            <th scope="col" className="sticky start-0 z-10 bg-white py-1 pe-3 text-start font-medium text-slate-500">
               {t("charts.table.age")}
             </th>
-            <th scope="col" className="sticky top-0 z-10 bg-white py-1 pe-3 text-start font-medium text-slate-500">
+            <th scope="col" className="py-1 pe-3 text-start font-medium text-slate-500">
               {t("projections.cashFlow.year")}
             </th>
             {columns.map((column) => (
@@ -41,7 +39,7 @@ export function CashFlowTable({ years, columns, caption }: CashFlowTableProps) {
                 key={column.key}
                 scope="col"
                 className={clsx(
-                  "sticky top-0 z-10 bg-white py-1 pe-3 text-start font-medium",
+                  "py-1 pe-3 text-start font-medium",
                   column.kind === "unfunded" ? "text-rose-700" : "text-slate-500",
                   column.kind === "income" && "font-semibold text-slate-700",
                 )}
