@@ -1691,6 +1691,82 @@ describe("Projections", () => {
     });
   });
 
+  describe("cash flow by year", () => {
+    // 0% real return: 120,000 pays 12,000 a year for ten years, so 1,000 a month runs out at 77.
+    const retiring = {
+      age: 66,
+      retirementAge: 67,
+      investmentReturnPct: 4,
+      inflationPct: 4,
+      pensionBalances: [120_000],
+    };
+    const plain = (element: HTMLElement) => element.textContent!.replace(/[\u2066\u2069]/g, "");
+
+    async function renderPlan(monthlyExpenses?: number) {
+      await saveProfileToDb(buildTestProfile({ ...retiring, retirementMonthlyExpenses: monthlyExpenses }));
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+      await screen.findByRole("heading", { name: "Net Worth Projection" });
+    }
+
+    it("shows the cash flow at the planned spending and links to it from the net-worth chart when unfunded", async () => {
+      await renderPlan(1_000);
+
+      const card = screen.getByRole("region", { name: "Cash flow by year" });
+      expect(plain(card)).toContain("₪1,000 a month");
+      expect(plain(card)).toMatch(/fully covered up to age 76/);
+      const link = screen.getByRole("link", { name: "See the year-by-year cash flow" });
+      expect(link).toHaveAttribute("href", "#cash-flow");
+    });
+
+    it("has no link to the cash flow when the planned spending is covered", async () => {
+      await renderPlan(100);
+
+      expect(screen.getByRole("region", { name: "Cash flow by year" })).toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "See the year-by-year cash flow" })).not.toBeInTheDocument();
+    });
+
+    it("leaves out the cash flow when no spending is entered", async () => {
+      await renderPlan();
+
+      expect(screen.queryByRole("region", { name: "Cash flow by year" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("group", { name: "What the timeline shows" })).not.toBeInTheDocument();
+    });
+
+    it("breaks the net-worth chart into the kinds of savings", async () => {
+      await renderPlan(1_000);
+
+      const card = screen.getByRole("heading", { name: "Net Worth Projection" }).parentElement!.parentElement!
+        .parentElement!;
+      expect(within(card).getAllByText("Pension Fund").length).toBeGreaterThan(0);
+    });
+
+    it("lets the timeline switch from the sustainable income to the planned spending", async () => {
+      const user = userEvent.setup();
+      await renderPlan(1_000);
+
+      const timeline = screen.getByRole("region", { name: "Retirement timeline" });
+      const sustainable = within(timeline).getByRole("button", { name: "Sustainable income" });
+      const planned = within(timeline).getByRole("button", { name: "At my planned spending" });
+      expect(sustainable).toHaveAttribute("aria-pressed", "true");
+      expect(planned).toHaveAttribute("aria-pressed", "false");
+      expect(within(timeline).queryByText(/Unfunded/)).not.toBeInTheDocument();
+
+      await user.click(planned);
+
+      expect(planned).toHaveAttribute("aria-pressed", "true");
+      expect(sustainable).toHaveAttribute("aria-pressed", "false");
+      expect(plain(timeline)).toContain("Your planned spending of ₪1,000 a month, year by year, before tax");
+      expect(within(timeline).getByText(/Unfunded\s*₪/)).toBeInTheDocument();
+      expect(within(timeline).queryByText(/does not change when you change it/)).not.toBeInTheDocument();
+
+      await user.click(sustainable);
+
+      expect(within(timeline).queryByText(/Unfunded/)).not.toBeInTheDocument();
+      expect(within(timeline).getByText(/does not change when you change it/)).toBeInTheDocument();
+    });
+  });
+
   describe("what the risk tests rest on", () => {
     const REGION = "What the risk tests rest on";
     const plain = (element: HTMLElement) => element.textContent!.replace(/[\u2066\u2069]/g, "");

@@ -19,6 +19,11 @@ export interface TimelineSegment {
   withdrawals: Partial<Record<IncomeBandKey, number>>;
   /** Average total monthly income over the period (today's money). */
   monthlyIncome: number;
+  /**
+   * Planned basis only: the average monthly spending nobody pays in the period. Absent when the
+   * period is fully funded, and always absent on the sustainable basis.
+   */
+  unfunded?: number;
 }
 
 /**
@@ -33,7 +38,7 @@ export function buildRetirementTimeline(points: IncomeBreakdownPoint[]): Timelin
   const signature = (point: IncomeBreakdownPoint) =>
     activeBands(point)
       .map((band) => `${band}:${point.withdrawn[band] > 0 ? "w" : ""}${recurringAmount(point, band) > 0 ? "p" : ""}`)
-      .join();
+      .join() + ((point.unfunded ?? 0) > 0 ? "|unfunded" : "");
 
   const groups: { bands: IncomeBandKey[]; signature: string; points: IncomeBreakdownPoint[] }[] = [];
   for (const point of points) {
@@ -59,6 +64,7 @@ export function buildRetirementTimeline(points: IncomeBreakdownPoint[]): Timelin
       const recurring = average((point) => recurringAmount(point, band));
       if (recurring > 0) payments[band] = recurring;
     }
+    const unfunded = average((point) => point.unfunded ?? 0);
     return {
       fromAge: members[0].age,
       toAge: members[members.length - 1].age,
@@ -69,6 +75,7 @@ export function buildRetirementTimeline(points: IncomeBreakdownPoint[]): Timelin
       monthlyIncome: average((point) =>
         INCOME_BAND_KEYS.reduce((sum, band) => sum + point[band], 0),
       ),
+      ...(unfunded > 0 ? { unfunded } : {}),
     };
   });
 }

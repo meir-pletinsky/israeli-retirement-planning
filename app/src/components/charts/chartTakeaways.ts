@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   INCOME_BAND_KEYS,
   MAX_PLANNING_AGE,
+  type CashFlowPlan,
   type HistoricalBacktestResult,
   type IncomeBreakdownPoint,
   type MonteCarloFanPoint,
@@ -73,6 +74,29 @@ export function useChartTakeaways() {
         first: money(total(first)),
         firstAge: age(first.age),
         last: money(total(last)),
+        lastAge: age(last.age),
+      });
+    },
+
+    cashFlow(plan: CashFlowPlan): string | null {
+      const last = plan.years[plan.years.length - 1];
+      if (!last) return null;
+      const planned = money(plan.monthlySpending);
+      if (plan.firstUnfundedAge === null) {
+        return t("charts.takeaway.cashFlowFunded", { planned, lastAge: age(last.age) });
+      }
+      if (plan.firstUnfundedAge === plan.years[0].age) {
+        return t("charts.takeaway.cashFlowFromStart", {
+          planned,
+          age: age(plan.firstUnfundedAge),
+          unfunded: money(last.unfunded),
+          lastAge: age(last.age),
+        });
+      }
+      return t("charts.takeaway.cashFlowShortfall", {
+        planned,
+        coveredTo: age(plan.firstUnfundedAge - 1),
+        unfunded: money(last.unfunded),
         lastAge: age(last.age),
       });
     },

@@ -2398,6 +2398,30 @@ of its section 10 (UXB-14 is skipped on request).
       since the last export). `resetProfile` / `clearAllData` clear all of this. Tests:
       `backupReminder.test.ts`, `persistentStorage.test.ts`, `db.test.ts`, `dates.test.ts`,
       `AppShell.test.tsx`, `Settings.test.tsx`, `StepFooter.test.tsx`, `ProfileContext.test.tsx`.
+- [x] **UXB-15 / UXB-34 Year-by-year cash flow at the planned spending, and the balances by
+      kind of savings.** Projections gets a "Cash flow by year" card (`CashFlowCard`,
+      `#cash-flow`) built from `projectCashFlow` (`domain/cashFlow.ts`), the planned-spending
+      counterpart of the sustainable-income charts. For each year of retirement it shows, as
+      monthly averages in today's money: Bituach Leumi, annuities, the withdrawal from each kind
+      of savings, the total income, the estimated tax, the spending (essential and other when the
+      budget is itemised), survivors'-cover premiums, and the **unfunded** part nobody pays. The
+      chart is the stacked income chart with a dashed planned-spending line and a crosshatched
+      red unfunded bar on top; the table (age column sticky, first unfunded year marked in words,
+      "Unfunded from here") and a "Download as CSV" file (`storage/csv.ts`, BOM + CRLF, same
+      columns as the table via `useCashFlowColumns`) show the same figures. The first unfunded
+      age follows the same rule as the net-worth line (`projectSpendingFunding`), and a test
+      asserts they agree. The net-worth chart on Projections is now a stacked area by kind of
+      savings (`BalancesByKindChart`, same colors as the income charts) with the same step
+      markers and the unfunded marker, and links to the cash flow when part is unfunded. The
+      Retirement timeline gets a switch, "Sustainable income" (default, as before) or "At my
+      planned spending"; the planned basis shows the unfunded amount per period, and "Nothing
+      pays" when the savings are used up. Modeling choices: the tax is shown but not added to the
+      spending to be funded (as on the Net Worth line); large irregular costs have no due years,
+      so they are spread evenly into the monthly spending, with a note; the planned line excludes
+      cover premiums; investments are split by kind only, not by holding (that needs UXB-08). The
+      Dashboard keeps its single net-worth line. Tests: `cashFlow.test.ts`, `csv.test.ts`,
+      `CashFlowCard.test.tsx`, `BalancesByKindChart.test.tsx`, `RetirementTimeline.test.tsx`,
+      `chartTakeaways.test.tsx`, `Projections.test.tsx`.
 
 ## Modeling assumptions (by phase)
 

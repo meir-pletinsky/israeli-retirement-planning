@@ -7,19 +7,29 @@ import {
 
 const EXPORT_FILENAME_PREFIX = "israeli-retirement-planning";
 
-/** Triggers a browser download of `json` as `<prefix>-<today>.json`. */
-export function downloadJsonFile(json: string, nameSuffix = ""): void {
-  const blob = new Blob([json], { type: "application/json" });
+/** Triggers a browser download of `content` as `<prefix><nameSuffix>-<today>.<extension>`. */
+function downloadFile(content: string, mimeType: string, extension: string, nameSuffix: string): void {
+  const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const date = new Date().toISOString().slice(0, 10);
 
   const link = document.createElement("a");
   link.href = url;
-  link.download = `${EXPORT_FILENAME_PREFIX}${nameSuffix}-${date}.json`;
+  link.download = `${EXPORT_FILENAME_PREFIX}${nameSuffix}-${date}.${extension}`;
   document.body.appendChild(link);
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+/** Triggers a browser download of `json` as `<prefix>-<today>.json`. */
+export function downloadJsonFile(json: string, nameSuffix = ""): void {
+  downloadFile(json, "application/json", "json", nameSuffix);
+}
+
+/** Triggers a browser download of `csv` (see `toCsv`) as `<prefix><nameSuffix>-<today>.csv`. */
+export function downloadCsvFile(csv: string, nameSuffix = ""): void {
+  downloadFile(csv, "text/csv;charset=utf-8", "csv", nameSuffix);
 }
 
 /** Triggers a browser download of the given profile as a timestamped JSON file. */

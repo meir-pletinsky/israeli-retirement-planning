@@ -21,6 +21,8 @@ interface RetirementTimelineProps {
   scenarioTag?: ReactNode;
   /** Says what the income figures are, under the intro. */
   basisNote?: ReactNode;
+  /** A switch between the bases the timeline can show, under the intro. */
+  controls?: ReactNode;
 }
 
 export function RetirementTimeline({
@@ -30,6 +32,7 @@ export function RetirementTimeline({
   spouseAgeAt,
   scenarioTag,
   basisNote,
+  controls,
 }: RetirementTimelineProps) {
   const { t } = useTranslation();
   const formatRange = (from: number, to: number) =>
@@ -44,6 +47,7 @@ export function RetirementTimeline({
         {t("projections.timeline.title")}
       </ScenarioTitle>
       <p className="mt-1 text-xs text-slate-500">{t("projections.timeline.intro")}</p>
+      {controls}
       {basisNote}
       <div className="mt-3 overflow-x-auto">
         <table className="w-full text-sm">
@@ -97,11 +101,20 @@ export function RetirementTimeline({
                         </div>
                       );
                     })}
+                    {segment.bands.length === 0 && segment.unfunded !== undefined && (
+                      <p className="text-xs text-slate-500">{t("projections.timeline.nothingPays")}</p>
+                    )}
                   </div>
                 </td>
                 <td className="py-2 font-medium tabular-nums">
                   {currencySymbol}
                   {segment.monthlyIncome.toLocaleString()}
+                  {segment.unfunded !== undefined && (
+                    <span className="block text-xs font-semibold text-rose-700">
+                      {t("projections.cashFlow.unfunded")} {currencySymbol}
+                      {Math.round(segment.unfunded).toLocaleString()}
+                    </span>
+                  )}
                 </td>
               </tr>
             ))}

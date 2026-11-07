@@ -1,5 +1,6 @@
 export * from "./accessRules";
 export * from "./balancePath";
+export * from "./cashFlow";
 export * from "./bankDeposits";
 export * from "./bituachLeumi";
 export * from "./bituachLeumiRates";

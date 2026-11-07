@@ -7,12 +7,13 @@ import { ActiveAssumptions } from "../components/ActiveAssumptions";
 import { AssumedRetirementAgeBanner } from "../components/AssumedRetirementAgeBanner";
 import { BalanceTable, PathEventsList } from "../components/BalancePathNotes";
 import { BudgetCard } from "../components/BudgetCard";
+import { CashFlowCard } from "../components/CashFlowCard";
+import { BalancesByKindChart } from "../components/charts/BalancesByKindChart";
 import { ChartFrame } from "../components/charts/ChartFrame";
 import { IncomeBreakdownTable, NetIncomeTable } from "../components/charts/ChartTables";
 import { useChartTakeaways } from "../components/charts/chartTakeaways";
 import { IncomeBreakdownChart } from "../components/charts/IncomeBreakdownChart";
 import { NetIncomeChart } from "../components/charts/NetIncomeChart";
-import { NetWorthChart } from "../components/charts/NetWorthChart";
 import { netWorthMarkers } from "../components/charts/netWorthMarkers";
 import { CoverOptionsCard } from "../components/CoverOptionsCard";
 import { FeasibilityCard } from "../components/FeasibilityCard";
@@ -36,6 +37,7 @@ import {
   MAX_RETIREMENT_SEARCH_AGE,
   MIN_RETIREMENT_AGE,
   type IncomeBandKey,
+  type SourceKind,
   buildLeavingEarlyCost,
   buildLiquidityLadder,
   buildRetirementTimeline,
@@ -51,6 +53,7 @@ import {
   isHouseholdActive,
   planForOption,
   projectBalancePath,
+  projectCashFlow,
   projectSpendingFunding,
   resolveRetirementAge,
   runMonteCarlo,
@@ -60,12 +63,15 @@ import {
 import type { AccountOwner, CoverOption, RetirementScenario } from "../types";
 
 const SCENARIOS: RetirementScenario[] = ["early", "standard", "delayed"];
+const TIMELINE_BASES = ["sustainable", "planned"] as const;
+type TimelineBasis = (typeof TIMELINE_BASES)[number];
 
 export function Projections() {
   const { t } = useTranslation();
   const { profile, updateProfile } = useProfile();
   const [chosenScenario, setScenario] = useState<RetirementScenario>("standard");
   const [view, setView] = useState<"chart" | "table">("chart");
+  const [chosenTimelineBasis, setTimelineBasis] = useState<TimelineBasis>("sustainable");
   const currencySymbol = t("common.currencySymbol");
   const takeaways = useChartTakeaways();
   const scenarioLabel = useScenarioLabel(profile);
@@ -91,6 +97,10 @@ export function Projections() {
   const hasNetIncome = netIncomeYears.some((year) => year.grossMonthly > 0);
   const hasBankDeposits = profile.bankDeposits.some((deposit) => (deposit.amount ?? 0) > 0);
   const timeline = buildRetirementTimeline(incomeData);
+  const cashFlow = useMemo(() => projectCashFlow(profile, scenario), [profile, scenario]);
+  // Without planned spending there is no planned timeline to switch to.
+  const timelineBasis: TimelineBasis = cashFlow ? chosenTimelineBasis : "sustainable";
+  const plannedTimeline = useMemo(() => (cashFlow ? buildRetirementTimeline(cashFlow.years) : []), [cashFlow]);
   const hasInvestmentsBand = incomeData.some((point) => point.investments > 0);
   const ladder = useMemo(() => buildLiquidityLadder(profile, scenario), [profile, scenario]);
   const leavingEarly = useMemo(() => buildLeavingEarlyCost(profile, scenario), [profile, scenario]);
@@ -124,6 +134,13 @@ export function Projections() {
     studyFund: t("projections.sourceStudyFund"),
     investments: t("projections.sourceInvestments"),
     bituachLeumi: t("projections.sourceBituachLeumi"),
+  };
+  const kindLabels: Record<SourceKind, string> = {
+    pensionFund: bandLabels.pensionFund,
+    providentFund: bandLabels.providentFund,
+    managersInsurance: bandLabels.managersInsurance,
+    studyFund: bandLabels.studyFund,
+    otherInvestments: bandLabels.investments,
   };
 
   return (
@@ -210,21 +227,33 @@ export function Projections() {
         {netWorthTakeaway && <p className="mb-2 text-sm text-slate-700">{netWorthTakeaway}</p>}
         {view === "chart" ? (
           <>
-            <NetWorthChart
+            <BalancesByKindChart
               name={t("projections.netWorthChart")}
               description={netWorthTakeaway ?? t("projections.netWorthChart")}
-              data={balancePath.points}
+              points={balancePath.points}
+              kinds={balancePath.kinds}
+              kindLabels={kindLabels}
+              totalLabel={t("projections.path.total")}
               markers={netWorthMarkers(eventGroups)}
               currencySymbol={currencySymbol}
               shortfallAge={funding.shortfallAge}
               shortfallLabel={t("projections.basis.shortfallMarker")}
             />
             <PathEventsList groups={eventGroups} funding={funding} />
+            {cashFlow && funding.shortfallAge !== null && (
+              <p className="mt-2 text-xs">
+                <a href="#cash-flow" className="font-medium text-brand-700 hover:underline">
+                  {t("projections.cashFlow.seeLink")}
+                </a>
+              </p>
+            )}
           </>
         ) : (
           <BalanceTable path={balancePath} />
         )}
       </div>
+
+      {cashFlow && <CashFlowCard plan={cashFlow} labels={bandLabels} scenarioTag={scenarioTag} />}
 
       {hasTarget && (
         <RiskBasisCard assumptions={profile.assumptions} stress={stress} scenarioTag={scenarioTag} />
@@ -333,14 +362,46 @@ export function Projections() {
       <StressTestCard stress={stress} scenarioTag={scenarioTag} />
 
       <RetirementTimeline
-        segments={timeline}
+        segments={timelineBasis === "planned" ? plannedTimeline : timeline}
         labels={bandLabels}
         currencySymbol={currencySymbol}
         spouseAgeAt={isCouple ? (age) => spouseAgeAt(profile, age) : undefined}
         scenarioTag={scenarioTag}
+        controls={
+          cashFlow && (
+            <div
+              role="group"
+              aria-label={t("projections.timeline.basisGroup")}
+              className="mt-3 inline-flex flex-wrap gap-1 rounded-2xl bg-slate-100 p-1"
+            >
+              {TIMELINE_BASES.map((basis) => (
+                <button
+                  key={basis}
+                  type="button"
+                  aria-pressed={timelineBasis === basis}
+                  onClick={() => setTimelineBasis(basis)}
+                  className={clsx(
+                    "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
+                    timelineBasis === basis ? "bg-white text-brand-700 shadow" : "text-slate-500",
+                  )}
+                >
+                  {t(`projections.timeline.basis.${basis}`)}
+                </button>
+              ))}
+            </div>
+          )
+        }
         basisNote={
           <>
-            <IncomeBasisNote funding={funding} />
+            {timelineBasis === "planned" && cashFlow ? (
+              <p className="mt-1 text-xs text-slate-500">
+                {t("projections.timeline.plannedBasis", {
+                  amount: `\u2066${currencySymbol}${Math.round(cashFlow.monthlySpending).toLocaleString()}\u2069`,
+                })}
+              </p>
+            ) : (
+              <IncomeBasisNote funding={funding} />
+            )}
             <IncomeSplitNote variant="short" />
           </>
         }

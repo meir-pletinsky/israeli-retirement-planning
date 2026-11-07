@@ -36,7 +36,10 @@
       "netIncome": "After tax, your lowest year is {{net}} a month at age {{age}}, when {{tax}} a month goes to tax.",
       "netIncomePlanned": "After tax, your lowest year is {{net}} a month at age {{age}}, against planned spending of {{planned}} a month.",
       "compare": "Retiring at {{fromAge}} gives {{fromNet}} a month after tax; retiring at {{toAge}} gives {{toNet}}.",
-      "compareOne": "Retiring at {{age}} gives {{net}} a month after tax."
+      "compareOne": "Retiring at {{age}} gives {{net}} a month after tax.",
+      "cashFlowFunded": "Your planned {{planned}} a month is fully covered every year to age {{lastAge}}.",
+      "cashFlowShortfall": "Your planned {{planned}} a month is fully covered up to age {{coveredTo}}. After that it is not, and {{unfunded}} a month is unfunded at age {{lastAge}}.",
+      "cashFlowFromStart": "Your planned {{planned}} a month is not fully covered from the first year of retirement, age {{age}}: {{unfunded}} a month is unfunded at age {{lastAge}}."
     },
     "table": {
       "age": "Age",
@@ -1246,7 +1249,32 @@
       "sources": "Paying sources",
       "income": "Monthly income",
       "range": "{{from}}–{{to}}",
-      "spouseAges": "Spouse:"
+      "spouseAges": "Spouse:",
+      "basisGroup": "What the timeline shows",
+      "basis": {
+        "sustainable": "Sustainable income",
+        "planned": "At my planned spending"
+      },
+      "plannedBasis": "Your planned spending of {{amount}} a month, year by year, before tax: payments and withdrawals as they would happen, until your usable savings run out. The part nobody pays is shown as unfunded.",
+      "nothingPays": "Nothing pays: the usable savings are used up and no recurring payment remains."
+    },
+    "cashFlow": {
+      "title": "Cash flow by year",
+      "intro": "Year by year at your planned spending of {{amount}} a month: what comes in, what is withdrawn from which savings, the tax, and the part nobody pays. All amounts are monthly averages for the year, in today's money, before tax unless stated.",
+      "taxNote": "Tax is an estimate on what you receive and withdraw. As in the Net Worth Projection, it is shown but not added to the spending that has to be funded.",
+      "irregularNote": "Large irregular costs, about {{amount}} a month, are spread evenly inside the spending, because the plan has no due years for them.",
+      "coverNote": "Survivors' cover premiums are paid on top of the spending, so in those years the bars can rise above the dashed line.",
+      "year": "Year",
+      "annuities": "Annuities",
+      "tax": "Tax (estimate)",
+      "spending": "Spending",
+      "essential": "Essential spending",
+      "discretionary": "Other spending",
+      "cover": "Cover premiums",
+      "unfunded": "Unfunded",
+      "plannedLine": "Planned spending",
+      "downloadCsv": "Download as CSV",
+      "seeLink": "See the year-by-year cash flow"
     },
     "bankDepositsNote": "Your bank deposits are counted in “Other Investments”: the plan treats them as money you can use at any time, growing at the plan's return. Each deposit's own maturity date, early-withdrawal terms and renewal are not modeled individually.",
     "netIncomePlannedNote": "The dashed line is your planned spending after tax.",

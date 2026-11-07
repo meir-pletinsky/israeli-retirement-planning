@@ -26,6 +26,12 @@ export interface IncomeBreakdownPoint extends Record<IncomeBandKey, number> {
    * account annuity that has started).
    */
   withdrawn: Record<IncomeBandKey, number>;
+  /**
+   * Only on the planned-spending basis (`cashFlow.ts`): the part of the planned monthly spending
+   * that neither the payments nor the savings can pay that year. Absent on the sustainable basis,
+   * which is sized so that nothing is left unfunded.
+   */
+  unfunded?: number;
 }
 
 /** What part of a band is a recurring payment rather than a withdrawal. */
@@ -43,7 +49,7 @@ export const INCOME_BAND_KEYS: readonly IncomeBandKey[] = [
 ];
 
 /** `otherInvestments` is called `investments` in the income bands. */
-const BAND_FOR_KIND: Record<SourceKind, IncomeBandKey> = {
+export const BAND_FOR_KIND: Record<SourceKind, IncomeBandKey> = {
   pensionFund: "pensionFund",
   providentFund: "providentFund",
   managersInsurance: "managersInsurance",

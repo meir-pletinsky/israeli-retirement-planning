@@ -2,7 +2,9 @@ import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import type { MonteCarloFanPoint, NetIncomeYear, NetWorthPoint } from "../../domain";
+import { projectCashFlow } from "../../domain";
 import "../../i18n";
+import { buildTestProfile } from "../../test/domainFixtures";
 import { useChartTakeaways } from "./chartTakeaways";
 
 const plain = (text: string | null) => text?.replace(/[\u2066\u2069]/g, "") ?? null;
@@ -62,6 +64,41 @@ describe("chart takeaways", () => {
       "Retiring at 62 gives ₪8,000 a month after tax; retiring at 67 gives ₪12,000.",
     );
     expect(plain(takeaways().compare([points[0]]))).toBe("Retiring at 67 gives ₪12,000 a month after tax.");
+  });
+
+  describe("cash flow at the planned spending", () => {
+    // At 0% real return 120,000 pays 12,000 a year, so 1,000 a month runs out at age 77.
+    const cashFlowFor = (monthlyExpenses: number) => {
+      const plan = projectCashFlow(
+        buildTestProfile({
+          age: 66,
+          retirementAge: 67,
+          investmentReturnPct: 4,
+          inflationPct: 4,
+          pensionBalances: [120_000],
+          retirementMonthlyExpenses: monthlyExpenses,
+        }),
+      );
+      if (!plan) throw new Error("expected a cash flow plan");
+      return plan;
+    };
+
+    it("says the planned spending is covered to the end of the plan", () => {
+      expect(plain(takeaways().cashFlow(cashFlowFor(100)))).toBe(
+        "Your planned ₪100 a month is fully covered every year to age 90.",
+      );
+    });
+
+    it("gives the last covered age and the unfunded amount at the end", () => {
+      const text = plain(takeaways().cashFlow(cashFlowFor(1_000)));
+      expect(text).toMatch(/^Your planned ₪1,000 a month is fully covered up to age 76\. After that it is not, and ₪1,000 a month is unfunded at age 90\.$/);
+    });
+
+    it("says so when the first year is already unfunded", () => {
+      const text = plain(takeaways().cashFlow(cashFlowFor(20_000)));
+      expect(text).toContain("is not fully covered from the first year of retirement, age 67");
+      expect(text).toContain("unfunded at age 90");
+    });
   });
 
   it("has no sentence without data", () => {
