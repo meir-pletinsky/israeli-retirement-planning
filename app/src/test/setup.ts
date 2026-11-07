@@ -6,3 +6,6 @@ import { vi } from "vitest";
 // year), so the clock is pinned. Only Date is faked; timers still run.
 vi.useFakeTimers({ toFake: ["Date"] });
 vi.setSystemTime(new Date("2026-06-15T12:00:00Z"));
+
+// jsdom does not implement scrolling; navigation resets the scroll position. Some suites run in node.
+if (typeof window !== "undefined") window.scrollTo = () => {};

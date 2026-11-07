@@ -39,6 +39,18 @@ html:has([data-fixed-actions]) {
   scroll-padding-bottom: 11rem;
 }
 
+/* On small screens the header is sticky, so a section opened by a link stops below it. */
+@media (max-width: 47.99rem) {
+  html {
+    scroll-padding-top: 7rem;
+  }
+}
+
+/* The page heading takes focus after navigation for screen readers; it is not a control, so no ring. */
+h1[tabindex="-1"]:focus {
+  outline: none;
+}
+
 /* Chart axes are numeric and SVG text-anchor flips under RTL, so keep the plot itself left-to-right. */
 .recharts-surface {
   direction: ltr;

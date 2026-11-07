@@ -2167,6 +2167,15 @@ of its section 10 (UXB-14 is skipped on request).
       `withEngineClock` still take precedence). The assumptions line on Dashboard and
       Projections shows "Calculated as of <date>". Tests: `domain/clockStability.test.ts`
       (a deposit plan swept across two weeks of system times) and `app/ProfileContext.test.tsx`.
+- [x] **UXB-06 Every screen opens at its top.** `RouteScrollManager` (mounted in `App`) resets
+      the scroll position and moves focus to the page `h1` on every forward navigation
+      (links, the sidebar, "Next", the wizard stepper). A link to a section (`/path#id`)
+      scrolls to and focuses that section instead, waiting up to about half a second for it
+      to render. Browser back and forward, and plain in-page `#` links, keep the browser's
+      own position. The Dashboard had no `h1`, so it now has one ("Dashboard") like the
+      other screens; on small screens `scroll-padding-top` keeps a linked section below the
+      sticky header, and the focused heading shows no ring. Tests:
+      `app/RouteScrollManager.test.tsx`.
 
 ## Modeling assumptions (by phase)
 

@@ -68,18 +68,21 @@ export function Dashboard() {
 
   if (!onboarded || !snapshot) {
     return (
-      <EmptyState
-        title={t("dashboard.emptyTitle")}
-        body={t("dashboard.emptyBody")}
-        action={
-          <Link
-            to="/my-data/personal"
-            className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
-          >
-            {t("dashboard.emptyCta")}
-          </Link>
-        }
-      />
+      <div className="flex flex-col gap-6">
+        <h1 className="text-xl font-semibold text-slate-900">{t("dashboard.title")}</h1>
+        <EmptyState
+          title={t("dashboard.emptyTitle")}
+          body={t("dashboard.emptyBody")}
+          action={
+            <Link
+              to="/my-data/personal"
+              className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+            >
+              {t("dashboard.emptyCta")}
+            </Link>
+          }
+        />
+      </div>
     );
   }
 
@@ -105,6 +108,8 @@ export function Dashboard() {
 
   return (
     <div className="flex flex-col gap-6">
+      <h1 className="text-xl font-semibold text-slate-900">{t("dashboard.title")}</h1>
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <KpiCard
           label={t("dashboard.kpi.monthlyIncome")}

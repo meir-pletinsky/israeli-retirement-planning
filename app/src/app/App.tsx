@@ -16,6 +16,7 @@ import { Settings } from "../pages/Settings";
 import { Welcome } from "../pages/Welcome/Welcome";
 import { AppShell } from "./AppShell";
 import { useProfile } from "./ProfileContext";
+import { RouteScrollManager } from "./RouteScrollManager";
 
 export function App() {
   const { i18n } = useTranslation();
@@ -27,28 +28,31 @@ export function App() {
   }, [i18n.language]);
 
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          onboarded ? <Navigate to="/dashboard" replace /> : <Welcome />
-        }
-      />
-      <Route element={<AppShell />}>
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/my-data" element={<MyDataLayout />}>
-          <Route index element={<Navigate to="personal" replace />} />
-          <Route path="personal" element={<PersonalStep />} />
-          <Route path="pension-savings" element={<PensionSavingsStep />} />
-          <Route path="equity" element={<EquityStep />} />
-          <Route path="expenses" element={<ExpensesStep />} />
-          <Route path="assumptions" element={<AssumptionsStep />} />
+    <>
+      <RouteScrollManager />
+      <Routes>
+        <Route
+          path="/"
+          element={
+            onboarded ? <Navigate to="/dashboard" replace /> : <Welcome />
+          }
+        />
+        <Route element={<AppShell />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/my-data" element={<MyDataLayout />}>
+            <Route index element={<Navigate to="personal" replace />} />
+            <Route path="personal" element={<PersonalStep />} />
+            <Route path="pension-savings" element={<PensionSavingsStep />} />
+            <Route path="equity" element={<EquityStep />} />
+            <Route path="expenses" element={<ExpensesStep />} />
+            <Route path="assumptions" element={<AssumptionsStep />} />
+          </Route>
+          <Route path="/projections" element={<Projections />} />
+          <Route path="/import/clearing-house" element={<ClearingHouseImportPage />} />
+          <Route path="/settings" element={<Settings />} />
         </Route>
-        <Route path="/projections" element={<Projections />} />
-        <Route path="/import/clearing-house" element={<ClearingHouseImportPage />} />
-        <Route path="/settings" element={<Settings />} />
-      </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   );
 }
