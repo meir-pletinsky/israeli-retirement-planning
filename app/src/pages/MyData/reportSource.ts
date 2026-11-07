@@ -1,6 +1,6 @@
 import type { TFunction } from "i18next";
 
-import { formatDate } from "../../domain";
+import { formatDate } from "../../i18n/formatters";
 import type { ImportedReport, PensionAccount } from "../../types";
 
 const SOURCE = "clearingHouse.source";

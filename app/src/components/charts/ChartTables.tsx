@@ -10,6 +10,7 @@ import {
   type NetIncomeYear,
   type NetWorthPoint,
 } from "../../domain";
+import { formatNumber } from "../../i18n/formatters";
 
 interface DataTableProps {
   caption: string;
@@ -62,7 +63,7 @@ function DataTable({ caption, headers, rows }: DataTableProps) {
 function useMoney() {
   const { t } = useTranslation();
   const currencySymbol = t("common.currencySymbol");
-  return (amount: number) => `${currencySymbol}${Math.round(amount).toLocaleString()}`;
+  return (amount: number) => `${currencySymbol}${formatNumber(Math.round(amount))}`;
 }
 
 /** Net worth at each age: the data behind the net worth line. */

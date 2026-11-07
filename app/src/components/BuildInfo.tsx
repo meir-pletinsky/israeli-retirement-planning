@@ -1,11 +1,11 @@
 import { useTranslation } from "react-i18next";
 
 import { BUILD_COMMIT, BUILD_TIME } from "../buildInfo";
-import { formatDate } from "../domain/dates";
+import { formatDate } from "../i18n/formatters";
 
 const REPO_URL = "https://github.com/meir-pletinsky/israeli-retirement-planning";
 
-/** "dd/mm/yyyy HH:mm" in the viewer's time zone. */
+/** The date written like every other date, then "HH:mm", in the viewer's time zone. */
 function formatBuildTime(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";

@@ -6,13 +6,13 @@ import { useProfile } from "../../app/ProfileContext";
 import {
   aggregateBankDepositsBalance,
   engineNowMs,
-  formatDate,
   hasGainBasis,
   holdingTaxableGainIls,
   holdingValueIls,
   usdToIlsRate,
   vestedQuantityAt,
 } from "../../domain";
+import { formatDate, formatNumber } from "../../i18n/formatters";
 import type { BankDeposit, InvestmentCategory, ProfileData, StockHolding } from "../../types";
 import { entryDate, entryPriceUsd } from "./holdingEntry";
 import { RowActions } from "./RowActions";
@@ -92,7 +92,7 @@ export function EquityCategoryTable({
       numeric: true,
       primary: true,
       cell: (holding) =>
-        holding.quantity === null ? EMPTY_CELL : holding.quantity.toLocaleString(),
+        holding.quantity === null ? EMPTY_CELL : formatNumber(holding.quantity),
     },
     {
       key: "valueUsd",
@@ -130,7 +130,7 @@ export function EquityCategoryTable({
       cell: (holding) =>
         holding.quantity === null
           ? EMPTY_CELL
-          : vestedQuantityAt(holding, nowMs).toLocaleString(undefined, { maximumFractionDigits: 3 }),
+          : formatNumber(vestedQuantityAt(holding, nowMs), { maximumFractionDigits: 3 }),
     });
   }
 

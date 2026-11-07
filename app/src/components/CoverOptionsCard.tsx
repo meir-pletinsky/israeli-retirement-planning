@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import type { CoverComparison, CoverOptionResult } from "../domain";
+import { formatNumber } from "../i18n/formatters";
 import type { AccountOwner, CoverOption } from "../types";
 import { useFormatAge } from "./useFormatAge";
 
@@ -22,7 +23,7 @@ export function CoverOptionsCard({ comparisons, onSelect }: CoverOptionsCardProp
   const { t } = useTranslation();
   const formatAge = useFormatAge();
   const currencySymbol = t("common.currencySymbol");
-  const money = (amount: number) => isolate(`${currencySymbol}${Math.round(amount).toLocaleString()}`);
+  const money = (amount: number) => isolate(`${currencySymbol}${formatNumber(Math.round(amount))}`);
 
   if (comparisons.length === 0) {
     return null;

@@ -7,7 +7,7 @@ import {
   type AccountFieldKey,
   type ImportedAccountCandidate,
 } from "../../domain/clearingHouseImport";
-import { formatDate } from "../../domain/dates";
+import { formatDate } from "../../i18n/formatters";
 import type { PensionAccount } from "../../types";
 import { FieldRow } from "./FieldRow";
 import { formatAccountValue, formatMoney, productKindLabel } from "./formatFieldValue";

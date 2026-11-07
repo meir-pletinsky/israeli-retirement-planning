@@ -10,6 +10,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { formatNumber } from "../../i18n/formatters";
 import { chartA11y } from "./chartA11y";
 import { ageAxis, moneyAxis } from "./chartAxes";
 import { CHART_COLORS, PLANNED_LINE_STYLE } from "./chartPalette";
@@ -57,7 +58,7 @@ export function ComparisonChart({
           domain={[0, (dataMax: number) => Math.max(dataMax, target ?? 0)]}
         />
         <Tooltip
-          formatter={(value) => `${currencySymbol}${Number(value).toLocaleString()}`}
+          formatter={(value) => `${currencySymbol}${formatNumber(Number(value))}`}
           labelFormatter={texts.retireAtHeading}
         />
         <Bar dataKey="netMonthly" name={netLabel} maxBarSize={72} radius={[4, 4, 0, 0]}>

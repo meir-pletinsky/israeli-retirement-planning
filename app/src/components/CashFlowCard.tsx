@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { CashFlowPlan, IncomeBandKey } from "../domain";
+import { formatNumber } from "../i18n/formatters";
 import { downloadCsvFile } from "../storage/profileIO";
 import { toCsv } from "../storage/csv";
 import { CashFlowTable } from "./charts/CashFlowTable";
@@ -31,7 +32,7 @@ export function CashFlowCard({ plan, labels, scenarioTag }: CashFlowCardProps) {
   const takeaways = useChartTakeaways();
   const columns = useCashFlowColumns(plan, labels);
   const currencySymbol = t("common.currencySymbol");
-  const amount = (value: number) => isolate(`${currencySymbol}${Math.round(value).toLocaleString()}`);
+  const amount = (value: number) => isolate(`${currencySymbol}${formatNumber(Math.round(value))}`);
   const takeaway = takeaways.cashFlow(plan);
   const title = t("projections.cashFlow.title");
 

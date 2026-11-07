@@ -17,6 +17,7 @@ import {
   type IncomeBandKey,
   type IncomeBreakdownPoint,
 } from "../../domain";
+import { formatNumber } from "../../i18n/formatters";
 import { BandSwatch } from "./BandSwatch";
 import { chartA11y } from "./chartA11y";
 import { ageAxis, moneyAxis } from "./chartAxes";
@@ -130,7 +131,7 @@ export function IncomeBreakdownChart({
 
   const patternId = (band: IncomeBandKey) => `${patternPrefix}-${band}`;
   const unfundedPatternId = `${patternPrefix}-unfunded`;
-  const money = (value: number) => `${currencySymbol}${Math.round(value).toLocaleString()}`;
+  const money = (value: number) => `${currencySymbol}${formatNumber(Math.round(value))}`;
 
   const legendGroups = [
     { heading: texts.payments, items: payments },

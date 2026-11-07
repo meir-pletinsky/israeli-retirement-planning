@@ -1,12 +1,13 @@
 import { useTranslation } from "react-i18next";
 
 import type { SpendingFunding } from "../domain";
+import { formatNumber } from "../i18n/formatters";
 
 const isolate = (text: string) => `\u2066${text}\u2069`;
 
 function useSpendingText(funding: SpendingFunding) {
   const { t } = useTranslation();
-  const amount = isolate(`${t("common.currencySymbol")}${Math.round(funding.monthlySpending).toLocaleString()}`);
+  const amount = isolate(`${t("common.currencySymbol")}${formatNumber(Math.round(funding.monthlySpending))}`);
   const age = funding.shortfallAge === null ? null : isolate(String(funding.shortfallAge));
   return { t, amount, age };
 }
@@ -52,7 +53,7 @@ export function IncomeBasisNote({
         <p>
           {t("projections.basis.continues", {
             age: funding.horizonAge,
-            amount: isolate(`${t("common.currencySymbol")}${Math.round(continuingMonthly).toLocaleString()}`),
+            amount: isolate(`${t("common.currencySymbol")}${formatNumber(Math.round(continuingMonthly))}`),
           })}
         </p>
       )}

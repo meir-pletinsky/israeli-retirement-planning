@@ -2627,6 +2627,23 @@ of its section 10 (UXB-14 is skipped on request).
       without plural forms, every Russian plural category present, rendered agreement for
       1 / 2 / 5 / 11 / 21 and fractions); `localeTestUtils.ts` shares the plural helpers
       with the cover, ladder and inflation locale tests.
+- [x] **UXB-29 (follow-up) Numbers, percentages, dates and chart axes by the app
+      language**. About 40 `toLocaleString()` calls passed no language and so followed the
+      browser ("инфляция 2.5%" next to "6,5% работодатель"), percentages used `toFixed`,
+      and dates always read "06/11/2026". One shared formatter, `i18n/formatters.ts`
+      (`formatNumber`, `formatFixed`, `formatDate`, `formatLocalDate`, `datePlaceholder`,
+      `formatAxisMoney`), now formats by the app language: English "12,345.6", Russian
+      "12 345,6" (no-break space, decimal comma), Hebrew with the English separators
+      (the Hebrew locale adds direction marks to negative numbers). Percentages are the
+      number plus "%", with no space. Dates read "06/11/2026" in English and Hebrew and
+      "06.11.2026" in Russian; the date field shows "дд.мм.гггг" in Russian and accepts
+      dots. Chart axes read "₪2.5k" / "₪6M" in English, "₪2,5 тыс." / "₪6 млн" in
+      Russian and "₪2.5 אלף" / "₪6 מיל׳" in Hebrew; `components/charts/formatAxisMoney.ts`
+      moved into the shared formatter. Every card, chart, table and page that showed a
+      number or a date now goes through it, so a language change re-renders them. English
+      output is unchanged. Tests: `formatters.test.ts` (all three languages),
+      `localizedRender.test.tsx` (the Dashboard in en / ru / he), `DateField.test.tsx`
+      (Russian display, placeholder and typing).
 
 ## Modeling assumptions (by phase)
 

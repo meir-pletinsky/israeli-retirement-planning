@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { SOURCE_COST_NET_STEP, type SourceCostGroup, type SourceCostRow } from "../domain";
+import { formatNumber } from "../i18n/formatters";
 import { BankDepositsNote } from "./BankDepositsNote";
 import { ScenarioTitle } from "./ScenarioTag";
 import { useFormatAge } from "./useFormatAge";
@@ -45,7 +46,7 @@ export function SourceCostCard({ rows, isCouple, scenarioTag, hasBankDeposits }:
   const { t } = useTranslation();
   const formatAge = useFormatAge();
   const currencySymbol = t("common.currencySymbol");
-  const money = (amount: number) => isolate(`${currencySymbol}${Math.round(amount).toLocaleString()}`);
+  const money = (amount: number) => isolate(`${currencySymbol}${formatNumber(Math.round(amount))}`);
 
   if (rows.length === 0) {
     return null;
@@ -116,7 +117,7 @@ export function SourceCostCard({ rows, isCouple, scenarioTag, hasBankDeposits }:
                     {row.managementFeePercent !== null && (
                       <span className="mt-0.5 block text-slate-500">
                         {t("projections.sourceCost.managementFee", {
-                          percent: isolate(`${Number(row.managementFeePercent.toFixed(2))}%`),
+                          percent: isolate(`${formatNumber(Number(row.managementFeePercent.toFixed(2)))}%`),
                         })}
                       </span>
                     )}

@@ -5,9 +5,9 @@ import {
   BITUACH_LEUMI_RATES,
   type BituachLeumiEstimate,
   type HouseholdMemberEstimate,
-  formatDate as formatEffectiveDate,
   mayQualifyForIncomeSupplement,
 } from "../domain";
+import { formatDate as formatEffectiveDate, formatNumber } from "../i18n/formatters";
 
 interface BituachLeumiCardProps {
   /** The primary user first, then the spouse when the plan covers one. */
@@ -56,7 +56,7 @@ export function BituachLeumiCard({ members, monthlyIncomeTodayMoney }: BituachLe
       {anyPaid && mayQualifyForIncomeSupplement(monthlyIncomeTodayMoney, isCouple) && (
         <p className="mt-3 text-sm text-slate-700">
           {t("dashboard.bituachLeumi.incomeSupplementHint", {
-            amount: `${currencySymbol}${guarantee.toLocaleString()}`,
+            amount: `${currencySymbol}${formatNumber(guarantee)}`,
           })}
         </p>
       )}
@@ -91,7 +91,7 @@ function MemberPension({
   const { t } = useTranslation();
   const currencySymbol = t("common.currencySymbol");
   const { included, eligible, source, monthlyPension, spouseSupplement } = estimate;
-  const money = (amount: number) => `${currencySymbol}${amount.toLocaleString()}`;
+  const money = (amount: number) => `${currencySymbol}${formatNumber(amount)}`;
 
   const formatAge = (age: number) => {
     const years = Math.floor(age + 1e-9);

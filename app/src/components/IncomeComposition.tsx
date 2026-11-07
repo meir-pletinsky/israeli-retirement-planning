@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import type { IncomeBandKey, IncomeCompositionStage } from "../domain";
+import { formatNumber } from "../i18n/formatters";
 import { BandSwatch } from "./charts/BandSwatch";
 import { bandFill } from "./charts/incomeBandColors";
 import { useFormatAge } from "./useFormatAge";
@@ -40,7 +41,7 @@ export function IncomeComposition({
   const { t } = useTranslation();
   const formatAge = useFormatAge();
   const currencySymbol = t("common.currencySymbol");
-  const money = (amount: number) => `${currencySymbol}${Math.round(amount).toLocaleString()}`;
+  const money = (amount: number) => `${currencySymbol}${formatNumber(Math.round(amount))}`;
   const hasStateBenefits = stages.some((stage) => stage.parts.some((part) => part.band === "bituachLeumi"));
 
   return (

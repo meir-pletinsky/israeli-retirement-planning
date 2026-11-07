@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useProfile } from "../../app/ProfileContext";
-import { bankDepositValueIls, engineNowMs, formatDate } from "../../domain";
+import { bankDepositValueIls, engineNowMs } from "../../domain";
+import { formatDate } from "../../i18n/formatters";
 import type { BankDeposit } from "../../types";
 import { RowActions } from "./RowActions";
 import { EMPTY_CELL, formatCurrency, formatPercent, formatWholeCurrency } from "./summaryFormat";

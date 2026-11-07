@@ -1,7 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
-import { formatDate, type PortfolioBreakdown } from "../domain";
+import type { PortfolioBreakdown } from "../domain";
+import { formatDate, formatNumber } from "../i18n/formatters";
 import { formatPercent } from "../pages/MyData/summaryFormat";
 import { PORTFOLIO_KIND_COLORS } from "./charts/portfolioColors";
 import { PORTFOLIO_INPUT_TARGET } from "./portfolioInputTargets";
@@ -32,7 +33,7 @@ export function PortfolioSummaryCard({
 }) {
   const { t } = useTranslation();
   const currencySymbol = t("common.currencySymbol");
-  const money = (amount: number) => `${currencySymbol}${amount.toLocaleString()}`;
+  const money = (amount: number) => `${currencySymbol}${formatNumber(amount)}`;
 
   if (portfolio.rows.length === 0) return null;
 
@@ -202,7 +203,7 @@ export function PortfolioSummaryCard({
         {fx && (
           <p>
             {t(`dashboard.portfolio.fx.${fx.source}`, {
-              rate: fx.rate,
+              rate: formatNumber(fx.rate),
               date: fx.date ? formatDate(fx.date) : "",
             })}{" "}
             <Link to="/my-data/equity" className="font-medium text-brand-700 hover:underline">

@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import { useProfile } from "../app/ProfileContext";
-import { formatDate } from "../domain/dates";
+import { formatDate } from "../i18n/formatters";
 import { matchingPreset } from "../domain/profileBasics";
 import { formatPercent } from "../pages/MyData/summaryFormat";
 import type { Assumptions } from "../types";

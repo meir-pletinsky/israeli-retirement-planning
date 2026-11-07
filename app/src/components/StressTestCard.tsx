@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { StressOutcome, StressRow, StressTest } from "../domain";
+import { formatNumber } from "../i18n/formatters";
 import { ScenarioTitle } from "./ScenarioTag";
 
 interface StressTestCardProps {
@@ -15,19 +16,19 @@ const isolate = (text: string) => `\u2066${text}\u2069`;
 
 /** One decimal below 10 percent, none above. */
 const formatPercent = (value: number) =>
-  Math.abs(value) < 10 ? Number(Math.abs(value).toFixed(1)) : Math.round(Math.abs(value));
+  formatNumber(Math.abs(value) < 10 ? Number(Math.abs(value).toFixed(1)) : Math.round(Math.abs(value)));
 
 export function StressTestCard({ stress, scenarioTag }: StressTestCardProps) {
   const { t } = useTranslation();
   const currencySymbol = t("common.currencySymbol");
-  const money = (amount: number) => isolate(`${currencySymbol}${Math.round(amount).toLocaleString()}`);
+  const money = (amount: number) => isolate(`${currencySymbol}${formatNumber(Math.round(amount))}`);
 
   if (!stress) {
     return null;
   }
 
   const signedMoney = (amount: number) =>
-    isolate(`${amount < 0 ? "-" : "+"}${currencySymbol}${Math.abs(Math.round(amount)).toLocaleString()}`);
+    isolate(`${amount < 0 ? "-" : "+"}${currencySymbol}${formatNumber(Math.abs(Math.round(amount)))}`);
 
   const changeText = (change: number, percent: number | null) => {
     if (Math.round(change) === 0) return t("projections.stress.noChange");

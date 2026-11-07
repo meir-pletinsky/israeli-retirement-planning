@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { LongevityTest } from "../domain";
+import { formatNumber } from "../i18n/formatters";
 import { ScenarioTitle } from "./ScenarioTag";
 
 interface LongevityCardProps {
@@ -17,7 +18,7 @@ const isolate = (text: string) => `\u2066${text}\u2069`;
 export function LongevityCard({ longevity, scenarioTag }: LongevityCardProps) {
   const { t } = useTranslation();
   const currencySymbol = t("common.currencySymbol");
-  const money = (amount: number) => isolate(`${currencySymbol}${Math.round(amount).toLocaleString()}`);
+  const money = (amount: number) => isolate(`${currencySymbol}${formatNumber(Math.round(amount))}`);
   const hasSpending = longevity.desiredMonthly !== null;
 
   return (
@@ -67,9 +68,9 @@ export function LongevityCard({ longevity, scenarioTag }: LongevityCardProps) {
                         ? t("projections.longevity.noChange")
                         : t("projections.longevity.change", {
                             amount: isolate(
-                              `${row.netMonthlyChange < 0 ? "-" : "+"}${currencySymbol}${Math.abs(
-                                Math.round(row.netMonthlyChange),
-                              ).toLocaleString()}`,
+                              `${row.netMonthlyChange < 0 ? "-" : "+"}${currencySymbol}${formatNumber(
+                                Math.abs(Math.round(row.netMonthlyChange)),
+                              )}`,
                             ),
                           })}
                     </span>

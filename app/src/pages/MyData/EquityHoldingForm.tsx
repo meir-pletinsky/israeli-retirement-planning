@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { CheckboxField } from "../../components/fields/CheckboxField";
 import { CollapsibleSection } from "../../components/CollapsibleSection";
 import { DateField } from "../../components/fields/DateField";
-import { formatDate } from "../../domain/dates";
+import { formatDate, formatNumber } from "../../i18n/formatters";
 import { NumberField } from "../../components/fields/NumberField";
 import { SelectField } from "../../components/fields/SelectField";
 import { TextField } from "../../components/fields/TextField";
@@ -191,16 +191,16 @@ export function EquityHoldingForm({
       <p className="text-sm text-slate-600">
         {f("totalValue")}:{" "}
         <span className="font-semibold text-slate-900">
-          ${totalValue.toLocaleString()}
+          ${formatNumber(totalValue)}
         </span>
         {restatedByASplit && (
           <span className="text-slate-500">
             {" "}
             (
             {t("myData.steps.equity.splits.totalAsReported", {
-              quantity: quantity.toLocaleString("en-US", { maximumFractionDigits: 6 }),
+              quantity: formatNumber(quantity, { maximumFractionDigits: 6 }),
               count: quantity,
-              value: `$${(quantity * price).toLocaleString()}`,
+              value: `$${formatNumber(quantity * price)}`,
             })}
             )
           </span>

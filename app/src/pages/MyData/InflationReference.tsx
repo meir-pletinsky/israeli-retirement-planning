@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 
 import { useProfile } from "../../app/ProfileContext";
 import { useIsraelCpi, type CpiStatus } from "../../cpi/useIsraelCpi";
+import { formatNumber } from "../../i18n/formatters";
 
 const STATUS_KEYS: Record<CpiStatus, string> = {
   live: "statusLive",
@@ -20,7 +21,7 @@ export function InflationReference() {
   const { summary, status } = useIsraelCpi(cpiLookupEnabled);
 
   const percent = (value: number) =>
-    `${value.toLocaleString(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+    `${formatNumber(value, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
   const month = new Date(Date.UTC(summary.latest.year, summary.latest.month - 1, 1)).toLocaleDateString(
     i18n.language,
     { month: "long", year: "numeric", timeZone: "UTC" },

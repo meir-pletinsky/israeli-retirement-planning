@@ -38,19 +38,19 @@ export function isoFromParts(year: number, month: number, day: number): string |
   return `${pad(year, 4)}-${pad(month, 2)}-${pad(day, 2)}`;
 }
 
-/** An ISO date as dd/mm/yyyy; anything that is not an ISO date is returned unchanged. */
-export function formatDate(iso: string): string {
+/** An ISO date as dd/mm/yyyy (or with another separator); anything that is not an ISO date is returned unchanged. */
+export function formatDate(iso: string, separator = "/"): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
-  return match ? `${match[3]}/${match[2]}/${match[1]}` : iso;
+  return match ? `${match[3]}${separator}${match[2]}${separator}${match[1]}` : iso;
 }
 
 /** The calendar day of an ISO timestamp as dd/mm/yyyy in the viewer's time zone; "" if unreadable. */
-export function formatLocalDate(isoTimestamp: string): string {
+export function formatLocalDate(isoTimestamp: string, separator = "/"): string {
   const date = new Date(isoTimestamp);
   if (Number.isNaN(date.getTime())) return "";
   return [date.getDate(), date.getMonth() + 1, date.getFullYear()]
     .map((part, index) => pad(part, index === 2 ? 4 : 2))
-    .join("/");
+    .join(separator);
 }
 
 export interface ParseDateOptions {

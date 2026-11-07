@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 
 import { useBackupStatus } from "../app/backupStatus";
 import { useSaveStatus } from "../app/saveStatus";
-import { formatLocalDate } from "../domain/dates";
+import { formatLocalDate } from "../i18n/formatters";
 
 const isolate = (text: string) => `\u2066${text}\u2069`;
 

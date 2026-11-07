@@ -2,6 +2,7 @@ import clsx from "clsx";
 import { useTranslation } from "react-i18next";
 
 import type { CashFlowYear } from "../../domain";
+import { formatNumber } from "../../i18n/formatters";
 import type { CashFlowColumn } from "./cashFlowColumns";
 
 interface CashFlowTableProps {
@@ -19,7 +20,7 @@ interface CashFlowTableProps {
 export function CashFlowTable({ years, columns, caption }: CashFlowTableProps) {
   const { t } = useTranslation();
   const currencySymbol = t("common.currencySymbol");
-  const money = (amount: number) => `${currencySymbol}${Math.round(amount).toLocaleString()}`;
+  const money = (amount: number) => `${currencySymbol}${formatNumber(Math.round(amount))}`;
   const firstShort = years.find((year) => year.short);
 
   return (

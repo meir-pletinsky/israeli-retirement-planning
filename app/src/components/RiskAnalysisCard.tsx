@@ -10,6 +10,7 @@ import {
   successBand,
   successPercent,
 } from "../domain";
+import { formatFixed, formatNumber } from "../i18n/formatters";
 import { ChartFrame } from "./charts/ChartFrame";
 import { FanTable } from "./charts/ChartTables";
 import { useChartTakeaways } from "./charts/chartTakeaways";
@@ -47,7 +48,7 @@ export function RiskAnalysisCard({
   const { profile } = useProfile();
   const horizonAge = profile.assumptions.planningHorizonAge;
   const currencySymbol = t("common.currencySymbol");
-  const money = (amount: number) => `${currencySymbol}${amount.toLocaleString()}`;
+  const money = (amount: number) => `${currencySymbol}${formatNumber(amount)}`;
 
   return (
     <section
@@ -114,7 +115,7 @@ function RiskResults({
   return (
     <>
       <p className="mt-1 text-xs text-slate-500">
-        {t("projections.risk.intro", { paths: result.paths.toLocaleString() })}
+        {t("projections.risk.intro", { paths: formatNumber(result.paths) })}
       </p>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -128,7 +129,7 @@ function RiskResults({
           <p className="mt-1 text-xs text-slate-600">{t(`projections.risk.band.${band}`)}</p>
           {successPercent(result.successProbability) === 100 && (
             <p className="mt-1 text-xs text-slate-600">
-              {t("projections.risk.allPaths", { paths: result.paths.toLocaleString() })}
+              {t("projections.risk.allPaths", { paths: formatNumber(result.paths) })}
             </p>
           )}
         </div>
@@ -151,9 +152,9 @@ function RiskResults({
       <p className="mt-3 text-xs text-slate-600">
         {t("projections.risk.qualifier")}{" "}
         {t("projections.risk.assumptions", {
-          returnPct: profile.assumptions.investmentReturnPct,
-          inflationPct: profile.assumptions.inflationPct,
-          volatilityPct: Math.round(result.volatilityPct * 10) / 10,
+          returnPct: formatNumber(profile.assumptions.investmentReturnPct),
+          inflationPct: formatNumber(profile.assumptions.inflationPct),
+          volatilityPct: formatNumber(Math.round(result.volatilityPct * 10) / 10),
         })}
       </p>
 
@@ -186,12 +187,12 @@ function RiskResults({
           {t("projections.risk.howTitle")}
         </summary>
         <ul className="mt-2 list-disc space-y-1 ps-5 text-xs text-slate-600">
-          <li>{t("projections.risk.howRandom", { volatility: Math.round(result.volatilityPct * 10) / 10 })}</li>
+          <li>{t("projections.risk.howRandom", { volatility: formatNumber(Math.round(result.volatilityPct * 10) / 10) })}</li>
           <li>{t("projections.risk.howMedian")}</li>
           <li>{t("projections.risk.howFixed")}</li>
           <li>
             {t("projections.risk.howTax", {
-              percent: (result.taxShare * 100).toFixed(1),
+              percent: formatFixed(result.taxShare * 100, 1),
               gross: money(result.targetGrossMonthly),
             })}
           </li>

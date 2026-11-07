@@ -1,7 +1,8 @@
 import { useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { formatDate, isCompleteDateText, parseDate } from "../../domain/dates";
+import { isCompleteDateText, parseDate } from "../../domain/dates";
+import { datePlaceholder, formatDate } from "../../i18n/formatters";
 import { FieldLabel, type FieldImportance } from "./FieldLabel";
 
 interface DateFieldProps {
@@ -13,9 +14,10 @@ interface DateFieldProps {
 }
 
 /**
- * A date typed day first as dd/mm/yyyy, whatever the browser's own language, with a calendar
- * button for picking it instead. The value stays ISO text. Other common ways of writing the date
- * are understood when the field is left, and a text that is not a date is dropped then.
+ * A date typed day first (dd/mm/yyyy, or dd.mm.yyyy in Russian), whatever the browser's own
+ * language, with a calendar button for picking it instead. The value stays ISO text. Other common
+ * ways of writing the date are understood when the field is left, and a text that is not a date is
+ * dropped then.
  */
 export function DateField({ label, importance, value, onChange }: DateFieldProps) {
   const { t } = useTranslation();
@@ -67,7 +69,7 @@ export function DateField({ label, importance, value, onChange }: DateFieldProps
           inputMode="numeric"
           dir="ltr"
           autoComplete="off"
-          placeholder="dd/mm/yyyy"
+          placeholder={datePlaceholder()}
           value={shown}
           aria-invalid={invalid || undefined}
           onChange={(e) => handleChange(e.target.value)}

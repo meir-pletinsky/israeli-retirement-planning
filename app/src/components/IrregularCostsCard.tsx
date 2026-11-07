@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import { irregularCosts } from "../domain";
+import { formatNumber } from "../i18n/formatters";
 import { expenseFrequencyLabel, expenseName } from "../pages/MyData/expenseLabels";
 import type { ExpensesData } from "../types";
 
@@ -23,8 +24,8 @@ export function IrregularCostsCard({ expenses }: IrregularCostsCardProps) {
   if (!costs) return null;
 
   const currencySymbol = t("common.currencySymbol");
-  const money = (amount: number) => `${currencySymbol}${Math.round(amount).toLocaleString()}`;
-  const percent = costs.share.toLocaleString(undefined, { style: "percent", maximumFractionDigits: 0 });
+  const money = (amount: number) => `${currencySymbol}${formatNumber(Math.round(amount))}`;
+  const percent = `${formatNumber(costs.share * 100, { maximumFractionDigits: 0 })}%`;
 
   return (
     <section

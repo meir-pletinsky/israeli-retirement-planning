@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
-import { formatDate as formatIsoDate, type LeavingEarlyCost } from "../domain";
+import type { LeavingEarlyCost } from "../domain";
+import { formatDate as formatIsoDate, formatNumber } from "../i18n/formatters";
 import { ScenarioTitle } from "./ScenarioTag";
 
 interface UnvestedSharesCardProps {
@@ -24,9 +25,9 @@ export function UnvestedSharesCard({ cost, scenarioTag }: UnvestedSharesCardProp
     return null;
   }
 
-  const money = (amount: number) => isolate(`${currencySymbol}${amount.toLocaleString()}`);
+  const money = (amount: number) => isolate(`${currencySymbol}${formatNumber(amount)}`);
   const shares = (count: number) =>
-    t("projections.unvested.sharesCount", { count, amount: isolate(count.toLocaleString()) });
+    t("projections.unvested.sharesCount", { count, amount: isolate(formatNumber(count)) });
 
   return (
     <section

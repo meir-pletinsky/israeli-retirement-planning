@@ -1,7 +1,8 @@
 import { useTranslation } from "react-i18next";
 
 import { NumberField } from "../../components/fields/NumberField";
-import { MAX_TEMPLATE_BATCHES, engineNowMs, formatDate, vestedQuantityAt } from "../../domain";
+import { MAX_TEMPLATE_BATCHES, engineNowMs, vestedQuantityAt } from "../../domain";
+import { formatDate } from "../../i18n/formatters";
 import type { StockHolding, VestingSchedule } from "../../types";
 
 interface VestingScheduleFieldsProps {

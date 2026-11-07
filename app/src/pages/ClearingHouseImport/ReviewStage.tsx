@@ -14,7 +14,7 @@ import {
   type PersonalFieldKey,
   type ReportMapResult,
 } from "../../domain/clearingHouseImport";
-import { formatDate } from "../../domain/dates";
+import { formatDate } from "../../i18n/formatters";
 import { hasProfileData, type AccountOwner, type PensionAccount } from "../../types";
 import { reportPersonLabel } from "../MyData/reportSource";
 import { AccountReviewCard } from "./AccountReviewCard";

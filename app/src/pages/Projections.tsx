@@ -67,6 +67,7 @@ import {
   savedCoverPlan,
   spouseAgeAt,
 } from "../domain";
+import { formatNumber } from "../i18n/formatters";
 import type { AccountOwner, CoverOption, RetirementScenario } from "../types";
 
 const TIMELINE_BASES = ["sustainable", "planned"] as const;
@@ -262,7 +263,7 @@ export function Projections() {
               {timelineBasis === "planned" && cashFlow ? (
                 <p className="mt-1 text-xs text-slate-500">
                   {t("projections.timeline.plannedBasis", {
-                    amount: `\u2066${currencySymbol}${Math.round(cashFlow.monthlySpending).toLocaleString()}\u2069`,
+                    amount: `\u2066${currencySymbol}${formatNumber(Math.round(cashFlow.monthlySpending))}\u2069`,
                   })}
                 </p>
               ) : (

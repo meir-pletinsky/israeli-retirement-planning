@@ -10,8 +10,8 @@ import {
 } from "../storage/db";
 import { readProfileFile, type ProfileFile } from "../storage/profileIO";
 import { currentBrowserIsSafari } from "../storage/persistentStorage";
-import { formatDate, formatLocalDate } from "../domain/dates";
 import { areasEmptiedByImport, summarizePlan } from "../domain/planSummary";
+import { formatDate, formatLocalDate, formatNumber } from "../i18n/formatters";
 import { hasProfileData, type ProfileData } from "../types";
 import { useBackupStatus } from "../app/backupStatus";
 import { useProfile } from "../app/ProfileContext";
@@ -156,7 +156,7 @@ export function Settings() {
           <p role="status" className="mt-3 text-sm text-slate-700">
             {latestRate
               ? t("settings.fxCurrent", {
-                  rate: latestRate.rate.toLocaleString(undefined, {
+                  rate: formatNumber(latestRate.rate, {
                     minimumFractionDigits: 3,
                     maximumFractionDigits: 4,
                   }),

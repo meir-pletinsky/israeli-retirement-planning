@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 
-import { ACCESS_RULES, formatDate as formatAsOf, type RetirementAccessSummary } from "../domain";
+import { ACCESS_RULES, type RetirementAccessSummary } from "../domain";
+import { formatDate as formatAsOf, formatNumber } from "../i18n/formatters";
 import { useFormatAge } from "./useFormatAge";
 
 interface SourceAccessCardProps {
@@ -25,7 +26,7 @@ export function SourceAccessCard({ access }: SourceAccessCardProps) {
     return null;
   }
 
-  const money = (amount: number) => `${currencySymbol}${Math.round(amount).toLocaleString()}`;
+  const money = (amount: number) => `${currencySymbol}${formatNumber(Math.round(amount))}`;
 
   return (
     <section

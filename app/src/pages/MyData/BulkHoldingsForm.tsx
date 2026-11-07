@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 
 import { TextField } from "../../components/fields/TextField";
-import { formatDate } from "../../domain/dates";
+import { formatDate, formatNumber } from "../../i18n/formatters";
 import type { StockHistoryFile } from "../../stockPrices/format";
 import type { InvestmentCategory, VestingSchedule } from "../../types";
 import { displayFactor } from "./splitEntry";
@@ -24,7 +24,8 @@ interface BulkHoldingsFormProps {
   asReported: boolean;
 }
 
-const MONEY = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+const formatUsd = (amount: number) =>
+  `$${formatNumber(amount, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 /** Adds many purchases of one category from pasted CSV text, showing what was understood. */
 export function BulkHoldingsForm({
@@ -115,18 +116,18 @@ export function BulkHoldingsForm({
                       <td className="px-3 py-1.5">{formatDate(row.date)}</td>
                       {personal && <td className="px-3 py-1.5">{row.symbol}</td>}
                       <td className="px-3 py-1.5 text-right">
-                        {quantity.toLocaleString("en-US", { maximumFractionDigits: 6 })}
+                        {formatNumber(quantity, { maximumFractionDigits: 6 })}
                       </td>
                       <td className="px-3 py-1.5 text-right">
                         {price === null
                           ? "—"
                           : estimated
-                            ? b("priceEstimated", { price: MONEY.format(price) })
-                            : MONEY.format(price)}
+                            ? b("priceEstimated", { price: formatUsd(price) })
+                            : formatUsd(price)}
                       </td>
                       {asReported && (
                         <td className="px-3 py-1.5 text-right text-slate-500">
-                          {factor === 1 ? "" : `×${displayFactor(factor).toLocaleString("en-US")}`}
+                          {factor === 1 ? "" : `×${formatNumber(displayFactor(factor))}`}
                         </td>
                       )}
                     </tr>

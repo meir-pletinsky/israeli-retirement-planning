@@ -3,10 +3,10 @@ import { useTranslation } from "react-i18next";
 
 import {
   ACCESS_RULES,
-  formatDate as formatIsoDate,
   type LadderItem,
   type LiquidityLadder,
 } from "../domain";
+import { formatDate as formatIsoDate, formatNumber } from "../i18n/formatters";
 import { BankDepositsNote } from "./BankDepositsNote";
 import { ScenarioTitle } from "./ScenarioTag";
 import { useFormatAge } from "./useFormatAge";
@@ -41,7 +41,7 @@ export function LiquidityLadderCard({ ladder, isCouple, scenarioTag, hasBankDepo
   const { t } = useTranslation();
   const formatAge = useFormatAge();
   const currencySymbol = t("common.currencySymbol");
-  const money = (amount: number) => `${currencySymbol}${amount.toLocaleString()}`;
+  const money = (amount: number) => `${currencySymbol}${formatNumber(amount)}`;
 
   if (ladder.rungs.length === 0) {
     return null;

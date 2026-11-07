@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { CheckboxField } from "../../components/fields/CheckboxField";
 import { FormModal } from "../../components/FormModal";
 import { DEFAULT_VESTING_TEMPLATE } from "../../domain/vesting";
+import { formatNumber } from "../../i18n/formatters";
 import type { StockHolding, VestingSchedule } from "../../types";
 import { BulkHoldingsForm } from "./BulkHoldingsForm";
 import { buildBulkHoldings } from "./bulkHoldings";
@@ -178,8 +179,8 @@ export function HoldingDialog({ holding, isNew, onClose, onSave }: HoldingDialog
             {restated.factor !== 1 && (
               <p className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">
                 {t("myData.steps.equity.splits.singleNote", {
-                  factor: displayFactor(restated.factor).toLocaleString("en-US"),
-                  quantity: (restated.holding.quantity ?? 0).toLocaleString("en-US", {
+                  factor: formatNumber(displayFactor(restated.factor)),
+                  quantity: formatNumber(restated.holding.quantity ?? 0, {
                     maximumFractionDigits: 6,
                   }),
                   count: restated.holding.quantity ?? 0,

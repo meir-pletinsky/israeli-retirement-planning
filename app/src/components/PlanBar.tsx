@@ -2,6 +2,7 @@ import clsx from "clsx";
 import { useTranslation } from "react-i18next";
 
 import { MIN_RETIREMENT_AGE, resolveRetirementAge, type SpendingFunding } from "../domain";
+import { formatNumber } from "../i18n/formatters";
 import type { ProfileData, RetirementScenario } from "../types";
 import { sectionAnchor, type ProjectionSection } from "./projectionSections";
 import { useFormatAge } from "./useFormatAge";
@@ -34,7 +35,7 @@ export function PlanBar({ profile, scenario, onScenarioChange, funding, isCouple
   const earlyAtStandard =
     resolveRetirementAge(profile, "early") === resolveRetirementAge(profile, "standard");
   const hasSpending = funding.monthlySpending > 0;
-  const amount = isolate(`${t("common.currencySymbol")}${Math.round(funding.monthlySpending).toLocaleString()}`);
+  const amount = isolate(`${t("common.currencySymbol")}${formatNumber(Math.round(funding.monthlySpending))}`);
 
   return (
     <>

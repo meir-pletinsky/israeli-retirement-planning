@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import type { RetirementKpis } from "../domain";
+import { formatFixed, formatNumber } from "../i18n/formatters";
 import { IncomeComposition } from "./IncomeComposition";
 import { KpiCard } from "./KpiCard";
 import { useFormatAge } from "./useFormatAge";
@@ -18,7 +19,7 @@ export function RetirementSnapshot({ kpis, irregularMonthly }: RetirementSnapsho
   const { t } = useTranslation();
   const formatAge = useFormatAge();
   const currencySymbol = t("common.currencySymbol");
-  const money = (amount: number) => `${currencySymbol}${Math.round(amount).toLocaleString()}`;
+  const money = (amount: number) => `${currencySymbol}${formatNumber(Math.round(amount))}`;
   const { plannedMonthlySpending, withdrawalRate, incomeComposition, access } = kpis;
 
   return (
@@ -51,11 +52,7 @@ export function RetirementSnapshot({ kpis, irregularMonthly }: RetirementSnapsho
           value={
             withdrawalRate === null
               ? "—"
-              : withdrawalRate.toLocaleString(undefined, {
-                  style: "percent",
-                  minimumFractionDigits: 1,
-                  maximumFractionDigits: 1,
-                })
+              : `${formatFixed(withdrawalRate * 100, 1)}%`
           }
           note={t(
             withdrawalRate === null

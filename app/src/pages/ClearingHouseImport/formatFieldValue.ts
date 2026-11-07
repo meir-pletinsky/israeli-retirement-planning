@@ -1,6 +1,7 @@
 import type { TFunction } from "i18next";
 
 import type { AccountFieldKey, PersonalFieldKey } from "../../domain/clearingHouseImport";
+import { formatNumber } from "../../i18n/formatters";
 
 const MONEY_KEYS: ReadonlySet<AccountFieldKey> = new Set([
   "totalAccumulatedBalance",
@@ -31,7 +32,7 @@ const OPTION_KEYS: ReadonlySet<AccountFieldKey> = new Set([
 const EMPTY = "\u2014";
 
 export function formatMoney(value: number, currency: string): string {
-  return `${currency}${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+  return `${currency}${formatNumber(value, { maximumFractionDigits: 2 })}`;
 }
 
 export function formatAccountValue(
@@ -45,7 +46,7 @@ export function formatAccountValue(
   if (OPTION_KEYS.has(key)) return t(`myData.steps.pensionSavings.options.${key}.${value}`);
   if (typeof value === "number") {
     if (MONEY_KEYS.has(key)) return formatMoney(value, currency);
-    const formatted = value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    const formatted = formatNumber(value, { maximumFractionDigits: 2 });
     return PERCENT_KEYS.has(key) ? `${formatted}%` : formatted;
   }
   return value;

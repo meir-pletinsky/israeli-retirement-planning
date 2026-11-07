@@ -15,6 +15,7 @@ import {
   resolveCurrentAge,
   resolveRetirementAge,
 } from "../domain";
+import { formatNumber } from "../i18n/formatters";
 import type { ProfileData } from "../types";
 import { ChartFrame } from "./charts/ChartFrame";
 import { useChartTakeaways } from "./charts/chartTakeaways";
@@ -45,7 +46,7 @@ export function ScenarioComparison({ profile }: ScenarioComparisonProps) {
   };
 
   const money = (amount: number) =>
-    `${amount < 0 ? "-" : ""}${currencySymbol}${Math.abs(amount).toLocaleString()}`;
+    `${amount < 0 ? "-" : ""}${currencySymbol}${formatNumber(Math.abs(amount))}`;
 
   const columns = ages.map((age) => ({
     age,

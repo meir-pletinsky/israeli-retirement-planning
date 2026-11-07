@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { IncomeBandKey, TimelineSegment } from "../domain";
+import { formatNumber } from "../i18n/formatters";
 import { BandSwatch } from "./charts/BandSwatch";
 import { ScenarioTitle } from "./ScenarioTag";
 
@@ -93,7 +94,7 @@ export function RetirementTimeline({
                                 <span>{labels[band]}</span>
                                 <span className="text-slate-500 tabular-nums">
                                   {currencySymbol}
-                                  {(segment[key][band] ?? 0).toLocaleString()}
+                                  {formatNumber(segment[key][band] ?? 0)}
                                 </span>
                               </li>
                             ))}
@@ -108,11 +109,11 @@ export function RetirementTimeline({
                 </td>
                 <td className="py-2 font-medium tabular-nums">
                   {currencySymbol}
-                  {segment.monthlyIncome.toLocaleString()}
+                  {formatNumber(segment.monthlyIncome)}
                   {segment.unfunded !== undefined && (
                     <span className="block text-xs font-semibold text-rose-700">
                       {t("projections.cashFlow.unfunded")} {currencySymbol}
-                      {Math.round(segment.unfunded).toLocaleString()}
+                      {formatNumber(Math.round(segment.unfunded))}
                     </span>
                   )}
                 </td>

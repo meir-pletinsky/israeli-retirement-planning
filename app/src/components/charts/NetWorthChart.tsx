@@ -11,6 +11,7 @@ import {
 } from "recharts";
 
 import { SOURCE_KINDS, type NetWorthPoint, type SourceKind } from "../../domain";
+import { formatNumber } from "../../i18n/formatters";
 import { chartA11y } from "./chartA11y";
 import { ageAxis, moneyAxis } from "./chartAxes";
 import { CHART_COLORS } from "./chartPalette";
@@ -108,7 +109,7 @@ export function NetWorthTooltip({ active, payload, label, currencySymbol }: NetW
   const texts = useChartTexts();
   const point = payload?.[0]?.payload as NetWorthChartPoint | undefined;
   if (!active || !point) return null;
-  const money = (value: number) => `${currencySymbol}${Math.round(value).toLocaleString()}`;
+  const money = (value: number) => `${currencySymbol}${formatNumber(Math.round(value))}`;
   const parts = SOURCE_KINDS.map((kind) => ({ kind, value: point.byKind?.[kind] ?? 0 })).filter(
     ({ value }) => value > 0,
   );

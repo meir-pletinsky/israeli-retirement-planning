@@ -8,6 +8,7 @@ import type {
   SpendingFunding,
   UnvestedShares,
 } from "../domain";
+import { formatNumber } from "../i18n/formatters";
 
 const isolate = (text: string) => `\u2066${text}\u2069`;
 
@@ -30,7 +31,7 @@ function useUnvestedSharesText(unvestedShares: UnvestedShares | null | undefined
   const { t } = useTranslation();
   if (!unvestedShares) return null;
   const params = {
-    amount: isolate(`${t("common.currencySymbol")}${unvestedShares.value.toLocaleString()}`),
+    amount: isolate(`${t("common.currencySymbol")}${formatNumber(unvestedShares.value)}`),
     from: isolate(String(unvestedShares.firstVestAge)),
     to: isolate(String(unvestedShares.lastVestAge)),
   };
@@ -43,7 +44,7 @@ function PathEventText({ event, drawing }: { event: PathEvent; drawing: boolean 
   const { t } = useTranslation();
   const kindLabel = useKindLabel();
   const currencySymbol = t("common.currencySymbol");
-  const money = (amount: number) => isolate(`${currencySymbol}${amount.toLocaleString()}`);
+  const money = (amount: number) => isolate(`${currencySymbol}${formatNumber(amount)}`);
   const age = isolate(String(event.age));
 
   if (event.type === "retirement") {
@@ -154,7 +155,7 @@ export function BalanceTable({ path }: BalanceTableProps) {
   const { t } = useTranslation();
   const kindLabel = useKindLabel();
   const currencySymbol = t("common.currencySymbol");
-  const money = (amount: number) => `${currencySymbol}${amount.toLocaleString()}`;
+  const money = (amount: number) => `${currencySymbol}${formatNumber(amount)}`;
   const unvestedText = useUnvestedSharesText(path.unvestedShares);
 
   return (

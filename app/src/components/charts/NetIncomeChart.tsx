@@ -11,6 +11,7 @@ import {
 } from "recharts";
 
 import type { NetIncomeYear } from "../../domain";
+import { formatNumber } from "../../i18n/formatters";
 import { chartA11y } from "./chartA11y";
 import { ageAxis, moneyAxis } from "./chartAxes";
 import { CHART_COLORS, PLANNED_LINE_STYLE } from "./chartPalette";
@@ -49,7 +50,7 @@ export function NetIncomeChart({
         <XAxis {...ageAxis(texts.ageAxis)} />
         <YAxis {...moneyAxis(texts.monthlyAxis, currencySymbol)} />
         <Tooltip
-          formatter={(value) => `${currencySymbol}${Number(value).toLocaleString()}`}
+          formatter={(value) => `${currencySymbol}${formatNumber(Number(value))}`}
           labelFormatter={texts.ageHeading}
         />
         <Legend wrapperStyle={{ fontSize: 12 }} />

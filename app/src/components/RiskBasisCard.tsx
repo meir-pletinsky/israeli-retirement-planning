@@ -7,6 +7,7 @@ import {
   resolveVolatility,
   type StressTest,
 } from "../domain";
+import { formatNumber } from "../i18n/formatters";
 import { formatPercent } from "../pages/MyData/summaryFormat";
 import type { Assumptions } from "../types";
 import { ScenarioTitle } from "./ScenarioTag";
@@ -30,7 +31,7 @@ const isolate = (text: string) => `\u2066${text}\u2069`;
 export function RiskBasisCard({ assumptions, stress, scenarioTag }: RiskBasisCardProps) {
   const { t } = useTranslation();
   const currencySymbol = t("common.currencySymbol");
-  const money = (amount: number) => isolate(`${currencySymbol}${Math.round(amount).toLocaleString()}`);
+  const money = (amount: number) => isolate(`${currencySymbol}${formatNumber(Math.round(amount))}`);
   const volatility = Math.round(resolveVolatility(assumptions.volatilityPct) * 1000) / 10;
   const employerValue = stress?.employerValue ?? 0;
 

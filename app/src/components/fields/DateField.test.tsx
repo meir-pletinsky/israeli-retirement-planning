@@ -1,9 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
-import "../../i18n";
+import i18n from "../../i18n";
 import { DateField } from "./DateField";
 
 function Harness({ initial = null }: { initial?: string | null }) {
@@ -71,5 +71,26 @@ describe("DateField", () => {
   it("labels the date input when its box has a calendar button", () => {
     render(<Harness />);
     expect(screen.getByRole("textbox", { name: "Start" })).toBe(input());
+  });
+
+  describe("in Russian", () => {
+    afterEach(async () => {
+      await i18n.changeLanguage("en");
+    });
+
+    it("shows the date with dots and a Russian placeholder", async () => {
+      await i18n.changeLanguage("ru");
+      render(<Harness initial="2024-03-05" />);
+      expect(input()).toHaveValue("05.03.2024");
+      expect(input()).toHaveAttribute("placeholder", "дд.мм.гггг");
+    });
+
+    it("reads a typed dd.mm.yyyy date day first", async () => {
+      await i18n.changeLanguage("ru");
+      const user = userEvent.setup();
+      render(<Harness />);
+      await user.type(input(), "03.04.2024");
+      expect(stored()).toBe("2024-04-03");
+    });
   });
 });

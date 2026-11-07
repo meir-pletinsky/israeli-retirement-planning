@@ -11,6 +11,7 @@ import {
 } from "recharts";
 
 import type { MonteCarloFanPoint } from "../../domain";
+import { formatNumber } from "../../i18n/formatters";
 import { chartA11y } from "./chartA11y";
 import { ageAxis, moneyAxis } from "./chartAxes";
 import { CHART_COLORS } from "./chartPalette";
@@ -40,7 +41,7 @@ export function MonteCarloFanChart({
   medianLabel,
 }: MonteCarloFanChartProps) {
   const texts = useChartTexts();
-  const money = (value: number) => `${currencySymbol}${Math.round(value).toLocaleString()}`;
+  const money = (value: number) => `${currencySymbol}${formatNumber(Math.round(value))}`;
   const points = data.map((point) => ({ ...point, band: [point.p10, point.p90] }));
 
   return (

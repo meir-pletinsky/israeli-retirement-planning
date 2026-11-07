@@ -11,6 +11,7 @@ import {
 } from "recharts";
 
 import { BAND_FOR_KIND, type BalancePoint, type SourceKind } from "../../domain";
+import { formatNumber } from "../../i18n/formatters";
 import { chartA11y } from "./chartA11y";
 import { ageAxis, moneyAxis } from "./chartAxes";
 import { CHART_COLORS } from "./chartPalette";
@@ -56,7 +57,7 @@ export function BalancesByKindChart({
   currencySymbol,
 }: BalancesByKindChartProps) {
   const texts = useChartTexts();
-  const money = (value: number) => `${currencySymbol}${Math.round(value).toLocaleString()}`;
+  const money = (value: number) => `${currencySymbol}${formatNumber(Math.round(value))}`;
   const rows = points.map((point) => ({ age: point.age, ...point.byKind }));
 
   return (

@@ -2,6 +2,7 @@ import clsx from "clsx";
 import { useTranslation } from "react-i18next";
 
 import type { RetirementAgeCheck } from "../domain";
+import { formatNumber } from "../i18n/formatters";
 
 interface RetireAgeChecksCardProps {
   checks: RetirementAgeCheck[];
@@ -11,7 +12,7 @@ export function RetireAgeChecksCard({ checks }: RetireAgeChecksCardProps) {
   const { t } = useTranslation();
   const currencySymbol = t("common.currencySymbol");
   const money = (amount: number) =>
-    `${currencySymbol}${Math.abs(Math.round(amount)).toLocaleString()}`;
+    `${currencySymbol}${formatNumber(Math.abs(Math.round(amount)))}`;
 
   return (
     <section

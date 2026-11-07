@@ -12,6 +12,7 @@ import {
   runHistoricalBacktest,
   successBand,
 } from "../domain";
+import { formatFixed, formatNumber } from "../i18n/formatters";
 import type { ProfileData, RetirementScenario } from "../types";
 import { BacktestChart } from "./charts/BacktestChart";
 import { BACKTEST_COLOURS } from "./charts/backtestColours";
@@ -42,7 +43,7 @@ const BASIS_LABEL_KEYS: Record<BacktestBasis, string> = {
 };
 const BASES = Object.keys(BASIS_LABEL_KEYS) as BacktestBasis[];
 
-const percent = (fraction: number) => (fraction * 100).toFixed(1);
+const percent = (fraction: number) => formatFixed(fraction * 100, 1);
 
 /** Keeps digits and dashes reading left to right when inserted into a right-to-left sentence. */
 const isolate = (text: string) => `\u2066${text}\u2069`;
@@ -69,7 +70,7 @@ export function HistoricalBacktestCard({
   const [stockSharePct, setStockSharePct] = useState(DEFAULT_BACKTEST_STOCK_SHARE_PCT);
   const [basis, setBasis] = useState<BacktestBasis>("asHappened");
   const currencySymbol = t("common.currencySymbol");
-  const money = (amount: number) => `${currencySymbol}${amount.toLocaleString()}`;
+  const money = (amount: number) => `${currencySymbol}${formatNumber(amount)}`;
 
   // Like the risk analysis: the replay reruns only when the plan or a setting changes, and the
   // deferred values let the controls answer before it finishes.
@@ -274,7 +275,7 @@ function Results({
           stocks: result.stockSharePct,
           plan: isolate(percent(result.planRealReturn)),
           replayed: isolate(percent(result.replayedRealReturn)),
-          volatility: isolate(String(Math.round(volatilityPct * 10) / 10)),
+          volatility: isolate(formatNumber(Math.round(volatilityPct * 10) / 10)),
         })}
       </p>
 
@@ -335,7 +336,7 @@ function Results({
           <li>{t("projections.history.howCurrency")}</li>
           <li>
             {t("projections.history.howTax", {
-              percent: (result.taxShare * 100).toFixed(1),
+              percent: formatFixed(result.taxShare * 100, 1),
               gross: money(result.targetGrossMonthly),
             })}
           </li>

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import { budgetBreakdown, hasRetirementBudget } from "../domain";
+import { formatNumber } from "../i18n/formatters";
 import type { ExpensesData } from "../types";
 import { necessityFill } from "./charts/portfolioColors";
 import { ScenarioTitle } from "./ScenarioTag";
@@ -29,7 +30,7 @@ const NECESSITY = "myData.steps.expenses.necessity";
 export function BudgetCard({ expenses, netMonthlyIncome, scenarioTag, summary = false }: BudgetCardProps) {
   const { t } = useTranslation();
   const currencySymbol = t("common.currencySymbol");
-  const money = (amount: number) => `${currencySymbol}${Math.round(amount).toLocaleString()}`;
+  const money = (amount: number) => `${currencySymbol}${formatNumber(Math.round(amount))}`;
   const budget = budgetBreakdown(expenses);
   if (!hasRetirementBudget(expenses)) return null;
 

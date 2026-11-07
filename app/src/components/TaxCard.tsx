@@ -2,11 +2,11 @@ import { useTranslation } from "react-i18next";
 
 import {
   FINAL_EXEMPTION_YEAR,
-  formatDate as formatEffectiveDate,
   type NetIncomeEstimate,
   TAX_RATES,
   totalExemptionRate,
 } from "../domain";
+import { formatDate, formatFixed, formatNumber } from "../i18n/formatters";
 
 interface TaxCardProps {
   net: NetIncomeEstimate;
@@ -17,12 +17,12 @@ interface TaxCardProps {
 }
 
 /** A share as a percentage with at most two decimals (0.575 becomes 57.5, 0.0323 becomes 3.23). */
-const toPercent = (share: number) => Math.round(share * 10000) / 100;
+const toPercent = (share: number) => formatNumber(Math.round(share * 10000) / 100);
 
 export function TaxCard({ net, isCouple, hasEmployerStock }: TaxCardProps) {
   const { t } = useTranslation();
   const currencySymbol = t("common.currencySymbol");
-  const money = (amount: number) => `${currencySymbol}${amount.toLocaleString()}`;
+  const money = (amount: number) => `${currencySymbol}${formatNumber(amount)}`;
 
   if (net.grossMonthlyIncome <= 0) return null;
 
@@ -65,7 +65,7 @@ export function TaxCard({ net, isCouple, hasEmployerStock }: TaxCardProps) {
       {net.taxMonthly > 0 ? (
         <p className="mt-3 text-sm text-slate-700">
           {t("dashboard.tax.effectiveRate", {
-            percent: (net.effectiveTaxRate * 100).toFixed(1),
+            percent: formatFixed(net.effectiveTaxRate * 100, 1),
           })}
         </p>
       ) : (
@@ -141,7 +141,7 @@ export function TaxCard({ net, isCouple, hasEmployerStock }: TaxCardProps) {
       </details>
 
       <p className="mt-3 text-xs text-slate-500">
-        {t("dashboard.tax.ratesAsOf", { date: formatEffectiveDate(TAX_RATES.effectiveDate) })}{" "}
+        {t("dashboard.tax.ratesAsOf", { date: formatDate(TAX_RATES.effectiveDate) })}{" "}
         <a
           href={TAX_RATES.sourceUrl}
           target="_blank"

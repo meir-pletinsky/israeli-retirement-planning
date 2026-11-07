@@ -9,6 +9,7 @@ import {
   type NetIncomeYear,
   type NetWorthPoint,
 } from "../../domain";
+import { formatNumber } from "../../i18n/formatters";
 import type { ComparisonChartPoint } from "./ComparisonChart";
 
 /** Keeps digits reading left to right when inserted into a right-to-left sentence. */
@@ -18,7 +19,7 @@ const isolate = (text: string) => `\u2066${text}\u2069`;
 export function useChartTakeaways() {
   const { t } = useTranslation();
   const currencySymbol = t("common.currencySymbol");
-  const money = (amount: number) => isolate(`${currencySymbol}${Math.round(amount).toLocaleString()}`);
+  const money = (amount: number) => isolate(`${currencySymbol}${formatNumber(Math.round(amount))}`);
   const age = (value: number) => isolate(String(value));
 
   return {

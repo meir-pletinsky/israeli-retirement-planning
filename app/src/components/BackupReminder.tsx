@@ -5,7 +5,7 @@ import { useLocation } from "react-router-dom";
 import { useBackupStatus } from "../app/backupStatus";
 import { useProfile } from "../app/ProfileContext";
 import { useExportBackup } from "../app/useExportBackup";
-import { formatLocalDate } from "../domain/dates";
+import { formatLocalDate } from "../i18n/formatters";
 import { isBackupDue } from "../storage/backupReminder";
 import { hasProfileData } from "../types";
 import { Toast } from "./Toast";

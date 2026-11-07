@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { WithdrawalStrategyComparison, WithdrawalStrategyResult } from "../domain";
+import { formatNumber } from "../i18n/formatters";
 import type { WithdrawalStrategy } from "../types";
 import { ScenarioTitle } from "./ScenarioTag";
 import { useFormatAge } from "./useFormatAge";
@@ -26,9 +27,9 @@ export function WithdrawalStrategyCard({
   const { t } = useTranslation();
   const formatAge = useFormatAge();
   const currencySymbol = t("common.currencySymbol");
-  const money = (amount: number) => isolate(`${currencySymbol}${Math.round(amount).toLocaleString()}`);
+  const money = (amount: number) => isolate(`${currencySymbol}${formatNumber(Math.round(amount))}`);
   const signed = (amount: number) =>
-    Math.abs(amount) < 0.5 ? null : isolate(`${amount < 0 ? "\u2212" : "+"}${currencySymbol}${Math.abs(Math.round(amount)).toLocaleString()}`);
+    Math.abs(amount) < 0.5 ? null : isolate(`${amount < 0 ? "\u2212" : "+"}${currencySymbol}${formatNumber(Math.abs(Math.round(amount)))}`);
 
   const { results, current, desiredMonthly, surtaxThresholdAnnual, identical } = comparison;
   const inUse = results.find((result) => result.strategy === current);

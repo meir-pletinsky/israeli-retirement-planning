@@ -1,4 +1,4 @@
-import { formatAxisMoney } from "./formatAxisMoney";
+import { formatAxisMoney } from "../../i18n/formatters";
 
 const AXIS_STROKE = "#94a3b8";
 const CAPTION_FILL = "#64748b";

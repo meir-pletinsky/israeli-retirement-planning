@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import type { ShortfallLevers as ShortfallLeversData } from "../domain";
+import { formatNumber } from "../i18n/formatters";
 import { useFormatAge } from "./useFormatAge";
 
 /** Keeps an interpolated number in its own bidi run, so it does not reorder inside Hebrew text. */
@@ -17,7 +18,7 @@ interface ShortfallLeversProps {
 export function ShortfallLevers({ levers }: ShortfallLeversProps) {
   const { t } = useTranslation();
   const formatAge = useFormatAge();
-  const money = (amount: number) => isolate(`${t("common.currencySymbol")}${amount.toLocaleString()}`);
+  const money = (amount: number) => isolate(`${t("common.currencySymbol")}${formatNumber(amount)}`);
   const { spend, retire, save } = levers;
 
   return (

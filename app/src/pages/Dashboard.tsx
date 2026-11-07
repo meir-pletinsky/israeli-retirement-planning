@@ -52,6 +52,7 @@ import {
   successBand,
   successPercent,
 } from "../domain";
+import { formatNumber } from "../i18n/formatters";
 
 const SUCCESS_STATUS = { strong: "positive", fair: "neutral", weak: "negative" } as const;
 
@@ -126,7 +127,7 @@ export function Dashboard() {
   const confidencePercent = Math.round(MONTE_CARLO_CONFIDENCE * 100);
   const gaps = findDataGaps(profile);
   const coverNotices = findCoverNotices(profile);
-  const money = (amount: number) => `${currencySymbol}${amount.toLocaleString()}`;
+  const money = (amount: number) => `${currencySymbol}${formatNumber(amount)}`;
   const netWorthTakeaway = takeaways.netWorth(balancePath.points, funding.shortfallAge);
   const timing = retirementWhen(profile, "standard");
   const assumedAges = assumedRetirementAges(profile);
@@ -223,7 +224,7 @@ export function Dashboard() {
           )}
           value={
             hasTarget
-              ? `${currencySymbol}${Math.abs(fundingGap.monthlyGap).toLocaleString()}`
+              ? `${currencySymbol}${formatNumber(Math.abs(fundingGap.monthlyGap))}`
               : "—"
           }
           status={hasTarget ? (isShortfall ? "negative" : averageOnly ? "neutral" : "positive") : "neutral"}
@@ -262,15 +263,15 @@ export function Dashboard() {
                     successPercent(risk.successProbability) === 100
                       ? "dashboard.kpi.successNoteAll"
                       : "dashboard.kpi.successNoteShare",
-                    { paths: risk.paths.toLocaleString() },
+                    { paths: formatNumber(risk.paths) },
                   )}
                 </p>
                 <p>{t("dashboard.kpi.successQualifier")}</p>
                 <p>
                   {t("dashboard.kpi.successAssumptions", {
-                    returnPct: profile.assumptions.investmentReturnPct,
-                    inflationPct: profile.assumptions.inflationPct,
-                    volatilityPct: Math.round(risk.volatilityPct * 10) / 10,
+                    returnPct: formatNumber(profile.assumptions.investmentReturnPct),
+                    inflationPct: formatNumber(profile.assumptions.inflationPct),
+                    volatilityPct: formatNumber(Math.round(risk.volatilityPct * 10) / 10),
                   })}
                 </p>
                 <Link to="/projections" className="font-medium text-brand-700 hover:underline">
