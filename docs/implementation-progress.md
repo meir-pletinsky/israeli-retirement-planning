@@ -2451,6 +2451,20 @@ of its section 10 (UXB-14 is skipped on request).
       "Property (not spent)" split or "do not draw on this" option for other assets, which also
       touches net worth (see UXB-22). Tests: `PensionSavingsStep.test.tsx`,
       `EquityStep.test.tsx`, `Dashboard.test.tsx`, `Projections.test.tsx`.
+- [x] **UXB-10 Concentration and stress checks beyond employer shares and the dollar**
+      (bounded). The Dashboard "What you have" card now flags any one company whose vested
+      shares are more than 10% of Net Worth Today, whatever the category (shares are grouped by
+      ticker, else company name; up to the three largest are listed, with a link to the stress
+      test). A company held only through employer grants is left to the existing employer-share
+      note. The stress test has a new "Share markets fall 30%" row that lowers every share's
+      price, shares bought privately included, with the declared gain lowered too so the tax
+      follows; it leaves the dollar rate and shekel savings alone. The dollar-exposure line now
+      says what the figure is: the shares still held when drawing starts, at today's prices and
+      exchange rate (the number itself already counted only vested shares). Not built (needs a
+      modeling decision): the equity part of pension and provident tracks in the market fall,
+      because the model keeps only a track name and no stocks/bonds split (the "How this works"
+      list says so), and an inflation-shock row. Tests: `portfolioBreakdown.test.ts`,
+      `stressTests.test.ts`, `Dashboard.test.tsx`, `Projections.test.tsx`.
 
 ## Modeling assumptions (by phase)
 

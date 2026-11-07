@@ -12,10 +12,12 @@ import { momentAfterYears, quantityAtRetirement } from "./vesting";
 export const STRESS_EMPLOYER_STOCK_DROPS_PCT = [30, 50] as const;
 /** How far the dollar falls against the shekel in each dollar stress, in percent. */
 export const STRESS_DOLLAR_DROPS_PCT = [10, 20] as const;
+/** How far every share's price falls in the share-market stress, in percent. */
+export const STRESS_MARKET_DROP_PCT = 30;
 /** The one row where both go wrong together. */
 export const STRESS_COMBINED = { employerStockPct: 50, dollarPct: 20 } as const;
 
-export type StressKind = "employerStock" | "dollar" | "both";
+export type StressKind = "employerStock" | "market" | "dollar" | "both";
 
 /** What the plan gives in one situation, in today's money. */
 export interface StressOutcome {
@@ -32,6 +34,8 @@ export interface StressRow extends StressOutcome {
   kind: StressKind;
   /** Percent the employer shares' price falls; 0 when this stress leaves them alone. */
   employerStockDropPct: number;
+  /** Percent every share's price falls; 0 when this stress leaves them alone. */
+  marketDropPct: number;
   /** Percent the dollar falls against the shekel; 0 when this stress leaves it alone. */
   dollarDropPct: number;
   /** Savings at retirement minus the plan's own; negative when the stress costs money. */
@@ -83,11 +87,17 @@ function withPriceDrop(holding: StockHolding, dropPct: number): StockHolding {
   };
 }
 
-/** A copy of `profile` with the employer shares' price and the dollar rate down by the given percents. */
+/** The drops a stress applies, each in percent; 0 leaves that thing alone. */
+interface StressDrops {
+  employerStockDropPct: number;
+  marketDropPct: number;
+  dollarDropPct: number;
+}
+
+/** A copy of `profile` with the share prices and the dollar rate down by the given percents. */
 function stressedProfile(
   profile: ProfileData,
-  employerStockDropPct: number,
-  dollarDropPct: number,
+  { employerStockDropPct, marketDropPct, dollarDropPct }: StressDrops,
 ): ProfileData {
   return {
     ...profile,
@@ -95,12 +105,13 @@ function stressedProfile(
       ...profile.equity,
       usdToIlsRate:
         dollarDropPct > 0 ? usdToIlsRate(profile) * (1 - dollarDropPct / 100) : profile.equity.usdToIlsRate,
-      holdings:
-        employerStockDropPct > 0
-          ? profile.equity.holdings.map((holding) =>
-              isEmployerStock(holding) ? withPriceDrop(holding, employerStockDropPct) : holding,
-            )
-          : profile.equity.holdings,
+      holdings: profile.equity.holdings.map((holding) => {
+        let stressed = marketDropPct > 0 ? withPriceDrop(holding, marketDropPct) : holding;
+        if (employerStockDropPct > 0 && isEmployerStock(holding)) {
+          stressed = withPriceDrop(stressed, employerStockDropPct);
+        }
+        return stressed;
+      }),
     },
   };
 }
@@ -126,9 +137,11 @@ const changePercent = (change: number, base: number): number | null =>
 /**
  * Runs the plan again with one thing going wrong, and reports what it does to the savings at
  * retirement and to the lowest net monthly income: the employer shares losing part of their
- * price, the dollar losing part of its value against the shekel, and both at once. Every
- * stress is a full run of the plan, so the income is again what the savings can sustain, and
- * the tax is worked out afresh on the smaller gains.
+ * price, every share losing part of its price, the dollar losing part of its value against the
+ * shekel, and employer shares and the dollar at once. The share-market fall hits the shares
+ * only: the app does not split pension and provident funds into stocks and bonds, so their
+ * tracks stay as they are. Every stress is a full run of the plan, so the income is again what
+ * the savings can sustain, and the tax is worked out afresh on the smaller gains.
  *
  * Only the shares and dollar holdings the household would still have at retirement count, so
  * unvested shares that would be lost are left out. Shares the person bought through a broker
@@ -158,17 +171,20 @@ export function buildStressTest(
   const base = outcomeFor(profile, timing, desiredMonthly);
 
   const hasEmployerStock = employerValue >= 0.5;
-  const stresses: { kind: StressKind; employerStockDropPct: number; dollarDropPct: number }[] = [
+  const stresses: ({ kind: StressKind } & StressDrops)[] = [
     ...(hasEmployerStock
       ? STRESS_EMPLOYER_STOCK_DROPS_PCT.map((pct) => ({
           kind: "employerStock" as const,
           employerStockDropPct: pct,
+          marketDropPct: 0,
           dollarDropPct: 0,
         }))
       : []),
+    { kind: "market", employerStockDropPct: 0, marketDropPct: STRESS_MARKET_DROP_PCT, dollarDropPct: 0 },
     ...STRESS_DOLLAR_DROPS_PCT.map((pct) => ({
       kind: "dollar" as const,
       employerStockDropPct: 0,
+      marketDropPct: 0,
       dollarDropPct: pct,
     })),
     ...(hasEmployerStock
@@ -176,6 +192,7 @@ export function buildStressTest(
           {
             kind: "both" as const,
             employerStockDropPct: STRESS_COMBINED.employerStockPct,
+            marketDropPct: 0,
             dollarDropPct: STRESS_COMBINED.dollarPct,
           },
         ]
@@ -183,11 +200,7 @@ export function buildStressTest(
   ];
 
   const rows = stresses.map((stress): StressRow => {
-    const outcome = outcomeFor(
-      stressedProfile(profile, stress.employerStockDropPct, stress.dollarDropPct),
-      timing,
-      desiredMonthly,
-    );
+    const outcome = outcomeFor(stressedProfile(profile, stress), timing, desiredMonthly);
     const netWorthChange = outcome.netWorthAtRetirement - base.netWorthAtRetirement;
     const netMonthlyChange = outcome.netMonthlyIncome - base.netMonthlyIncome;
     return {

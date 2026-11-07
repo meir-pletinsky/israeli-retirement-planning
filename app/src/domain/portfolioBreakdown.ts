@@ -66,6 +66,19 @@ export interface PortfolioGroup {
   rows: PortfolioGroupRow[];
 }
 
+/** A single company's shares are flagged on the Dashboard when they are more than this share of the total, in percent. */
+export const CONCENTRATION_THRESHOLD_PCT = 10;
+
+/** Shares in one company that make up more than the threshold of Net Worth Today. */
+export interface PortfolioConcentration {
+  /** The ticker, else the company name; null when the holdings have neither. */
+  name: string | null;
+  /** Whole shekels, the vested shares only, as in Net Worth Today. */
+  amount: number;
+  /** Of `PortfolioBreakdown.total`. */
+  percent: number;
+}
+
 export interface PortfolioFxBasis {
   rate: number;
   /** `boi`: the Bank of Israel rate of `date`; `typed`: the user's own; `fallback`: the built-in rough rate. */
@@ -82,6 +95,12 @@ export interface PortfolioBreakdown {
   dollarPriced: number;
   /** `aggregateCurrentNetWorth`, in whole shekels. */
   total: number;
+  /**
+   * Companies whose shares are over the threshold, largest first, whatever the category of the
+   * holding. A company held only through employer grants is left out: the employer-share
+   * note already covers it.
+   */
+  concentrations: PortfolioConcentration[];
   /** Value of employer shares that have not vested yet, which Net Worth Today leaves out. */
   unvestedEmployerShares: number;
   /** How share values were converted to shekels; null when there are no stock holdings. */
@@ -144,21 +163,45 @@ export function breakdownPortfolio(profile: ProfileData): PortfolioBreakdown {
   }
 
   let unvestedEmployerShares = 0;
+  const companies = new Map<string, { name: string | null; amount: number; onlyEmployerGrants: boolean }>();
   for (const holding of profile.equity.holdings) {
     const vested = vestedQuantityAt(holding, nowMs);
+    const value = holdingValueIls(holding, rate, vested);
     if (isEmployerGrant(holding)) {
-      amounts.employerShares += holdingValueIls(holding, rate, vested);
+      amounts.employerShares += value;
       unvestedEmployerShares += holdingValueIls(
         holding,
         rate,
         Math.max((holding.quantity ?? 0) - vested, 0),
       );
     } else {
-      amounts.privateShares += holdingValueIls(holding, rate, vested);
+      amounts.privateShares += value;
     }
+
+    const ticker = holding.tickerSymbol.trim().toUpperCase();
+    const company = holding.companyName.trim();
+    const name = ticker || company || null;
+    const key = name ? name.toLowerCase() : `holding:${holding.id}`;
+    const entry = companies.get(key) ?? { name, amount: 0, onlyEmployerGrants: true };
+    entry.amount += value;
+    entry.onlyEmployerGrants &&= isEmployerGrant(holding);
+    companies.set(key, entry);
   }
 
   const total = Math.round(aggregateCurrentNetWorth(profile));
+  const concentrations: PortfolioConcentration[] = [...companies.values()]
+    .filter(
+      (company) =>
+        !company.onlyEmployerGrants &&
+        total > 0 &&
+        (company.amount / total) * 100 > CONCENTRATION_THRESHOLD_PCT,
+    )
+    .map((company) => ({
+      name: company.name,
+      amount: Math.round(company.amount),
+      percent: (company.amount / total) * 100,
+    }))
+    .sort((a, b) => b.amount - a.amount);
   const rows: PortfolioRow[] = PORTFOLIO_ROW_KEYS.map((key) => ({
     key,
     amount: Math.round(amounts[key]),
@@ -209,6 +252,7 @@ export function breakdownPortfolio(profile: ProfileData): PortfolioBreakdown {
     groups,
     dollarPriced: rows.filter((row) => row.dollarPriced).reduce((sum, row) => sum + row.amount, 0),
     total,
+    concentrations,
     unvestedEmployerShares: Math.round(unvestedEmployerShares),
     fx,
     includesSpouse: isHouseholdActive(profile) && accountsInPlan(profile).some((a) => a.owner === "spouse"),

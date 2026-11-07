@@ -41,8 +41,10 @@ export function StressTestCard({ stress, scenarioTag }: StressTestCardProps) {
 
   const rowLabel = (row: StressRow) => {
     const shares = isolate(`${row.employerStockDropPct}%`);
+    const market = isolate(`${row.marketDropPct}%`);
     const dollar = isolate(`${row.dollarDropPct}%`);
     if (row.kind === "employerStock") return t("projections.stress.rowEmployerStock", { percent: shares });
+    if (row.kind === "market") return t("projections.stress.rowMarket", { percent: market });
     if (row.kind === "dollar") return t("projections.stress.rowDollar", { percent: dollar });
     return t("projections.stress.rowBoth", { shares, dollar });
   };
@@ -130,6 +132,7 @@ export function StressTestCard({ stress, scenarioTag }: StressTestCardProps) {
         </summary>
         <ul className="mt-2 list-disc space-y-1 ps-5 text-xs text-slate-600">
           <li>{t("projections.stress.howEmployer")}</li>
+          <li>{t("projections.stress.howMarket")}</li>
           <li>{t("projections.stress.howDollar")}</li>
           <li>{t("projections.stress.howIncome")}</li>
           <li>{t("projections.stress.howRetirement")}</li>

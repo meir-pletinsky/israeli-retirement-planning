@@ -166,6 +166,99 @@ describe("breakdownPortfolio", () => {
     });
   });
 
+  describe("one company's shares above the threshold", () => {
+    const base = { usdToIlsRate: { rate: 1 }, otherAssets: 100_000 };
+    const own = (ticker: string, priceUSD: number, quantity = 100) => ({
+      quantity,
+      priceUSD,
+      ticker,
+      category: "personalBrokeragePurchase" as const,
+    });
+    const concentrations = (profile: Parameters<typeof breakdownPortfolio>[0]) =>
+      breakdownPortfolio(profile).concentrations;
+
+    it("flags a private holding that is a large part of the total, whatever its category", () => {
+      expect(concentrations(buildTestProfile({ ...base, equity: [own("AAPL", 1_000)] }))).toEqual([
+        { name: "AAPL", amount: 100_000, percent: 50 },
+      ]);
+    });
+
+    it("flags only holdings above the threshold", () => {
+      const atThreshold = buildTestProfile({ ...base, otherAssets: 90_000, equity: [own("AAPL", 100)] });
+      expect(breakdownPortfolio(atThreshold).total).toBe(100_000);
+      expect(concentrations(atThreshold)).toEqual([]);
+      expect(concentrations(buildTestProfile({ ...base, otherAssets: 80_000, equity: [own("AAPL", 100)] }))).toEqual([
+        { name: "AAPL", amount: 10_000, percent: expect.closeTo(100 / 9, 5) },
+      ]);
+    });
+
+    it("adds up the holdings of one company, whatever the case of the ticker", () => {
+      const profile = buildTestProfile({
+        ...base,
+        otherAssets: 90_000,
+        equity: [own("AAPL", 60), own("aapl ", 60)],
+      });
+      expect(concentrations(profile)).toEqual([{ name: "AAPL", amount: 12_000, percent: expect.closeTo(12 / 1.02, 5) }]);
+    });
+
+    it("lists the largest company first", () => {
+      const profile = buildTestProfile({ ...base, equity: [own("MSFT", 500), own("AAPL", 1_500)] });
+      expect(concentrations(profile).map((company) => company.name)).toEqual(["AAPL", "MSFT"]);
+    });
+
+    it("leaves out a company held only through employer grants, which has its own note", () => {
+      const profile = buildTestProfile({
+        ...base,
+        equity: [{ quantity: 100, priceUSD: 1_000, ticker: "ACME", employerGrant: {} }],
+      });
+      expect(breakdownPortfolio(profile).rows.find((row) => row.key === "employerShares")?.amount).toBe(100_000);
+      expect(concentrations(profile)).toEqual([]);
+    });
+
+    it("counts employer grants together with shares bought privately in the same company", () => {
+      const profile = buildTestProfile({
+        ...base,
+        equity: [{ quantity: 50, priceUSD: 1_000, ticker: "ACME", employerGrant: {} }, own("ACME", 500)],
+      });
+      expect(concentrations(profile)).toEqual([
+        { name: "ACME", amount: 100_000, percent: expect.closeTo(50, 5) },
+      ]);
+    });
+
+    it("counts only the shares that have vested, as Net Worth Today does", () => {
+      const profile = buildTestProfile({
+        ...base,
+        equity: [
+          {
+            quantity: 100,
+            priceUSD: 1_000,
+            ticker: "ACME",
+            employerGrant: {
+              vestingTranches: [
+                { vestDate: "2025-01-01", quantity: 50 },
+                { vestDate: "2027-01-01", quantity: 50 },
+              ],
+            },
+          },
+          own("ACME", 500),
+        ],
+      });
+      expect(breakdownPortfolio(profile).total).toBe(200_000);
+      expect(concentrations(profile)).toEqual([{ name: "ACME", amount: 100_000, percent: 50 }]);
+    });
+
+    it("has no name when the holdings have neither a ticker nor a company name", () => {
+      const profile = buildTestProfile({ ...base, equity: [own("", 1_000)] });
+      profile.equity.holdings[0] = { ...profile.equity.holdings[0], tickerSymbol: "", companyName: " " };
+      expect(concentrations(profile)).toEqual([{ name: null, amount: 100_000, percent: 50 }]);
+    });
+
+    it("has none without shares", () => {
+      expect(concentrations(buildTestProfile(base))).toEqual([]);
+      expect(concentrations(buildTestProfile({}))).toEqual([]);
+    });
+  });
+
   describe("the part priced in dollars", () => {
     it("adds up the share rows", () => {
       expect(breakdownPortfolio(rich).dollarPriced).toBe(15_000 + 3_600);

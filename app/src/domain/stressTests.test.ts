@@ -8,6 +8,7 @@ import {
   STRESS_COMBINED,
   STRESS_DOLLAR_DROPS_PCT,
   STRESS_EMPLOYER_STOCK_DROPS_PCT,
+  STRESS_MARKET_DROP_PCT,
   type StressRow,
 } from "./stressTests";
 
@@ -42,20 +43,61 @@ describe("buildStressTest", () => {
     expect(test?.employerValue).toBe(0);
     expect(test?.dollarValue).toBe(100_000);
     expect(test?.rows.map((row) => [row.kind, row.employerStockDropPct, row.dollarDropPct])).toEqual([
+      ["market", 0, 0],
       ["dollar", 0, 10],
       ["dollar", 0, 20],
     ]);
   });
 
-  it("lists the employer, dollar and combined stresses when there are employer shares", () => {
+  it("lists the employer, market, dollar and combined stresses when there are employer shares", () => {
     const test = stress({ equity: [employerGrant()] });
     expect(test?.rows.map((row) => [row.kind, row.employerStockDropPct, row.dollarDropPct])).toEqual([
       ["employerStock", STRESS_EMPLOYER_STOCK_DROPS_PCT[0], 0],
       ["employerStock", STRESS_EMPLOYER_STOCK_DROPS_PCT[1], 0],
+      ["market", 0, 0],
       ["dollar", 0, STRESS_DOLLAR_DROPS_PCT[0]],
       ["dollar", 0, STRESS_DOLLAR_DROPS_PCT[1]],
       ["both", STRESS_COMBINED.employerStockPct, STRESS_COMBINED.dollarPct],
     ]);
+  });
+
+  it("takes every share's price down in the share-market fall, the ones bought privately too", () => {
+    const test = stress({
+      otherAssets: 100_000,
+      equity: [employerGrant({ quantity: 500 }), worth100k({ quantity: 500, category: "personalBrokeragePurchase" })],
+    });
+    const market = test?.rows.find((row) => row.kind === "market");
+    expect(market).toMatchObject({
+      marketDropPct: STRESS_MARKET_DROP_PCT,
+      employerStockDropPct: 0,
+      dollarDropPct: 0,
+      netWorthAtRetirement: 170_000,
+      netWorthChange: -30_000,
+    });
+  });
+
+  it("leaves the dollar rate and shekel savings alone in the share-market fall", () => {
+    const test = stress({ otherAssets: 100_000, equity: [worth100k({ category: "personalBrokeragePurchase" })] });
+    const market = test?.rows.find((row) => row.kind === "market");
+    expect(test?.base.netWorthAtRetirement).toBe(200_000);
+    expect(market?.netWorthAtRetirement).toBe(170_000);
+    expect(test?.dollarValue).toBe(100_000);
+  });
+
+  it("lowers a declared gain with the price in the share-market fall, so the tax follows", () => {
+    const test = stress({
+      equity: [
+        worth100k({
+          quantity: 1_000,
+          priceUSD: 1_000,
+          category: "personalBrokeragePurchase",
+          unrealizedCapitalGainUSD: 300_000,
+        }),
+      ],
+    });
+    const market = test?.rows.find((row) => row.kind === "market");
+    expect(market?.netWorthChangePercent).toBeCloseTo(-STRESS_MARKET_DROP_PCT, 5);
+    expect(market?.netMonthlyChangePercent).toBeGreaterThan(-STRESS_MARKET_DROP_PCT);
   });
 
   it("reports the plan as it is, matching the net income estimate", () => {

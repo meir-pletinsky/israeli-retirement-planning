@@ -1310,20 +1310,22 @@ describe("Projections", () => {
       const card = await renderCard(buildTestProfile({ ...retired, equity: [employerShares] }));
       const rows = within(card).getAllByRole("row").slice(1);
 
-      expect(rows).toHaveLength(6);
+      expect(rows).toHaveLength(7);
       expect(within(rows[0]).getByText("Your plan now")).toBeInTheDocument();
       expect(within(rows[0]).getByText(reads(/^₪100,000$/))).toBeInTheDocument();
       expect(within(rows[1]).getByText(reads(/^Employer shares fall 30%$/))).toBeInTheDocument();
       expect(within(rows[1]).getByText(reads(/^₪70,000$/))).toBeInTheDocument();
       expect(within(rows[1]).getByText(reads(/^-₪30,000 \(-30%\)$/))).toBeInTheDocument();
       expect(within(rows[2]).getByText(reads(/^Employer shares fall 50%$/))).toBeInTheDocument();
-      expect(within(rows[3]).getByText(reads(/^The dollar falls 10% against the shekel$/))).toBeInTheDocument();
-      expect(within(rows[4]).getByText(reads(/^The dollar falls 20% against the shekel$/))).toBeInTheDocument();
-      expect(within(rows[4]).getByText(reads(/^₪80,000$/))).toBeInTheDocument();
+      expect(within(rows[3]).getByText(reads(/^Share markets fall 30%$/))).toBeInTheDocument();
+      expect(within(rows[3]).getByText(reads(/^₪70,000$/))).toBeInTheDocument();
+      expect(within(rows[4]).getByText(reads(/^The dollar falls 10% against the shekel$/))).toBeInTheDocument();
+      expect(within(rows[5]).getByText(reads(/^The dollar falls 20% against the shekel$/))).toBeInTheDocument();
+      expect(within(rows[5]).getByText(reads(/^₪80,000$/))).toBeInTheDocument();
       expect(
-        within(rows[5]).getByText(reads(/^Both: employer shares fall 50% and the dollar falls 20%$/)),
+        within(rows[6]).getByText(reads(/^Both: employer shares fall 50% and the dollar falls 20%$/)),
       ).toBeInTheDocument();
-      expect(within(rows[5]).getByText(reads(/^₪40,000$/))).toBeInTheDocument();
+      expect(within(rows[6]).getByText(reads(/^₪40,000$/))).toBeInTheDocument();
       expect(
         within(card).getByRole("columnheader", { name: "Monthly income after tax (lowest year)" }),
       ).toBeInTheDocument();
@@ -1334,7 +1336,9 @@ describe("Projections", () => {
 
       expect(
         within(card).getByText(
-          reads(/^₪200,000 of your savings when you start drawing are held in dollars\. Of that, ₪100,000 is employer shares\.$/),
+          reads(
+            /^₪200,000 of your savings are held in dollars: the shares you would still have when you start drawing, at today's prices and exchange rate\. Of that, ₪100,000 is employer shares\.$/,
+          ),
         ),
       ).toBeInTheDocument();
     });
@@ -1343,18 +1347,19 @@ describe("Projections", () => {
       const card = await renderCard(buildTestProfile({ ...retired, equity: [ownShares] }));
       const rows = within(card).getAllByRole("row").slice(1);
 
-      expect(rows).toHaveLength(3);
+      expect(rows).toHaveLength(4);
       expect(within(card).queryByText(/Employer shares fall/)).not.toBeInTheDocument();
       expect(within(card).queryByText(/Both:/)).not.toBeInTheDocument();
       expect(within(card).queryByText(/is employer shares/)).not.toBeInTheDocument();
-      expect(within(rows[1]).getByText(reads(/^The dollar falls 10% against the shekel$/))).toBeInTheDocument();
+      expect(within(rows[1]).getByText(reads(/^Share markets fall 30%$/))).toBeInTheDocument();
+      expect(within(rows[2]).getByText(reads(/^The dollar falls 10% against the shekel$/))).toBeInTheDocument();
     });
 
     it("says whether the income still covers the desired spending", async () => {
       const covered = await renderCard(
         buildTestProfile({ ...retired, retirementMonthlyExpenses: 1, equity: [employerShares] }),
       );
-      expect(within(covered).getAllByText("Covers your desired spending")).toHaveLength(6);
+      expect(within(covered).getAllByText("Covers your desired spending")).toHaveLength(7);
       expect(within(covered).queryByText(/Short of your desired spending/)).not.toBeInTheDocument();
     });
 
@@ -1365,7 +1370,7 @@ describe("Projections", () => {
 
       expect(
         within(card).getAllByText(reads(/^Short of your desired spending by ₪[\d,]+ a month$/)),
-      ).toHaveLength(6);
+      ).toHaveLength(7);
       expect(within(card).queryByText("Covers your desired spending")).not.toBeInTheDocument();
     });
 
@@ -1382,6 +1387,9 @@ describe("Projections", () => {
       expect(details).not.toBeNull();
       expect(details).not.toHaveAttribute("open");
       expect(within(card).getByText(/not a forecast/)).toBeInTheDocument();
+      expect(
+        within(card).getByText(/Pension and provident fund tracks are not broken down into stocks and bonds/),
+      ).toBeInTheDocument();
     });
 
     it("is not shown when there are no dollar holdings", async () => {
@@ -1823,7 +1831,7 @@ describe("Projections", () => {
       const card = await renderPlan({ equity: [employerShares, ownShares] });
 
       expect(plain(card)).toContain(
-        "Your dollar holdings. ₪200,000 of your savings when you start drawing are held in dollars. Of that, ₪100,000 is employer shares. Neither test treats them differently from your shekel savings.",
+        "Your dollar holdings. ₪200,000 of your savings are held in dollars: the shares you would still have when you start drawing, at today's prices and exchange rate. Of that, ₪100,000 is employer shares. Neither test treats them differently from your shekel savings.",
       );
       const link = within(card).getByRole("link", { name: "See what a fall would do" });
       expect(link).toHaveAttribute("href", "#stress-test");
@@ -1833,7 +1841,9 @@ describe("Projections", () => {
     it("leaves out the employer line when none of the dollar holdings are employer shares", async () => {
       const card = await renderPlan({ equity: [ownShares] });
 
-      expect(plain(card)).toContain("₪100,000 of your savings when you start drawing are held in dollars.");
+      expect(plain(card)).toContain(
+        "₪100,000 of your savings are held in dollars: the shares you would still have when you start drawing, at today's prices and exchange rate.",
+      );
       expect(plain(card)).not.toContain("employer shares");
     });
 

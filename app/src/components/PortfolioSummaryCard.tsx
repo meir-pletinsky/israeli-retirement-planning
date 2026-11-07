@@ -9,6 +9,9 @@ import { PORTFOLIO_INPUT_TARGET } from "./portfolioInputTargets";
 /** The anchor the Net Worth Today figure on the Dashboard links to. */
 const PORTFOLIO_SUMMARY_ID = "portfolio-summary";
 
+/** The most single-company notes the card lists, largest first. */
+const MAX_CONCENTRATION_NOTES = 3;
+
 /** Keeps digits reading left to right when inserted into a right-to-left sentence. */
 const isolate = (text: string) => `\u2066${text}\u2069`;
 
@@ -156,6 +159,24 @@ export function PortfolioSummaryCard({
             </Link>
           </p>
         )}
+        {portfolio.concentrations.slice(0, MAX_CONCENTRATION_NOTES).map((concentration, index, shown) => {
+          const percent = isolate(percentText(concentration.percent));
+          return (
+            <p key={concentration.name ?? `holding-${index}`}>
+              {concentration.name
+                ? t("dashboard.portfolio.concentration", { name: isolate(concentration.name), percent })
+                : t("dashboard.portfolio.concentrationUnnamed", { percent })}
+              {index === shown.length - 1 && (
+                <>
+                  {" "}
+                  <Link to="/projections" className="font-medium text-brand-700 hover:underline">
+                    {t("dashboard.portfolio.concentrationLink")}
+                  </Link>
+                </>
+              )}
+            </p>
+          );
+        })}
         {portfolio.unvestedEmployerShares > 0 && (
           <p>
             <span className="font-semibold text-slate-700">
