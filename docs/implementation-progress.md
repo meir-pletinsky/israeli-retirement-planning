@@ -2465,6 +2465,15 @@ of its section 10 (UXB-14 is skipped on request).
       because the model keeps only a track name and no stocks/bonds split (the "How this works"
       list says so), and an inflation-shock row. Tests: `portfolioBreakdown.test.ts`,
       `stressTests.test.ts`, `Dashboard.test.tsx`, `Projections.test.tsx`.
+- [x] **UXB-22 "Net Worth" has no liabilities** (bounded). The note under Net Worth Today on
+      the Dashboard "What you have" card now says that loans and a mortgage are not subtracted,
+      and links to the expenses step, where their monthly payments can be entered as a
+      retirement expense (the plan counts them every month of retirement). The label is kept.
+      Not built (needs a decision): real liabilities (balance, monthly payment, end date) with
+      a net figure and a payment that stops at its end date. That is a data-model and
+      projection change that overlaps UXB-14, which is out of scope. Renaming the figure to
+      "Savings and investments today" is the other option the review offers. Test:
+      `Dashboard.test.tsx`.
 
 ## Modeling assumptions (by phase)
 

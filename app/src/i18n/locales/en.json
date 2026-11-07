@@ -238,7 +238,9 @@
       "retiringNow": "now",
       "yearsAway_one": "in 1 year",
       "yearsAway_other": "in {{count}} years",
-      "netWorthNote": "Everything you have entered, at today's values."
+      "netWorthNote": "Everything you have entered, at today's values.",
+      "netWorthDebts": "This is what you own: loans and a mortgage are not subtracted. Enter their monthly payments as a retirement expense; the plan counts them every month of retirement.",
+      "netWorthDebtsLink": "Enter expenses"
     },
     "moreDetail": "More detail: irregular costs, earliest feasible age, access to your savings, Bituach Leumi and income tax",
     "snapshot": {

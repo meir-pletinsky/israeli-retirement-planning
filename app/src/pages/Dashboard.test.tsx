@@ -1734,6 +1734,17 @@ describe("Dashboard", () => {
       expect(within(label.parentElement as HTMLElement).getByText("\u20aa823,600")).toBeInTheDocument();
     });
 
+    it("says that debts are not subtracted from Net Worth Today and where to enter their payments", async () => {
+      await saveProfileToDb(rich);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      const label = await screen.findByText("Net Worth Today");
+      const kpi = label.parentElement as HTMLElement;
+      expect(within(kpi).getByText(/loans and a mortgage are not subtracted/)).toBeInTheDocument();
+      expect(within(kpi).getByRole("link", { name: "Enter expenses" })).toHaveAttribute("href", "/my-data/expenses");
+    });
+
     it("gives each row its share of the total, with a small one as under one percent", async () => {
       await saveProfileToDb(rich);
       await saveOnboardedToDb(true);

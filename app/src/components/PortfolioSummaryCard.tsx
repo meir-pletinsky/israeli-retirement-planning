@@ -57,6 +57,12 @@ export function PortfolioSummaryCard({
           <span dir="ltr">{money(portfolio.total)}</span>
         </p>
         <p className="text-xs text-slate-500">{t("dashboard.kpi.netWorthNote")}</p>
+        <p className="mt-1 text-xs text-slate-500">
+          {t("dashboard.kpi.netWorthDebts")}{" "}
+          <Link to="/my-data/expenses" className="font-medium text-brand-700 hover:underline">
+            {t("dashboard.kpi.netWorthDebtsLink")}
+          </Link>
+        </p>
       </div>
 
       <div
