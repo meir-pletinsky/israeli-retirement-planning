@@ -1865,7 +1865,7 @@ describe("Projections", () => {
     const summary = await screen.findByRole("note", { name: "Assumptions in use" });
     const text = summary.textContent!.replace(/[\u2066\u2069]/g, "");
     expect(text).toContain("Optimistic");
-    expect(text).toContain("Investment return 8% (before inflation), inflation 1.5%, market volatility 12%. All per year.");
+    expect(text).toContain("Investment return 8% (before inflation), the same for every asset, inflation 1.5%, market volatility 12%. All per year.");
     expect(within(summary).getByRole("link", { name: "Change assumptions" })).toHaveAttribute(
       "href",
       "/my-data/assumptions",

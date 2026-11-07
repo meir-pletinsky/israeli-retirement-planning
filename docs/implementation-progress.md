@@ -2439,6 +2439,18 @@ of its section 10 (UXB-14 is skipped on request).
       withdrawals), a per-asset return and the interim "illustrative split" of the pool's yearly
       balance. Tests: `portfolioBreakdown.test.ts`, `Dashboard.test.tsx`, `Projections.test.tsx`,
       `localeParity.test.ts`.
+- [x] **UXB-09 One return for every asset; what "Other assets" means** (bounded: wording only,
+      no model change). The "Other assets" field no longer invites real estate in its label and
+      says in its helper that the amount is counted with the investments as money to spend at
+      any time, growing at the plan's return, and to leave out a home you live in and property
+      you do not plan to sell (kept beside the household note for a couple). The bank-deposit
+      form always says that the deposit's own rate values it today and the plan's return takes
+      over after. The "Assumptions in use" line on the Dashboard and Projections now says the
+      investment return is "the same for every asset". Not built (needs a modeling decision):
+      a per-deposit or per-asset-class return, the deposit's own rate until maturity, and a
+      "Property (not spent)" split or "do not draw on this" option for other assets, which also
+      touches net worth (see UXB-22). Tests: `PensionSavingsStep.test.tsx`,
+      `EquityStep.test.tsx`, `Dashboard.test.tsx`, `Projections.test.tsx`.
 
 ## Modeling assumptions (by phase)
 

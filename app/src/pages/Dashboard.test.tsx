@@ -1394,7 +1394,7 @@ describe("Dashboard", () => {
       await screen.findByText("Net Worth Today");
       const text = summary().textContent!.replace(BIDI_MARKS, "");
       expect(text).toContain("Base");
-      expect(text).toContain("Investment return 6% (before inflation), inflation 2.5%, market volatility 12%. All per year.");
+      expect(text).toContain("Investment return 6% (before inflation), the same for every asset, inflation 2.5%, market volatility 12%. All per year.");
       expect(within(summary()).getByRole("link", { name: "Change assumptions" })).toHaveAttribute(
         "href",
         "/my-data/assumptions",

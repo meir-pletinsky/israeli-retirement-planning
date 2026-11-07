@@ -75,6 +75,7 @@ export function BankDepositForm({ deposit, onChange }: BankDepositFormProps) {
           onChange={(autoRenew) => onChange({ autoRenew })}
         />
       )}
+      <p className="-mt-2 text-xs text-slate-500">{t("myData.steps.bankDeposits.rateHelper")}</p>
       <CheckboxField
         label={f("cpiLinked")}
         checked={deposit.cpiLinked}

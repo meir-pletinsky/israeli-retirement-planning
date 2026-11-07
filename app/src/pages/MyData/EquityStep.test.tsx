@@ -372,3 +372,17 @@ describe("EquityStep — vesting schedule", () => {
     });
   });
 });
+
+describe("EquityStep — bank deposit form", () => {
+  it("says the deposit's own rate values it today and the plan's return takes over after", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
+
+    await user.click(await screen.findByRole("button", { name: "Add bank deposit" }));
+    expect(
+      screen.getByText(
+        "The deposit's own rate is used to value it today. From today it is treated like your other investments and grows at the plan's return, not at this rate.",
+      ),
+    ).toBeInTheDocument();
+  });
+});

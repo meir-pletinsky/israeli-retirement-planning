@@ -157,7 +157,9 @@ export function PensionSavingsStep() {
         <NumberField
           id="other-assets"
           label={t(`${FIELDS}.otherAssets`)}
-          helperText={showPeople ? t(`${FIELDS}.otherAssetsShared`) : undefined}
+          helperText={[t(`${FIELDS}.otherAssetsHelp`), showPeople ? t(`${FIELDS}.otherAssetsShared`) : null]
+            .filter(Boolean)
+            .join(" ")}
           value={pensionSavings.otherAssets}
           onChange={(otherAssets) =>
             updateProfile({ pensionSavings: { ...pensionSavings, otherAssets } })

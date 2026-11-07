@@ -519,7 +519,8 @@
         "accountFormTitleFor": "Pension / savings account \u2014 {{person}}",
         "removeConfirmTitle": "Remove this account?",
         "removeConfirmBody": "This permanently removes the account and its details from your profile.",
-        "otherAssets": "Other assets (cash, bonds, real estate, etc.)",
+        "otherAssets": "Other assets (cash, bonds, etc.)",
+        "otherAssetsHelp": "The plan counts this with your other investments: money you can spend at any time, growing at the plan's return. Leave out a home you live in and any property you do not plan to sell.",
         "otherAssetsShared": "Counted once for the whole household, not per person.",
         "providerSuggestions": [
           "Clal Insurance and Finance",
@@ -760,6 +761,7 @@
             "variable": "Variable-rate"
           }
         },
+        "rateHelper": "The deposit's own rate is used to value it today. From today it is treated like your other investments and grows at the plan's return, not at this rate.",
         "cpiLinkedHelper": "Deposits always shown in shekels (NIS). When linked, the principal and/or rate track the CPI in addition to the interest rate above.",
         "maturityHelper": "Used only to stop interest at this date when the deposit does not renew. The plan does not time your withdrawals by it: bank deposits are counted with your other investments as money you can use at any time, growing at the plan's return."
       },
@@ -952,7 +954,7 @@
   },
   "assumptionsSummary": {
     "label": "Assumptions in use",
-    "values": "Investment return {{returnPct}} (before inflation), inflation {{inflation}}, market volatility {{volatility}}. All per year.",
+    "values": "Investment return {{returnPct}} (before inflation), the same for every asset, inflation {{inflation}}, market volatility {{volatility}}. All per year.",
     "calculatedOn": "Calculated as of {{date}}.",
     "change": "Change assumptions"
   },

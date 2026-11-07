@@ -333,7 +333,7 @@ export interface PensionSavingsData {
   accounts: PensionAccount[];
   /** The reports the accounts were imported from, oldest first. Accounts typed by hand are not listed here. */
   reports: ImportedReport[];
-  /** Catch-all for assets not covered above (cash, bonds, real estate, etc.). */
+  /** Catch-all for assets not covered above (cash, bonds, etc.); pooled with investments and treated as spendable. */
   otherAssets: number | null;
 }
 

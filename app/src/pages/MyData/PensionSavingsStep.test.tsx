@@ -442,3 +442,25 @@ describe("PensionSavingsStep — account owner", () => {
     expect(screen.getByText(/Household total counted in your plan:/)).toHaveTextContent("\u20aa100,000");
   });
 });
+
+describe("PensionSavingsStep — other assets", () => {
+  it("says how other assets are used, and tells the user to leave out a home they live in", async () => {
+    renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
+
+    const field = await screen.findByLabelText(/^Other assets \(cash, bonds, etc\.\)/);
+    const help = document.getElementById(field.getAttribute("aria-describedby")!.split(" ")[0])!;
+    expect(help).toHaveTextContent("money you can spend at any time, growing at the plan's return");
+    expect(help).toHaveTextContent("Leave out a home you live in and any property you do not plan to sell.");
+    expect(help).not.toHaveTextContent("Counted once for the whole household");
+  });
+
+  it("keeps the household note beside it for a couple", async () => {
+    await saveProfileToDb(buildTestProfile({ age: 50, maritalStatus: "married", spouse: { age: 48 } }));
+    renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
+
+    const field = await screen.findByLabelText(/^Other assets \(cash, bonds, etc\.\)/);
+    const help = document.getElementById(field.getAttribute("aria-describedby")!.split(" ")[0])!;
+    expect(help).toHaveTextContent("Leave out a home you live in");
+    expect(help).toHaveTextContent("Counted once for the whole household, not per person.");
+  });
+});
