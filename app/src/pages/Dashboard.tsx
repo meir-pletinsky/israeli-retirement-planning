@@ -210,7 +210,20 @@ export function Dashboard() {
                   {t("dashboard.kpi.successLearnMore")}
                 </Link>
               </div>
-            ) : undefined
+            ) : (
+              <div className="flex flex-col gap-1">
+                <p>
+                  {hasTarget
+                    ? t("projections.risk.noYears", { age: MAX_PLANNING_AGE })
+                    : t("dashboard.kpi.noSpendingNote")}
+                </p>
+                {!hasTarget && (
+                  <Link to="/my-data/expenses" className="font-medium text-brand-700 hover:underline">
+                    {t("dashboard.kpi.addExpenses")}
+                  </Link>
+                )}
+              </div>
+            )
           }
         />
         <KpiCard

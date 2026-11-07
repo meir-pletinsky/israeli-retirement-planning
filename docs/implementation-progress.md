@@ -2227,6 +2227,11 @@ of its section 10 (UXB-14 is skipped on request).
       plural address across the Hebrew UI is a copy decision left open. Tests:
       `DateField.test.tsx`, `Projections.test.tsx`, `PensionSavingsStep.test.tsx`,
       `localeParity.test.ts`.
+- [x] **UXB-30 The coverage KPI says why it is empty.**
+      Before spending is entered, "Simulated spending coverage to age 90" showed only "—". It now
+      carries the same note as the surplus tile ("Enter your planned spending to see this.") and an
+      "Add expenses" link to the expenses step; when spending is entered but no retirement years
+      are left to test, it says so (`projections.risk.noYears`). Tests: `Dashboard.test.tsx`.
 
 ## Modeling assumptions (by phase)
 

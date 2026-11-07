@@ -128,8 +128,9 @@ describe("Dashboard", () => {
 
       renderWithProviders(<Dashboard />);
 
-      const link = await screen.findByRole("link", { name: "Add expenses" });
-      expect(link).toHaveAttribute("href", "/my-data/expenses");
+      const links = await screen.findAllByRole("link", { name: "Add expenses" });
+      expect(links.length).toBeGreaterThan(1);
+      for (const link of links) expect(link).toHaveAttribute("href", "/my-data/expenses");
     });
   });
 
@@ -346,6 +347,11 @@ describe("Dashboard", () => {
 
       const emptyKpi = (await screen.findByText("Simulated spending coverage to age 90")).parentElement as HTMLElement;
       expect(within(emptyKpi).getByText("—")).toBeInTheDocument();
+      expect(within(emptyKpi).getByText("Enter your planned spending to see this.")).toBeInTheDocument();
+      expect(within(emptyKpi).getByRole("link", { name: "Add expenses" })).toHaveAttribute(
+        "href",
+        "/my-data/expenses",
+      );
       unmount();
 
       await seed(
@@ -365,6 +371,19 @@ describe("Dashboard", () => {
       const kpi = (await screen.findByText("Simulated spending coverage to age 90")).parentElement as HTMLElement;
       expect(within(kpi).getByText(/^\d+%$/)).toBeInTheDocument();
       expect(within(kpi).queryByText("—")).not.toBeInTheDocument();
+    });
+
+    it("says why there is no coverage figure when no years are left to simulate", async () => {
+      await seed(
+        buildTestProfile({ age: 89, retirementAge: 90, retirementMonthlyExpenses: 1_500, pensionBalances: [100_000] }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      const kpi = (await screen.findByText("Simulated spending coverage to age 90")).parentElement as HTMLElement;
+      expect(within(kpi).getByText("—")).toBeInTheDocument();
+      expect(within(kpi).getByText("There are no retirement years to test before age 90.")).toBeInTheDocument();
+      expect(within(kpi).queryByRole("link", { name: "Add expenses" })).not.toBeInTheDocument();
     });
 
     it("qualifies the simulation and states the assumptions behind it", async () => {

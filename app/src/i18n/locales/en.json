@@ -183,6 +183,7 @@
       "surplusNote": "to spare each month after your planned spending",
       "shortfallNote": "short of your planned spending each month",
       "noSpendingNote": "Enter your planned spending to see this.",
+      "addExpenses": "Add expenses",
       "successProbability": "Simulated spending coverage to age {{age}}",
       "successNoteAll": "All {{paths}} simulated market histories fund your spending. That is not certainty about real outcomes.",
       "successNoteShare": "Share of {{paths}} simulated market histories that fund your spending.",
