@@ -407,7 +407,11 @@ describe("buildSources", () => {
     describe("with purchase lots", () => {
       const withLots = (
         lots: { quantity: number; priceUSD: number; usdToIlsRate?: number }[],
-        extra: { category?: "personalBrokeragePurchase" | "employerEsppDiscount"; unrealizedCapitalGainUSD?: number } = {},
+        extra: {
+          category?: "personalBrokeragePurchase" | "employerEsppDiscount";
+          unrealizedCapitalGainUSD?: number;
+          entry?: { date?: string; priceUSD?: number; usdToIlsRate?: number };
+        } = {},
       ) =>
         buildSources(
           buildTestProfile({
@@ -419,6 +423,7 @@ describe("buildSources", () => {
                 priceUSD: 200,
                 category: extra.category ?? "personalBrokeragePurchase",
                 unrealizedCapitalGainUSD: extra.unrealizedCapitalGainUSD,
+                entry: extra.entry,
                 purchaseLots: lots,
               },
             ],
@@ -454,6 +459,43 @@ describe("buildSources", () => {
       it("leaves a holding without a usable lot on its entered unrealized gain", () => {
         const other = withLots([{ quantity: 0, priceUSD: 100 }], { unrealizedCapitalGainUSD: 40 });
         expect(other.costBasis).toBeCloseTo(600 - 40 * 3, 6);
+      });
+
+      describe("when none is entered, the purchase date and price entered with the holding", () => {
+        it("count as one lot, so a private holding's gain is taxed", () => {
+          const other = withLots([], { entry: { date: "2019-06-15", priceUSD: 120 } });
+          // $200 now against $120 paid: an $80 gain at 3.00; the rest, $120 * 3, is basis.
+          expect(other.balance).toBeCloseTo(600, 6);
+          expect(other.costBasis).toBeCloseTo(360, 6);
+        });
+
+        it("use the dollar rate of the purchase day", () => {
+          const other = withLots([], { entry: { priceUSD: 100, usdToIlsRate: 5 } });
+          expect(other.costBasis).toBeCloseTo(500, 6);
+        });
+
+        it("work for an ESPP holding too, from the market price on the purchase day", () => {
+          const other = withLots([], { category: "employerEsppDiscount", entry: { priceUSD: 100 } });
+          expect(other.costBasis).toBeCloseTo(300, 6);
+        });
+
+        it("give way to a gain the user declared", () => {
+          const other = withLots([], {
+            entry: { priceUSD: 100, usdToIlsRate: 5 },
+            unrealizedCapitalGainUSD: 40,
+          });
+          expect(other.costBasis).toBeCloseTo(600 - 40 * 3, 6);
+        });
+
+        it("give way to lots", () => {
+          const other = withLots([{ quantity: 1, priceUSD: 150 }], { entry: { priceUSD: 100 } });
+          expect(other.costBasis).toBeCloseTo(450, 6);
+        });
+
+        it("tax no gain when the price is missing", () => {
+          const other = withLots([], { entry: { date: "2019-06-15" } });
+          expect(other.costBasis).toBeCloseTo(600, 6);
+        });
       });
     });
 

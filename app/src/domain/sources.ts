@@ -171,13 +171,28 @@ function bankDepositsValue(profile: ProfileData): number {
 }
 
 /**
+ * The part of a holding's value that is taxable gain, in shekels, for a holding that stays in the
+ * generic investments bucket: worked out from its lots (rule R), which for an ESPP or private
+ * holding without any are its own purchase date and price; else its declared unrealized gain,
+ * capped at its value. Employer grants are taxed by route (see `employerLots`) and are not
+ * covered here.
+ */
+export function holdingTaxableGainIls(holding: StockHolding, fxRate: number): number {
+  const lots = holdingLots(holding, fxRate);
+  if (lots) return lots.gainIls;
+  const declaredUsd = Math.max(holding.personalPurchaseDetails.unrealizedCapitalGainUSD ?? 0, 0);
+  return Math.min(declaredUsd * fxRate, holdingValueIls(holding, fxRate));
+}
+
+/**
  * Cost basis and tax rate of the non-pension investments bucket. Without
  * declared unrealized gains the whole balance counts as basis, so no gain is
  * taxed; entered equity gains are carved out of it, and each holding's own
- * tax rate is blended in by market value. A holding with purchase lots has its
- * gain worked out from them (rule R) instead of from its entered unrealized
- * gain. Section 3(i) employer shares have the value at grant as their basis
- * (that part was already taxed as income) and are taxed at the statutory rate.
+ * tax rate is blended in by market value. A holding with purchase lots, or an
+ * ESPP or private one with a purchase date and price, has its gain worked out
+ * from them (rule R) instead of from its entered unrealized gain. Section 3(i)
+ * employer shares have the value at grant as their basis (that part was
+ * already taxed as income) and are taxed at the statutory rate.
  */
 function otherInvestmentsTaxProfile(
   profile: ProfileData,
@@ -193,10 +208,7 @@ function otherInvestmentsTaxProfile(
   for (const holding of holdings) {
     const holdingValue = holdingValueIls(holding, fxRate);
     const details = holding.personalPurchaseDetails;
-    const lots = holdingLots(holding, fxRate);
-    gains += lots
-      ? lots.gainIls
-      : Math.min(Math.max(details.unrealizedCapitalGainUSD ?? 0, 0) * fxRate, holdingValue);
+    gains += holdingTaxableGainIls(holding, fxRate);
     weightedRate +=
       holdingValue *
       (typeof details.capitalGainsTaxRatePercent === "number"
@@ -1084,7 +1096,7 @@ function recordOtherInvestmentsSteps(
         "recognisedGainIls",
       ],
       rows: lotRows,
-      note: `Rule R, lot by lot. quantity is the lot's shares, scaled down when the lots of a holding exceed its quantity. purchaseRate is the lot's own dollar rate, or ${fxRate} (${fxRateOrigin(profile)}) when it has none. valueIls = quantity × currentMarketPriceUSD × ${fxRate}. nominalGainIls = valueIls - quantity × priceUSD × purchaseRate; adjustedGainIls = valueIls - quantity × priceUSD × ${fxRate}. recognisedGainIls is the lower of the two when both are gains, 0 when one is a gain and the other a loss, and the smaller loss when both are losses. A holding's taxable gain is the sum of its lots' recognisedGainIls, never below 0; the shares in no lot have no gain. For these holdings it replaces the unrealizedCapitalGainUSD column of the holdings table.`,
+      note: `Rule R, lot by lot. quantity is the lot's shares, scaled down when the lots of a holding exceed its quantity. purchaseRate is the lot's own dollar rate, or ${fxRate} (${fxRateOrigin(profile)}) when it has none. valueIls = quantity × currentMarketPriceUSD × ${fxRate}. nominalGainIls = valueIls - quantity × priceUSD × purchaseRate; adjustedGainIls = valueIls - quantity × priceUSD × ${fxRate}. recognisedGainIls is the lower of the two when both are gains, 0 when one is a gain and the other a loss, and the smaller loss when both are losses. A holding's taxable gain is the sum of its lots' recognisedGainIls, never below 0; the shares in no lot have no gain. An ESPP or private holding with no lot entered has its own purchase date, price and dollar rate as a single lot of all its shares, unless a private holding declares its unrealizedCapitalGainUSD. For these holdings it replaces the unrealizedCapitalGainUSD column of the holdings table.`,
     }));
   }
   const balanceId = recordStep("balance", () => ({

@@ -3,7 +3,15 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useProfile } from "../../app/ProfileContext";
-import { engineNowMs, formatDate, holdingValueIls, usdToIlsRate, vestedQuantityAt } from "../../domain";
+import {
+  engineNowMs,
+  formatDate,
+  hasGainBasis,
+  holdingTaxableGainIls,
+  holdingValueIls,
+  usdToIlsRate,
+  vestedQuantityAt,
+} from "../../domain";
 import type { InvestmentCategory, ProfileData, StockHolding } from "../../types";
 import { entryDate, entryPriceUsd } from "./holdingEntry";
 import { RowActions } from "./RowActions";
@@ -154,6 +162,25 @@ export function EquityCategoryTable({
       total: formatCurrency(Math.round(totalIls), currency),
     },
   );
+
+  // Employer grants are taxed by route, which has no single gain figure per holding.
+  if (category === "employerEsppDiscount" || category === "personalBrokeragePurchase") {
+    const gainOf = (holding: StockHolding) =>
+      hasGainBasis(holding) ? holdingTaxableGainIls(holding, rate) : null;
+    const totalGain = holdings.reduce((sum, holding) => sum + (gainOf(holding) ?? 0), 0);
+    columns.push({
+      key: "taxableGain",
+      header: t("myData.summary.taxableGainIls"),
+      numeric: true,
+      cell: (holding) => {
+        const gain = gainOf(holding);
+        return gain === null || holdingValueUsd(holding) === null
+          ? EMPTY_CELL
+          : formatCurrency(Math.round(gain), currency);
+      },
+      total: formatCurrency(Math.round(totalGain), currency),
+    });
+  }
 
   const id = `equity-summary-${category ?? "none"}`;
   return (

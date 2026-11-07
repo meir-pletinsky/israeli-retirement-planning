@@ -1,4 +1,4 @@
-import type { PensionAccount, ProfileData } from "../types";
+import type { PensionAccount, ProfileData, StockHolding } from "../types";
 import { contributionSalaryBase } from "./contributions";
 import { desiredRetirementMonthly } from "./expenses";
 import {
@@ -9,6 +9,7 @@ import {
   ownAccounts,
   spouseAccounts,
 } from "./profileBasics";
+import { hasGainBasis } from "./purchaseLots";
 import { lacksAnnuityInputs } from "./sources";
 
 /**
@@ -28,9 +29,10 @@ export type DataGapId =
   | "spouseSalary"
   | "contributionRates"
   | "gender"
-  | "spouseGender";
+  | "spouseGender"
+  | "holdingGain";
 
-export type DataGapStep = "personal" | "pension-savings" | "expenses";
+export type DataGapStep = "personal" | "pension-savings" | "equity" | "expenses";
 
 export interface DataGap {
   id: DataGapId;
@@ -103,6 +105,10 @@ export function findDataGaps(profile: ProfileData): DataGap[] {
 
   if (profile.personal.gender === null) add("gender", "personal");
   if (isCouple && profile.spouse.gender === null) add("spouseGender", "personal");
+
+  const valuedWithoutGainBasis = (holding: StockHolding) =>
+    (holding.quantity ?? 0) > 0 && (holding.currentMarketPriceUSD ?? 0) > 0 && !hasGainBasis(holding);
+  add("holdingGain", "equity", profile.equity.holdings.filter(valuedWithoutGainBasis).length);
 
   return gaps;
 }

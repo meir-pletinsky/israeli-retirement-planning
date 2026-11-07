@@ -312,7 +312,8 @@
         "spouseSalary": "No monthly gross salary for your spouse: deposits to their actively contributing accounts ({{count}}) are not projected.",
         "contributionRates": "Actively contributing accounts with no contribution rates: {{count}}. No further deposits are projected for them.",
         "gender": "Gender is not set, so the defaults for a man apply (state pension age 67, 2.25 tax credit points).",
-        "spouseGender": "Your spouse's gender is not set, so the defaults for a man apply (state pension age 67, 2.25 tax credit points)."
+        "spouseGender": "Your spouse's gender is not set, so the defaults for a man apply (state pension age 67, 2.25 tax credit points).",
+        "holdingGain": "ESPP or private shareholdings with no purchase price and no declared gain: {{count}}. Their gain is left untaxed, so your income after tax may be overstated. Enter the purchase price."
       }
     },
     "emptyTitle": "No data yet",
@@ -415,6 +416,7 @@
       "currentPriceUsd": "Current price (USD)",
       "valueUsd": "Value (USD)",
       "valueIls": "Value (ILS)",
+      "taxableGainIls": "Taxable gain (ILS)",
       "fxRateLabel": "Shekels per US dollar",
       "fxRateUseAutomatic": "Use the automatic rate",
       "fxRateSource": {
@@ -676,9 +678,9 @@
           "entryRateHelper": "Shekels per US dollar on the purchase or grant date. Filled in automatically; type your own to replace it.",
           "rateHint": "The dollar rate was filled in from the Bank of Israel rate of {{date}}, the last business day on or before the date you entered. It is saved with the entry for your records; the tax calculations do not use it. For ESPP and private shares, list each purchase under the details below to have its rate used.",
           "esppPriceOnPurchaseDate": "Share price on purchase date",
-          "esppPriceOnPurchaseDateHelper": "Per share, in USD: the market price on the purchase day, before the ESPP discount. What you actually paid goes under the details below.",
+          "esppPriceOnPurchaseDateHelper": "Per share, in USD: the market price on the purchase day, before the ESPP discount. The taxable gain is measured from it. What you actually paid goes under the details below.",
           "personalPurchasePrice": "Purchase price per share",
-          "personalPurchasePriceHelper": "Per share, in USD: what you paid on the purchase date.",
+          "personalPurchasePriceHelper": "Per share, in USD: what you paid on the purchase date. Used for tax: the gain above it is taxed when you sell, unless you declare the gain under More details.",
           "totalValue": "Total value",
           "sectionEmployerGrantDetails": "Tax and vesting - affects your estimate",
           "employerGrantIntro": "Used to tax these shares at sale: under Section 102 (capital gains route) the grant-date value is taxed at your marginal rate and the growth above it at the capital gains rate.",

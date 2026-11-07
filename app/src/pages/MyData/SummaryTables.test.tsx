@@ -457,6 +457,63 @@ describe("My Data summary tables — Equity & Investments", () => {
     expect(row).toHaveTextContent("$60");
   });
 
+  it("shows the taxable gain of ESPP and private holdings, but not of employer grants", async () => {
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 50,
+        equity: [
+          {
+            category: "employerGrantedStock",
+            ticker: "AAA",
+            quantity: 10,
+            priceUSD: 200,
+            entry: { date: "2024-03-01", priceUSD: 150 },
+          },
+          {
+            category: "employerEsppDiscount",
+            ticker: "BBB",
+            quantity: 5,
+            priceUSD: 100,
+            entry: { date: "2025-06-15", priceUSD: 90 },
+          },
+          {
+            category: "personalBrokeragePurchase",
+            ticker: "CCC",
+            quantity: 2,
+            priceUSD: 50,
+            entry: { date: "2023-01-10", priceUSD: 40 },
+          },
+          {
+            category: "personalBrokeragePurchase",
+            ticker: "EEE",
+            quantity: 2,
+            priceUSD: 50,
+            entry: { date: "2023-01-10" },
+          },
+        ],
+      }),
+    );
+    renderStep("equity");
+
+    const esop = await screen.findByRole("table", { name: "ESOP / RSU at a glance" });
+    expect(within(esop).getAllByRole("row")[0]).not.toHaveTextContent("Taxable gain");
+
+    const espp = screen.getByRole("table", { name: "ESPP at a glance" });
+    const [esppHeader, esppRow] = within(espp).getAllByRole("row");
+    expect(esppHeader).toHaveTextContent("Taxable gain (ILS)");
+    // 5 shares, $10 above the price paid, at 3.7 shekels per dollar.
+    expect(esppRow).toHaveTextContent(`${SHEKEL}185`);
+
+    const privateTable = screen.getByRole("table", { name: "Privately purchased stocks at a glance" });
+    const [header, priced, unpriced, totals] = within(privateTable).getAllByRole("row");
+    expect(header).toHaveTextContent("Taxable gain (ILS)");
+    expect(priced).toHaveTextContent(`${SHEKEL}74`);
+    // Without a purchase price the gain is unknown, so the cell is empty rather than a zero.
+    const cells = within(unpriced).getAllByRole("cell");
+    expect(cells[cells.length - 2]).toHaveTextContent("\u2014");
+    expect(totals).toHaveTextContent(`${SHEKEL}74`);
+  });
+
   it("has Edit and Remove on every row and the Add holding action above the tables", async () => {
     const user = userEvent.setup();
     await saveProfileToDb(

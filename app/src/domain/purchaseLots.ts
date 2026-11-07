@@ -34,6 +34,60 @@ export function incompleteLotCount(holding: StockHolding): number {
   return holding.purchaseLots.filter((lot) => !isUsableLot(lot)).length;
 }
 
+/** A private holding's own unrealized gain, once the user has declared one; it stands in place of a computed one. */
+function declaresGain(holding: StockHolding): boolean {
+  return (
+    holding.investmentCategory === "personalBrokeragePurchase" &&
+    holding.personalPurchaseDetails.unrealizedCapitalGainUSD !== null
+  );
+}
+
+/**
+ * The purchase the form asks for (its date, the price that day and the dollar rate that day) as a
+ * single lot of all the holding's shares. For an ESPP the price is the market price that day, as
+ * the discount was taxed as salary.
+ */
+function entryLot(holding: StockHolding): PurchaseLot | null {
+  const rateOf = (rate: number | null) =>
+    typeof rate === "number" && Number.isFinite(rate) && rate > 0 ? rate : null;
+  switch (holding.investmentCategory) {
+    case "employerEsppDiscount": {
+      const details = holding.esppDetails;
+      return {
+        id: `${holding.id}-entry`,
+        purchaseDate: details.purchaseDate,
+        quantity: holding.quantity,
+        priceUSD: details.fairMarketValueAtPurchaseUSD,
+        usdToIlsRate: rateOf(details.usdToIlsRateAtPurchase),
+      };
+    }
+    case "personalBrokeragePurchase": {
+      const details = holding.personalPurchaseDetails;
+      return {
+        id: `${holding.id}-entry`,
+        purchaseDate: details.purchaseDate,
+        quantity: holding.quantity,
+        priceUSD: details.averageCostBasisUSD,
+        usdToIlsRate: rateOf(details.usdToIlsRateAtPurchase),
+      };
+    }
+    default:
+      return null;
+  }
+}
+
+/**
+ * Whether the tax on the holding's gain has something to work from: lots, the purchase price it was
+ * entered with, or (for a private holding) a declared gain. Holdings that are taxed another way
+ * always do.
+ */
+export function hasGainBasis(holding: StockHolding): boolean {
+  if (!holdingTakesLots(holding)) return true;
+  if (holding.purchaseLots.some(isUsableLot) || declaresGain(holding)) return true;
+  const lot = entryLot(holding);
+  return lot !== null && isUsableLot(lot);
+}
+
 export interface LotOutcome {
   lotId: string;
   purchaseDate: string | null;
@@ -63,6 +117,8 @@ export interface HoldingLots {
   coveredValueIls: number;
   /** The taxable gain: the lots' recognised results netted, never below zero. */
   gainIls: number;
+  /** True when no lot was entered and the holding's own purchase date and price stand in as one lot. */
+  fromEntry: boolean;
 }
 
 function recognisedGain(nominal: number, adjusted: number): number {
@@ -73,13 +129,18 @@ function recognisedGain(nominal: number, adjusted: number): number {
 
 /**
  * The lots of a holding priced at `saleRate` shekels per dollar, or null when
- * the holding does not use them (another category, or no usable lot) and its
- * entered unrealized gain applies. Lots that together exceed the holding's
- * quantity are scaled down to fit.
+ * the holding does not use them (another category, or nothing to take a cost
+ * from) and its entered unrealized gain applies. Without entered lots, the
+ * holding's own purchase date and price count as one lot of all its shares,
+ * unless a private holding declares its gain. Lots that together exceed the
+ * holding's quantity are scaled down to fit.
  */
 export function holdingLots(holding: StockHolding, saleRate: number): HoldingLots | null {
   if (!holdingTakesLots(holding)) return null;
-  const usable = holding.purchaseLots.filter(isUsableLot);
+  const entered = holding.purchaseLots.filter(isUsableLot);
+  const fromEntry = entered.length === 0;
+  const stand = fromEntry && !declaresGain(holding) ? entryLot(holding) : null;
+  const usable = fromEntry ? (stand && isUsableLot(stand) ? [stand] : []) : entered;
   if (usable.length === 0) return null;
 
   const total = Math.max(holding.quantity ?? 0, 0);
@@ -121,5 +182,6 @@ export function holdingLots(holding: StockHolding, saleRate: number): HoldingLot
       lots.reduce((sum, lot) => sum + lot.recognisedGainIls, 0),
       0,
     ),
+    fromEntry,
   };
 }

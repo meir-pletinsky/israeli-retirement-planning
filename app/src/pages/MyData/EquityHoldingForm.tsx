@@ -69,18 +69,21 @@ export function EquityHoldingForm({
       priceLabel: f("costBasisAtGrantUSD"),
       priceHelper: f("costBasisAtGrantHelper"),
       importance: "recommended" as const,
+      rateImportance: "reference" as const,
     },
     employerEsppDiscount: {
       dateLabel: f("purchaseDate"),
       priceLabel: f("esppPriceOnPurchaseDate"),
       priceHelper: f("esppPriceOnPurchaseDateHelper"),
-      importance: "reference" as const,
+      importance: "recommended" as const,
+      rateImportance: "recommended" as const,
     },
     personalBrokeragePurchase: {
       dateLabel: f("purchaseDate"),
       priceLabel: f("personalPurchasePrice"),
       priceHelper: f("personalPurchasePriceHelper"),
-      importance: "reference" as const,
+      importance: "recommended" as const,
+      rateImportance: "recommended" as const,
     },
   };
   const entry = category
@@ -90,6 +93,7 @@ export function EquityHoldingForm({
         priceLabel: f("entryPriceGeneric"),
         priceHelper: f("entryPriceGenericHelper"),
         importance: "recommended" as const,
+        rateImportance: "reference" as const,
       };
   // Categorized holdings must have a symbol, date and quantity; legacy uncategorized ones are exempt.
   const required = category ? ("required" as const) : undefined;
@@ -146,7 +150,7 @@ export function EquityHoldingForm({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <NumberField
           label={f("entryRate")}
-          importance="reference"
+          importance={entry.rateImportance}
           helperText={f("entryRateHelper")}
           value={entryRate(holding)}
           onChange={(v) => onChange(entryRatePatch(holding, v))}

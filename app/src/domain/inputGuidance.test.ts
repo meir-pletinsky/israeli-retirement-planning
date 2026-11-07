@@ -71,6 +71,45 @@ describe("findDataGaps", () => {
     expect(ids(withEquity)).not.toContain("noSavings");
   });
 
+  describe("holdings whose gain has nothing to be taxed from", () => {
+    const base = { age: 40, retirementAge: 67, gender: "male" as const, retirementMonthlyExpenses: 10_000 };
+    const holding = (
+      category: "personalBrokeragePurchase" | "employerEsppDiscount" | "employerGrantedStock",
+      extra: { entry?: { priceUSD?: number }; unrealizedCapitalGainUSD?: number; quantity?: number } = {},
+    ) => ({ quantity: extra.quantity ?? 10, priceUSD: 100, category, ...extra });
+
+    it("flags ESPP and private holdings with no purchase price and no declared gain, and counts them", () => {
+      const profile = buildTestProfile({
+        ...base,
+        equity: [holding("personalBrokeragePurchase"), holding("employerEsppDiscount")],
+      });
+      expect(findDataGaps(profile).find((gap) => gap.id === "holdingGain")).toEqual({
+        id: "holdingGain",
+        step: "equity",
+        count: 2,
+      });
+    });
+
+    it("is satisfied by a purchase price or a declared gain", () => {
+      const profile = buildTestProfile({
+        ...base,
+        equity: [
+          holding("personalBrokeragePurchase", { entry: { priceUSD: 40 } }),
+          holding("personalBrokeragePurchase", { unrealizedCapitalGainUSD: 0 }),
+        ],
+      });
+      expect(ids(profile)).not.toContain("holdingGain");
+    });
+
+    it("ignores employer grants and holdings with no quantity", () => {
+      const profile = buildTestProfile({
+        ...base,
+        equity: [holding("employerGrantedStock"), holding("personalBrokeragePurchase", { quantity: 0 })],
+      });
+      expect(ids(profile)).not.toContain("holdingGain");
+    });
+  });
+
   it("flags accounts without a type or status and counts how many", () => {
     const profile = buildTestProfile({
       age: 40,

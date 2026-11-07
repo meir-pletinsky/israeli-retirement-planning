@@ -2326,6 +2326,24 @@ of its section 10 (UXB-14 is skipped on request).
       `desiredRetirementMonthly(...) > 0`, so a chosen mode with no spending, or an empty total
       beside a stored list, is `empty` instead of "Details entered". Tests: `stepStatus.test.ts`,
       `ExpensesStep.test.tsx`.
+- [x] **UXB-11 A private or ESPP holding with a purchase price is now taxed on its gain.**
+      Previously, with no purchase lots (and the UI has no way to enter lots) and no declared
+      gain, such a holding was valued as if it had no taxable gain, so the entered purchase price
+      changed nothing. Now `holdingLots` falls back to a single lot built from the holding's own
+      purchase date, price and dollar rate (`entryLot` in `purchaseLots.ts`): the personal average
+      cost basis, or the ESPP market price on the purchase day, over the whole quantity. Entered
+      lots still win, and a declared gain (even 0) still wins for private holdings. The entry
+      dollar rate now feeds the gain (rule R, the lower of the nominal and dollar-adjusted gain);
+      when it is missing, the sale-day rate is used. `holdingTaxableGainIls` in `sources.ts` is
+      the single place that turns a holding into a taxable gain, and the trace note describes the
+      fallback. The Equity tables show a "Taxable gain (ILS)" column for ESPP and private holdings
+      (empty without a gain basis). The price and rate fields are tagged Recommended, with helper
+      text saying they are used for tax. A new "Improve your estimate" gap, `holdingGain`, counts
+      holdings with a price and quantity but no gain basis and links to the Equity step. Employer
+      grants are unchanged (taxed by route). **Behaviour change:** existing profiles with a stored
+      entry price on an ESPP or private holding now have that gain taxed, so their income after
+      tax drops. Tests: `purchaseLots.test.ts`, `sources.test.ts`, `inputGuidance.test.ts`,
+      `SummaryTables.test.tsx`, `EquityStep.test.tsx`, `Dashboard.test.tsx`.
 
 ## Modeling assumptions (by phase)
 

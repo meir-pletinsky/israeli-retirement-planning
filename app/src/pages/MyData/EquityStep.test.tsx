@@ -214,6 +214,33 @@ describe("EquityStep — importance tags", () => {
     await openAddHolding(user, "employerEsppDiscount");
     expect(screen.getByRole("button", { name: /^More details: ESPP/ })).toHaveTextContent("Reference only");
   });
+
+  it("tags the purchase price and rate of an ESPP or private holding Recommended, since the gain tax is measured from them", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
+
+    await openAddHolding(user, "personalBrokeragePurchase");
+    expect(labelOf(/^Purchase price per share/)).toHaveTextContent("Recommended");
+    expect(labelOf(/^Purchase price per share/)).not.toHaveTextContent("Reference only");
+    expect(screen.getByText(/Used for tax: the gain above it is taxed when you sell/)).toBeInTheDocument();
+    expect(labelOf(/^Dollar rate on that date/)).toHaveTextContent("Recommended");
+  });
+
+  it("tags the market price on an ESPP purchase day Recommended too", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
+
+    await openAddHolding(user, "employerEsppDiscount");
+    expect(labelOf(/^Share price on purchase date/)).toHaveTextContent("Recommended");
+  });
+
+  it("keeps the dollar rate of a grant reference-only, as it feeds no calculation", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
+
+    await openAddHolding(user, "employerGrantedStock");
+    expect(labelOf(/^Dollar rate on that date/)).toHaveTextContent("Reference only");
+  });
 });
 
 describe("EquityStep — vesting schedule", () => {

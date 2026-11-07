@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { buildTestProfile } from "../test/domainFixtures";
 import type { StockHolding } from "../types";
-import { holdingLots, holdingTakesLots, incompleteLotCount, isUsableLot } from "./purchaseLots";
+import { hasGainBasis, holdingLots, holdingTakesLots, incompleteLotCount, isUsableLot } from "./purchaseLots";
 
 type Lot = { date?: string; quantity: number; priceUSD: number; usdToIlsRate?: number };
 
@@ -109,6 +109,102 @@ describe("holdingLots (rule R)", () => {
     expect(holdingLots(holdingWith([], { quantity: 10, priceUSD: 100 }), 3.7)).toBeNull();
     const unfinished = holdingWith([{ quantity: 5, priceUSD: Number.NaN }], { quantity: 10, priceUSD: 100 });
     expect(holdingLots(unfinished, 3.7)).toBeNull();
+  });
+
+  describe("without lots, the purchase date and price entered with the holding", () => {
+    const withEntry = (
+      entry: { date?: string; priceUSD?: number; usdToIlsRate?: number },
+      options: {
+        quantity?: number;
+        category?: "personalBrokeragePurchase" | "employerEsppDiscount";
+        unrealizedCapitalGainUSD?: number;
+        lots?: Lot[];
+      } = {},
+    ): StockHolding =>
+      buildTestProfile({
+        equity: [
+          {
+            quantity: options.quantity ?? 10,
+            priceUSD: 100,
+            category: options.category ?? "personalBrokeragePurchase",
+            entry,
+            unrealizedCapitalGainUSD: options.unrealizedCapitalGainUSD,
+            purchaseLots: options.lots,
+          },
+        ],
+      }).equity.holdings[0];
+
+    it("count as a single lot of all the shares", () => {
+      const result = holdingLots(withEntry({ date: "2019-06-15", priceUSD: 40, usdToIlsRate: 3.5 }), 3.7);
+      expect(result?.fromEntry).toBe(true);
+      expect(result?.lots).toHaveLength(1);
+      expect(result?.lots[0]).toMatchObject({ purchaseDate: "2019-06-15", quantity: 10, priceUSD: 40, purchaseRate: 3.5 });
+      // Nominal: 10 * 100 * 3.7 - 10 * 40 * 3.5 = 2,300; dollar: 10 * 60 * 3.7 = 2,220; the lower counts.
+      expect(result?.gainIls).toBeCloseTo(2_220, 9);
+    });
+
+    it("use the sale rate when the purchase day's rate is missing or unusable", () => {
+      expect(holdingLots(withEntry({ priceUSD: 40 }), 3.7)?.lots[0].purchaseRate).toBe(3.7);
+      expect(holdingLots(withEntry({ priceUSD: 40, usdToIlsRate: 0 }), 3.7)?.lots[0].purchaseRate).toBe(3.7);
+    });
+
+    it("allow a price of zero, as for shares that were a gift", () => {
+      expect(holdingLots(withEntry({ priceUSD: 0 }), 3.7)?.gainIls).toBeCloseTo(10 * 100 * 3.7, 9);
+    });
+
+    it("work for an ESPP holding", () => {
+      const espp = withEntry({ priceUSD: 40 }, { category: "employerEsppDiscount" });
+      expect(holdingLots(espp, 3.7)?.gainIls).toBeCloseTo(10 * 60 * 3.7, 9);
+    });
+
+    it("are not enough without a price or a quantity", () => {
+      expect(holdingLots(withEntry({ date: "2019-06-15" }), 3.7)).toBeNull();
+      expect(holdingLots(withEntry({ priceUSD: 40 }, { quantity: 0 }), 3.7)).toBeNull();
+    });
+
+    it("give way to a declared gain, even a declared zero", () => {
+      expect(holdingLots(withEntry({ priceUSD: 40 }, { unrealizedCapitalGainUSD: 0 }), 3.7)).toBeNull();
+    });
+
+    it("give way to lots that were entered", () => {
+      const result = holdingLots(withEntry({ priceUSD: 40 }, { lots: [{ quantity: 4, priceUSD: 90 }] }), 3.7);
+      expect(result?.fromEntry).toBe(false);
+      expect(result?.lots).toHaveLength(1);
+      expect(result?.lots[0].quantity).toBe(4);
+    });
+  });
+
+  describe("hasGainBasis", () => {
+    const personal = (
+      entry: { priceUSD?: number },
+      extra: { unrealizedCapitalGainUSD?: number; lots?: Lot[]; category?: "employerGrantedStock" } = {},
+    ) =>
+      buildTestProfile({
+        equity: [
+          {
+            quantity: 10,
+            priceUSD: 100,
+            category: extra.category ?? "personalBrokeragePurchase",
+            entry,
+            unrealizedCapitalGainUSD: extra.unrealizedCapitalGainUSD,
+            purchaseLots: extra.lots,
+          },
+        ],
+      }).equity.holdings[0];
+
+    it("is true with an entered price, a declared gain or a usable lot", () => {
+      expect(hasGainBasis(personal({ priceUSD: 40 }))).toBe(true);
+      expect(hasGainBasis(personal({}, { unrealizedCapitalGainUSD: 0 }))).toBe(true);
+      expect(hasGainBasis(personal({}, { lots: [{ quantity: 5, priceUSD: 10 }] }))).toBe(true);
+    });
+
+    it("is false for a private holding with none of them", () => {
+      expect(hasGainBasis(personal({}))).toBe(false);
+    });
+
+    it("is true for a category whose tax does not come from lots", () => {
+      expect(hasGainBasis(personal({}, { category: "employerGrantedStock" }))).toBe(true);
+    });
   });
 
   it("applies to ESPP and private holdings only", () => {

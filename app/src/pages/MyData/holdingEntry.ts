@@ -118,7 +118,8 @@ export function entryPriceUsd(holding: StockHolding): number | null {
 
 /**
  * Shekels per US dollar on that date (the Bank of Israel rate), for working out the shekel value of
- * the entry. It is saved and shown, but not used in the calculations yet.
+ * the entry. An ESPP or private purchase uses it to measure its taxable gain (rule R); for an
+ * employer grant it is saved and shown, but not used in the calculations yet.
  */
 export function entryRate(holding: StockHolding): number | null {
   switch (holding.investmentCategory) {

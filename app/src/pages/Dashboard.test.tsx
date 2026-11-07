@@ -331,6 +331,32 @@ describe("Dashboard", () => {
       );
     });
 
+    it("warns about ESPP and private shares whose gain has no purchase price, and links to the Equity step", async () => {
+      await seed(
+        buildTestProfile({
+          age: 40,
+          gender: "female",
+          retirementAge: 67,
+          retirementMonthlyExpenses: 6000,
+          maritalStatus: "single",
+          pensionBalances: [100_000],
+          equity: [{ category: "personalBrokeragePurchase", quantity: 10, priceUSD: 100 }],
+          ...zeroRealReturn,
+        }),
+      );
+
+      renderWithProviders(<Dashboard />);
+
+      const card = (await screen.findByRole("heading", { name: "Improve your estimate" })).closest("section")!;
+      expect(
+        within(card).getByText(/ESPP or private shareholdings with no purchase price and no declared gain: 1\./),
+      ).toBeInTheDocument();
+      expect(within(card).getByRole("link", { name: "Open Equity & Investments" })).toHaveAttribute(
+        "href",
+        "/my-data/equity",
+      );
+    });
+
     it("shows no funding gap or status message until retirement spending is entered", async () => {
       await seed(buildTestProfile({ age: 40, retirementAge: 67, pensionBalances: [100_000], ...zeroRealReturn }));
 

@@ -435,7 +435,7 @@ export interface EsppDetails {
   discountPercentage: number | null;
   purchasePriceUSD: number | null;
   fairMarketValueAtPurchaseUSD: number | null;
-  /** Shekels per US dollar on the purchase date; recorded for reference, not used in the calculations yet. */
+  /** Shekels per US dollar on the purchase date; with the price above it measures the taxable gain (rule R). */
   usdToIlsRateAtPurchase: number | null;
   taxedDiscountValueUSD: number | null;
   capitalGainsOnGrowthUSD: number | null;
@@ -444,7 +444,7 @@ export interface EsppDetails {
 export interface PersonalPurchaseDetails {
   purchaseDate: string | null;
   averageCostBasisUSD: number | null;
-  /** Shekels per US dollar on the purchase date; recorded for reference, not used in the calculations yet. */
+  /** Shekels per US dollar on the purchase date; with the price above it measures the taxable gain (rule R). */
   usdToIlsRateAtPurchase: number | null;
   unrealizedCapitalGainUSD: number | null;
   capitalGainsTaxRatePercent: number | null;
@@ -483,6 +483,8 @@ export interface StockHolding {
   /**
    * Purchases that make up an ESPP or private holding. When any has a
    * quantity and a price, their cost replaces `unrealizedCapitalGainUSD`.
+   * With none, the holding's own purchase date and price stand in as one lot
+   * (unless a private holding declares `unrealizedCapitalGainUSD`).
    */
   purchaseLots: PurchaseLot[];
 }

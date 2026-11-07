@@ -11,6 +11,7 @@ interface DataGapsCardProps {
 const STEP_LABEL_KEYS: Record<DataGapStep, string> = {
   personal: "myData.steps.personal.label",
   "pension-savings": "myData.steps.pensionSavings.label",
+  equity: "myData.steps.equity.label",
   expenses: "myData.steps.expenses.label",
 };
 
