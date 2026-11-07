@@ -29,6 +29,7 @@ export * from "./portfolioBreakdown";
 export * from "./purchaseLots";
 export * from "./retirementIncome";
 export * from "./scenarioComparison";
+export * from "./shortfallLevers";
 export * from "./sources";
 export * from "./sourceCosts";
 export * from "./stressTests";

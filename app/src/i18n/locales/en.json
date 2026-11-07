@@ -274,6 +274,15 @@
     "statusConfidentSpending": "With {{percent}}% confidence you could spend about {{amount}} a month, against your goal of {{target}}.",
     "statusSeeRisk": "See the risk analysis",
     "statusShortfall": "You may need additional savings to meet your retirement goal.",
+    "statusShortfallLevers": "Your plan falls short of your planned spending. Any one of these would close the gap, in average markets:",
+    "levers": {
+      "spend": "Spend {{amount}} a month",
+      "spendNote": "instead of the {{planned}} you plan, with the same retirement age and savings.",
+      "retire": "Retire at {{age}}",
+      "retireNote": "instead of {{planned}}, with the same spending and savings.",
+      "save": "Save {{amount}} a month more",
+      "saveNote": "until you retire, at the return you assumed."
+    },
     "chartTitle": "Net Worth Projection",
     "householdChartNote": "The projection covers your whole household. The age axis shows your age.",
     "adjustAssumptions": "Adjust assumptions",

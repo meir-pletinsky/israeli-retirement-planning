@@ -2302,6 +2302,20 @@ of its section 10 (UXB-14 is skipped on request).
       Bituach Leumi is left out. Logic is in `domain/incomeComposition.ts`; `bandFill` in
       `incomeBandColors.ts` is shared by the bar and `BandSwatch`. Tests: `incomeComposition.test.ts`,
       `dashboardKpis.test.ts`, `Dashboard.test.tsx`.
+- [x] **UXB-19 The shortfall message offers a way forward.** The Dashboard banner no longer
+      stops at "You may need additional savings": it now lists three levers, each enough on its
+      own to close the gap in average markets, each linking to where it is changed. Spend
+      `₪X` a month (the plan's after-tax level, linking to Expenses), retire at age `N` (the
+      earliest feasible age, shown only when it is later than the planned one, linking to the
+      feasibility card; for a couple it also says when the spouse retires), and save `₪Y` a
+      month more until retirement (linking to Pension savings). A lever that cannot be quoted
+      is left out, and when none can the old `statusShortfall` message stays. Logic is in
+      `domain/shortfallLevers.ts`: the saving is found by doubling then bisecting, in ₪50
+      steps up to ₪100,000, over `calculateFundingGap`, modelling the extra saving as an
+      always-accessible investment provident fund (gain-taxed), so it is an average-market
+      estimate rounded up to ₪50. `StatusBanner` gained a `children` slot for the list; the list
+      is the `ShortfallLevers` component. The levers are computed once per profile. Tests:
+      `shortfallLevers.test.ts`, `Dashboard.test.tsx`.
 
 ## Modeling assumptions (by phase)
 

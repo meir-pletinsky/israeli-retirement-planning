@@ -276,6 +276,15 @@
     "statusConfidentSpending": "בביטחון של {{percent}}% תוכלו להוציא בערך {{amount}} בחודש, לעומת היעד שלכם: {{target}}.",
     "statusSeeRisk": "לניתוח הסיכון",
     "statusShortfall": "ייתכן שתידרשו חיסכון נוסף כדי להשיג את יעד הפרישה שלכם.",
+    "statusShortfallLevers": "התוכנית שלכם לא מכסה את ההוצאות המתוכננות. כל אחת מהאפשרויות הבאות לבדה תסגור את הפער, בשוק ממוצע:",
+    "levers": {
+      "spend": "הוציאו {{amount}} בחודש",
+      "spendNote": "במקום {{planned}} שתכננתם, עם אותו גיל פרישה ואותו חיסכון.",
+      "retire": "פרשו בגיל {{age}}",
+      "retireNote": "במקום {{planned}}, עם אותן הוצאות ואותו חיסכון.",
+      "save": "חסכו {{amount}} בחודש נוספים",
+      "saveNote": "עד הפרישה, בתשואה שהנחתם."
+    },
     "chartTitle": "\u05ea\u05d7\u05d6\u05d9\u05ea \u05e9\u05d5\u05d5\u05d9 \u05e0\u05e7\u05d9",
     "householdChartNote": "התחזית כוללת את כל משק הבית. ציר הגיל מציג את הגיל שלך.",
     "adjustAssumptions": "\u05d4\u05ea\u05d0\u05dd \u05d4\u05e0\u05d7\u05d5\u05ea",

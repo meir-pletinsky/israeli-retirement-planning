@@ -7,11 +7,13 @@ interface StatusBannerProps {
   message: string;
   /** Supporting lines under the message. */
   details?: ReactNode[];
+  /** Block content (such as a list) after the details. */
+  children?: ReactNode;
   /** A link or button after the details. */
   action?: ReactNode;
 }
 
-export function StatusBanner({ status, message, details = [], action }: StatusBannerProps) {
+export function StatusBanner({ status, message, details = [], children, action }: StatusBannerProps) {
   const isOnTrack = status === "onTrack";
   return (
     <div
@@ -40,6 +42,7 @@ export function StatusBanner({ status, message, details = [], action }: StatusBa
             {detail}
           </p>
         ))}
+        {children}
         {action && <p className="text-sm font-medium">{action}</p>}
       </div>
     </div>

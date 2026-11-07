@@ -10,6 +10,7 @@ import {
   estimateRetirementIncome,
   findEarliestConfidentRetirementAge,
   findEarliestFeasibleRetirementAge,
+  findShortfallLevers,
   runMonteCarlo,
   successPercent,
   yearsToRetirement,
@@ -356,7 +357,7 @@ describe("Dashboard", () => {
       renderWithProviders(<Dashboard />);
 
       expect(
-        await screen.findByText("You may need additional savings to meet your retirement goal."),
+        await screen.findByText(/^Your plan falls short of your planned spending\./),
       ).toBeInTheDocument();
       const gapKpi = screen.getByText("Monthly shortfall").parentElement as HTMLElement;
       expect(within(gapKpi).queryByText("—")).not.toBeInTheDocument();
@@ -1997,10 +1998,11 @@ describe("Dashboard", () => {
       expect(plain(surplus)).not.toContain("In average markets only");
     });
 
-    it("keeps the shortfall banner as it was, with a shortfall scale", async () => {
+    it("keeps the shortfall banner amber, with a shortfall scale", async () => {
       await renderPlan(plan(120_000));
 
-      expect(screen.getByText("You may need additional savings to meet your retirement goal.")).toBeInTheDocument();
+      const headline = screen.getByText(/^Your plan falls short of your planned spending\./);
+      expect(headline.closest("div.border-amber-200")).not.toBeNull();
       expect(screen.queryByText("On track in average markets only.")).not.toBeInTheDocument();
       const shortfall = screen.getByText("Monthly shortfall").parentElement as HTMLElement;
       expect(plain(shortfall)).toMatch(/\d+% below your planned spending of ₪1,000 a month/);
@@ -2024,5 +2026,109 @@ describe("Dashboard", () => {
             : new RegExp(`With 90% confidence: age ${confident.age}$`);
       expect(screen.getByText(expected)).toBeInTheDocument();
     });
+  });
+});
+
+describe("Dashboard shortfall levers", () => {
+  const shortfallPlan = (overrides: Parameters<typeof buildTestProfile>[0] = {}) =>
+    buildTestProfile({
+      age: 40,
+      retirementAge: 67,
+      gender: "male",
+      monthlyGrossSalary: 20_000,
+      investmentReturnPct: 5,
+      inflationPct: 2,
+      pensionBalances: [300_000],
+      retirementMonthlyExpenses: 6_000,
+      ...overrides,
+    });
+  const plain = (element: HTMLElement) => element.textContent!.replace(/[\u2066\u2069]/g, "");
+
+  async function renderPlan(profile: ReturnType<typeof buildTestProfile>) {
+    await saveProfileToDb(profile);
+    await saveOnboardedToDb(true);
+    renderWithProviders(<Dashboard />);
+    await screen.findByText("Net Worth Today");
+  }
+
+  const shortfallBanner = () =>
+    screen.getByText(/^Your plan falls short of your planned spending\./).closest("div.border-amber-200") as HTMLElement;
+
+  it("offers the spending, the retirement age and the saving that each close the gap", async () => {
+    const profile = shortfallPlan();
+    const levers = findShortfallLevers(profile, findEarliestFeasibleRetirementAge(profile));
+    expect(levers?.spend && levers.retire && levers.save).toBeTruthy();
+    await renderPlan(profile);
+
+    expect(screen.queryByText("You may need additional savings to meet your retirement goal.")).not.toBeInTheDocument();
+    const items = within(shortfallBanner()).getAllByRole("listitem");
+    expect(items).toHaveLength(3);
+
+    const [spend, retire, save] = items;
+    expect(plain(spend)).toBe(
+      `Spend ₪${Math.floor(levers!.spend!.monthly).toLocaleString()} a month instead of the ₪6,000 you plan, with the same retirement age and savings.`,
+    );
+    expect(within(spend).getByRole("link")).toHaveAttribute("href", "/my-data/expenses");
+
+    expect(plain(retire)).toBe(
+      `Retire at ${levers!.retire!.age} instead of 67, with the same spending and savings.`,
+    );
+    expect(within(retire).getByRole("link")).toHaveAttribute("href", "#feasibility-title");
+
+    expect(plain(save)).toBe(
+      `Save ₪${levers!.save!.monthly.toLocaleString()} a month more until you retire, at the return you assumed.`,
+    );
+    expect(within(save).getByRole("link")).toHaveAttribute("href", "/my-data/pension-savings");
+  });
+
+  it("points the retirement age at the card that explains it", async () => {
+    await renderPlan(shortfallPlan());
+
+    const target = within(shortfallBanner()).getByRole("link", { name: /^Retire at/ }).getAttribute("href")!.slice(1);
+    expect(document.getElementById(target)).not.toBeNull();
+  });
+
+  it("names both retirement ages for a couple", async () => {
+    const profile = shortfallPlan({
+      maritalStatus: "married",
+      spouse: { age: 38, retirementAge: 67 },
+    });
+    const feasibility = findEarliestFeasibleRetirementAge(profile);
+    const levers = findShortfallLevers(profile, feasibility);
+    expect(levers?.retire?.spouseAge).toBeTruthy();
+    await renderPlan(profile);
+
+    const retire = within(shortfallBanner()).getByRole("link", { name: /^Retire at/ }).closest("li") as HTMLElement;
+    expect(plain(retire)).toContain(
+      `Both of you retire together: you at ${levers!.retire!.age}, your spouse at ${levers!.retire!.spouseAge}.`,
+    );
+  });
+
+  it("leaves out a lever that cannot be quoted", async () => {
+    const profile = shortfallPlan({ retirementMonthlyExpenses: 1_000_000 });
+    const levers = findShortfallLevers(profile, findEarliestFeasibleRetirementAge(profile));
+    expect(levers?.spend).not.toBeNull();
+    expect(levers?.retire).toBeNull();
+    expect(levers?.save).toBeNull();
+    await renderPlan(profile);
+
+    expect(within(shortfallBanner()).getAllByRole("listitem")).toHaveLength(1);
+  });
+
+  it("falls back to the plain message when no lever can be quoted", async () => {
+    const profile = shortfallPlan({ age: 67, pensionBalances: [], monthlyGrossSalary: 0 });
+    expect(findShortfallLevers(profile, findEarliestFeasibleRetirementAge(profile))).toBeNull();
+    await renderPlan(profile);
+
+    expect(await screen.findByText("You may need additional savings to meet your retirement goal.")).toBeInTheDocument();
+    expect(screen.queryByText(/^Your plan falls short/)).not.toBeInTheDocument();
+  });
+
+  it("offers no levers when the plan covers its spending", async () => {
+    await renderPlan(shortfallPlan({ retirementMonthlyExpenses: 1_000 }));
+
+    expect(screen.queryByText(/^Your plan falls short/)).not.toBeInTheDocument();
+    const banner = screen.getByText("You're on track to meet your retirement goal.").closest("div.border-emerald-200");
+    expect(within(banner as HTMLElement).queryAllByRole("listitem")).toHaveLength(0);
   });
 });

@@ -23,6 +23,7 @@ import { PortfolioSummaryCard } from "../components/PortfolioSummaryCard";
 import { RetireAgeChecksCard } from "../components/RetireAgeChecksCard";
 import { RetirementSnapshot } from "../components/RetirementSnapshot";
 import { formatSuccessPercent } from "../components/riskFormat";
+import { ShortfallLevers } from "../components/ShortfallLevers";
 import { SourceAccessCard } from "../components/SourceAccessCard";
 import { NetWorthBasisNote, PlannedSpendingLine } from "../components/SpendingBasisNotes";
 import { StatusBanner } from "../components/StatusBanner";
@@ -43,6 +44,7 @@ import {
   estimateRetirementIncome,
   findDataGaps,
   findCoverNotices,
+  findShortfallLevers,
   groupPathEvents,
   irregularCosts,
   projectBalancePath,
@@ -72,6 +74,11 @@ export function Dashboard() {
     return runMonteCarlo(profile, "standard");
   }, [profile]);
   const { feasibility, confidentAge } = useRetirementFeasibility(profile);
+  // The saving lever searches the funding-gap model about twenty times, so it is computed once per profile.
+  const levers = useMemo(
+    () => (onboarded ? findShortfallLevers(profile, feasibility) : null),
+    [onboarded, profile, feasibility],
+  );
   // The retire-at checks run the funding-gap model several times, so they are computed once per profile.
   const snapshot = useMemo(
     () =>
@@ -296,7 +303,9 @@ export function Dashboard() {
           status={isShortfall ? "shortfall" : averageOnly ? "caution" : "onTrack"}
           message={
             isShortfall
-              ? t("dashboard.statusShortfall")
+              ? levers
+                ? t("dashboard.statusShortfallLevers")
+                : t("dashboard.statusShortfall")
               : averageOnly
                 ? t("dashboard.statusOnTrackAverage")
                 : t("dashboard.statusOnTrack")
@@ -324,7 +333,9 @@ export function Dashboard() {
               </Link>
             ) : undefined
           }
-        />
+        >
+          {isShortfall && levers && <ShortfallLevers levers={levers} />}
+        </StatusBanner>
       )}
 
       <PortfolioSummaryCard portfolio={breakdownPortfolio(profile)} />
