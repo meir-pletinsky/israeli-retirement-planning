@@ -143,6 +143,7 @@
       "confidentAge": "With {{percent}}% confidence: age {{age}}",
       "confidentSame": "The same age holds with {{percent}}% confidence.",
       "confidentNone": "With {{percent}}% confidence: not reachable by age {{age}}.",
+      "confidentPending": "Checking the earliest age with {{percent}}% confidence…",
       "notFeasible": "Your target retirement spending isn't reachable by age {{age}} with your current savings and contributions. Try lowering expenses, saving more, or adjusting your assumptions.",
       "noTarget": "Enter your expected monthly retirement expenses to see how soon you could retire.",
       "noTargetCta": "Add expenses"
@@ -224,6 +225,7 @@
       "noSpendingNote": "Enter your planned spending to see this.",
       "addExpenses": "Add expenses",
       "successProbability": "Simulated spending coverage to age {{age}}",
+      "successCalculating": "Simulating possible markets…",
       "successNoteAll": "All {{paths}} simulated market histories fund your spending. That is not certainty about real outcomes.",
       "successNoteShare": "Share of {{paths}} simulated market histories that fund your spending.",
       "successQualifier": "Based on your inputs and model assumptions; not a guarantee.",
@@ -281,6 +283,7 @@
     "statusAverageDetail": "Your plan funds your spending if markets return what you assumed every year, but only {{percent}}% of simulated market histories do.",
     "statusConfidentSpending": "With {{percent}}% confidence you could spend about {{amount}} a month, against your goal of {{target}}.",
     "statusSeeRisk": "See the risk analysis",
+    "statusChecking": "Checking your plan against simulated markets…",
     "statusShortfall": "You may need additional savings to meet your retirement goal.",
     "statusShortfallLevers": "Your plan falls short of your planned spending. Any one of these would close the gap, in average markets:",
     "levers": {
@@ -1010,6 +1013,7 @@
       "intro": "Markets don't return the same amount every year. This replays your plan on {{paths}} random market histories to see how often your desired spending lasts.",
       "noTarget": "Enter your expected monthly retirement expenses (in My Data) to test them against market ups and downs.",
       "noTargetCta": "Add expenses",
+      "calculating": "Simulating possible markets. The rest of the page is ready to use.",
       "noYears": "There are no retirement years to test before age {{age}}.",
       "successLabel": "Chance your desired spending lasts to age {{age}}",
       "band": {

@@ -24,6 +24,8 @@ export default defineConfig({
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
   },
   plugins: [react(), tailwindcss()],
+  // The heavy-computation worker is a module worker (it imports the shared domain code).
+  worker: { format: 'es' },
   test: {
     environment: 'jsdom',
     globals: true,

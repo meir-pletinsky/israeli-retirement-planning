@@ -8,9 +8,16 @@ interface FeasibilityCardProps {
   maxSearchAge: number;
   /** The earliest age that also holds in the share of simulated markets the risk analysis asks for. */
   confidentAge?: ConfidentRetirementAge | null;
+  /** True while that age is still being calculated. */
+  confidentAgePending?: boolean;
 }
 
-export function FeasibilityCard({ feasibility, maxSearchAge, confidentAge = null }: FeasibilityCardProps) {
+export function FeasibilityCard({
+  feasibility,
+  maxSearchAge,
+  confidentAge = null,
+  confidentAgePending = false,
+}: FeasibilityCardProps) {
   const { t } = useTranslation();
   const { status, earliestAge, yearsFromNow, spouseAge } = feasibility;
   const yearsLabel = yearsFromNow === null ? null : Math.round(yearsFromNow);
@@ -40,6 +47,9 @@ export function FeasibilityCard({ feasibility, maxSearchAge, confidentAge = null
             <p className="text-sm text-slate-600">
               {t("dashboard.feasibility.bothRetire", { age: earliestAge, spouseAge })}
             </p>
+          )}
+          {confidentAgePending && (
+            <p className="text-sm text-slate-500">{t("dashboard.feasibility.confidentPending", { percent })}</p>
           )}
           {confidentAge && (
             <p className="text-sm font-medium text-slate-800">

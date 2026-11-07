@@ -2528,6 +2528,26 @@ of its section 10 (UXB-14 is skipped on request).
       highlight. Checked in a browser at 768, 1024 and 1280px: the index fits without
       overflow, anchors stop below the bar, and the Dashboard link lands on the budget.
       Tests: `Projections.test.tsx`, `Dashboard.test.tsx`.
+- [x] **UXB-24 Projections slow to respond, early clicks lost**. The two heavy Monte Carlo
+      computations (the risk analysis and the earliest-confident-age search, about 550 ms and
+      600 ms) now run in a Web Worker instead of during render. `domain/heavyTasks.ts` defines
+      three pure tasks (`riskAnalysis`, `dashboardRisk`, `confidentAge`); `app/heavyCompute.ts`
+      runs them one at a time in `heavyCompute.worker.ts`, caches finished results per profile
+      object and abandons an unfinished request when the page is left. `useHeavyResult`
+      exposes `{value, stale, pending}` to the pages. While a result is pending the page
+      renders at once: the risk card shows a skeleton (`aria-busy`, `role="status"`), the
+      Dashboard banner has a new "checking" status and the feasibility card says the
+      confident age is being checked. If the worker is missing, fails to start or crashes,
+      the task runs on the main thread after paint; without `Worker` support (jsdom) it runs
+      inline during render, as before. The simpler feasibility checks (about 1 ms) and the
+      historical backtest (17 ms) stay synchronous. `vite.config.ts` sets
+      `worker: { format: 'es' }`. Measured in a browser: the Projections to Dashboard long
+      task fell from 889+75 ms to 90 ms; in the production build the Dashboard to Projections
+      long tasks are 218 ms and 140 ms of rendering (before: 808+450 ms) and the card
+      appears at once. Not built: per-section lazy rendering, prefetching the results from
+      the Dashboard, persisting results. Tests: `domain/heavyTasks.test.ts`,
+      `app/heavyCompute.test.ts`, `pages/HeavyWorker.test.tsx`, `StatusBanner.test.tsx`,
+      `FeasibilityCard.test.tsx`.
 
 ## Modeling assumptions (by phase)
 

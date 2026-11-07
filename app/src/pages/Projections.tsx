@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { useChosenScenario } from "../app/chosenScenario";
 import { useProfile } from "../app/ProfileContext";
+import { useHeavyResult } from "../app/useHeavyResult";
 import { ActiveAssumptions } from "../components/ActiveAssumptions";
 import { AssumedRetirementAgeBanner } from "../components/AssumedRetirementAgeBanner";
 import { BalanceTable, PathEventsList } from "../components/BalancePathNotes";
@@ -63,7 +64,6 @@ import {
   projectCashFlow,
   projectSpendingFunding,
   resolveRetirementAge,
-  runMonteCarlo,
   savedCoverPlan,
   spouseAgeAt,
 } from "../domain";
@@ -86,13 +86,16 @@ export function Projections() {
   const scenario: RetirementScenario = earlyAtStandard && chosenScenario === "early" ? "standard" : chosenScenario;
   const scenarioTag = <ScenarioTag profile={profile} scenario={scenario} />;
 
-  // The simulation is the slowest calculation here, so it only reruns when the plan or scenario
-  // changes, and a deferred scenario lets the scenario buttons answer before it finishes.
+  // The simulation is the slowest calculation here, so it runs in a worker and only reruns when the
+  // plan or scenario changes; the rest of the page shows while it works. A deferred scenario lets
+  // the scenario buttons answer at once, and the previous result stays dimmed until the new one lands.
   const riskScenario = useDeferredValue(scenario);
-  const riskAnalysis = useMemo(() => runMonteCarlo(profile, riskScenario), [profile, riskScenario]);
-  const riskUpdating = riskScenario !== scenario;
   const desiredMonthly = desiredRetirementMonthly(profile.expenses);
   const hasTarget = desiredMonthly !== null && desiredMonthly > 0;
+  const riskState = useHeavyResult("riskAnalysis", profile, { scenario: riskScenario }, hasTarget);
+  const riskAnalysis = riskState.value ?? riskState.stale ?? null;
+  const riskCalculating = riskState.pending && riskAnalysis === null;
+  const riskUpdating = riskScenario !== scenario || (riskState.pending && riskAnalysis !== null);
 
   const balancePath = projectBalancePath(profile, scenario);
   const eventGroups = groupPathEvents(balancePath.events);
@@ -117,7 +120,7 @@ export function Projections() {
     () => compareWithdrawalStrategies(profile, scenario),
     [profile, scenario],
   );
-  const { feasibility, confidentAge } = useRetirementFeasibility(profile);
+  const { feasibility, confidentAge, confidentAgePending } = useRetirementFeasibility(profile);
   const coverComparisons = useMemo(() => compareCoverOptions(profile), [profile]);
   const chooseCover = (person: AccountOwner, option: CoverOption) => {
     const next = planForOption(savedCoverPlan(profile, person), option);
@@ -381,6 +384,7 @@ export function Projections() {
         <RiskAnalysisCard
           result={riskAnalysis}
           hasTarget={hasTarget}
+          calculating={riskCalculating}
           updating={riskUpdating}
           scenarioTag={scenarioTag}
         />
@@ -401,6 +405,7 @@ export function Projections() {
         <FeasibilityCard
           feasibility={feasibility}
           confidentAge={confidentAge}
+          confidentAgePending={confidentAgePending}
           maxSearchAge={MAX_RETIREMENT_SEARCH_AGE}
         />
 

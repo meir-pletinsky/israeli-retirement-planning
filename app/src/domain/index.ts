@@ -16,6 +16,7 @@ export * from "./expenseCatalog";
 export * from "./expenses";
 export * from "./feasibility";
 export * from "./fundingGap";
+export * from "./heavyTasks";
 export * from "./historicalBacktest";
 export * from "./household";
 export * from "./incomeBreakdown";

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import { useProfile } from "../app/ProfileContext";
+import { useHeavyResult } from "../app/useHeavyResult";
 import { ActiveAssumptions } from "../components/ActiveAssumptions";
 import { AssumedRetirementAgeBanner } from "../components/AssumedRetirementAgeBanner";
 import { PathEventsList } from "../components/BalancePathNotes";
@@ -48,7 +49,6 @@ import {
   projectBalancePath,
   projectSpendingFunding,
   retirementWhen,
-  runMonteCarlo,
   successBand,
   successPercent,
 } from "../domain";
@@ -65,13 +65,13 @@ export function Dashboard() {
   const currencySymbol = t("common.currencySymbol");
   const takeaways = useChartTakeaways();
   // Only the success rate is shown here, so the search for a dependable spending level is skipped
-  // unless the rate is below the dependable bar; then the banner quotes that spending.
-  const risk = useMemo(() => {
-    const quick = runMonteCarlo(profile, "standard", { findConfidentSpending: false });
-    if (!quick || successBand(quick.successProbability) === "strong") return quick;
-    return runMonteCarlo(profile, "standard");
-  }, [profile]);
-  const { feasibility, confidentAge } = useRetirementFeasibility(profile);
+  // unless the rate is below the dependable bar; then the banner quotes that spending. The
+  // simulation runs off the main thread, so the rest of the page shows while it works.
+  const { feasibility, confidentAge, confidentAgePending } = useRetirementFeasibility(profile);
+  const hasTarget = feasibility.status !== "noTarget";
+  const riskResult = useHeavyResult("dashboardRisk", profile, {}, onboarded && hasTarget);
+  const risk = riskResult.value ?? null;
+  const riskPending = riskResult.pending;
   // The saving lever searches the funding-gap model about twenty times, so it is computed once per profile.
   const levers = useMemo(
     () => (onboarded ? findShortfallLevers(profile, feasibility) : null),
@@ -116,7 +116,6 @@ export function Dashboard() {
   const fundingGap = calculateFundingGap(profile, "standard");
   const irregular = irregularCosts(profile.expenses);
   const isShortfall = fundingGap.status === "shortfall";
-  const hasTarget = feasibility.status !== "noTarget";
   // The funding gap uses the average return every year, so it can look fine while many simulated markets run short.
   const coveragePercent = risk ? successPercent(risk.successProbability) : null;
   const averageOnly =
@@ -148,15 +147,17 @@ export function Dashboard() {
 
       {hasTarget && (
         <StatusBanner
-          status={isShortfall ? "shortfall" : averageOnly ? "caution" : "onTrack"}
+          status={isShortfall ? "shortfall" : riskPending ? "checking" : averageOnly ? "caution" : "onTrack"}
           message={
             isShortfall
               ? levers
                 ? t("dashboard.statusShortfallLevers")
                 : t("dashboard.statusShortfall")
-              : averageOnly
-                ? t("dashboard.statusOnTrackAverage")
-                : t("dashboard.statusOnTrack")
+              : riskPending
+                ? t("dashboard.statusChecking")
+                : averageOnly
+                  ? t("dashboard.statusOnTrackAverage")
+                  : t("dashboard.statusOnTrack")
           }
           details={
             averageOnly && risk && coveragePercent !== null
@@ -252,7 +253,9 @@ export function Dashboard() {
           value={risk ? formatSuccessPercent(risk.successProbability) : "—"}
           status={risk ? SUCCESS_STATUS[successBand(risk.successProbability)] : "neutral"}
           note={
-            risk ? (
+            riskPending ? (
+              <p>{t("dashboard.kpi.successCalculating")}</p>
+            ) : risk ? (
               <div className="flex flex-col gap-1">
                 <p>
                   {t(
@@ -377,6 +380,7 @@ export function Dashboard() {
         <FeasibilityCard
           feasibility={feasibility}
           confidentAge={confidentAge}
+          confidentAgePending={confidentAgePending}
           maxSearchAge={MAX_RETIREMENT_SEARCH_AGE}
         />
 

@@ -8,15 +8,37 @@ import { FeasibilityCard } from "./FeasibilityCard";
 
 const feasible: RetirementFeasibility = { status: "feasible", earliestAge: 58, yearsFromNow: 8 };
 
-function renderCard(confidentAge?: ConfidentRetirementAge | null, feasibility = feasible) {
+function renderCard(
+  confidentAge?: ConfidentRetirementAge | null,
+  feasibility = feasible,
+  confidentAgePending = false,
+) {
   render(
     <MemoryRouter>
-      <FeasibilityCard feasibility={feasibility} maxSearchAge={70} confidentAge={confidentAge} />
+      <FeasibilityCard
+        feasibility={feasibility}
+        maxSearchAge={70}
+        confidentAge={confidentAge}
+        confidentAgePending={confidentAgePending}
+      />
     </MemoryRouter>,
   );
 }
 
 describe("FeasibilityCard", () => {
+  it("shows the average-markets age at once and says the confident age is being checked", () => {
+    renderCard(null, feasible, true);
+
+    expect(screen.getByText("Age 58")).toBeInTheDocument();
+    expect(screen.getByText("Checking the earliest age with 90% confidence…")).toBeInTheDocument();
+  });
+
+  it("does not say it is checking when the plan is not feasible", () => {
+    renderCard(null, { status: "notFeasible", earliestAge: null, yearsFromNow: null }, true);
+
+    expect(screen.queryByText(/Checking the earliest age/)).not.toBeInTheDocument();
+  });
+
   it("says the earliest age is for average markets", () => {
     renderCard(null);
 

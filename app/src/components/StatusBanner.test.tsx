@@ -23,6 +23,15 @@ describe("StatusBanner", () => {
     expect(container.firstElementChild).not.toHaveClass("bg-emerald-50");
   });
 
+  it("styles a check in progress neutrally, with neither a tick nor a warning", () => {
+    const { container } = render(<StatusBanner status="checking" message="Checking your plan…" />);
+
+    expect(screen.getByText("Checking your plan…")).toBeInTheDocument();
+    expect(screen.queryByText("✓")).not.toBeInTheDocument();
+    expect(screen.queryByText("!")).not.toBeInTheDocument();
+    expect(container.firstElementChild).toHaveClass("bg-slate-50");
+  });
+
   it("lists the details in order, then the action", () => {
     render(
       <MemoryRouter>

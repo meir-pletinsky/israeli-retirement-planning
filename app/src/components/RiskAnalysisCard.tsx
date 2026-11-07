@@ -22,6 +22,8 @@ interface RiskAnalysisCardProps {
   result: MonteCarloResult | null;
   /** Whether the user has entered desired retirement spending. */
   hasTarget: boolean;
+  /** True while the first result is still being simulated; the card then shows a placeholder. */
+  calculating?: boolean;
   /** True while the figures below still belong to the previous scenario. */
   updating?: boolean;
   /** Names the retirement scenario shown, beside the title. */
@@ -37,6 +39,7 @@ const BAND_CLASSES = {
 export function RiskAnalysisCard({
   result,
   hasTarget,
+  calculating = false,
   updating = false,
   scenarioTag,
 }: RiskAnalysisCardProps) {
@@ -49,7 +52,7 @@ export function RiskAnalysisCard({
   return (
     <section
       aria-labelledby="risk-title"
-      aria-busy={updating}
+      aria-busy={updating || calculating}
       className={`rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-opacity ${
         updating ? "opacity-50" : ""
       }`}
@@ -67,7 +70,18 @@ export function RiskAnalysisCard({
         </p>
       )}
 
-      {hasTarget && !result && (
+      {hasTarget && calculating && (
+        <div role="status" className="mt-2 flex flex-col gap-3">
+          <p className="text-sm text-slate-600">{t("projections.risk.calculating")}</p>
+          <div aria-hidden className="grid gap-4 sm:grid-cols-2">
+            <div className="h-16 animate-pulse rounded-md bg-slate-100 motion-reduce:animate-none" />
+            <div className="h-16 animate-pulse rounded-md bg-slate-100 motion-reduce:animate-none" />
+          </div>
+          <div aria-hidden className="h-40 animate-pulse rounded-md bg-slate-100 motion-reduce:animate-none" />
+        </div>
+      )}
+
+      {hasTarget && !calculating && !result && (
         <p className="mt-2 text-sm text-slate-600">
           {t("projections.risk.noYears", { age: horizonAge })}
         </p>
