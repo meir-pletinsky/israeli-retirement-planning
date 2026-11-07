@@ -887,7 +887,7 @@
     "scenarioDelayed": "Delayed",
     "scenarioOption": "{{name}} - age {{age}}",
     "scenarioScope": "Applies to the charts and cards below. The age comparison above is separate and does not follow this choice.",
-    "scenarioEarlyFloor": "In these scenarios Early never goes below age {{age}}, so for your plan it matches Standard. The age comparison above can go lower.",
+    "scenarioEarlyFloor": "In these scenarios Early never goes below age {{age}}, so for your plan it matches Standard and is switched off. The age comparison above can go lower.",
     "netWorthChart": "Net Worth Projection",
     "incomeChart": "Sustainable income by source",
     "netIncomeChart": "Sustainable income after tax",
@@ -943,6 +943,7 @@
       "successLabel": "Starting years that fund your spending to age {{age}}",
       "successValue": "{{funded}} of {{total}}",
       "band": {
+        "all": "Your spending held up in every starting year.",
         "strong": "Your spending held up in nearly all starting years.",
         "fair": "Your spending held up in most starting years, but some ran short.",
         "weak": "Many starting years ran short."

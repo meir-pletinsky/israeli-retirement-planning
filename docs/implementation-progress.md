@@ -2214,6 +2214,19 @@ of its section 10 (UXB-14 is skipped on request).
       entered says "No spending is entered, so nothing is drawn" instead of "start drawing".
       Tests: `Dashboard.test.tsx` ("which spending the figures follow"), plus the KPI rename in
       `App.test.tsx`, `Welcome.test.tsx`.
+- [x] **UXB-29 Copy, translation and visual slips.**
+      The Hebrew status banner was misspelled ("להשגאת") and addressed the user in the masculine
+      singular; it now reads in the plural like the rest of the Dashboard (`dashboard.statusOnTrack`,
+      `statusShortfall`; `localeParity.test.ts` guards it). The historical backtest says "held up in
+      every starting year" (new `projections.history.band.all`) when all windows are funded, instead
+      of "nearly all". `DateField` keeps its calendar button inside the input's own box — it was
+      anchored to the whole cell, so beside a taller neighbour (the holding dialogs) it dropped
+      below the input; its label is now tied to the input with `htmlFor`. On Projections, an Early
+      scenario that equals Standard (the age-60 floor, or a plan to retire before 60) is disabled
+      and a stored Early choice falls back to Standard. The broader mix of masculine-singular and
+      plural address across the Hebrew UI is a copy decision left open. Tests:
+      `DateField.test.tsx`, `Projections.test.tsx`, `PensionSavingsStep.test.tsx`,
+      `localeParity.test.ts`.
 
 ## Modeling assumptions (by phase)
 

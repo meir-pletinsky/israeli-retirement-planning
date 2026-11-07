@@ -61,13 +61,15 @@ const SCENARIOS: RetirementScenario[] = ["early", "standard", "delayed"];
 export function Projections() {
   const { t } = useTranslation();
   const { profile, updateProfile } = useProfile();
-  const [scenario, setScenario] = useState<RetirementScenario>("standard");
+  const [chosenScenario, setScenario] = useState<RetirementScenario>("standard");
   const [view, setView] = useState<"chart" | "table">("chart");
   const currencySymbol = t("common.currencySymbol");
   const scenarioLabel = useScenarioLabel(profile);
-  const scenarioTag = <ScenarioTag profile={profile} scenario={scenario} />;
   const earlyAtStandard =
     resolveRetirementAge(profile, "early") === resolveRetirementAge(profile, "standard");
+  // An Early that matches Standard is switched off; a choice made before the ages met is dropped.
+  const scenario: RetirementScenario = earlyAtStandard && chosenScenario === "early" ? "standard" : chosenScenario;
+  const scenarioTag = <ScenarioTag profile={profile} scenario={scenario} />;
 
   // The simulation is the slowest calculation here, so it only reruns when the plan or scenario
   // changes, and a deferred scenario lets the scenario buttons answer before it finishes.
@@ -141,22 +143,25 @@ export function Projections() {
           aria-labelledby="scenario-title"
           className="mt-3 flex flex-wrap gap-1 rounded-2xl bg-slate-100 p-1"
         >
-          {SCENARIOS.map((s) => (
-            <button
-              key={s}
-              type="button"
-              aria-pressed={scenario === s}
-              onClick={() => setScenario(s)}
-              className={clsx(
-                "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
-                scenario === s
-                  ? "bg-white text-brand-700 shadow"
-                  : "text-slate-500",
-              )}
-            >
-              {scenarioLabel(s)}
-            </button>
-          ))}
+          {SCENARIOS.map((s) => {
+            const duplicate = s === "early" && earlyAtStandard;
+            return (
+              <button
+                key={s}
+                type="button"
+                aria-pressed={scenario === s}
+                disabled={duplicate}
+                onClick={() => setScenario(s)}
+                className={clsx(
+                  "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
+                  scenario === s ? "bg-white text-brand-700 shadow" : "text-slate-500",
+                  duplicate && "cursor-not-allowed opacity-50",
+                )}
+              >
+                {scenarioLabel(s)}
+              </button>
+            );
+          })}
         </div>
         {earlyAtStandard && (
           <p className="mt-2 text-xs text-slate-500">

@@ -46,3 +46,15 @@ describe.each([
     expect(mismatched.map(([key]) => key)).toEqual([]);
   });
 });
+
+describe("he status banner", () => {
+  const strings = flatten(he as unknown as Strings);
+
+  it("is spelled correctly and addresses the household in the plural, like the rest of the Dashboard", () => {
+    for (const key of ["dashboard.statusOnTrack", "dashboard.statusShortfall"]) {
+      expect(strings[key], key).not.toContain("להשגאת");
+      expect(strings[key], key).not.toMatch(/\bאתה\b|שלך/);
+      expect(strings[key], key).toMatch(/שלכם/);
+    }
+  });
+});

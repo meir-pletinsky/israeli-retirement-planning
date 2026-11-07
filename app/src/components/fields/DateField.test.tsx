@@ -62,4 +62,14 @@ describe("DateField", () => {
     render(<Harness />);
     expect(screen.getByRole("button", { name: /Start/ })).toBeInTheDocument();
   });
+
+  it("keeps the calendar button inside the box of the date input, not below it", () => {
+    render(<Harness />);
+    expect(input().parentElement).toContainElement(screen.getByRole("button", { name: /Start/ }));
+  });
+
+  it("labels the date input when its box has a calendar button", () => {
+    render(<Harness />);
+    expect(screen.getByRole("textbox", { name: "Start" })).toBe(input());
+  });
 });

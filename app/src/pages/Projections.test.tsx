@@ -558,6 +558,8 @@ describe("Projections", () => {
       const card = await renderBacktest(4_000);
       expect(within(card).getByText("Starting years that fund your spending to age 90")).toBeInTheDocument();
       expect(within(card).getByText("49 of 49")).toBeInTheDocument();
+      expect(within(card).getByText("Your spending held up in every starting year.")).toBeInTheDocument();
+      expect(within(card).queryByText(/nearly all/)).not.toBeInTheDocument();
       expect(within(card).getByText("No starting year ran short.")).toBeInTheDocument();
       expect(
         within(card).getByText("Monthly spending that every starting year could fund"),
@@ -1377,19 +1379,26 @@ describe("Projections", () => {
       expect(comparison.getByText(/has its own ages/i)).toBeInTheDocument();
     });
 
-    it("explains that Early does not go below the floor in these scenarios", async () => {
+    it("explains that Early does not go below the floor in these scenarios, and switches it off", async () => {
       const selector = await renderScenarios({ retirementAge: 60 });
 
-      expect(selector.getByRole("button", { name: "Early - age 60" })).toBeInTheDocument();
-      expect(selector.getByRole("button", { name: "Standard - age 60" })).toBeInTheDocument();
+      expect(selector.getByRole("button", { name: "Early - age 60" })).toBeDisabled();
+      expect(selector.getByRole("button", { name: "Standard - age 60" })).toBeEnabled();
+      expect(selector.getByRole("button", { name: "Delayed - age 63" })).toBeEnabled();
       expect(selector.getByText(/never goes below age 60/i)).toBeInTheDocument();
     });
 
     it("never makes Early later than the age the user chose", async () => {
       const selector = await renderScenarios({ retirementAge: 58 });
 
-      expect(selector.getByRole("button", { name: "Early - age 58" })).toBeInTheDocument();
-      expect(selector.getByRole("button", { name: "Standard - age 58" })).toBeInTheDocument();
+      expect(selector.getByRole("button", { name: "Early - age 58" })).toBeDisabled();
+      expect(selector.getByRole("button", { name: "Standard - age 58" })).toBeEnabled();
+    });
+
+    it("leaves Early selectable while it differs from Standard", async () => {
+      const selector = await renderScenarios();
+
+      expect(selector.getByRole("button", { name: "Early - age 60" })).toBeEnabled();
     });
 
     it("compares three different ages by default, even for a plan to retire at 60", async () => {

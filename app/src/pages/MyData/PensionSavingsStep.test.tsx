@@ -148,7 +148,11 @@ describe("PensionSavingsStep — accounts repeater", () => {
 
     await user.click(await screen.findByRole("button", { name: "Add account" }));
 
-    const labelOf = (name: RegExp) => screen.getByLabelText(name).closest("label");
+    const labelOf = (name: RegExp) => {
+      const field = screen.getByLabelText(name);
+      // A date field's label sits beside its input (the calendar button shares the input's box).
+      return field.closest("label") ?? document.querySelector(`label[for="${field.id}"]`);
+    };
     expect(labelOf(/^Product category/)).toHaveTextContent("Recommended");
     expect(labelOf(/^Account status/)).toHaveTextContent("Recommended");
     expect(labelOf(/^Total accumulated balance/)).toHaveTextContent("Recommended");

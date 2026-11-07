@@ -203,7 +203,9 @@ function Results({
           <p className={clsx("mt-1 text-3xl font-semibold tabular-nums", BAND_CLASSES[band])}>
             {t("projections.history.successValue", { funded: result.fundedCount, total })}
           </p>
-          <p className="mt-1 text-xs text-slate-600">{t(`projections.history.band.${band}`)}</p>
+          <p className="mt-1 text-xs text-slate-600">
+            {t(`projections.history.band.${result.fundedCount === total ? "all" : band}`)}
+          </p>
         </div>
 
         {result.survivableNetMonthly !== null && (
