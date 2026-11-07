@@ -49,7 +49,7 @@ export function projectBalanceAtAge(profile: ProfileData, targetAge: number): nu
 
 /**
  * Projects net worth year-by-year from the user's current age through
- * `MAX_PLANNING_AGE`, entirely in today's money (real terms):
+ * the planning horizon (`assumptions.planningHorizonAge`), entirely in today's money (real terms):
  * - Until retirement age: balances grow at the real return rate and ongoing
  *   monthly contributions (salary x per-account rates, see `contributions.ts`)
  *   are added each year.
@@ -78,6 +78,8 @@ export interface SpendingFunding {
   monthlySpending: number;
   /** The primary user's age in the first year the usable savings cannot fund it; null when they can through the horizon. */
   shortfallAge: number | null;
+  /** The age the plan runs to (the horizon the shortfall age is measured against). */
+  horizonAge: number;
 }
 
 /**
@@ -90,9 +92,10 @@ export function projectSpendingFunding(
   scenario: RetirementScenario = "standard",
 ): SpendingFunding {
   const monthlySpending = desiredRetirementMonthly(profile.expenses) ?? 0;
-  if (monthlySpending <= 0) return { monthlySpending: 0, shortfallAge: null };
+  const horizonAge = profile.assumptions.planningHorizonAge;
+  if (monthlySpending <= 0) return { monthlySpending: 0, shortfallAge: null, horizonAge };
   const household = buildHousehold(profile, resolveRetirementTiming(profile, scenario));
   const rows = simulateHouseholdDrawdown(household, monthlySpending, { lean: true });
   const short = rows.find((row) => row.unmet > UNMET_TOLERANCE);
-  return { monthlySpending, shortfallAge: short ? short.age : null };
+  return { monthlySpending, shortfallAge: short ? short.age : null, horizonAge };
 }

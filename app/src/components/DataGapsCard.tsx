@@ -6,6 +6,8 @@ import { RETIREMENT_AGE_TARGET } from "./retirementAgeTargets";
 
 interface DataGapsCardProps {
   gaps: DataGap[];
+  /** The age the plan runs to; pension accounts without a conversion factor are spent by then. */
+  horizonAge: number;
 }
 
 const STEP_LABEL_KEYS: Record<DataGapStep, string> = {
@@ -22,7 +24,7 @@ const FIELD_TARGETS: Partial<Record<DataGapId, string>> = {
 };
 
 /** Optional inputs that are missing and would change the estimate, each linking to where it is entered. */
-export function DataGapsCard({ gaps }: DataGapsCardProps) {
+export function DataGapsCard({ gaps, horizonAge }: DataGapsCardProps) {
   const { t } = useTranslation();
 
   if (gaps.length === 0) {
@@ -46,6 +48,7 @@ export function DataGapsCard({ gaps }: DataGapsCardProps) {
               {t(`dashboard.gaps.items.${gap.id}`, {
                 count: gap.count,
                 age: DEFAULT_RETIREMENT_AGE,
+                horizon: horizonAge,
               })}
             </span>
             <Link

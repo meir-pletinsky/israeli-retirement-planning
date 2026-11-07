@@ -5,7 +5,6 @@ import { Link } from "react-router-dom";
 
 import { useProfile } from "../app/ProfileContext";
 import {
-  MAX_PLANNING_AGE,
   MONTE_CARLO_CONFIDENCE,
   type MonteCarloResult,
   successBand,
@@ -42,6 +41,8 @@ export function RiskAnalysisCard({
   scenarioTag,
 }: RiskAnalysisCardProps) {
   const { t } = useTranslation();
+  const { profile } = useProfile();
+  const horizonAge = profile.assumptions.planningHorizonAge;
   const currencySymbol = t("common.currencySymbol");
   const money = (amount: number) => `${currencySymbol}${amount.toLocaleString()}`;
 
@@ -68,11 +69,13 @@ export function RiskAnalysisCard({
 
       {hasTarget && !result && (
         <p className="mt-2 text-sm text-slate-600">
-          {t("projections.risk.noYears", { age: MAX_PLANNING_AGE })}
+          {t("projections.risk.noYears", { age: horizonAge })}
         </p>
       )}
 
-      {result && <RiskResults result={result} money={money} currencySymbol={currencySymbol} />}
+      {result && (
+        <RiskResults result={result} money={money} currencySymbol={currencySymbol} horizonAge={horizonAge} />
+      )}
     </section>
   );
 }
@@ -81,14 +84,16 @@ function RiskResults({
   result,
   money,
   currencySymbol,
+  horizonAge,
 }: {
   result: MonteCarloResult;
   money: (amount: number) => string;
   currencySymbol: string;
+  horizonAge: number;
 }) {
   const { t } = useTranslation();
-  const { profile } = useProfile();
   const band = successBand(result.successProbability);
+  const { profile } = useProfile();
   const confidentPercent = Math.round(MONTE_CARLO_CONFIDENCE * 100);
   const fanTakeaway = useChartTakeaways().fan(result.fan);
 
@@ -101,7 +106,7 @@ function RiskResults({
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <div>
           <p className="text-sm font-medium text-slate-500">
-            {t("projections.risk.successLabel", { age: MAX_PLANNING_AGE })}
+            {t("projections.risk.successLabel", { age: horizonAge })}
           </p>
           <p className={clsx("mt-1 text-3xl font-semibold tabular-nums", BAND_CLASSES[band])}>
             <span dir="ltr">{formatSuccessPercent(result.successProbability)}</span>

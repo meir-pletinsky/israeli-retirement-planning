@@ -23,6 +23,7 @@ export * from "./incomeComposition";
 export * from "./inputGuidance";
 export * from "./leavingEarly";
 export * from "./liquidityLadder";
+export * from "./longevityTest";
 export * from "./monteCarlo";
 export * from "./netIncome";
 export * from "./netWorth";

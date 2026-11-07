@@ -9,6 +9,7 @@ import {
   retirementTimingAtAge,
   retirementTimingShiftedTo,
   spouseAgeAt,
+  withPlanningHorizon,
 } from "./household";
 import { estimateIncomeBreakdownForTiming } from "./incomeBreakdown";
 import {
@@ -428,5 +429,64 @@ describe("household projections", () => {
     // The later spouse (the primary user, retiring at 60) stops in 10 years.
     expect(points[0].age).toBe(60);
     expect(points[points.length - 1].age).toBe(92);
+  });
+});
+
+describe("planning horizon", () => {
+  const plan = (planningHorizonAge?: 90 | 95 | 100) =>
+    buildTestProfile({
+      age: 60,
+      retirementAge: 67,
+      ...ZERO_REAL,
+      pensionBalances: [200_000],
+      planningHorizonAge,
+    });
+  const monthlyIncome = (profile: ReturnType<typeof plan>) =>
+    estimateRetirementIncome(profile).monthlyIncomeTodayMoney;
+
+  it("is 90 unless the profile says otherwise", () => {
+    const household = buildHousehold(plan(), resolveRetirementTiming(plan(), "standard"));
+    expect(household.planningHorizonAge).toBe(90);
+    expect(household.horizonYears).toBe(30);
+  });
+
+  it("runs the plan, the net worth projection and the income breakdown to the chosen age", () => {
+    const profile = plan(95);
+    const household = buildHousehold(profile, resolveRetirementTiming(profile, "standard"));
+    expect(household.horizonYears).toBe(35);
+    expect(projectNetWorth(profile).at(-1)?.age).toBe(95);
+    expect(estimateIncomeBreakdownForTiming(profile, resolveRetirementTiming(profile, "standard")).at(-1)?.age).toBe(95);
+    // 200,000 over (95 - 60 - 7) years.
+    expect(monthlyIncome(profile)).toBe(Math.round(200_000 / (28 * 12)));
+  });
+
+  it("spreads the savings over more years, so a later age pays less each month", () => {
+    expect(monthlyIncome(plan(95))).toBeLessThan(monthlyIncome(plan(90)));
+    expect(monthlyIncome(plan(100))).toBeLessThan(monthlyIncome(plan(95)));
+  });
+
+  it("reruns the same household to another age without rebuilding it", () => {
+    const profile = plan();
+    const household = buildHousehold(profile, resolveRetirementTiming(profile, "standard"));
+    const later = withPlanningHorizon(household, 100);
+    expect(later.planningHorizonAge).toBe(100);
+    expect(later.horizonYears).toBe(40);
+    expect(later.members).toBe(household.members);
+    expect(household.horizonYears).toBe(30);
+  });
+
+  it("plans a couple until the younger spouse reaches the chosen age", () => {
+    const profile = buildTestProfile({
+      age: 62,
+      retirementAge: 67,
+      ...ZERO_REAL,
+      ...MARRIED,
+      spouse: { age: 57, retirementAge: 62 },
+      pensionBalances: [100_000, 100_000],
+      pensionAccountOverrides: [{}, { owner: "spouse" }],
+      planningHorizonAge: 95,
+    });
+    const household = buildHousehold(profile, resolveRetirementTiming(profile, "standard"));
+    expect(household.horizonYears).toBe(38);
   });
 });

@@ -4,7 +4,7 @@ import { desiredRetirementMonthly } from "./expenses";
 import { calculateFundingGapAtAge } from "./fundingGap";
 import { buildHousehold, resolveRetirementTiming, spouseAgeAt } from "./household";
 import { estimateIncomeBreakdownForTiming } from "./incomeBreakdown";
-import { buildIncomeComposition, type IncomeCompositionStage } from "./incomeComposition";
+import { buildIncomeComposition, continuingPaymentsMonthly, type IncomeCompositionStage } from "./incomeComposition";
 import { isHouseholdActive, resolveCurrentAge } from "./profileBasics";
 import { estimateHouseholdRetirementIncome } from "./retirementIncome";
 import type { ReadinessStatus, RetirementAccessSummary, RetirementScenario } from "./types";
@@ -26,6 +26,13 @@ export interface RetirementKpis {
    * yet, the first year they are. Empty when no income is estimated.
    */
   incomeComposition: IncomeCompositionStage[];
+  /**
+   * What the lifelong payments still pay each month in the last year of the plan (today's money,
+   * before tax); they continue after the planning horizon. Zero when none reaches it.
+   */
+  continuingPaymentsMonthly: number;
+  /** The age the plan runs to (`assumptions.planningHorizonAge`). */
+  horizonAge: number;
   /** How much of the savings can be spent at retirement, and how much opens later. */
   access: RetirementAccessSummary;
 }
@@ -41,6 +48,7 @@ export function calculateRetirementKpis(
   const timing = resolveRetirementTiming(profile, scenario);
   const household = buildHousehold(profile, timing);
   const income = estimateHouseholdRetirementIncome(household);
+  const breakdown = estimateIncomeBreakdownForTiming(profile, timing);
 
   // Drawing starts in the first year at or after retirement, and never in year 0 (today).
   const firstDrawingIndex = Math.max(1, Math.ceil(household.retirementYears));
@@ -59,7 +67,9 @@ export function calculateRetirementKpis(
   return {
     plannedMonthlySpending,
     withdrawalRate,
-    incomeComposition: buildIncomeComposition(estimateIncomeBreakdownForTiming(profile, timing)),
+    incomeComposition: buildIncomeComposition(breakdown),
+    continuingPaymentsMonthly: continuingPaymentsMonthly(breakdown),
+    horizonAge: household.planningHorizonAge,
     access: income.access,
   };
 }

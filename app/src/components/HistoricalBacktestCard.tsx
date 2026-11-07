@@ -5,7 +5,6 @@ import { Link } from "react-router-dom";
 
 import {
   DEFAULT_BACKTEST_STOCK_SHARE_PCT,
-  MAX_PLANNING_AGE,
   type BacktestBasis,
   type HistoricalBacktestResult,
   groupConsecutiveYears,
@@ -66,6 +65,7 @@ export function HistoricalBacktestCard({
 }: HistoricalBacktestCardProps) {
   const { t } = useTranslation();
   const controlsId = useId();
+  const horizonAge = profile.assumptions.planningHorizonAge;
   const [stockSharePct, setStockSharePct] = useState(DEFAULT_BACKTEST_STOCK_SHARE_PCT);
   const [basis, setBasis] = useState<BacktestBasis>("asHappened");
   const currencySymbol = t("common.currencySymbol");
@@ -113,7 +113,7 @@ export function HistoricalBacktestCard({
 
       {hasTarget && !result && (
         <p className="mt-2 text-sm text-slate-600">
-          {t("projections.history.noYears", { age: MAX_PLANNING_AGE })}
+          {t("projections.history.noYears", { age: horizonAge })}
         </p>
       )}
 
@@ -183,6 +183,7 @@ export function HistoricalBacktestCard({
             money={money}
             currencySymbol={currencySymbol}
             volatilityPct={resolveVolatility(profile.assumptions.volatilityPct) * 100}
+            horizonAge={horizonAge}
           />
         </>
       )}
@@ -195,18 +196,21 @@ function Results({
   money,
   currencySymbol,
   volatilityPct,
+  horizonAge,
 }: {
   result: HistoricalBacktestResult;
   money: (amount: number) => string;
   currencySymbol: string;
   /** The yearly volatility the risk simulation uses, in percent. */
   volatilityPct: number;
+  /** The age the plan runs to; each replayed history is that many years long from retirement. */
+  horizonAge: number;
 }) {
   const { t } = useTranslation();
   const band = successBand(result.successProbability);
   const { worstWindow } = result;
   const total = result.windows.length;
-  const backtestTakeaway = useChartTakeaways().backtest(result);
+  const backtestTakeaway = useChartTakeaways().backtest(result, horizonAge);
   const returnGap = result.replayedRealReturn - result.planRealReturn;
   const whyKey =
     returnGap >= RETURN_GAP_TOLERANCE ? "whyHigher" : returnGap <= -RETURN_GAP_TOLERANCE ? "whyLower" : "whySimilar";
@@ -216,7 +220,7 @@ function Results({
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
         <div>
           <p className="text-sm font-medium text-slate-500">
-            {t("projections.history.successLabel", { age: MAX_PLANNING_AGE })}
+            {t("projections.history.successLabel", { age: horizonAge })}
           </p>
           <p className={clsx("mt-1 text-3xl font-semibold tabular-nums", BAND_CLASSES[band])}>
             {t("projections.history.successValue", { funded: result.fundedCount, total })}
@@ -250,7 +254,7 @@ function Results({
               start: worstWindow.startYear,
               range: yearRange(worstWindow.startYear, worstWindow.endYear),
               amount: money(worstWindow.finalNetWorth),
-              age: MAX_PLANNING_AGE,
+              age: horizonAge,
             })
           : t("projections.history.worstShort", {
               start: worstWindow.startYear,
@@ -315,7 +319,7 @@ function Results({
         <ul className="mt-2 list-disc space-y-1 ps-5 text-xs text-slate-600">
           <li>
             {t("projections.history.howWindows", {
-              age: MAX_PLANNING_AGE,
+              age: horizonAge,
               count: total,
               first: result.firstYear,
               last: result.lastYear,

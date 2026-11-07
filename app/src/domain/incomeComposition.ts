@@ -64,3 +64,14 @@ export function buildIncomeComposition(points: IncomeBreakdownPoint[]): IncomeCo
   }
   return stages;
 }
+
+/**
+ * What the lifelong payments (Bituach Leumi and any pension annuity) still pay each month in the
+ * last year of the plan, before tax, in today's money. They are paid for life, so this keeps
+ * arriving after the planning horizon, while the savings the plan draws on are used up by then.
+ * Zero when no recurring payment reaches the horizon.
+ */
+export function continuingPaymentsMonthly(points: IncomeBreakdownPoint[]): number {
+  const last = points[points.length - 1];
+  return last ? paymentsTotal(last) : 0;
+}

@@ -32,7 +32,6 @@ import { TaxCard } from "../components/TaxCard";
 import { useFormatAge } from "../components/useFormatAge";
 import { useRetirementFeasibility } from "../components/useRetirementFeasibility";
 import {
-  MAX_PLANNING_AGE,
   MAX_RETIREMENT_SEARCH_AGE,
   MONTE_CARLO_CONFIDENCE,
   assumedRetirementAges,
@@ -111,6 +110,7 @@ export function Dashboard() {
   const balancePath = projectBalancePath(profile, "standard");
   const eventGroups = groupPathEvents(balancePath.events);
   const funding = projectSpendingFunding(profile, "standard");
+  const horizonAge = funding.horizonAge;
   const { monthlyIncomeTodayMoney, members, access } = estimateRetirementIncome(profile, "standard");
   const isCouple = members.length > 1;
   const netIncome = estimateNetIncome(profile, "standard");
@@ -193,7 +193,7 @@ export function Dashboard() {
           value={money(netIncome.netMonthlyIncome)}
           note={
             <div className="flex flex-col gap-1">
-              <p>{t("dashboard.kpi.incomeSustained", { age: MAX_PLANNING_AGE })}</p>
+              <p>{t("dashboard.kpi.incomeSustained", { age: horizonAge })}</p>
               {netIncome.lowestNetAge !== null && (
                 <>
                   <p>
@@ -249,7 +249,7 @@ export function Dashboard() {
           }
         />
         <KpiCard
-          label={t("dashboard.kpi.successProbability", { age: MAX_PLANNING_AGE })}
+          label={t("dashboard.kpi.successProbability", { age: horizonAge })}
           value={risk ? formatSuccessPercent(risk.successProbability) : "—"}
           status={risk ? SUCCESS_STATUS[successBand(risk.successProbability)] : "neutral"}
           note={
@@ -279,7 +279,7 @@ export function Dashboard() {
               <div className="flex flex-col gap-1">
                 <p>
                   {hasTarget
-                    ? t("projections.risk.noYears", { age: MAX_PLANNING_AGE })
+                    ? t("projections.risk.noYears", { age: horizonAge })
                     : t("dashboard.kpi.noSpendingNote")}
                 </p>
                 {!hasTarget && (
@@ -366,7 +366,7 @@ export function Dashboard() {
         )}
       </div>
 
-      <DataGapsCard gaps={gaps} />
+      <DataGapsCard gaps={gaps} horizonAge={horizonAge} />
 
       <CoverNoticeCard notices={coverNotices} />
 

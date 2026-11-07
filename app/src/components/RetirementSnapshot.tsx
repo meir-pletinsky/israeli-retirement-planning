@@ -75,7 +75,11 @@ export function RetirementSnapshot({ kpis, irregularMonthly }: RetirementSnapsho
           }
         />
       </div>
-      <IncomeComposition stages={incomeComposition} />
+      <IncomeComposition
+        stages={incomeComposition}
+        endAge={kpis.horizonAge}
+        continuingMonthly={kpis.continuingPaymentsMonthly}
+      />
     </section>
   );
 }

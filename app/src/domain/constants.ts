@@ -3,6 +3,8 @@
  * Phase 1's simplifications are easy to find and revisit in later phases.
  */
 
+import { DEFAULT_PLANNING_HORIZON_AGE } from "../types";
+
 /** Used when `personal.retirementAge` hasn't been entered yet. */
 export const DEFAULT_RETIREMENT_AGE = 67;
 
@@ -27,10 +29,11 @@ export const MIN_RETIREMENT_AGE = 60;
 export const MAX_RETIREMENT_SEARCH_AGE = 80;
 
 /**
- * Deterministic planning horizon (not an actuarial/mortality-based life
- * expectancy — that's Phase 4/Monte Carlo scope per docs/plan.md).
+ * The default planning horizon, as an age (not an actuarial/mortality-based life
+ * expectancy — that's Phase 4/Monte Carlo scope per docs/plan.md). The user can
+ * choose a longer one under Assumptions (`assumptions.planningHorizonAge`).
  */
-export const MAX_PLANNING_AGE = 90;
+export const MAX_PLANNING_AGE: number = DEFAULT_PLANNING_HORIZON_AGE;
 
 /**
  * Shekels per US dollar for valuing USD equity holdings when the profile

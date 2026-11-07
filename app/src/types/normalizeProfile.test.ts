@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import { buildTestProfile } from "../test/domainFixtures";
 import {
+  DEFAULT_PLANNING_HORIZON_AGE,
   DEFAULT_VOLATILITY_PCT,
   DEFAULT_WITHDRAWAL_STRATEGY,
   EMPTY_BITUACH_LEUMI,
   EMPTY_PROFILE,
   EMPTY_SPOUSE,
+  PLANNING_HORIZON_AGES,
   WITHDRAWAL_STRATEGIES,
   createCoverPlan,
   normalizeCoverPlan,
@@ -44,6 +46,20 @@ describe("normalizeProfile", () => {
     expect(withStrategy({ ...legacyAssumptions, withdrawalStrategy: null })).toBe("proRata");
     for (const strategy of WITHDRAWAL_STRATEGIES) {
       expect(withStrategy({ ...legacyAssumptions, withdrawalStrategy: strategy })).toBe(strategy);
+    }
+  });
+
+  it("plans to age 90 for a profile saved before the horizon was a setting, and for a value it does not offer", () => {
+    const { planningHorizonAge: _horizon, ...legacyAssumptions } = EMPTY_PROFILE.assumptions;
+    const withHorizon = (assumptions: unknown) =>
+      normalizeProfile({ assumptions } as unknown as Parameters<typeof normalizeProfile>[0]).assumptions
+        .planningHorizonAge;
+    expect(withHorizon(legacyAssumptions)).toBe(DEFAULT_PLANNING_HORIZON_AGE);
+    expect(withHorizon({ ...legacyAssumptions, planningHorizonAge: 93 })).toBe(90);
+    expect(withHorizon({ ...legacyAssumptions, planningHorizonAge: "100" })).toBe(90);
+    expect(withHorizon({ ...legacyAssumptions, planningHorizonAge: null })).toBe(90);
+    for (const age of PLANNING_HORIZON_AGES) {
+      expect(withHorizon({ ...legacyAssumptions, planningHorizonAge: age })).toBe(age);
     }
   });
 

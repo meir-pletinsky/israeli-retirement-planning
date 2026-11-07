@@ -1170,6 +1170,30 @@ describe("Dashboard", () => {
       ).not.toBeInTheDocument();
     });
 
+    it("says the lifelong payments carry on past the age the plan runs to", async () => {
+      const { section } = await renderSnapshot(
+        buildTestProfile({
+          ...plan,
+          retirementAge: 60,
+          otherAssets: 500_000,
+          planningHorizonAge: 95,
+          bituachLeumi: { includeInProjection: true, monthlyPensionOverride: 3_000 },
+        }),
+      );
+
+      const text = section.textContent!.replace(/[\u2066\u2069]/g, "");
+      expect(text).toContain("which the plan runs down by age 95");
+      expect(text).toMatch(/Lifelong payments do not stop at age 95: ₪[\d,]+ a month of them/);
+    });
+
+    it("has no lifelong payments to carry on when there are none", async () => {
+      const { section } = await renderSnapshot(
+        buildTestProfile({ ...plan, retirementAge: 60, otherAssets: 500_000 }),
+      );
+
+      expect(section.textContent).not.toContain("Lifelong payments do not stop");
+    });
+
     it("links the composition to the retirement timeline", async () => {
       const { section } = await renderSnapshot(buildTestProfile(plan));
 
@@ -2175,6 +2199,17 @@ describe("Dashboard", () => {
       expect(screen.getByText(/Your usable savings cover it through age 90/)).toBeInTheDocument();
       expect(screen.queryByText(/usable savings run out/)).not.toBeInTheDocument();
       expect(plain(pathEvents as HTMLElement)).not.toContain("run out");
+    });
+
+    it("follows the age the plan is set to run to", async () => {
+      const { incomeKpi } = await renderDashboard(
+        buildTestProfile({ ...retiring, retirementMonthlyExpenses: 100, planningHorizonAge: 95 }),
+      );
+
+      expect(plain(incomeKpi)).toContain("The most your savings can pay each month so that they last to age 95.");
+      expect(plain(incomeKpi)).toContain("At your planned ₪100 a month your usable savings last through age 95.");
+      expect(screen.getByText(/Your usable savings cover it through age 95/)).toBeInTheDocument();
+      expect(screen.queryByText(/through age 90/)).not.toBeInTheDocument();
     });
 
     it("says nothing is drawn when no spending is entered", async () => {

@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import { MAX_PLANNING_AGE, type SpendingFunding } from "../domain";
+import type { SpendingFunding } from "../domain";
 
 const isolate = (text: string) => `\u2066${text}\u2069`;
 
@@ -24,7 +24,7 @@ export function NetWorthBasisNote({ funding }: { funding: SpendingFunding }) {
         : [
             t("projections.basis.netWorth", { amount }),
             age === null
-              ? t("projections.basis.netWorthFunded", { age: MAX_PLANNING_AGE })
+              ? t("projections.basis.netWorthFunded", { age: funding.horizonAge })
               : t("projections.basis.netWorthShortfall", { age }),
           ].join(" ")}
     </p>
@@ -35,12 +35,27 @@ export function NetWorthBasisNote({ funding }: { funding: SpendingFunding }) {
  * Says what the income charts and the timeline show: the monthly income the savings are
  * estimated to sustain to the horizon, not the planned spending. When the planned spending would
  * exhaust the savings sooner, says so, so the later years are not read as payments that continue.
+ * `continuingMonthly` is what the lifelong payments still pay at the horizon, which goes on after it.
  */
-export function IncomeBasisNote({ funding }: { funding: SpendingFunding }) {
+export function IncomeBasisNote({
+  funding,
+  continuingMonthly = 0,
+}: {
+  funding: SpendingFunding;
+  continuingMonthly?: number;
+}) {
   const { t, amount, age } = useSpendingText(funding);
   return (
     <div className="mt-1 flex flex-col gap-1 text-xs text-slate-500">
-      <p>{t("projections.basis.income", { age: MAX_PLANNING_AGE })}</p>
+      <p>{t("projections.basis.income", { age: funding.horizonAge })}</p>
+      {continuingMonthly >= 1 && (
+        <p>
+          {t("projections.basis.continues", {
+            age: funding.horizonAge,
+            amount: isolate(`${t("common.currencySymbol")}${Math.round(continuingMonthly).toLocaleString()}`),
+          })}
+        </p>
+      )}
       {age !== null && <p>{t("projections.basis.incomeShortfall", { amount, age })}</p>}
     </div>
   );
@@ -57,7 +72,7 @@ export function PlannedSpendingLine({ funding }: { funding: SpendingFunding }) {
   return (
     <p>
       {age === null
-        ? t("dashboard.kpi.incomePlanFunded", { amount, age: MAX_PLANNING_AGE })
+        ? t("dashboard.kpi.incomePlanFunded", { amount, age: funding.horizonAge })
         : t("dashboard.kpi.incomePlanShortfall", { amount, age })}
     </p>
   );

@@ -21,6 +21,7 @@ import { HistoricalBacktestCard } from "../components/HistoricalBacktestCard";
 import { IncomeSplitNote } from "../components/IncomeSplitNote";
 import { IrregularCostsCard } from "../components/IrregularCostsCard";
 import { LiquidityLadderCard } from "../components/LiquidityLadderCard";
+import { LongevityCard } from "../components/LongevityCard";
 import { RetirementTimeline } from "../components/RetirementTimeline";
 import { RiskAnalysisCard } from "../components/RiskAnalysisCard";
 import { RiskBasisCard } from "../components/RiskBasisCard";
@@ -40,12 +41,14 @@ import {
   type SourceKind,
   buildLeavingEarlyCost,
   buildLiquidityLadder,
+  buildLongevityTest,
   buildRetirementTimeline,
   buildSourceCostTable,
   buildStressTest,
   calculateFundingGap,
   compareCoverOptions,
   compareWithdrawalStrategies,
+  continuingPaymentsMonthly,
   desiredRetirementMonthly,
   estimateIncomeBreakdown,
   estimateNetIncome,
@@ -106,6 +109,8 @@ export function Projections() {
   const leavingEarly = useMemo(() => buildLeavingEarlyCost(profile, scenario), [profile, scenario]);
   const sourceCosts = useMemo(() => buildSourceCostTable(profile, scenario), [profile, scenario]);
   const stress = useMemo(() => buildStressTest(profile, scenario), [profile, scenario]);
+  const longevity = useMemo(() => buildLongevityTest(profile, scenario), [profile, scenario]);
+  const continuingMonthly = continuingPaymentsMonthly(incomeData);
   const withdrawalComparison = useMemo(
     () => compareWithdrawalStrategies(profile, scenario),
     [profile, scenario],
@@ -276,7 +281,7 @@ export function Projections() {
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-2">
           <ScenarioTitle tag={scenarioTag}>{t("projections.incomeChart")}</ScenarioTitle>
-          <IncomeBasisNote funding={funding} />
+          <IncomeBasisNote funding={funding} continuingMonthly={continuingMonthly} />
           <IncomeSplitNote variant="full" showInvestmentsPool={hasInvestmentsBand} />
         </div>
         <ChartFrame
@@ -361,6 +366,8 @@ export function Projections() {
 
       <StressTestCard stress={stress} scenarioTag={scenarioTag} />
 
+      <LongevityCard longevity={longevity} scenarioTag={scenarioTag} />
+
       <RetirementTimeline
         segments={timelineBasis === "planned" ? plannedTimeline : timeline}
         labels={bandLabels}
@@ -400,7 +407,7 @@ export function Projections() {
                 })}
               </p>
             ) : (
-              <IncomeBasisNote funding={funding} />
+              <IncomeBasisNote funding={funding} continuingMonthly={continuingMonthly} />
             )}
             <IncomeSplitNote variant="short" />
           </>

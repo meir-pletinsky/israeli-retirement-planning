@@ -57,6 +57,39 @@ describe("Assumptions — preset row", () => {
   });
 });
 
+describe("Assumptions — planning horizon", () => {
+  const horizonName = (age: number) => (name: string) => name.replace(BIDI_MARKS, "") === `Age ${age}`;
+  const horizonButton = (age: number) => screen.getByRole("button", { name: horizonName(age) });
+
+  it("plans to 90 by default and offers 95 and 100", async () => {
+    renderStep();
+
+    expect(await screen.findByRole("button", { name: horizonName(90) })).toHaveAttribute("aria-pressed", "true");
+    expect(horizonButton(95)).toHaveAttribute("aria-pressed", "false");
+    expect(horizonButton(100)).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("group", { name: "Plan to age" })).toBeInTheDocument();
+    expect(screen.getByText(/Bituach Leumi and pension annuities are paid for life/)).toBeInTheDocument();
+  });
+
+  it("saves the chosen age, and keeps it when a preset is picked", async () => {
+    const user = userEvent.setup();
+    renderStep();
+
+    await user.click(await screen.findByRole("button", { name: horizonName(95) }));
+
+    await waitFor(() => expect(horizonButton(95)).toHaveAttribute("aria-pressed", "true"));
+    expect(horizonButton(90)).toHaveAttribute("aria-pressed", "false");
+    expect((await loadProfileFromDb())?.assumptions.planningHorizonAge).toBe(95);
+
+    await user.click(screen.getByRole("button", { name: "Conservative" }));
+
+    await waitFor(async () =>
+      expect((await loadProfileFromDb())?.assumptions).toMatchObject({ preset: "conservative", planningHorizonAge: 95 }),
+    );
+    expect(horizonButton(95)).toHaveAttribute("aria-pressed", "true");
+  });
+});
+
 describe("Assumptions — what each preset means", () => {
   const describedBy = (button: HTMLElement) => plain(document.getElementById(button.getAttribute("aria-describedby")!)!);
   const returnField = () => screen.getByRole("spinbutton", { name: /^Investment return/ });

@@ -41,6 +41,9 @@ export function ActiveAssumptions({ assumptions }: ActiveAssumptionsProps) {
         })}
       </span>
       <span>
+        {t("assumptionsSummary.horizon", { age: isolate(String(assumptions.planningHorizonAge)) })}
+      </span>
+      <span>
         {t("assumptionsSummary.calculatedOn", {
           date: isolate(formatDate(localIsoDate(evaluatedAt))),
         })}

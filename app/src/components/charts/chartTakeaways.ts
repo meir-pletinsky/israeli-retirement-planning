@@ -2,7 +2,6 @@ import { useTranslation } from "react-i18next";
 
 import {
   INCOME_BAND_KEYS,
-  MAX_PLANNING_AGE,
   type CashFlowPlan,
   type HistoricalBacktestResult,
   type IncomeBreakdownPoint,
@@ -56,11 +55,11 @@ export function useChartTakeaways() {
       });
     },
 
-    backtest(result: HistoricalBacktestResult): string {
+    backtest(result: HistoricalBacktestResult, horizonAge: number): string {
       return t("charts.takeaway.backtest", {
         total: result.windows.length,
         funded: result.fundedCount,
-        age: MAX_PLANNING_AGE,
+        age: horizonAge,
       });
     },
 

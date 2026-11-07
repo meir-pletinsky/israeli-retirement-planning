@@ -9,6 +9,7 @@ import {
   ASSUMPTION_PRESET_KEYS,
   ASSUMPTION_PRESETS,
   MAX_VOLATILITY_PCT,
+  PLANNING_HORIZON_AGES,
   type AssumptionPreset,
 } from "../../types";
 import { StepFooter } from "./StepFooter";
@@ -103,6 +104,30 @@ export function AssumptionsStep() {
         </p>
       </div>
 
+      <div>
+        <span id={`${idPrefix}-horizon-label`} className="text-sm font-medium text-slate-700">
+          {t("myData.steps.assumptions.horizon")}
+        </span>
+        <div role="group" aria-labelledby={`${idPrefix}-horizon-label`} className="mt-2 flex flex-wrap gap-2">
+          {PLANNING_HORIZON_AGES.map((age) => (
+            <button
+              key={age}
+              type="button"
+              aria-pressed={assumptions.planningHorizonAge === age}
+              onClick={() => updateProfile({ assumptions: { ...assumptions, planningHorizonAge: age } })}
+              className={clsx(
+                "min-w-[5rem] rounded-lg border px-3 py-2 text-sm font-semibold",
+                assumptions.planningHorizonAge === age
+                  ? "border-brand-600 bg-brand-600 text-white"
+                  : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100",
+              )}
+            >
+              {t("myData.steps.assumptions.horizonOption", { age: isolate(String(age)) })}
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-slate-500">{t("myData.steps.assumptions.horizonNote")}</p>
+      </div>
 
       <button
         type="button"

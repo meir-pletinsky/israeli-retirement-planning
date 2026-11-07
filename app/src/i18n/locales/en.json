@@ -260,6 +260,7 @@
         "stagePayments": "Once your lifelong payments have all started, age {{age}}",
         "total": "Total: {{amount}} a month",
         "noStateBenefits": "Bituach Leumi is not in your projection.",
+        "continues": "Lifelong payments do not stop at age {{age}}: {{amount}} a month of them (state benefits and pension annuities) keeps arriving after it, while the savings are used up by then.",
         "timelineLink": "See every year in the retirement timeline",
         "none": "No retirement income is estimated yet. Add your pension and savings in My Data."
       }
@@ -314,7 +315,7 @@
         "spouseMissing": "You are marked as married but your spouse's age is empty, so the plan covers only you.",
         "accountType": "Accounts without a product type: {{count}}. They are treated as a fully accessible pension fund; set the type to apply access rules.",
         "accountStatus": "Accounts without a status: {{count}}. They are assumed to receive no further deposits.",
-        "annuityInputs": "Pension accounts without a conversion factor or monthly pension estimate: {{count}}. They are treated as savings spent by age 90, not as a lifelong pension. Add the factor from your annual statement.",
+        "annuityInputs": "Pension accounts without a conversion factor or monthly pension estimate: {{count}}. They are treated as savings spent by age {{horizon}}, not as a lifelong pension. Add the factor from your annual statement.",
         "salary": "No monthly gross salary: deposits to your actively contributing accounts ({{count}}) are not projected.",
         "spouseSalary": "No monthly gross salary for your spouse: deposits to their actively contributing accounts ({{count}}) are not projected.",
         "contributionRates": "Actively contributing accounts with no contribution rates: {{count}}. No further deposits are projected for them.",
@@ -929,6 +930,9 @@
         "presetRealReturn": "Real return about {{value}} per year (after inflation)",
         "basisNote": "Return and inflation are yearly, nominal rates. The plan takes inflation off, so results are shown in today's money.",
         "volatilityNote": "Market volatility is set separately (now {{value}} per year) and stays the same for every preset.",
+        "horizon": "Plan to age",
+        "horizonOption": "Age {{age}}",
+        "horizonNote": "How long the plan assumes you live. A later age spreads your savings over more years, so the monthly income they can sustain is lower. Bituach Leumi and pension annuities are paid for life and carry on after it. For a couple, the plan runs until the younger of you reaches this age. The Projections page shows what each age changes.",
         "investmentReturn": "Investment return per year (before inflation)",
         "inflation": "Inflation per year",
         "volatility": "Market volatility per year",
@@ -961,6 +965,7 @@
     "label": "Assumptions in use",
     "values": "Investment return {{returnPct}} (before inflation), the same for every asset, inflation {{inflation}}, market volatility {{volatility}}. All per year.",
     "calculatedOn": "Calculated as of {{date}}.",
+    "horizon": "Plan runs to age {{age}}.",
     "change": "Change assumptions"
   },
   "projections": {
@@ -1219,6 +1224,25 @@
       "howRetirement": "Only the savings you hold when you start drawing count. Unvested shares that you would lose are left out.",
       "howReadOnly": "This only shows your plan. It changes none of its numbers. It is a what-if, not a forecast."
     },
+    "longevity": {
+      "title": "If you live longer",
+      "intro": "Your plan run again to a later age. The same savings are spread over more years, so each extra year of life lowers the monthly income they can sustain. Amounts are in today's money.",
+      "ageColumn": "Plan runs to",
+      "incomeColumn": "Monthly income after tax (lowest year)",
+      "spendingColumn": "Your desired spending",
+      "rowAge": "Age {{age}}",
+      "planned": "Your plan now",
+      "change": "{{amount}} a month compared with your plan",
+      "noChange": "Same as your plan",
+      "lasts": "Your usable savings cover it to age {{age}}",
+      "runsOut": "Your usable savings run out at age {{age}}",
+      "short": "Net income is short of it by {{amount}} a month",
+      "howTitle": "How this works",
+      "howIncome": "Each income is the sustainable monthly income after tax when the whole plan is run again to that age, the same figure as on the Dashboard for your plan's age.",
+      "howLifelong": "Bituach Leumi and pension annuities are paid for life, so they do not shrink with a longer life. Only the savings are spread over more years.",
+      "howSpending": "The right-hand column spends your desired monthly spending from retirement and shows when your usable savings would run out, if they do before that age.",
+      "howReadOnly": "This only shows your plan. It changes none of its numbers. It is a what-if, not a forecast."
+    },
     "withdrawal": {
       "title": "Which savings to draw on first",
       "intro": "Your spending is the same whichever savings pay for it, but the tax is not. Compare the orders and choose the one the whole plan should use.",
@@ -1306,6 +1330,7 @@
       "netWorthShortfall": "From age {{age}} your usable savings no longer cover it, and the unfunded part is not shown on this line.",
       "shortfallMarker": "Unfunded from here",
       "income": "The most your savings and pensions are estimated to pay each month, before tax, so that they last to age {{age}}. This is not your planned spending and does not change when you change it.",
+      "continues": "Lifelong payments (state benefits and pension annuities) still pay {{amount}} a month at age {{age}}, before tax, and keep paying after it; the savings are used up by then.",
       "incomeShortfall": "At your planned {{amount}} a month your usable savings run out at age {{age}} (see Net Worth Projection), so payments from savings would not continue at this level after that age."
     },
     "split": {

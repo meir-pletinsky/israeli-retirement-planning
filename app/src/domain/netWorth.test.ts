@@ -353,7 +353,11 @@ describe("projectSpendingFunding", () => {
   };
 
   it("is the planned spending, with no shortfall when none is entered", () => {
-    expect(projectSpendingFunding(buildTestProfile(base))).toEqual({ monthlySpending: 0, shortfallAge: null });
+    expect(projectSpendingFunding(buildTestProfile(base))).toEqual({
+      monthlySpending: 0,
+      shortfallAge: null,
+      horizonAge: 90,
+    });
   });
 
   it("names the first age the usable savings cannot fund the spending", () => {
@@ -372,7 +376,7 @@ describe("projectSpendingFunding", () => {
 
   it("has no shortfall when the savings last to the horizon", () => {
     const funding = projectSpendingFunding(buildTestProfile({ ...base, retirementMonthlyExpenses: 100 }));
-    expect(funding).toEqual({ monthlySpending: 100, shortfallAge: null });
+    expect(funding).toEqual({ monthlySpending: 100, shortfallAge: null, horizonAge: 90 });
   });
 
   it("moves with the retirement scenario", () => {

@@ -2474,6 +2474,26 @@ of its section 10 (UXB-14 is skipped on request).
       projection change that overlaps UXB-14, which is out of scope. Renaming the figure to
       "Savings and investments today" is the other option the review offers. Test:
       `Dashboard.test.tsx`.
+- [x] **UXB-21 The planning horizon is fixed at 90** (bounded). A new setting, "Plan to age"
+      (90, 95 or 100; default 90, in My Data → Assumptions), replaces the fixed age
+      everywhere. `Assumptions.planningHorizonAge` is normalised on load and import, so older
+      stored profiles get 90. `household.horizonYears` is computed from it (for a couple, until
+      the younger spouse reaches the age), and the drawdown, spending test, Monte Carlo,
+      historical backtest, liquidity ladder, net worth and income breakdown all read that, so
+      they follow it with no change of their own. The Dashboard and Projections wording, the
+      data-gap note, the active-assumptions line and the chart takeaways quote the chosen age.
+      Longer horizons leave fewer historical windows for the backtest, and it says so when
+      there are too few. New card "If you live longer" on Projections
+      (`buildLongevityTest`, `LongevityCard`): it reruns the plan to 90, 95 and 100 and shows
+      the after-tax income and how it changes from the plan, and, when spending is entered,
+      whether the savings cover it or run out and at which age. The income chart basis note
+      and the Dashboard composition say how much of the income is lifelong (Bituach Leumi and
+      annuities) and keeps arriving after the horizon. Not built: a mortality or survival
+      probability (the model only reruns the plan to a later age), and a row in the existing
+      stress test, because that test needs dollar holdings and its texts are about shares.
+      Tests: `longevityTest.test.ts`, `household.test.ts`, `normalizeProfile.test.ts`,
+      `netWorth.test.ts`, `AssumptionsStep.test.tsx`, `Projections.test.tsx`,
+      `Dashboard.test.tsx`.
 
 ## Modeling assumptions (by phase)
 

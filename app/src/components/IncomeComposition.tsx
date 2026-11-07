@@ -2,7 +2,6 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import type { IncomeBandKey, IncomeCompositionStage } from "../domain";
-import { MAX_PLANNING_AGE } from "../domain/constants";
 import { BandSwatch } from "./charts/BandSwatch";
 import { bandFill } from "./charts/incomeBandColors";
 import { useFormatAge } from "./useFormatAge";
@@ -26,9 +25,18 @@ const isolate = (text: string) => `\u2066${text}\u2069`;
 /**
  * One bar per stage of retirement showing where the monthly income comes from, split into
  * recurring payments (solid) and withdrawals from savings (hatched), in the terms of the
- * Projections timeline it links to.
+ * Projections timeline it links to. `endAge` is the planning horizon; `continuingMonthly` is what
+ * the lifelong payments still pay then, which goes on after it.
  */
-export function IncomeComposition({ stages }: { stages: IncomeCompositionStage[] }) {
+export function IncomeComposition({
+  stages,
+  endAge,
+  continuingMonthly = 0,
+}: {
+  stages: IncomeCompositionStage[];
+  endAge: number;
+  continuingMonthly?: number;
+}) {
   const { t } = useTranslation();
   const formatAge = useFormatAge();
   const currencySymbol = t("common.currencySymbol");
@@ -48,7 +56,7 @@ export function IncomeComposition({ stages }: { stages: IncomeCompositionStage[]
       ) : (
         <>
           <p className="mt-1 text-xs text-slate-500">
-            {t("dashboard.snapshot.income.intro", { endAge: formatAge(MAX_PLANNING_AGE) })}
+            {t("dashboard.snapshot.income.intro", { endAge: formatAge(endAge) })}
           </p>
           <div className="mt-3 grid gap-5 @lg:grid-cols-2">
             {stages.map((stage) => (
@@ -87,6 +95,14 @@ export function IncomeComposition({ stages }: { stages: IncomeCompositionStage[]
               </div>
             ))}
           </div>
+          {continuingMonthly >= 1 && (
+            <p className="mt-3 text-xs text-slate-500">
+              {t("dashboard.snapshot.income.continues", {
+                age: formatAge(endAge),
+                amount: isolate(money(continuingMonthly)),
+              })}
+            </p>
+          )}
           {!hasStateBenefits && (
             <p className="mt-3 text-xs text-slate-500">{t("dashboard.snapshot.income.noStateBenefits")}</p>
           )}

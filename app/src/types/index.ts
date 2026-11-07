@@ -19,6 +19,13 @@ export const WITHDRAWAL_STRATEGIES: readonly WithdrawalStrategy[] = [
 
 export const DEFAULT_WITHDRAWAL_STRATEGY: WithdrawalStrategy = "proRata";
 
+/** The age the plan looks to: savings are sized, drawn and tested to last until a person reaches it. */
+export const PLANNING_HORIZON_AGES = [90, 95, 100] as const;
+
+export type PlanningHorizonAge = (typeof PLANNING_HORIZON_AGES)[number];
+
+export const DEFAULT_PLANNING_HORIZON_AGE: PlanningHorizonAge = 90;
+
 export interface Assumptions {
   /** The last preset picked. Whether the values still match it is `matchingPreset` (domain/profileBasics). */
   preset: AssumptionPreset;
@@ -28,6 +35,8 @@ export interface Assumptions {
   volatilityPct: number;
   /** The order the plan draws on unlocked savings; changes who pays how much tax, not how much is drawn. */
   withdrawalStrategy: WithdrawalStrategy;
+  /** The age every result runs to; for a couple, the age the younger spouse reaches. */
+  planningHorizonAge: PlanningHorizonAge;
 }
 
 /** A typical mix of Israeli pension funds and global shares. */
@@ -718,6 +727,7 @@ export const EMPTY_PROFILE: ProfileData = {
     ...ASSUMPTION_PRESETS.base,
     volatilityPct: DEFAULT_VOLATILITY_PCT,
     withdrawalStrategy: DEFAULT_WITHDRAWAL_STRATEGY,
+    planningHorizonAge: DEFAULT_PLANNING_HORIZON_AGE,
   },
   comparisonAges: null,
 };
@@ -760,6 +770,10 @@ function oneOf<T extends string>(options: readonly T[], value: unknown, fallback
   return options.includes(value as T) ? (value as T) : fallback;
 }
 
+function oneOfNumbers<T extends number>(options: readonly T[], value: unknown, fallback: T): T {
+  return options.includes(value as T) ? (value as T) : fallback;
+}
+
 /**
  * Reads the expenses of a possibly hand-edited or older profile. Anything unknown is dropped, which
  * also discards the "current monthly" figure that older profiles saved and nothing reads.
@@ -793,8 +807,8 @@ function normalizeExpenses(value: unknown): ExpensesData {
 }
 
 /**
- * Older profiles have no volatility or withdrawal order, and a hand-edited one
- * may hold text or an unknown order; all of those get the default.
+ * Older profiles have no volatility, withdrawal order or planning horizon, and a hand-edited one
+ * may hold text or an unknown value; all of those get the default.
  */
 function normalizeAssumptions(value: Partial<Assumptions> | undefined): Assumptions {
   const merged = { ...EMPTY_PROFILE.assumptions, ...value };
@@ -802,6 +816,7 @@ function normalizeAssumptions(value: Partial<Assumptions> | undefined): Assumpti
     ...merged,
     volatilityPct: finiteOrNull(merged.volatilityPct) ?? DEFAULT_VOLATILITY_PCT,
     withdrawalStrategy: oneOf(WITHDRAWAL_STRATEGIES, merged.withdrawalStrategy, DEFAULT_WITHDRAWAL_STRATEGY),
+    planningHorizonAge: oneOfNumbers(PLANNING_HORIZON_AGES, merged.planningHorizonAge, DEFAULT_PLANNING_HORIZON_AGE),
   };
 }
 

@@ -8,6 +8,7 @@ import type {
   InvestmentCategory,
   MaritalStatus,
   PensionAccount,
+  PlanningHorizonAge,
   ProfileData,
   SpouseData,
   TaxExemptionBasket,
@@ -50,6 +51,8 @@ export function buildTestProfile(overrides: {
   volatilityPct?: number;
   /** The order the plan draws on unlocked savings; defaults to pro rata. */
   withdrawalStrategy?: WithdrawalStrategy;
+  /** The age the plan runs to; defaults to the app's default. */
+  planningHorizonAge?: PlanningHorizonAge;
   pensionAccountOverrides?: Partial<PensionAccount>[];
   otherAssets?: number;
   /** Shekels per US dollar valuing the equity; with a date it is a looked-up rate, without one the user's own. */
@@ -111,6 +114,7 @@ export function buildTestProfile(overrides: {
     inflationPct,
     volatilityPct,
     withdrawalStrategy,
+    planningHorizonAge,
     pensionBalances = [],
     pensionAccountOverrides = [],
     otherAssets,
@@ -273,6 +277,7 @@ export function buildTestProfile(overrides: {
       inflationPct: inflationPct ?? EMPTY_PROFILE.assumptions.inflationPct,
       volatilityPct: volatilityPct ?? EMPTY_PROFILE.assumptions.volatilityPct,
       withdrawalStrategy: withdrawalStrategy ?? EMPTY_PROFILE.assumptions.withdrawalStrategy,
+      planningHorizonAge: planningHorizonAge ?? EMPTY_PROFILE.assumptions.planningHorizonAge,
     },
     comparisonAges: comparisonAges ?? null,
     bankDeposits: bankDeposits.map(

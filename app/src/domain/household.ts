@@ -3,7 +3,6 @@ import { EMPTY_PROFILE, EMPTY_SPOUSE } from "../types";
 import { COVER_RULES, ACCESS_RULES } from "./accessRules";
 import { estimateBituachLeumiPension } from "./bituachLeumi";
 import { BITUACH_LEUMI_RATES as RATES } from "./bituachLeumiRates";
-import { MAX_PLANNING_AGE } from "./constants";
 import { coverCostOf, type CoverCost } from "./coverCost";
 import { coverOnFile } from "./coverPlan";
 import {
@@ -47,7 +46,8 @@ import type { BituachLeumiEstimate, RetirementScenario, SpouseSupplement } from 
  *   earlier retiree's pot keep growing meanwhile, and payments that start
  *   before that point (an earlier retiree's pension) are not counted.
  * - Other assets and equity are household-level and belong to the primary user.
- * - The plan runs until the youngest spouse reaches `MAX_PLANNING_AGE`.
+ * - The plan runs until the youngest spouse reaches the planning horizon
+ *   (`assumptions.planningHorizonAge`, 90 unless the user chooses a later age).
  */
 
 export type MemberRole = "self" | "spouse";
@@ -78,8 +78,10 @@ export interface Household {
   rate: number;
   /** Years from now until the later member retires; household drawing starts then. */
   retirementYears: number;
-  /** Years from now until the youngest member reaches `MAX_PLANNING_AGE`. */
+  /** Years from now until the youngest member reaches `planningHorizonAge`. */
   horizonYears: number;
+  /** The age the plan runs to (`assumptions.planningHorizonAge`). */
+  planningHorizonAge: number;
   /** The order in which the drawdown takes spending money from the unlocked sources. */
   withdrawalStrategy: WithdrawalStrategy;
   /**
@@ -284,9 +286,8 @@ export function buildHousehold(
     members,
     rate: realAnnualReturnRate(profile.assumptions),
     retirementYears,
-    horizonYears: Math.max(
-      ...members.map((member) => Math.max(MAX_PLANNING_AGE - member.currentAge, 0)),
-    ),
+    horizonYears: yearsToAge(members, profile.assumptions.planningHorizonAge),
+    planningHorizonAge: profile.assumptions.planningHorizonAge,
     withdrawalStrategy: profile.assumptions.withdrawalStrategy,
     // Exact for the common case that the primary user retires last (or alone).
     drawdownStartAge:
@@ -301,6 +302,20 @@ export function buildHousehold(
   };
   recordHouseholdSteps(household, profile);
   return household;
+}
+
+/** Years until the youngest member reaches `age`; zero when every member is past it. */
+function yearsToAge(members: Household["members"], age: number): number {
+  return Math.max(...members.map((member) => Math.max(age - member.currentAge, 0)));
+}
+
+/**
+ * The same household planned to run to `age` instead. Nothing else about it changes, so the
+ * calculations can be rerun for a longer or shorter life (the longevity test) without building
+ * the household, and so recording its trace steps, again.
+ */
+export function withPlanningHorizon(household: Household, age: number): Household {
+  return { ...household, planningHorizonAge: age, horizonYears: yearsToAge(household.members, age) };
 }
 
 /** Records the household-level timing figures. A no-op unless tracing. */
@@ -369,10 +384,10 @@ function recordHouseholdSteps(household: Household, profile: ProfileData): void 
   }));
   recordStep("horizonYears", () => ({
     title: "Years from now until the youngest member reaches the planning age",
-    formula: "the largest of each member's (MAX_PLANNING_AGE - current age), never negative",
-    expr: `max(${household.members.map((_, i) => `max(maxPlanningAge - currentAge${i}, 0)`).join(", ")})`,
+    formula: "the largest of each member's (planningHorizonAge - current age), never negative",
+    expr: `max(${household.members.map((_, i) => `max(planningHorizonAge - currentAge${i}, 0)`).join(", ")})`,
     inputs: {
-      maxPlanningAge: input(MAX_PLANNING_AGE, fromConst("MAX_PLANNING_AGE")),
+      planningHorizonAge: input(household.planningHorizonAge, fromProfile("assumptions.planningHorizonAge")),
       ...Object.fromEntries(
         household.members.map((member, i) => [
           `currentAge${i}`,

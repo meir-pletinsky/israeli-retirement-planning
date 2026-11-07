@@ -1865,6 +1865,120 @@ describe("Projections", () => {
     });
   });
 
+  describe("planning horizon and longevity", () => {
+    const REGION = "If you live longer";
+    const plain = (element: HTMLElement) => element.textContent!.replace(/[\u2066\u2069]/g, "");
+    // 0% real return: 400,000 pays 1,000 a month for 33 years, so it lasts past 90 but not to 95.
+    const retired = {
+      age: 60,
+      retirementAge: 60,
+      investmentReturnPct: 4,
+      inflationPct: 4,
+      pensionBalances: [400_000],
+      retirementMonthlyExpenses: 1_000,
+    };
+
+    const renderCard = async (overrides: Record<string, unknown> = {}) => {
+      await saveProfileToDb(buildTestProfile({ ...retired, ...overrides }));
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+      return screen.findByRole("region", { name: REGION });
+    };
+
+    it("reruns the plan to 90, 95 and 100 and marks the age the plan uses", async () => {
+      const card = await renderCard();
+      const rows = within(card).getAllByRole("row").slice(1);
+
+      expect(rows).toHaveLength(3);
+      expect(plain(rows[0])).toContain("Age 90");
+      expect(plain(rows[0])).toContain("Your plan now");
+      expect(plain(rows[1])).toContain("Age 95");
+      expect(plain(rows[1])).not.toContain("Your plan now");
+      expect(plain(rows[2])).toContain("Age 100");
+      expect(plain(rows[1])).toMatch(/-₪[\d,]+ a month compared with your plan/);
+      expect(card).toHaveAttribute("id", "longevity-test");
+    });
+
+    it("says when the desired spending outlasts the savings at a later age", async () => {
+      const card = await renderCard();
+      const rows = within(card).getAllByRole("row").slice(1);
+
+      expect(plain(rows[0])).toContain("Your usable savings cover it to age 90");
+      expect(plain(rows[1])).toMatch(/Your usable savings run out at age 9[0-4]/);
+      expect(plain(rows[2])).toMatch(/Your usable savings run out at age 9[0-4]/);
+    });
+
+    it("leaves out the spending column when no spending is entered", async () => {
+      const card = await renderCard({ retirementMonthlyExpenses: undefined });
+
+      expect(within(card).queryByRole("columnheader", { name: "Your desired spending" })).not.toBeInTheDocument();
+      expect(within(card).getAllByRole("row")).toHaveLength(4);
+    });
+
+    it("marks 95 as the plan's age when the plan is set to run to 95", async () => {
+      const card = await renderCard({ planningHorizonAge: 95 });
+      const rows = within(card).getAllByRole("row").slice(1);
+
+      expect(plain(rows[0])).not.toContain("Your plan now");
+      expect(plain(rows[1])).toContain("Your plan now");
+      expect(plain(rows[0])).toMatch(/\+₪[\d,]+ a month compared with your plan/);
+      expect(plain(rows[0])).toContain("Your usable savings cover it to age 90");
+    });
+
+    it("explains in a closed section that lifelong payments do not shrink", async () => {
+      const card = await renderCard();
+
+      const details = within(card).getByText("How this works").closest("details");
+      expect(details).not.toHaveAttribute("open");
+      expect(plain(card)).toContain("paid for life, so they do not shrink with a longer life");
+    });
+
+    it("runs the other charts and cards to the chosen age", async () => {
+      await saveProfileToDb(
+        buildTestProfile({
+          age: 40,
+          retirementAge: 67,
+          gender: "male",
+          monthlyGrossSalary: 20_000,
+          investmentReturnPct: 5,
+          inflationPct: 2,
+          pensionBalances: [900_000, 300_000],
+          retirementMonthlyExpenses: 4_000,
+          planningHorizonAge: 95,
+        }),
+      );
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      const risk = await screen.findByRole("region", { name: "Risk analysis" });
+      expect(within(risk).getByText("Chance your desired spending lasts to age 95")).toBeInTheDocument();
+      expect(screen.getByRole("note", { name: "Assumptions in use" }).textContent!.replace(/[\u2066\u2069]/g, "")).toContain(
+        "Plan runs to age 95.",
+      );
+    });
+
+    it("says the lifelong payments carry on after the age the income chart stops at", async () => {
+      await saveProfileToDb(
+        buildTestProfile({
+          age: 60,
+          retirementAge: 60,
+          investmentReturnPct: 4,
+          inflationPct: 4,
+          pensionBalances: [600_000],
+          bituachLeumi: { includeInProjection: true, monthlyPensionOverride: 2_000 },
+          planningHorizonAge: 95,
+        }),
+      );
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      const notes = await screen.findAllByText(
+        (content) => /still pay ₪[\d,]+ a month at age 95, before tax, and keep paying after it/.test(content.replace(/[\u2066\u2069]/g, "")),
+      );
+      expect(notes.length).toBeGreaterThan(0);
+    });
+  });
+
   it("names the assumptions every chart on the page rests on", async () => {
     await saveProfileToDb(
       buildTestProfile({ age: 40, retirementAge: 67, otherAssets: 300_000, investmentReturnPct: 8, inflationPct: 1.5 }),
