@@ -8,6 +8,10 @@ import {
   checkRetirementAges,
   estimateNetIncome,
   estimateRetirementIncome,
+  findEarliestConfidentRetirementAge,
+  findEarliestFeasibleRetirementAge,
+  runMonteCarlo,
+  successPercent,
   yearsToRetirement,
 } from "../domain";
 import { clearAllData, saveOnboardedToDb, saveProfileToDb } from "../storage/db";
@@ -1812,6 +1816,121 @@ describe("Dashboard", () => {
       expect(plain(pathEvents as HTMLElement)).toContain(
         "the later of you two has retired. No spending is entered, so nothing is drawn from your savings.",
       );
+    });
+  });
+
+  describe("on track, qualified by the risk result", () => {
+    // 0% real return and a single pension: the average market funds 1,000 a month to 90 with a little to spare,
+    // while most simulated markets do not (about half). A larger balance is funded in nearly all of them.
+    const plan = (balance: number) =>
+      buildTestProfile({
+        age: 66,
+        retirementAge: 67,
+        investmentReturnPct: 4,
+        inflationPct: 4,
+        pensionBalances: [balance],
+        retirementMonthlyExpenses: 1_000,
+      });
+    const plain = (element: HTMLElement) => element.textContent!.replace(/[\u2066\u2069]/g, "");
+    const reads = (text: string) => (content: string) => content.replace(/[\u2066\u2069]/g, "").includes(text);
+
+    async function renderPlan(profile: ReturnType<typeof buildTestProfile>) {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+      await screen.findByText("Net Worth Today");
+    }
+
+    it("turns the banner amber and says the plan is on track in average markets only", async () => {
+      const profile = plan(300_000);
+      const coverage = successPercent(runMonteCarlo(profile, "standard", { findConfidentSpending: false }).successProbability);
+      expect(coverage).toBeLessThan(90);
+      await renderPlan(profile);
+
+      const headline = screen.getByText("On track in average markets only.");
+      expect(headline.closest("div.border-amber-200")).not.toBeNull();
+      expect(screen.queryByText("You're on track to meet your retirement goal.")).not.toBeInTheDocument();
+      expect(
+        screen.getByText(
+          reads(
+            `Your plan funds your spending if markets return what you assumed every year, but only ${coverage}% of simulated market histories do.`,
+          ),
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "See the risk analysis" })).toHaveAttribute("href", "/projections");
+    });
+
+    it("names the spending that holds with 90% confidence when it is below the goal", async () => {
+      const profile = plan(300_000);
+      const { confidentNetMonthly } = runMonteCarlo(profile, "standard");
+      expect(confidentNetMonthly).not.toBeNull();
+      expect(confidentNetMonthly!).toBeLessThan(1_000);
+      await renderPlan(profile);
+
+      expect(
+        screen.getByText(
+          reads(
+            `With 90% confidence you could spend about ₪${confidentNetMonthly!.toLocaleString()} a month, against your goal of ₪1,000.`,
+          ),
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it("sizes the surplus against the planned spending and says it holds in average markets only", async () => {
+      const profile = plan(300_000);
+      const coverage = successPercent(runMonteCarlo(profile, "standard", { findConfidentSpending: false }).successProbability);
+      await renderPlan(profile);
+
+      const surplus = screen.getByText("Monthly surplus").parentElement as HTMLElement;
+      expect(plain(surplus)).toContain("to spare each month after your planned spending");
+      expect(plain(surplus)).toMatch(/\d+% above your planned spending of ₪1,000 a month/);
+      expect(plain(surplus)).toContain(
+        `In average markets only: ${coverage}% of simulated market histories fund your spending.`,
+      );
+    });
+
+    it("keeps the banner green when the plan also holds across the simulated markets", async () => {
+      const profile = plan(500_000);
+      expect(
+        successPercent(runMonteCarlo(profile, "standard", { findConfidentSpending: false }).successProbability),
+      ).toBeGreaterThanOrEqual(90);
+      await renderPlan(profile);
+
+      const headline = screen.getByText("You're on track to meet your retirement goal.");
+      expect(headline.closest("div.border-emerald-200")).not.toBeNull();
+      expect(screen.queryByText("On track in average markets only.")).not.toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "See the risk analysis" })).not.toBeInTheDocument();
+      const surplus = screen.getByText("Monthly surplus").parentElement as HTMLElement;
+      expect(plain(surplus)).toMatch(/\d+% above your planned spending of ₪1,000 a month/);
+      expect(plain(surplus)).not.toContain("In average markets only");
+    });
+
+    it("keeps the shortfall banner as it was, with a shortfall scale", async () => {
+      await renderPlan(plan(120_000));
+
+      expect(screen.getByText("You may need additional savings to meet your retirement goal.")).toBeInTheDocument();
+      expect(screen.queryByText("On track in average markets only.")).not.toBeInTheDocument();
+      const shortfall = screen.getByText("Monthly shortfall").parentElement as HTMLElement;
+      expect(plain(shortfall)).toMatch(/\d+% below your planned spending of ₪1,000 a month/);
+    });
+
+    it("adds the age that holds with 90% confidence to the feasibility card", async () => {
+      const profile = plan(300_000);
+      const average = findEarliestFeasibleRetirementAge(profile);
+      expect(average.status).toBe("feasible");
+      const confident = findEarliestConfidentRetirementAge(profile, average.earliestAge!);
+      await renderPlan(profile);
+
+      expect(
+        screen.getByText("In average markets, where your assumed return is earned every year."),
+      ).toBeInTheDocument();
+      const expected =
+        confident.status === "none"
+          ? /With 90% confidence: not reachable by age \d+\./
+          : confident.age === average.earliestAge
+            ? /The same age holds with 90% confidence\./
+            : new RegExp(`With 90% confidence: age ${confident.age}$`);
+      expect(screen.getByText(expected)).toBeInTheDocument();
     });
   });
 });

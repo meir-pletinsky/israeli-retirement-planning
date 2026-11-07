@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import { buildTestProfile } from "../test/domainFixtures";
 import { MAX_RETIREMENT_SEARCH_AGE } from "./constants";
-import { findEarliestFeasibleRetirementAge } from "./feasibility";
+import { findEarliestConfidentRetirementAge, findEarliestFeasibleRetirementAge } from "./feasibility";
 import { calculateFundingGapAtAge } from "./fundingGap";
+import { retirementTimingAtAge } from "./household";
+import { MONTE_CARLO_CONFIDENCE, monteCarloSuccessProbability } from "./monteCarlo";
 
 const ACTIVE_PENSION = {
   accountStatus: "activeContributing" as const,
@@ -175,5 +177,47 @@ describe("findEarliestFeasibleRetirementAge", () => {
       expect(earliestAge).toBeLessThanOrEqual(MAX_RETIREMENT_SEARCH_AGE);
     }
     expect(checked).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe("findEarliestConfidentRetirementAge", () => {
+  const profile = buildTestProfile({
+    age: 40,
+    gender: "male",
+    monthlyGrossSalary: 20_000,
+    investmentReturnPct: 5,
+    inflationPct: 2,
+    pensionBalances: [900_000, 300_000],
+    retirementMonthlyExpenses: 9_000,
+  });
+
+  it("is never earlier than the average-market age, and meets the confidence bar there", () => {
+    const average = findEarliestFeasibleRetirementAge(profile);
+    expect(average.status).toBe("feasible");
+    const confident = findEarliestConfidentRetirementAge(profile, average.earliestAge!);
+    expect(confident.status).toBe("found");
+    if (confident.status !== "found") return;
+    expect(confident.age).toBeGreaterThanOrEqual(average.earliestAge!);
+    const at = (age: number) => monteCarloSuccessProbability(profile, retirementTimingAtAge(profile, age));
+    expect(at(confident.age)!).toBeGreaterThanOrEqual(MONTE_CARLO_CONFIDENCE);
+    if (confident.age > average.earliestAge!) {
+      expect(at(confident.age - 1)!).toBeLessThan(MONTE_CARLO_CONFIDENCE);
+    }
+  });
+
+  it("finds none when no age up to the search limit reaches the confidence bar", () => {
+    const unreachable = buildTestProfile({
+      age: 40,
+      otherAssets: 100_000,
+      retirementMonthlyExpenses: 20_000,
+    });
+    expect(findEarliestConfidentRetirementAge(unreachable, 40)).toEqual({ status: "none", age: null });
+  });
+
+  it("finds none when there is no spending target to test", () => {
+    expect(findEarliestConfidentRetirementAge(buildTestProfile({ age: 40 }), 40)).toEqual({
+      status: "none",
+      age: null,
+    });
   });
 });

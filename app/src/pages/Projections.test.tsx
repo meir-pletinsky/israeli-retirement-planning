@@ -429,6 +429,26 @@ describe("Projections", () => {
       expect(await screen.findByRole("heading", { name: "Earliest Feasible Retirement" })).toBeInTheDocument();
     });
 
+    it("says the age is for average markets and adds the confident age", async () => {
+      await saveProfileToDb(
+        buildTestProfile({
+          age: 55,
+          retirementAge: 65,
+          monthlyGrossSalary: 20_000,
+          pensionBalances: [1_500_000],
+          retirementMonthlyExpenses: 9_000,
+        }),
+      );
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      const card = await screen.findByRole("region", { name: "Earliest Feasible Retirement" });
+      expect(
+        within(card).getByText("In average markets, where your assumed return is earned every year."),
+      ).toBeInTheDocument();
+      expect(within(card).getByText(/90% confidence/)).toBeInTheDocument();
+    });
+
     it("links to Expenses when there is no target", async () => {
       await saveProfileToDb(buildTestProfile({ age: 55, retirementAge: 65 }));
       await saveOnboardedToDb(true);
@@ -619,6 +639,57 @@ describe("Projections", () => {
           reads(/Your plan assumes \d+\.\d% a year after inflation\. This portfolio averaged \d+\.\d% over 1928–20\d\d\./),
         ),
       ).toBeInTheDocument();
+    });
+
+    it("explains why the backtest and the simulation can disagree when the history returned more than the plan", async () => {
+      const card = await renderBacktest(4_000);
+      expect(
+        within(card).getByText(
+          reads(
+            /^Why the two risk tests can disagree: this test replays a portfolio of 60% stocks that averaged \d+\.\d% a year, above the \d+\.\d% your plan assumes\. The simulation earns your \d+\.\d% on average, so it starts from a lower return, and adds \d+(\.\d+)?% yearly volatility\.$/,
+          ),
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it("explains the disagreement differently when the history returned less than the plan", async () => {
+      await saveProfileToDb(
+        buildTestProfile({
+          age: 40,
+          retirementAge: 67,
+          gender: "male",
+          monthlyGrossSalary: 20_000,
+          investmentReturnPct: 10,
+          inflationPct: 2,
+          pensionBalances: [900_000, 300_000],
+          retirementMonthlyExpenses: 4_000,
+        }),
+      );
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+      const card = await screen.findByRole("region", { name: "Historical backtest" });
+
+      expect(
+        within(card).getByText(
+          reads(/a year, below the \d+\.\d% your plan assumes\. The simulation earns your \d+\.\d% on average, so it starts from a higher return/),
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it("says both tests start from the same return once the history is matched to the plan", async () => {
+      const user = userEvent.setup();
+      const card = await renderBacktest(4_000);
+      const matched = within(card).getByRole("radio", { name: /Matched to my plan/ });
+
+      await user.click(matched);
+      await waitFor(() =>
+        expect(
+          within(card).getByText(
+            reads(/^Why the two risk tests can disagree: both start from about the same average return \((\d+\.\d)% in your plan, \1% here\)/),
+          ),
+        ).toBeInTheDocument(),
+      );
+      expect(within(card).queryByText(/so it starts from a lower return/)).not.toBeInTheDocument();
     });
 
     it("keeps each year range reading left to right inside a sentence", async () => {

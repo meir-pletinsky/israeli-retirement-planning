@@ -9,6 +9,7 @@ import {
   type BacktestBasis,
   type HistoricalBacktestResult,
   groupConsecutiveYears,
+  resolveVolatility,
   runHistoricalBacktest,
   successBand,
 } from "../domain";
@@ -46,6 +47,8 @@ const percent = (fraction: number) => (fraction * 100).toFixed(1);
 
 /** Keeps digits and dashes reading left to right when inserted into a right-to-left sentence. */
 const isolate = (text: string) => `\u2066${text}\u2069`;
+/** A real-return gap under half a percentage point counts as "about the same". */
+const RETURN_GAP_TOLERANCE = 0.005;
 const yearRange = (from: number, to: number) => isolate(`${from}–${to}`);
 
 /** Years as "1929–1932, 1965", the way a person would list them. */
@@ -175,7 +178,12 @@ export function HistoricalBacktestCard({
             </fieldset>
           </div>
 
-          <Results result={result} money={money} currencySymbol={currencySymbol} />
+          <Results
+            result={result}
+            money={money}
+            currencySymbol={currencySymbol}
+            volatilityPct={resolveVolatility(profile.assumptions.volatilityPct) * 100}
+          />
         </>
       )}
     </section>
@@ -186,16 +194,22 @@ function Results({
   result,
   money,
   currencySymbol,
+  volatilityPct,
 }: {
   result: HistoricalBacktestResult;
   money: (amount: number) => string;
   currencySymbol: string;
+  /** The yearly volatility the risk simulation uses, in percent. */
+  volatilityPct: number;
 }) {
   const { t } = useTranslation();
   const band = successBand(result.successProbability);
   const { worstWindow } = result;
   const total = result.windows.length;
   const backtestTakeaway = useChartTakeaways().backtest(result);
+  const returnGap = result.replayedRealReturn - result.planRealReturn;
+  const whyKey =
+    returnGap >= RETURN_GAP_TOLERANCE ? "whyHigher" : returnGap <= -RETURN_GAP_TOLERANCE ? "whyLower" : "whySimilar";
 
   return (
     <>
@@ -249,6 +263,14 @@ function Results({
           plan: percent(result.planRealReturn),
           history: percent(result.historyRealReturn),
           range: yearRange(result.firstYear, result.lastYear),
+        })}
+      </p>
+      <p className="mt-1 text-xs text-slate-600">
+        {t(`projections.history.${whyKey}`, {
+          stocks: result.stockSharePct,
+          plan: isolate(percent(result.planRealReturn)),
+          replayed: isolate(percent(result.replayedRealReturn)),
+          volatility: isolate(String(Math.round(volatilityPct * 10) / 10)),
         })}
       </p>
 

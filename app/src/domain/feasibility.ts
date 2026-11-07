@@ -2,9 +2,10 @@ import type { ProfileData } from "../types";
 import { MAX_RETIREMENT_SEARCH_AGE } from "./constants";
 import { desiredRetirementMonthly } from "./expenses";
 import { calculateFundingGapAtAge } from "./fundingGap";
-import { spouseAgeAt } from "./household";
+import { retirementTimingAtAge, spouseAgeAt } from "./household";
+import { MONTE_CARLO_CONFIDENCE, meetsMonteCarloConfidence } from "./monteCarlo";
 import { isHouseholdActive, resolveCurrentAge } from "./profileBasics";
-import type { RetirementFeasibility } from "./types";
+import type { ConfidentRetirementAge, RetirementFeasibility } from "./types";
 
 /**
  * Finds the earliest whole retirement age (from the user's current age up
@@ -46,4 +47,23 @@ export function findEarliestFeasibleRetirementAge(profile: ProfileData): Retirem
   }
 
   return { status: "notFeasible", earliestAge: null, yearsFromNow: null };
+}
+
+/**
+ * The earliest retirement age, from `fromAge` up to `MAX_RETIREMENT_SEARCH_AGE`, at which the
+ * Monte Carlo funds the desired spending in at least `MONTE_CARLO_CONFIDENCE` of the paths.
+ * Ages are scanned in order, like the average-market search, because the share of paths that
+ * succeed is not guaranteed to rise with every extra year of work. A couple retires together.
+ */
+export function findEarliestConfidentRetirementAge(
+  profile: ProfileData,
+  fromAge: number,
+): ConfidentRetirementAge {
+  const endAge = Math.max(MAX_RETIREMENT_SEARCH_AGE, fromAge);
+  for (let age = fromAge; age <= endAge; age += 1) {
+    if (meetsMonteCarloConfidence(profile, retirementTimingAtAge(profile, age), MONTE_CARLO_CONFIDENCE)) {
+      return { status: "found", age };
+    }
+  }
+  return { status: "none", age: null };
 }

@@ -1,17 +1,20 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
-import type { RetirementFeasibility } from "../domain";
+import { MONTE_CARLO_CONFIDENCE, type ConfidentRetirementAge, type RetirementFeasibility } from "../domain";
 
 interface FeasibilityCardProps {
   feasibility: RetirementFeasibility;
   maxSearchAge: number;
+  /** The earliest age that also holds in the share of simulated markets the risk analysis asks for. */
+  confidentAge?: ConfidentRetirementAge | null;
 }
 
-export function FeasibilityCard({ feasibility, maxSearchAge }: FeasibilityCardProps) {
+export function FeasibilityCard({ feasibility, maxSearchAge, confidentAge = null }: FeasibilityCardProps) {
   const { t } = useTranslation();
   const { status, earliestAge, yearsFromNow, spouseAge } = feasibility;
   const yearsLabel = yearsFromNow === null ? null : Math.round(yearsFromNow);
+  const percent = Math.round(MONTE_CARLO_CONFIDENCE * 100);
 
   return (
     <section
@@ -32,9 +35,19 @@ export function FeasibilityCard({ feasibility, maxSearchAge }: FeasibilityCardPr
               ? t("dashboard.feasibility.feasibleNow")
               : t("dashboard.feasibility.yearsFromNow", { years: yearsLabel })}
           </p>
+          <p className="text-sm text-slate-600">{t("dashboard.feasibility.averageMarkets")}</p>
           {spouseAge !== undefined && (
             <p className="text-sm text-slate-600">
               {t("dashboard.feasibility.bothRetire", { age: earliestAge, spouseAge })}
+            </p>
+          )}
+          {confidentAge && (
+            <p className="text-sm font-medium text-slate-800">
+              {confidentAge.status === "none"
+                ? t("dashboard.feasibility.confidentNone", { percent, age: maxSearchAge })
+                : confidentAge.age === earliestAge
+                  ? t("dashboard.feasibility.confidentSame", { percent })
+                  : t("dashboard.feasibility.confidentAge", { percent, age: confidentAge.age })}
             </p>
           )}
         </div>

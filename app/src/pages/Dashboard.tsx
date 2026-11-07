@@ -28,9 +28,11 @@ import { NetWorthBasisNote, PlannedSpendingLine } from "../components/SpendingBa
 import { StatusBanner } from "../components/StatusBanner";
 import { TaxCard } from "../components/TaxCard";
 import { useFormatAge } from "../components/useFormatAge";
+import { useRetirementFeasibility } from "../components/useRetirementFeasibility";
 import {
   MAX_PLANNING_AGE,
   MAX_RETIREMENT_SEARCH_AGE,
+  MONTE_CARLO_CONFIDENCE,
   aggregateCurrentNetWorth,
   assumedRetirementAges,
   breakdownPortfolio,
@@ -41,7 +43,6 @@ import {
   estimateRetirementIncome,
   findDataGaps,
   findCoverNotices,
-  findEarliestFeasibleRetirementAge,
   groupPathEvents,
   irregularCosts,
   projectBalancePath,
@@ -54,17 +55,23 @@ import {
 
 const SUCCESS_STATUS = { strong: "positive", fair: "neutral", weak: "negative" } as const;
 
+/** Keeps an interpolated number in its own bidi run, so it does not reorder inside Hebrew text. */
+const isolate = (text: string) => `\u2066${text}\u2069`;
+
 export function Dashboard() {
   const { t } = useTranslation();
   const formatAge = useFormatAge();
   const { onboarded, profile } = useProfile();
   const currencySymbol = t("common.currencySymbol");
   const takeaways = useChartTakeaways();
-  // Only the success rate is shown here, so the search for a dependable spending level is skipped.
-  const risk = useMemo(
-    () => runMonteCarlo(profile, "standard", { findConfidentSpending: false }),
-    [profile],
-  );
+  // Only the success rate is shown here, so the search for a dependable spending level is skipped
+  // unless the rate is below the dependable bar; then the banner quotes that spending.
+  const risk = useMemo(() => {
+    const quick = runMonteCarlo(profile, "standard", { findConfidentSpending: false });
+    if (!quick || successBand(quick.successProbability) === "strong") return quick;
+    return runMonteCarlo(profile, "standard");
+  }, [profile]);
+  const { feasibility, confidentAge } = useRetirementFeasibility(profile);
   // The retire-at checks run the funding-gap model several times, so they are computed once per profile.
   const snapshot = useMemo(
     () =>
@@ -104,8 +111,15 @@ export function Dashboard() {
   const fundingGap = calculateFundingGap(profile, "standard");
   const irregular = irregularCosts(profile.expenses);
   const isShortfall = fundingGap.status === "shortfall";
-  const feasibility = findEarliestFeasibleRetirementAge(profile);
   const hasTarget = feasibility.status !== "noTarget";
+  // The funding gap uses the average return every year, so it can look fine while many simulated markets run short.
+  const coveragePercent = risk ? successPercent(risk.successProbability) : null;
+  const averageOnly =
+    hasTarget && !isShortfall && risk !== null && successBand(risk.successProbability) !== "strong";
+  const plannedMonthly = fundingGap.estimatedMonthlyIncome - fundingGap.monthlyGap;
+  const gapPercent =
+    plannedMonthly > 0 ? Math.round((Math.abs(fundingGap.monthlyGap) / plannedMonthly) * 100) : null;
+  const confidencePercent = Math.round(MONTE_CARLO_CONFIDENCE * 100);
   const gaps = findDataGaps(profile);
   const coverNotices = findCoverNotices(profile);
   const money = (amount: number) => `${currencySymbol}${amount.toLocaleString()}`;
@@ -179,14 +193,27 @@ export function Dashboard() {
               ? `${currencySymbol}${Math.abs(fundingGap.monthlyGap).toLocaleString()}`
               : "—"
           }
-          status={hasTarget ? (isShortfall ? "negative" : "positive") : "neutral"}
-          note={t(
-            !hasTarget
-              ? "dashboard.kpi.noSpendingNote"
-              : isShortfall
-                ? "dashboard.kpi.shortfallNote"
-                : "dashboard.kpi.surplusNote",
-          )}
+          status={hasTarget ? (isShortfall ? "negative" : averageOnly ? "neutral" : "positive") : "neutral"}
+          note={
+            hasTarget ? (
+              <div className="flex flex-col gap-1">
+                <p>{t(isShortfall ? "dashboard.kpi.shortfallNote" : "dashboard.kpi.surplusNote")}</p>
+                {gapPercent !== null && (
+                  <p>
+                    {t(isShortfall ? "dashboard.kpi.shortfallScale" : "dashboard.kpi.surplusScale", {
+                      percent: isolate(String(gapPercent)),
+                      planned: isolate(money(plannedMonthly)),
+                    })}
+                  </p>
+                )}
+                {averageOnly && coveragePercent !== null && (
+                  <p>{t("dashboard.kpi.surplusAverageOnly", { percent: isolate(String(coveragePercent)) })}</p>
+                )}
+              </div>
+            ) : (
+              t("dashboard.kpi.noSpendingNote")
+            )
+          }
         />
         <KpiCard
           label={t("dashboard.kpi.successProbability", { age: MAX_PLANNING_AGE })}
@@ -266,11 +293,36 @@ export function Dashboard() {
 
       {hasTarget && (
         <StatusBanner
-          status={isShortfall ? "shortfall" : "onTrack"}
+          status={isShortfall ? "shortfall" : averageOnly ? "caution" : "onTrack"}
           message={
             isShortfall
               ? t("dashboard.statusShortfall")
-              : t("dashboard.statusOnTrack")
+              : averageOnly
+                ? t("dashboard.statusOnTrackAverage")
+                : t("dashboard.statusOnTrack")
+          }
+          details={
+            averageOnly && risk && coveragePercent !== null
+              ? [
+                  t("dashboard.statusAverageDetail", { percent: isolate(String(coveragePercent)) }),
+                  ...(risk.confidentNetMonthly !== null && risk.confidentNetMonthly < risk.targetNetMonthly
+                    ? [
+                        t("dashboard.statusConfidentSpending", {
+                          percent: isolate(String(confidencePercent)),
+                          amount: isolate(money(risk.confidentNetMonthly)),
+                          target: isolate(money(risk.targetNetMonthly)),
+                        }),
+                      ]
+                    : []),
+                ]
+              : undefined
+          }
+          action={
+            averageOnly ? (
+              <Link to="/projections" className="text-brand-700 hover:underline">
+                {t("dashboard.statusSeeRisk")}
+              </Link>
+            ) : undefined
           }
         />
       )}
@@ -289,6 +341,7 @@ export function Dashboard() {
 
       <FeasibilityCard
         feasibility={feasibility}
+        confidentAge={confidentAge}
         maxSearchAge={MAX_RETIREMENT_SEARCH_AGE}
       />
 

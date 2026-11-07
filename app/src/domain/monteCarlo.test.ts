@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { buildTestProfile } from "../test/domainFixtures";
 import { simulateHouseholdDrawdown } from "./drawdown";
-import { buildHousehold, resolveRetirementTiming } from "./household";
+import { buildHousehold, resolveRetirementTiming, retirementTimingAtAge } from "./household";
 import {
   MONTE_CARLO_CONFIDENCE,
   createRandom,
+  meetsMonteCarloConfidence,
+  monteCarloSuccessProbability,
   quantile,
   resolveVolatility,
   runMonteCarlo,
@@ -277,5 +279,49 @@ describe("runMonteCarlo", () => {
     const delayed = runMonteCarlo(planFor(9_000), "delayed", options)!;
     expect(early.drawdownStartAge).toBeLessThan(delayed.drawdownStartAge);
     expect(delayed.successProbability).toBeGreaterThanOrEqual(early.successProbability);
+  });
+
+  it("accepts the exact retirement ages instead of a scenario", () => {
+    const profile = planFor(9_000);
+    const options = { ...FAST, findConfidentSpending: false };
+    const fromScenario = runMonteCarlo(profile, "standard", options)!;
+    const fromTiming = runMonteCarlo(profile, resolveRetirementTiming(profile, "standard"), options)!;
+    expect(fromTiming).toEqual(fromScenario);
+    const at60 = runMonteCarlo(profile, retirementTimingAtAge(profile, 60), options)!;
+    expect(at60.drawdownStartAge).toBe(60);
+  });
+});
+
+describe("monteCarloSuccessProbability", () => {
+  it("agrees with the full run for the same profile and timing", () => {
+    const profile = planFor(9_000);
+    const full = runMonteCarlo(profile, "standard", { ...FAST, findConfidentSpending: false })!;
+    expect(monteCarloSuccessProbability(profile, "standard", FAST)).toBe(full.successProbability);
+    const timing = retirementTimingAtAge(profile, 62);
+    const fullAt62 = runMonteCarlo(profile, timing, { ...FAST, findConfidentSpending: false })!;
+    expect(monteCarloSuccessProbability(profile, timing, FAST)).toBe(fullAt62.successProbability);
+  });
+
+  it("returns null when there is nothing to test", () => {
+    expect(monteCarloSuccessProbability(buildTestProfile({ age: 40 }), "standard", FAST)).toBeNull();
+  });
+});
+
+describe("meetsMonteCarloConfidence", () => {
+  it("agrees with comparing the full success probability to the confidence", () => {
+    const timing = (age: number, profile: ReturnType<typeof planFor>) => retirementTimingAtAge(profile, age);
+    for (const desired of [6_000, 9_000, 14_000]) {
+      const profile = planFor(desired);
+      for (const age of [50, 58, 67]) {
+        const probability = monteCarloSuccessProbability(profile, timing(age, profile), FAST)!;
+        expect(meetsMonteCarloConfidence(profile, timing(age, profile), MONTE_CARLO_CONFIDENCE, FAST)).toBe(
+          probability >= MONTE_CARLO_CONFIDENCE,
+        );
+      }
+    }
+  });
+
+  it("returns null when there is nothing to test", () => {
+    expect(meetsMonteCarloConfidence(buildTestProfile({ age: 40 }), "standard")).toBeNull();
   });
 });

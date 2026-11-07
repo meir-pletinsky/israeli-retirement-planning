@@ -29,6 +29,7 @@ import { IncomeBasisNote, NetWorthBasisNote } from "../components/SpendingBasisN
 import { SourceCostCard } from "../components/SourceCostCard";
 import { StressTestCard } from "../components/StressTestCard";
 import { UnvestedSharesCard } from "../components/UnvestedSharesCard";
+import { useRetirementFeasibility } from "../components/useRetirementFeasibility";
 import { useScenarioLabel } from "../components/useScenarioLabel";
 import { WithdrawalStrategyCard } from "../components/WithdrawalStrategyCard";
 import {
@@ -46,7 +47,6 @@ import {
   desiredRetirementMonthly,
   estimateIncomeBreakdown,
   estimateNetIncome,
-  findEarliestFeasibleRetirementAge,
   groupPathEvents,
   isHouseholdActive,
   planForOption,
@@ -100,7 +100,7 @@ export function Projections() {
     () => compareWithdrawalStrategies(profile, scenario),
     [profile, scenario],
   );
-  const feasibility = findEarliestFeasibleRetirementAge(profile);
+  const { feasibility, confidentAge } = useRetirementFeasibility(profile);
   const coverComparisons = useMemo(() => compareCoverOptions(profile), [profile]);
   const chooseCover = (person: AccountOwner, option: CoverOption) => {
     const next = planForOption(savedCoverPlan(profile, person), option);
@@ -136,7 +136,11 @@ export function Projections() {
 
       <ActiveAssumptions assumptions={profile.assumptions} />
 
-      <FeasibilityCard feasibility={feasibility} maxSearchAge={MAX_RETIREMENT_SEARCH_AGE} />
+      <FeasibilityCard
+        feasibility={feasibility}
+        confidentAge={confidentAge}
+        maxSearchAge={MAX_RETIREMENT_SEARCH_AGE}
+      />
 
       <ScenarioComparison profile={profile} />
 

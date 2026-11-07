@@ -1,5 +1,6 @@
 import { DEFAULT_VOLATILITY_PCT, MAX_VOLATILITY_PCT, type ProfileData } from "../types";
-import { evaluatePaths, findLargestGrossSpending, prepareSpendingTest } from "./spendingTest";
+import type { RetirementTiming } from "./household";
+import { evaluatePaths, findLargestGrossSpending, maxFailuresForConfidence, prepareSpendingTest } from "./spendingTest";
 import type { RetirementScenario } from "./types";
 
 /**
@@ -150,17 +151,18 @@ export interface MonteCarloOptions {
 }
 
 /**
- * Runs the Monte Carlo for the household that retires as `scenario` says.
+ * Runs the Monte Carlo for the household that retires as `retiring` says: a scenario, or the
+ * exact retirement age of each spouse.
  * Returns null when there is nothing to test: no desired retirement spending
  * entered, or no drawing years before the planning horizon.
  */
 export function runMonteCarlo(
   profile: ProfileData,
-  scenario: RetirementScenario = "standard",
+  retiring: RetirementScenario | RetirementTiming = "standard",
   options: MonteCarloOptions = {},
 ): MonteCarloResult | null {
   const { paths = MONTE_CARLO_PATHS, seed = MONTE_CARLO_SEED, findConfidentSpending = true } = options;
-  const test = prepareSpendingTest(profile, scenario);
+  const test = prepareSpendingTest(profile, retiring);
   if (!test) return null;
   const { household, horizonYears, targetNetMonthly, targetGrossMonthly, taxShare } = test;
 
@@ -206,4 +208,51 @@ export function runMonteCarlo(
     fan,
     drawdownStartAge: household.drawdownStartAge,
   };
+}
+
+/**
+ * Only the share of paths that fund the desired spending, for the household that retires as
+ * `retiring` says. It draws the same paths as `runMonteCarlo`, so the figures agree, but skips the
+ * fan and the dependable-spending search. Null when there is nothing to test.
+ */
+export function monteCarloSuccessProbability(
+  profile: ProfileData,
+  retiring: RetirementScenario | RetirementTiming,
+  options: Pick<MonteCarloOptions, "paths" | "seed"> = {},
+): number | null {
+  const { paths = MONTE_CARLO_PATHS, seed = MONTE_CARLO_SEED } = options;
+  const test = prepareSpendingTest(profile, retiring);
+  if (!test) return null;
+  const { household, horizonYears, targetGrossMonthly } = test;
+
+  const volatility = resolveVolatility(profile.assumptions.volatilityPct);
+  const shocks = standardNormalShocks(paths, horizonYears, seed);
+  const ratesByPath = shocks.map((row) => yearlyRatesFromShocks(row, household.rate, volatility));
+  const { successes } = evaluatePaths(household, targetGrossMonthly, ratesByPath, false);
+  return successes / paths;
+}
+
+/**
+ * Whether the household that retires as `retiring` says has its desired spending funded in at
+ * least `confidence` of the paths. The same paths as `runMonteCarlo`, but it stops simulating as
+ * soon as too many paths have failed, so it is much faster than the probability for a plan that
+ * falls short. Null when there is nothing to test.
+ */
+export function meetsMonteCarloConfidence(
+  profile: ProfileData,
+  retiring: RetirementScenario | RetirementTiming,
+  confidence: number = MONTE_CARLO_CONFIDENCE,
+  options: Pick<MonteCarloOptions, "paths" | "seed"> = {},
+): boolean | null {
+  const { paths = MONTE_CARLO_PATHS, seed = MONTE_CARLO_SEED } = options;
+  const test = prepareSpendingTest(profile, retiring);
+  if (!test) return null;
+  const { household, horizonYears, targetGrossMonthly } = test;
+
+  const volatility = resolveVolatility(profile.assumptions.volatilityPct);
+  const shocks = standardNormalShocks(paths, horizonYears, seed);
+  const ratesByPath = shocks.map((row) => yearlyRatesFromShocks(row, household.rate, volatility));
+  const maxFailures = maxFailuresForConfidence(paths, confidence);
+  const { shortfallAges } = evaluatePaths(household, targetGrossMonthly, ratesByPath, false, maxFailures);
+  return shortfallAges.length <= maxFailures;
 }

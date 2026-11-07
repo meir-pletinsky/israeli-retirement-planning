@@ -124,4 +124,12 @@ export interface RetirementFeasibility {
   spouseAge?: number;
 }
 
+/**
+ * The earliest retirement age that the Monte Carlo funds in at least `MONTE_CARLO_CONFIDENCE` of
+ * the simulated paths; `none` when no age up to `MAX_RETIREMENT_SEARCH_AGE` does.
+ */
+export type ConfidentRetirementAge =
+  | { status: "found"; age: number }
+  | { status: "none"; age: null };
+
 export type { RetirementScenario };

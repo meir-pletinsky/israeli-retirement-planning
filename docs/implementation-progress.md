@@ -2254,6 +2254,23 @@ of its section 10 (UXB-14 is skipped on request).
       income, net-income, risk and history charts gain a "Show as table" switch (`ChartFrame`,
       `ChartTables`; the table is the same numbers the chart draws). Strings are under `charts.*`.
       Tests: `chartConsistency.test.tsx`, `chartTakeaways.test.tsx`.
+- [x] **UXB-03 "On track" is qualified by the risk result.**
+      The Dashboard said "on track" and "monthly surplus" from the average-return projection, while
+      the risk analysis showed a low chance of funding the same spending. When the plan is funded in
+      average markets but the Monte Carlo band is not "strong", the status banner turns amber and
+      reads "On track in average markets only", with the share of simulated histories that fund the
+      plan, the spending that holds with 90% confidence (when below the goal) and a link to the risk
+      analysis; the surplus KPI turns neutral and adds the same sentence. The surplus is also sized
+      against the planned spending ("9% above your planned spending of ₪1,000 a month"). The
+      feasibility card now says its age is for average markets and adds the earliest age that holds
+      with 90% confidence (`findEarliestConfidentRetirementAge`, a linear scan with
+      `meetsMonteCarloConfidence`, which stops each simulation once the failures exceed what 90%
+      allows; `useRetirementFeasibility` shares the result between the Dashboard and Projections).
+      The historical backtest card explains in one sentence why it can disagree with the
+      simulation (the replayed return against the plan's return, and the simulation's volatility).
+      `StatusBanner` gains a `caution` state, details and an action. Tests: `StatusBanner.test.tsx`,
+      `FeasibilityCard.test.tsx`, `Dashboard.test.tsx`, `Projections.test.tsx`,
+      `feasibility.test.ts`, `monteCarlo.test.ts`.
 
 ## Modeling assumptions (by phase)
 

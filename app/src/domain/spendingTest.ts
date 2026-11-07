@@ -1,7 +1,7 @@
 import type { ProfileData } from "../types";
 import { simulateHouseholdDrawdown } from "./drawdown";
 import { desiredRetirementMonthly } from "./expenses";
-import { buildHousehold, resolveRetirementTiming, type Household } from "./household";
+import { buildHousehold, resolveRetirementTiming, type Household, type RetirementTiming } from "./household";
 import { estimateNetIncomeForHousehold } from "./netIncome";
 import type { RetirementScenario } from "./types";
 
@@ -37,7 +37,8 @@ export interface SpendingTest {
 }
 
 /**
- * Sets up the test for the household that retires as `scenario` says.
+ * Sets up the test for the household that retires as `retiring` says: a scenario, or the exact
+ * ages of each spouse.
  * Returns null when there is nothing to test: no desired retirement spending
  * entered, or no drawing years before the planning horizon.
  *
@@ -47,12 +48,13 @@ export interface SpendingTest {
  */
 export function prepareSpendingTest(
   profile: ProfileData,
-  scenario: RetirementScenario,
+  retiring: RetirementScenario | RetirementTiming,
 ): SpendingTest | null {
   const targetNetMonthly = desiredRetirementMonthly(profile.expenses);
   if (targetNetMonthly === null || targetNetMonthly <= 0) return null;
 
-  const household = buildHousehold(profile, resolveRetirementTiming(profile, scenario));
+  const timing = typeof retiring === "string" ? resolveRetirementTiming(profile, retiring) : retiring;
+  const household = buildHousehold(profile, timing);
   const horizonYears = Math.floor(household.horizonYears);
   if (household.retirementYears >= horizonYears) return null;
 
@@ -121,6 +123,15 @@ export function evaluatePaths(
 }
 
 /**
+ * The most failing paths that still leave at least `confidence` (0 to 1) of `paths` succeeding.
+ */
+export function maxFailuresForConfidence(paths: number, confidence: number): number {
+  let maxFailures = paths;
+  while (maxFailures > 0 && (paths - maxFailures) / paths < confidence) maxFailures -= 1;
+  return maxFailures;
+}
+
+/**
  * The largest gross monthly spending that succeeds on at least `confidence`
  * (0 to 1) of the paths. Success only falls as spending rises, so the search
  * halves a bracket around it.
@@ -131,10 +142,7 @@ export function findLargestGrossSpending(
   startingCeiling: number,
   confidence: number,
 ): number {
-  const paths = ratesByPath.length;
-  let maxFailures = paths;
-  while (maxFailures > 0 && (paths - maxFailures) / paths < confidence) maxFailures -= 1;
-
+  const maxFailures = maxFailuresForConfidence(ratesByPath.length, confidence);
   const confident = (gross: number) =>
     evaluatePaths(household, gross, ratesByPath, false, maxFailures).shortfallAges.length <= maxFailures;
 
