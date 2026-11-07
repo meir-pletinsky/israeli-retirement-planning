@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 
+import { pinEngineClock, pinEngineClockToNow } from "../domain";
 import {
   clearAllData,
   loadCpiLookupEnabledFromDb,
@@ -32,6 +33,11 @@ import { SaveStatusContext, type SaveStatus } from "./saveStatus";
 
 interface ProfileContextValue {
   profile: ProfileData;
+  /**
+   * The moment every figure is calculated at: the engine's clock is pinned to it (see
+   * `pinEngineClock`), so each screen shows the same numbers. It moves on when the profile changes.
+   */
+  evaluatedAt: Date;
   updateProfile: (patch: Partial<ProfileData>) => void;
   /**
    * True once the user finished the My Data steps or imported a file, and also whenever the saved
@@ -58,6 +64,9 @@ interface ProfileContextValue {
 const ProfileContext = createContext<ProfileContextValue | undefined>(
   undefined,
 );
+
+/** A tab that comes back to the foreground after this long gets a fresh calculation moment. */
+const CLOCK_REFRESH_AFTER_MS = 60 * 60 * 1000;
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<ProfileData>(EMPTY_PROFILE);
@@ -128,6 +137,31 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
   const hasData = useMemo(() => hasProfileData(profile), [profile]);
 
+  // One moment for every calculation until the profile changes or the tab comes back after a
+  // while, so the same figure on two screens is never computed at two different clock readings.
+  const [clockRefresh, setClockRefresh] = useState(0);
+  const evaluatedAt = useMemo(() => {
+    void profile;
+    void clockRefresh;
+    return pinEngineClockToNow();
+  }, [profile, clockRefresh]);
+  useEffect(() => {
+    pinEngineClock(evaluatedAt);
+    return () => pinEngineClock(null);
+  }, [evaluatedAt]);
+  useEffect(() => {
+    const onVisible = () => {
+      if (
+        document.visibilityState === "visible" &&
+        Date.now() - evaluatedAt.getTime() > CLOCK_REFRESH_AFTER_MS
+      ) {
+        setClockRefresh((count) => count + 1);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [evaluatedAt]);
+
   const setUsdToIlsRate = useCallback(
     (usdToIlsRate: number | null, usdToIlsRateDate: string | null) =>
       setProfile((prev) =>
@@ -142,6 +176,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const value = useMemo<ProfileContextValue>(
     () => ({
       profile,
+      evaluatedAt,
       updateProfile: (patch) =>
         setProfile((prev) => ({ ...prev, ...patch })),
       onboarded: onboarded || hasData,
@@ -159,7 +194,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       setCpiLookupEnabled,
       setUsdToIlsRate,
     }),
-    [profile, onboarded, hasData, fxLookupEnabled, cpiLookupEnabled, setUsdToIlsRate],
+    [profile, evaluatedAt, onboarded, hasData, fxLookupEnabled, cpiLookupEnabled, setUsdToIlsRate],
   );
 
   if (!isReady) return null;

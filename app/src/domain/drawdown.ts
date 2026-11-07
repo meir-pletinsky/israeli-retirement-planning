@@ -123,6 +123,14 @@ export interface DrawdownOptions {
   withdrawalStrategy?: WithdrawalStrategy;
 }
 
+/**
+ * A balance below this (in today's money, far below an agora) that a draw leaves behind is
+ * rounding residue and counts as empty. Left in, it can be negative, and the shares of the next
+ * year's draw (`balance / unlockedTotal`) then come out as noise such as -2 or 4, which made the
+ * tax of the last year swing with the clock.
+ */
+const DRAWDOWN_DUST = 0.005;
+
 const emptyByKind = (): Record<SourceKind, number> => ({
   pensionFund: 0,
   providentFund: 0,
@@ -520,6 +528,11 @@ function simulate(
         entry.basis -= (entry.basis * taken) / entry.balance;
         entry.ordinaryLayer -= (entry.ordinaryLayer * taken) / entry.balance;
         entry.balance -= taken;
+        if (entry.balance < DRAWDOWN_DUST) {
+          entry.balance = 0;
+          entry.basis = 0;
+          entry.ordinaryLayer = 0;
+        }
       });
       if (traceDraws && drawn > 0) {
         traceDraws.push([years, ...state.map((entry) => takenBy[unlocked.indexOf(entry)] ?? 0)]);

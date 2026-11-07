@@ -2148,6 +2148,26 @@ rest).
   the total that is employer shares (the concentration), with a link to Projections. The risk
   models themselves are unchanged: the backtest mix is still independent of the holdings.
 
+## Second usability review fixes (`[Review-UXB-n]` commits)
+
+Fixes for the findings in `review-b-ux-usability.md`, one commit per finding, in the order
+of its section 10 (UXB-14 is skipped on request).
+
+- [x] **UXB-01 Figures no longer change from one view to the next.** Two causes. (1) The
+      real defect: when a draw empties the last capital, the year-end balances were left as
+      floating-point residue (about 1e-13, sometimes negative), and the shares of the
+      following year's draw (`balance / unlockedTotal`) turned into noise such as -2 or 4, so
+      the last year's tax swung from ₪5,900 to ₪22,800 a month with the clock (a bank deposit's
+      value changes with the date, which made the residue differ). `drawdown.ts` now counts a
+      balance under `DRAWDOWN_DUST` (half an agora) that a draw leaves behind as empty, and
+      the last year keeps the previous year's split as designed. (2) The engine read the
+      system clock separately in every calculation. `ProfileProvider` now takes one moment
+      (`evaluatedAt`) when the profile changes, or when the tab returns to the foreground after
+      an hour, and pins the engine to it (`pinEngineClock` in `domain/trace.ts`; traces and
+      `withEngineClock` still take precedence). The assumptions line on Dashboard and
+      Projections shows "Calculated as of <date>". Tests: `domain/clockStability.test.ts`
+      (a deposit plan swept across two weeks of system times) and `app/ProfileContext.test.tsx`.
+
 ## Modeling assumptions (by phase)
 
 - **Tax modeling assumptions (Phase I).**

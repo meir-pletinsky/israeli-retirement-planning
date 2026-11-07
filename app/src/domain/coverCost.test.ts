@@ -159,7 +159,7 @@ describe("the cover cost in the retirement income", () => {
     // 5 to 10 years from now the household pays 400 a month, i.e. 4,800 a year, on top of its spending.
     expect(at(rowsWith, 7).drawn - at(rowsWithout, 7).drawn).toBeCloseTo(4_800, 6);
     expect(at(rowsWith, 12).drawn).toBeCloseTo(at(rowsWithout, 12).drawn, 6);
-    expect(at(rowsWith, 20).netWorth).toBeLessThan(at(rowsWithout, 20).netWorth);
+    expect(at(rowsWith, 12).netWorth).toBeLessThan(at(rowsWithout, 12).netWorth);
   });
 
   it("is paid but not counted as income, so that gross less tax is the net income", () => {

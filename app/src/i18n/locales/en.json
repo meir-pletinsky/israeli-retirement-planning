@@ -860,6 +860,7 @@
   "assumptionsSummary": {
     "label": "Assumptions in use",
     "values": "Investment return {{returnPct}} (before inflation), inflation {{inflation}}, market volatility {{volatility}}. All per year.",
+    "calculatedOn": "Calculated as of {{date}}.",
     "change": "Change assumptions"
   },
   "projections": {

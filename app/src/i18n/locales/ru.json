@@ -868,6 +868,7 @@
   "assumptionsSummary": {
     "label": "Используемые допущения",
     "values": "Доходность инвестиций {{returnPct}} (до инфляции), инфляция {{inflation}}, волатильность рынка {{volatility}}. Всё в годовом выражении.",
+    "calculatedOn": "Расчёт на {{date}}.",
     "change": "Изменить допущения"
   },
   "projections": {

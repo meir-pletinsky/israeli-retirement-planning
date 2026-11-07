@@ -84,6 +84,7 @@ interface ActiveTrace {
 
 let active: ActiveTrace | null = null;
 let clockOverride: Date | null = null;
+let clockPin: Date | null = null;
 
 /** True only inside `runTraced`. Guard expensive trace-only work with it. */
 export function isTracing(): boolean {
@@ -92,11 +93,30 @@ export function isTracing(): boolean {
 
 /**
  * The engine's notion of "now". While tracing it is the recorded
- * `evaluatedAt`, so a replay of the same inputs gives the same numbers.
+ * `evaluatedAt`, so a replay of the same inputs gives the same numbers. Else it
+ * is the clock a caller set with `withEngineClock`, then the app-wide pin from
+ * `pinEngineClock`, then the system clock.
  */
 export function engineNowMs(): number {
   if (active) return active.evaluatedAt.getTime();
-  return clockOverride ? clockOverride.getTime() : Date.now();
+  if (clockOverride) return clockOverride.getTime();
+  return clockPin ? clockPin.getTime() : Date.now();
+}
+
+/**
+ * Fixes the engine's clock at `at` until it is called again, or with null. The app pins one
+ * moment for every screen, so cards that show the same figure cannot disagree because the
+ * system clock moved between two calculations.
+ */
+export function pinEngineClock(at: Date | null): void {
+  clockPin = at;
+}
+
+/** Reads the system clock, pins the engine to that moment and returns it. */
+export function pinEngineClockToNow(): Date {
+  const now = new Date();
+  clockPin = now;
+  return now;
 }
 
 /**

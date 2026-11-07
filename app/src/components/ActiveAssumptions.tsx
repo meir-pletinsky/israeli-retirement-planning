@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
+import { useProfile } from "../app/ProfileContext";
+import { formatDate } from "../domain/dates";
 import { matchingPreset } from "../domain/profileBasics";
 import { formatPercent } from "../pages/MyData/summaryFormat";
 import type { Assumptions } from "../types";
@@ -12,9 +14,15 @@ interface ActiveAssumptionsProps {
 /** Keeps digits reading left to right when inserted into a right-to-left sentence. */
 const isolate = (text: string) => `\u2066${text}\u2069`;
 
-/** One line on a results page naming the assumptions every figure on it rests on. */
+const localIsoDate = (date: Date) =>
+  [date.getFullYear(), date.getMonth() + 1, date.getDate()]
+    .map((part, index) => String(part).padStart(index === 0 ? 4 : 2, "0"))
+    .join("-");
+
+/** One line on a results page naming the assumptions every figure on it rests on, and the day they were calculated. */
 export function ActiveAssumptions({ assumptions }: ActiveAssumptionsProps) {
   const { t } = useTranslation();
+  const { evaluatedAt } = useProfile();
 
   return (
     <div
@@ -30,6 +38,11 @@ export function ActiveAssumptions({ assumptions }: ActiveAssumptionsProps) {
           returnPct: isolate(formatPercent(assumptions.investmentReturnPct)),
           inflation: isolate(formatPercent(assumptions.inflationPct)),
           volatility: isolate(formatPercent(assumptions.volatilityPct)),
+        })}
+      </span>
+      <span>
+        {t("assumptionsSummary.calculatedOn", {
+          date: isolate(formatDate(localIsoDate(evaluatedAt))),
         })}
       </span>
       <Link to="/my-data/assumptions" className="font-medium text-brand-700 hover:underline">

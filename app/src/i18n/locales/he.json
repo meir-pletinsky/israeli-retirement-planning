@@ -868,6 +868,7 @@
   "assumptionsSummary": {
     "label": "ההנחות שבשימוש",
     "values": "תשואה על השקעות {{returnPct}} (לפני אינפלציה), אינפלציה {{inflation}}, תנודתיות השוק {{volatility}}. הכול בשנה.",
+    "calculatedOn": "החישוב נכון ליום {{date}}.",
     "change": "שינוי ההנחות"
   },
   "projections": {
