@@ -4,7 +4,7 @@ import { monthlyEquivalent, monthsBetweenPayments } from "../../domain";
 import { EXPENSE_CATEGORIES, type ExpenseCategory, type ExpenseItem } from "../../types";
 import { EXPENSES, expenseFrequencyLabel, expenseName } from "./expenseLabels";
 import { RowActions } from "./RowActions";
-import { EMPTY_CELL, formatCurrency } from "./summaryFormat";
+import { EMPTY_CELL, formatCurrency, formatWholeCurrency } from "./summaryFormat";
 import { SummaryTable, type SummaryColumn } from "./SummaryTable";
 
 function perMonthCell(item: ExpenseItem, currency: string): string {
@@ -40,7 +40,7 @@ function CategoryTable({ category, items, onEdit, onRemove }: CategoryTableProps
       header: t(`${EXPENSES}.columns.amount`),
       numeric: true,
       primary: true,
-      cell: (item) => formatCurrency(item.amount, currency),
+      cell: (item) => formatWholeCurrency(item.amount, currency),
     },
     {
       key: "frequency",

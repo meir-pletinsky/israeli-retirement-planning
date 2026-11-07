@@ -87,6 +87,24 @@ describe("My Data summary tables — Pension & Savings", () => {
     expect(totals).toHaveTextContent(`${SHEKEL}150,000`);
   });
 
+  it("shows balances in whole shekels, never with a stray decimal", async () => {
+    await saveProfileToDb(
+      buildTestProfile({ age: 50, pensionBalances: [221_010.2, 63_458.15, 12_846.3] }),
+    );
+    renderStep("pension-savings");
+
+    const table = await screen.findByRole("table", { name: "Pension & savings accounts" });
+    const [, first, second, third, totals] = within(table).getAllByRole("row");
+    expect(first).toHaveTextContent(`${SHEKEL}221,010`);
+    expect(first).not.toHaveTextContent("221,010.");
+    expect(second).toHaveTextContent(`${SHEKEL}63,458`);
+    expect(second).not.toHaveTextContent("63,458.");
+    expect(third).toHaveTextContent(`${SHEKEL}12,846`);
+    expect(third).not.toHaveTextContent("12,846.");
+    expect(totals).toHaveTextContent(`${SHEKEL}297,315`);
+    expect(totals).not.toHaveTextContent("297,315.");
+  });
+
   it("keeps the field legend out of the page and folded inside the account form", async () => {
     const user = userEvent.setup();
     await saveProfileToDb(

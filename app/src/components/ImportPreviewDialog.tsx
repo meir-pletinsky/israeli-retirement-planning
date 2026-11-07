@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import { formatCurrency, EMPTY_CELL } from "../pages/MyData/summaryFormat";
+import { formatWholeCurrency, EMPTY_CELL } from "../pages/MyData/summaryFormat";
 import type { PlanArea, PlanSummary } from "../domain/planSummary";
 import { FormModal } from "./FormModal";
 
@@ -30,7 +30,7 @@ export function ImportPreviewDialog({
   const count = (value: number) => String(value);
   const yesNo = (value: boolean) =>
     t(value ? "settings.importPreview.yes" : "settings.importPreview.no");
-  const money = (value: number | null) => formatCurrency(value, currency);
+  const money = (value: number | null) => formatWholeCurrency(value, currency);
 
   const rows: { key: string; current: string; incoming: string }[] = [
     { key: "age", current: number(current.age), incoming: number(incoming.age) },

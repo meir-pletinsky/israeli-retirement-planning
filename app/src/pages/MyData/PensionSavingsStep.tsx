@@ -15,7 +15,7 @@ import { PensionSummaryTable } from "./PensionSummaryTable";
 import { accountsOf, sumBalances, withoutAccount } from "./pensionPeople";
 import { PersonTabs, type PersonTab } from "./PersonTabs";
 import { StepFooter } from "./StepFooter";
-import { formatCurrency } from "./summaryFormat";
+import { formatWholeCurrency } from "./summaryFormat";
 
 const PEOPLE: Person[] = ["self", "spouse"];
 const FIELDS = "myData.steps.pensionSavings";
@@ -67,7 +67,7 @@ export function PensionSavingsStep() {
     const own = accountsOf(accounts, p);
     return {
       person: p,
-      detail: own.length === 0 ? t("myData.person.noAccounts") : formatCurrency(sumBalances(own), currency),
+      detail: own.length === 0 ? t("myData.person.noAccounts") : formatWholeCurrency(sumBalances(own), currency),
     };
   });
 
@@ -140,7 +140,7 @@ export function PensionSavingsStep() {
         <p className="text-sm text-slate-700">
           {t("myData.person.householdTotal")}{" "}
           <span dir="ltr" className="font-semibold text-slate-900">
-            {formatCurrency(aggregatePensionBalance(profile), currency)}
+            {formatWholeCurrency(aggregatePensionBalance(profile), currency)}
           </span>
         </p>
       )}

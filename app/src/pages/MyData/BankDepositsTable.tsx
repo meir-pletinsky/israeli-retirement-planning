@@ -5,7 +5,7 @@ import { useProfile } from "../../app/ProfileContext";
 import { bankDepositValueIls, engineNowMs, formatDate } from "../../domain";
 import type { BankDeposit } from "../../types";
 import { RowActions } from "./RowActions";
-import { EMPTY_CELL, formatCurrency, formatPercent } from "./summaryFormat";
+import { EMPTY_CELL, formatCurrency, formatPercent, formatWholeCurrency } from "./summaryFormat";
 import { SummaryTable, type SummaryColumn } from "./SummaryTable";
 
 const FIELDS = "myData.steps.bankDeposits";
@@ -42,7 +42,7 @@ export function BankDepositsTable({ deposits, toolbar, emptyMessage, onEdit, onR
       header: t(`${FIELDS}.fields.amount`),
       numeric: true,
       primary: true,
-      cell: (deposit) => formatCurrency(deposit.amount, currency),
+      cell: (deposit) => formatWholeCurrency(deposit.amount, currency),
     },
     {
       key: "rateType",

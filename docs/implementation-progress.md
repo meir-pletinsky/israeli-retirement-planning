@@ -2232,6 +2232,12 @@ of its section 10 (UXB-14 is skipped on request).
       carries the same note as the surplus tile ("Enter your planned spending to see this.") and an
       "Add expenses" link to the expenses step; when spending is entered but no retirement years
       are left to test, it says so (`projections.risk.noYears`). Tests: `Dashboard.test.tsx`.
+- [x] **UXB-31 Account amounts are shown in whole shekels.**
+      Pension balances showed "₪221,010.2" or "₪63,458.15" next to whole-shekel figures elsewhere.
+      `summaryFormat.ts` gains `formatWholeCurrency`; the pension and savings tables (balance,
+      total, estimated annuity), the person cards, the bank-deposit amount, the expense-item amount,
+      the typed-total note and the import preview use it. Dollar prices keep their cents, and the
+      edit dialogs still hold the exact stored value. Tests: `SummaryTables.test.tsx`.
 
 ## Modeling assumptions (by phase)
 

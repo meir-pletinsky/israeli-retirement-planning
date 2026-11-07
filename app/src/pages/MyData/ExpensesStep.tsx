@@ -149,7 +149,7 @@ export function ExpensesStep() {
             {expenses.retirementMonthly !== null && (
               <p className="mt-1 text-xs text-slate-600">
                 {t(`${EXPENSES}.typedTotalKept`, {
-                  amount: formatCurrency(expenses.retirementMonthly, currency),
+                  amount: money(expenses.retirementMonthly),
                 })}
               </p>
             )}

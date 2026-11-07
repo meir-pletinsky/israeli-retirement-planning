@@ -7,8 +7,8 @@ import { accountSourceLabel } from "./reportSource";
 import { RowActions } from "./RowActions";
 import {
   EMPTY_CELL,
-  formatCurrency,
   formatPercent,
+  formatWholeCurrency,
 } from "./summaryFormat";
 import { SummaryTable, type SummaryColumn } from "./SummaryTable";
 
@@ -86,8 +86,8 @@ export function PensionSummaryTable({
       header: t(`${FIELDS}.fields.totalAccumulatedBalance`),
       numeric: true,
       primary: true,
-      cell: (account) => formatCurrency(account.totalAccumulatedBalance, currency),
-      total: formatCurrency(sumBalances(accounts), currency),
+      cell: (account) => formatWholeCurrency(account.totalAccumulatedBalance, currency),
+      total: formatWholeCurrency(sumBalances(accounts), currency),
     },
     {
       key: "employee",
@@ -117,7 +117,7 @@ export function PensionSummaryTable({
       key: "annuity",
       header: t(`${FIELDS}.fields.estimatedMonthlyAnnuity`),
       numeric: true,
-      cell: (account) => formatCurrency(account.annuityParameters.estimatedMonthlyAnnuity, currency),
+      cell: (account) => formatWholeCurrency(account.annuityParameters.estimatedMonthlyAnnuity, currency),
     },
     {
       key: "source",
