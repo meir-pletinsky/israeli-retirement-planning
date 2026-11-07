@@ -69,6 +69,17 @@ export function ExpensesStep() {
   const totals = expenseTotals(expenses.items);
   const money = (value: number) => formatCurrency(Math.round(value), currency);
 
+  // Switching to one total with nothing typed carries the itemised total over, so the plan keeps
+  // the spending it was using instead of silently losing it.
+  function switchMode(mode: ExpensesMode) {
+    const itemisedTotal = Math.round(totals.total);
+    const carryOver =
+      mode === "totals" && (expenses.retirementMonthly ?? 0) <= 0 && itemisedTotal > 0
+        ? { retirementMonthly: itemisedTotal }
+        : {};
+    updateProfile({ expenses: { ...expenses, mode, ...carryOver } });
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div className="max-w-lg">
@@ -94,7 +105,7 @@ export function ExpensesStep() {
                 name="expenses-mode"
                 value={mode}
                 checked={expenses.mode === mode}
-                onChange={() => updateProfile({ expenses: { ...expenses, mode } })}
+                onChange={() => switchMode(mode)}
                 className="sr-only"
               />
               {t(`${EXPENSES}.${MODE_LABEL_KEY[mode]}`)}
@@ -118,6 +129,11 @@ export function ExpensesStep() {
             }
             suffix={currency}
           />
+          {expenses.items.length > 0 && totals.total > 0 && (
+            <p className="mt-1 text-xs text-slate-600">
+              {t(`${EXPENSES}.itemisedKept`, { amount: money(totals.total) })}
+            </p>
+          )}
         </div>
       ) : (
         <>
@@ -146,6 +162,9 @@ export function ExpensesStep() {
               </div>
             </dl>
             <p className="mt-2 text-xs text-slate-600">{t(`${EXPENSES}.plannedHelper`)}</p>
+            {expenses.items.length === 0 && (
+              <p className="mt-1 text-xs text-slate-600">{t(`${EXPENSES}.plannedEmpty`)}</p>
+            )}
             {expenses.retirementMonthly !== null && (
               <p className="mt-1 text-xs text-slate-600">
                 {t(`${EXPENSES}.typedTotalKept`, {

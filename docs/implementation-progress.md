@@ -2316,6 +2316,16 @@ of its section 10 (UXB-14 is skipped on request).
       estimate rounded up to ₪50. `StatusBanner` gained a `children` slot for the list; the list
       is the `ShortfallLevers` component. The levers are computed once per profile. Tests:
       `shortfallLevers.test.ts`, `Dashboard.test.tsx`.
+- [x] **UXB-18 Switching the expenses mode no longer silently changes the plan or the step
+      status.** Switching to "One total" with an empty field now carries the itemised total
+      over (rounded to a whole shekel), so the plan keeps the spending it was using, and the
+      step says "Your itemised list (₪X) is kept and comes back if you switch back to it. The
+      plan uses the total above." (mirroring the existing typed-total note in the other
+      direction). A typed total is never overwritten. In itemised mode with no items the planned
+      box says nothing is planned yet. The Expenses step status is now `entered` only when
+      `desiredRetirementMonthly(...) > 0`, so a chosen mode with no spending, or an empty total
+      beside a stored list, is `empty` instead of "Details entered". Tests: `stepStatus.test.ts`,
+      `ExpensesStep.test.tsx`.
 
 ## Modeling assumptions (by phase)
 

@@ -49,6 +49,22 @@ describe("stepStatus", () => {
     expect(isStepDone(stepStatus(profile, "pension-savings"))).toBe(false);
   });
 
+  it("counts the expenses step only when the plan has spending, whichever way it was entered", () => {
+    const base = { age: 45, retirementAge: 62 };
+    expect(stepStatus(buildTestProfile({ ...base, retirementMonthlyExpenses: 9_000 }), "expenses")).toBe("entered");
+    expect(stepStatus(buildTestProfile({ ...base, retirementMonthlyExpenses: 0 }), "expenses")).toBe("empty");
+    // The itemised mode with no items is a chosen mode, not entered spending.
+    expect(stepStatus(buildTestProfile({ ...base, expenseItems: [] }), "expenses")).toBe("empty");
+    expect(
+      stepStatus(buildTestProfile({ ...base, expenseItems: [{ name: "Rent", amount: 4_000 }] }), "expenses"),
+    ).toBe("entered");
+    // One total left empty while an itemised list is stored: the plan uses the empty total.
+    const stored = buildTestProfile({ ...base, expenseItems: [{ name: "Rent", amount: 4_000 }] });
+    expect(
+      stepStatus({ ...stored, expenses: { ...stored.expenses, mode: "totals" } }, "expenses"),
+    ).toBe("empty");
+  });
+
   it("counts a bank deposit towards the equity and investments step", () => {
     const profile = buildTestProfile({ age: 45, retirementAge: 62, bankDeposits: [{ amount: 100000 }] });
     expect(stepStatus(profile, "equity")).toBe("entered");

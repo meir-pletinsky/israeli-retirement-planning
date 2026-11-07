@@ -757,6 +757,8 @@
         "essentialTotal": "Essential (minimum budget)",
         "discretionaryTotal": "Discretionary",
         "typedTotalKept": "The total you typed ({{amount}}) is kept and comes back if you switch to one total.",
+        "itemisedKept": "Your itemised list ({{amount}}) is kept and comes back if you switch back to it. The plan uses the total above.",
+        "plannedEmpty": "Nothing is planned until you add expenses, so the plan has no retirement spending to measure against.",
         "coverCosts": {
           "title": "Insurance cover costs",
           "line": "{{option}}, {{amount}} per month, from age {{from}} to age {{to}}",

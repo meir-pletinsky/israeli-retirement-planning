@@ -1,3 +1,4 @@
+import { desiredRetirementMonthly } from "../../domain";
 import { profileSectionHasData, type ProfileData, type ProfileSection } from "../../types";
 import type { StepKey } from "./stepOrder";
 
@@ -38,6 +39,8 @@ export function stepStatus(profile: ProfileData, key: StepKey): StepStatus {
   }
   const hasData = DATA_SECTIONS[key].some((section) => profileSectionHasData(profile, section));
   if (key === "assumptions") return hasData ? "customized" : "defaults";
+  // Spending counts only when the plan actually has some, whichever way it was entered.
+  if (key === "expenses") return (desiredRetirementMonthly(profile.expenses) ?? 0) > 0 ? "entered" : "empty";
   return hasData ? "entered" : "empty";
 }
 

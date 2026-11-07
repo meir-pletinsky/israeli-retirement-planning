@@ -279,6 +279,58 @@ describe("ExpensesStep — itemised list", () => {
     const stored = await loadProfileFromDb();
     expect(stored?.expenses.retirementMonthly).toBe(15_000);
   });
+
+  it("carries the itemised total into an empty one-total field and says the list is kept", async () => {
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 50,
+        expenseItems: [
+          { name: "Rent", amount: 4_000, category: "housing" },
+          { name: "Internet", amount: 1_500, category: "communication" },
+        ],
+      }),
+    );
+    const user = userEvent.setup();
+    renderStep();
+
+    await user.click(await screen.findByRole("radio", { name: "One total" }));
+
+    expect(screen.getByLabelText(/^Expected monthly expenses in retirement/)).toHaveValue(5_500);
+    expect(
+      screen.getByText(
+        "Your itemised list (₪5,500) is kept and comes back if you switch back to it. The plan uses the total above.",
+      ),
+    ).toBeInTheDocument();
+    expect((await loadProfileFromDb())?.expenses.retirementMonthly).toBe(5_500);
+
+    await user.click(screen.getByRole("radio", { name: "Itemised list" }));
+    expect(screen.getByText("Rent")).toBeInTheDocument();
+    expect(screen.getByText("Internet")).toBeInTheDocument();
+  });
+
+  it("leaves the field empty when switching to one total from an empty list", async () => {
+    const user = userEvent.setup();
+    renderStep();
+
+    await chooseItemised(user);
+    await user.click(screen.getByRole("radio", { name: "One total" }));
+
+    expect(screen.getByLabelText(/^Expected monthly expenses in retirement/)).toHaveValue(null);
+    expect(screen.queryByText(/is kept and comes back if you switch back/)).not.toBeInTheDocument();
+  });
+
+  it("says nothing is planned while the itemised list is empty", async () => {
+    const user = userEvent.setup();
+    renderStep();
+
+    await chooseItemised(user);
+
+    expect(
+      screen.getByText(
+        "Nothing is planned until you add expenses, so the plan has no retirement spending to measure against.",
+      ),
+    ).toBeInTheDocument();
+  });
 });
 
 describe("ExpensesStep — suggestions", () => {
