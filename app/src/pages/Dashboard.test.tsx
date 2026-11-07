@@ -1050,9 +1050,9 @@ describe("Dashboard", () => {
       return { section, card };
     }
 
-    it("shows the planned spending, withdrawal rate, pension withdrawals and available funds", async () => {
+    it("shows the planned spending, withdrawal rate and available funds", async () => {
       const profile = buildTestProfile(plan);
-      const { withdrawalRate, pensionWithdrawals, access } = calculateRetirementKpis(profile);
+      const { withdrawalRate, access } = calculateRetirementKpis(profile);
       const { card } = await renderSnapshot(profile);
 
       expect(within(card("Planned monthly spending")).getByText(shekel(9_000))).toBeInTheDocument();
@@ -1070,29 +1070,26 @@ describe("Dashboard", () => {
       ).toBeInTheDocument();
       expect(screen.queryByText(/Safe withdrawal rate/)).not.toBeInTheDocument();
       expect(
-        within(card("Drawn from pension savings")).getByText(shekel(pensionWithdrawals.monthly)),
-      ).toBeInTheDocument();
-      expect(
-        within(card("Drawn from pension savings")).getByText(
-          "Before tax, from age 67. Not for life: it comes from savings the plan runs down by age 90.",
-        ),
-      ).toBeInTheDocument();
-      expect(
         within(card("Funds available at retirement")).getByText(shekel(access.accessibleAtRetirement)),
       ).toBeInTheDocument();
     });
 
-    it("shows no lifelong pension when the accounts have no conversion factor or estimate", async () => {
-      const { card } = await renderSnapshot(buildTestProfile(plan));
+    it("shows a withdrawal from pension savings, not a lifelong payment, when no conversion factor is set", async () => {
+      const profile = buildTestProfile(plan);
+      const { incomeComposition } = calculateRetirementKpis(profile);
+      const { section } = await renderSnapshot(profile);
 
-      const pensionCard = card("Lifelong pension (annuity)");
-      expect(within(pensionCard).getByText("—")).toBeInTheDocument();
+      expect(incomeComposition).toHaveLength(1);
       expect(
-        within(pensionCard).getByText("None: your pension savings are spent as capital, not paid for life"),
+        within(section).getByRole("heading", { name: "First year of retirement, age 67" }),
       ).toBeInTheDocument();
+      expect(within(section).getByText("Pension Fund (withdrawal)")).toBeInTheDocument();
+      expect(within(section).queryByText("Pension Fund (payment)")).not.toBeInTheDocument();
+      expect(within(section).queryByText("Drawn from pension savings")).not.toBeInTheDocument();
+      expect(within(section).queryByText("Lifelong pension (annuity)")).not.toBeInTheDocument();
     });
 
-    it("shows the lifelong pension, and no withdrawals card, when the accounts have a conversion factor", async () => {
+    it("shows the annuity as a payment when the accounts have a conversion factor", async () => {
       const withFactor = {
         productCategory: "comprehensivePension" as const,
         annuityParameters: {
@@ -1104,35 +1101,54 @@ describe("Dashboard", () => {
         },
       };
       const profile = buildTestProfile({ ...plan, pensionAccountOverrides: [withFactor, withFactor] });
-      const { lifelongPension } = calculateRetirementKpis(profile);
-      const { card, section } = await renderSnapshot(profile);
+      const { incomeComposition } = calculateRetirementKpis(profile);
+      const { section } = await renderSnapshot(profile);
 
-      expect(lifelongPension.monthly).toBeGreaterThan(0);
-      const pensionCard = card("Lifelong pension (annuity)");
-      expect(within(pensionCard).getByText(shekel(lifelongPension.monthly))).toBeInTheDocument();
-      expect(within(pensionCard).getByText("Before tax, from age 67")).toBeInTheDocument();
-      expect(within(section).queryByText("Drawn from pension savings")).not.toBeInTheDocument();
+      const payment = incomeComposition[0].parts.find((part) => part.kind === "payment");
+      expect(payment?.monthly).toBeGreaterThan(0);
+      expect(within(section).getByText("Pension Fund (payment)")).toBeInTheDocument();
+      expect(within(section).getByText(shekel(payment!.monthly))).toBeInTheDocument();
+      expect(within(section).queryByText("Pension Fund (withdrawal)")).not.toBeInTheDocument();
     });
 
-    it("says the state pension is not in the projection when it is left out", async () => {
-      const { card } = await renderSnapshot(buildTestProfile(plan));
+    it("says Bituach Leumi is not in the projection when it is left out", async () => {
+      const { section } = await renderSnapshot(buildTestProfile(plan));
 
-      const stateCard = card("Monthly state benefits");
-      expect(within(stateCard).getByText("—")).toBeInTheDocument();
-      expect(within(stateCard).getByText("Not in your projection")).toBeInTheDocument();
+      expect(within(section).getByText("Bituach Leumi is not in your projection.")).toBeInTheDocument();
+      expect(within(section).queryByText("Bituach Leumi (payment)")).not.toBeInTheDocument();
     });
 
-    it("shows the state pension and the age it starts once it is included", async () => {
-      const { card } = await renderSnapshot(
+    it("shows the state pension as a payment, in a second stage, once it is included", async () => {
+      const { section } = await renderSnapshot(
         buildTestProfile({
           ...plan,
+          retirementAge: 60,
+          otherAssets: 500_000,
           bituachLeumi: { includeInProjection: true, monthlyPensionOverride: 3_000 },
         }),
       );
 
-      const stateCard = card("Monthly state benefits");
-      expect(within(stateCard).getByText(shekel(3_000))).toBeInTheDocument();
-      expect(within(stateCard).getByText("Tax-free, from age 67")).toBeInTheDocument();
+      expect(
+        within(section).getByRole("heading", { name: "First year of retirement, age 60" }),
+      ).toBeInTheDocument();
+      expect(
+        within(section).getByRole("heading", {
+          name: "Once your lifelong payments have all started, age 67",
+        }),
+      ).toBeInTheDocument();
+      expect(within(section).getByText("Bituach Leumi (payment)")).toBeInTheDocument();
+      expect(within(section).getByText(shekel(3_000))).toBeInTheDocument();
+      expect(
+        within(section).queryByText("Bituach Leumi is not in your projection."),
+      ).not.toBeInTheDocument();
+    });
+
+    it("links the composition to the retirement timeline", async () => {
+      const { section } = await renderSnapshot(buildTestProfile(plan));
+
+      expect(
+        within(section).getByRole("link", { name: "See every year in the retirement timeline" }),
+      ).toHaveAttribute("href", "/projections#retirement-timeline-title");
     });
 
     it("notes how much of the savings is still locked at retirement", async () => {

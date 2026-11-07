@@ -2285,6 +2285,23 @@ of its section 10 (UXB-14 is skipped on request).
       built. It contradicts the earlier "no default conversion factor" decision and needs
       agreed factor values. Tests: `sources.test.ts`, `inputGuidance.test.ts`,
       `dashboardKpis.test.ts`, `Dashboard.test.tsx`.
+- [x] **UXB-17 The Dashboard headline income is reconciled with its sources.**
+      The headline gross income could not be rebuilt from the snapshot, because the investment and
+      study-fund withdrawals showed only on Projections. A new `IncomeComposition` block replaces
+      the three snapshot tiles ("Lifelong pension", "Drawn from pension savings", "Monthly state
+      benefits"; per review V-5 it replaces a block rather than adding one). Their
+      `lifelongPension`, `pensionWithdrawals` and `stateBenefits` fields are gone from
+      `RetirementKpis`, replaced by `incomeComposition`. It holds one bar for the first
+      retirement year and, when it differs, one for the year all lifelong payments are paying.
+      Each bar is split into payments (solid) and withdrawals (hatched) per source, using
+      Projections' labels, and the total equals the headline gross. The second stage is "all
+      lifelong payments paying" rather than the review's "first year after Bituach Leumi starts",
+      because annuities start at the later of retirement and unlock age, which can fall after the
+      first year and before Bituach Leumi, and plans without Bituach Leumi also need it. The block
+      links to the retirement timeline (`/projections#retirement-timeline-title`) and says when
+      Bituach Leumi is left out. Logic is in `domain/incomeComposition.ts`; `bandFill` in
+      `incomeBandColors.ts` is shared by the bar and `BandSwatch`. Tests: `incomeComposition.test.ts`,
+      `dashboardKpis.test.ts`, `Dashboard.test.tsx`.
 
 ## Modeling assumptions (by phase)
 

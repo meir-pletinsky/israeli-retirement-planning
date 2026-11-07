@@ -3,17 +3,11 @@ import { simulateHouseholdDrawdown } from "./drawdown";
 import { desiredRetirementMonthly } from "./expenses";
 import { calculateFundingGapAtAge } from "./fundingGap";
 import { buildHousehold, resolveRetirementTiming, spouseAgeAt } from "./household";
-import { estimateIncomeBreakdownForTiming, recurringAmount, type IncomeBreakdownPoint } from "./incomeBreakdown";
+import { estimateIncomeBreakdownForTiming } from "./incomeBreakdown";
+import { buildIncomeComposition, type IncomeCompositionStage } from "./incomeComposition";
 import { isHouseholdActive, resolveCurrentAge } from "./profileBasics";
 import { estimateHouseholdRetirementIncome } from "./retirementIncome";
 import type { ReadinessStatus, RetirementAccessSummary, RetirementScenario } from "./types";
-
-/** A monthly amount (today's money) and the primary user's age at which it first appears. */
-export interface IncomeFromAge {
-  monthly: number;
-  /** Null when the amount is 0, so there is no start. */
-  fromAge: number | null;
-}
 
 /** The retirement KPIs of the functional spec (Section 13) that the Dashboard's top row does not show. */
 export interface RetirementKpis {
@@ -27,29 +21,14 @@ export interface RetirementKpis {
    */
   withdrawalRate: number | null;
   /**
-   * Monthly income paid for life by the pension, provident and managers-insurance accounts that
-   * have a usable conversion factor or monthly estimate. Zero for accounts that are drawn down as
-   * capital instead: those are in `pensionWithdrawals`.
+   * Where the monthly income comes from, split into lifelong payments and withdrawals from
+   * savings: in the first retirement year and, when the lifelong payments are not all paying
+   * yet, the first year they are. Empty when no income is estimated.
    */
-  lifelongPension: IncomeFromAge;
-  /**
-   * Monthly income taken out of those same accounts as capital, in the first year it is. It is not
-   * a lifelong pension: the plan sizes it so the savings last to the end of the planning horizon.
-   */
-  pensionWithdrawals: IncomeFromAge;
-  /** The largest monthly Bituach Leumi payment (with any spouse supplement) over retirement. */
-  stateBenefits: IncomeFromAge;
+  incomeComposition: IncomeCompositionStage[];
   /** How much of the savings can be spent at retirement, and how much opens later. */
   access: RetirementAccessSummary;
 }
-
-const PENSION_BAND_KEYS = ["pensionFund", "providentFund", "managersInsurance"] as const;
-
-const pensionPayments = (point: IncomeBreakdownPoint): number =>
-  PENSION_BAND_KEYS.reduce((sum, band) => sum + recurringAmount(point, band), 0);
-
-const pensionWithdrawn = (point: IncomeBreakdownPoint): number =>
-  PENSION_BAND_KEYS.reduce((sum, band) => sum + point.withdrawn[band], 0);
 
 /**
  * The retirement KPIs for `scenario`, from the same income estimate, drawdown and income
@@ -77,28 +56,10 @@ export function calculateRetirementKpis(
       ? (plannedRow.drawn + plannedRow.unmet) / plannedRow.spendable
       : null;
 
-  const points = estimateIncomeBreakdownForTiming(profile, timing);
-  const firstWithdrawal = points.find((point) => pensionWithdrawn(point) > 0);
-  const firstStateBenefit = points.find((point) => point.bituachLeumi > 0);
-  // Annuities start at different ages, so the pension is what is paid once they all have.
-  const lifelongMonthly = Math.max(0, ...points.map(pensionPayments));
-  const firstFullPension = points.find((point) => pensionPayments(point) === lifelongMonthly);
-
   return {
     plannedMonthlySpending,
     withdrawalRate,
-    lifelongPension: {
-      monthly: lifelongMonthly,
-      fromAge: lifelongMonthly > 0 ? (firstFullPension?.age ?? null) : null,
-    },
-    pensionWithdrawals: {
-      monthly: firstWithdrawal ? pensionWithdrawn(firstWithdrawal) : 0,
-      fromAge: firstWithdrawal?.age ?? null,
-    },
-    stateBenefits: {
-      monthly: Math.max(0, ...points.map((point) => point.bituachLeumi)),
-      fromAge: firstStateBenefit?.age ?? null,
-    },
+    incomeComposition: buildIncomeComposition(estimateIncomeBreakdownForTiming(profile, timing)),
     access: income.access,
   };
 }

@@ -244,16 +244,18 @@
       "withdrawalRate": "Your withdrawal rate",
       "withdrawalRateNote": "Your planned spending as a share of the funds available in the first year, before tax. Rates above about 4% rely more on investment returns.",
       "withdrawalRateUnavailable": "Needs planned spending and funds available at retirement",
-      "pension": "Lifelong pension (annuity)",
-      "stateBenefits": "Monthly state benefits",
       "availableFunds": "Funds available at retirement",
-      "pensionFromAge": "Before tax, from age {{age}}",
-      "pensionNotAnnuity": "None: your pension savings are spent as capital, not paid for life",
-      "pensionWithdrawals": "Drawn from pension savings",
-      "pensionWithdrawalsNote": "Before tax, from age {{age}}. Not for life: it comes from savings the plan runs down by age {{endAge}}.",
-      "stateBenefitsFromAge": "Tax-free, from age {{age}}",
-      "none": "Not in your projection",
-      "lockedNote": "{{amount}} more unlocks at age {{age}}"
+      "lockedNote": "{{amount}} more unlocks at age {{age}}",
+      "income": {
+        "title": "Where the monthly income comes from",
+        "intro": "Before tax, in today's money. A payment keeps arriving for life; a withdrawal comes out of your savings, which the plan runs down by age {{endAge}}.",
+        "stageRetirement": "First year of retirement, age {{age}}",
+        "stagePayments": "Once your lifelong payments have all started, age {{age}}",
+        "total": "Total: {{amount}} a month",
+        "noStateBenefits": "Bituach Leumi is not in your projection.",
+        "timelineLink": "See every year in the retirement timeline",
+        "none": "No retirement income is estimated yet. Add your pension and savings in My Data."
+      }
     },
     "retireChecks": {
       "title": "Could you retire at\u2026?",

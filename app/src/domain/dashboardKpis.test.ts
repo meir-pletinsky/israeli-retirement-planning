@@ -13,6 +13,17 @@ const LOCKED_ACCOUNTS = [
   { productCategory: "comprehensivePension" as const },
 ];
 
+const WITH_FACTOR = {
+  productCategory: "comprehensivePension" as const,
+  annuityParameters: {
+    hasGuaranteedFactor: false,
+    conversionFactor: 200,
+    estimatedMonthlyAnnuity: null,
+    annuityTaxType: null,
+    guaranteedPaymentMonths: null,
+  },
+};
+
 function plan(extra: Overrides = {}) {
   return buildTestProfile({
     age: 40,
@@ -98,93 +109,25 @@ describe("calculateRetirementKpis", () => {
     });
   });
 
-  describe("pension withdrawals", () => {
-    it("is the income drawn from the pension accounts, from the retirement age", () => {
-      const profile = plan();
-      const { pensionWithdrawals } = calculateRetirementKpis(profile);
+  describe("income composition", () => {
+    it("is the income breakdown of the first retirement year, split into payments and withdrawals", () => {
+      const profile = plan({
+        pensionAccountOverrides: [WITH_FACTOR, WITH_FACTOR],
+        otherAssets: 400_000,
+        bituachLeumi: { includeInProjection: true, monthlyPensionOverride: 3_000 },
+      });
+      const { incomeComposition } = calculateRetirementKpis(profile);
       const income = estimateRetirementIncome(profile).monthlyIncomeTodayMoney;
 
-      expect(pensionWithdrawals.fromAge).toBe(67);
-      expect(Math.abs(pensionWithdrawals.monthly - income)).toBeLessThanOrEqual(1);
+      expect(incomeComposition).toHaveLength(1);
+      expect(incomeComposition[0].age).toBe(67);
+      expect(Math.abs(incomeComposition[0].total - income)).toBeLessThanOrEqual(1);
+      expect(incomeComposition[0].parts.map((part) => part.kind)).toContain("payment");
+      expect(incomeComposition[0].parts.map((part) => part.kind)).toContain("withdrawal");
     });
 
-    it("leaves out savings held outside the pension accounts", () => {
-      const { pensionWithdrawals, lifelongPension } = calculateRetirementKpis(
-        plan({ pensionBalances: [], otherAssets: 1_000_000 }),
-      );
-      expect(pensionWithdrawals).toEqual({ monthly: 0, fromAge: null });
-      expect(lifelongPension).toEqual({ monthly: 0, fromAge: null });
-    });
-
-    it("starts only when the accounts unlock if the user retires earlier", () => {
-      const { pensionWithdrawals } = calculateRetirementKpis(
-        plan({ retirementAge: 55, otherAssets: 600_000, pensionAccountOverrides: LOCKED_ACCOUNTS }),
-      );
-      expect(pensionWithdrawals.fromAge).toBe(60);
-      expect(pensionWithdrawals.monthly).toBeGreaterThan(0);
-    });
-  });
-
-  describe("lifelong pension", () => {
-    const WITH_FACTOR = {
-      productCategory: "comprehensivePension" as const,
-      annuityParameters: {
-        hasGuaranteedFactor: false,
-        conversionFactor: 200,
-        estimatedMonthlyAnnuity: null,
-        annuityTaxType: null,
-        guaranteedPaymentMonths: null,
-      },
-    };
-
-    it("is zero when the accounts have no conversion factor or monthly estimate", () => {
-      const { lifelongPension, pensionWithdrawals } = calculateRetirementKpis(
-        plan({ pensionAccountOverrides: LOCKED_ACCOUNTS }),
-      );
-      expect(lifelongPension).toEqual({ monthly: 0, fromAge: null });
-      expect(pensionWithdrawals.monthly).toBeGreaterThan(0);
-    });
-
-    it("is the annuity the conversion factor produces, paid from the retirement age", () => {
-      const { lifelongPension, pensionWithdrawals } = calculateRetirementKpis(
-        plan({ pensionAccountOverrides: [WITH_FACTOR, WITH_FACTOR] }),
-      );
-      // 1,200,000 / 200 a month, in the money of the year it starts.
-      expect(lifelongPension.fromAge).toBe(67);
-      expect(lifelongPension.monthly).toBeGreaterThan(0);
-      expect(pensionWithdrawals).toEqual({ monthly: 0, fromAge: null });
-    });
-
-    it("keeps the annuity out of the amount drawn from savings", () => {
-      const annuitised = calculateRetirementKpis(plan({ pensionAccountOverrides: [WITH_FACTOR, WITH_FACTOR] }));
-      const drawnDown = calculateRetirementKpis(plan({ pensionAccountOverrides: LOCKED_ACCOUNTS }));
-      expect(annuitised.lifelongPension.monthly).toBeGreaterThan(0);
-      expect(drawnDown.lifelongPension.monthly).toBe(0);
-      expect(annuitised.pensionWithdrawals.monthly).toBeLessThan(drawnDown.pensionWithdrawals.monthly);
-    });
-  });
-
-  describe("state benefits", () => {
-    it("is the Bituach Leumi pension, from the age it is paid", () => {
-      const { stateBenefits } = calculateRetirementKpis(
-        plan({ bituachLeumi: { includeInProjection: true, monthlyPensionOverride: 3_000 } }),
-      );
-      expect(stateBenefits).toEqual({ monthly: 3_000, fromAge: 67 });
-    });
-
-    it("starts at the statutory age even when the user retires before it", () => {
-      const { stateBenefits } = calculateRetirementKpis(
-        plan({
-          retirementAge: 60,
-          otherAssets: 500_000,
-          bituachLeumi: { includeInProjection: true, monthlyPensionOverride: 3_000 },
-        }),
-      );
-      expect(stateBenefits).toEqual({ monthly: 3_000, fromAge: 67 });
-    });
-
-    it("is zero when the user left it out of the projection", () => {
-      expect(calculateRetirementKpis(plan()).stateBenefits).toEqual({ monthly: 0, fromAge: null });
+    it("is empty when there is nothing to draw on", () => {
+      expect(calculateRetirementKpis(plan({ pensionBalances: [] })).incomeComposition).toEqual([]);
     });
   });
 

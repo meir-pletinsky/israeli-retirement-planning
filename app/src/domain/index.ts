@@ -18,6 +18,7 @@ export * from "./fundingGap";
 export * from "./historicalBacktest";
 export * from "./household";
 export * from "./incomeBreakdown";
+export * from "./incomeComposition";
 export * from "./inputGuidance";
 export * from "./leavingEarly";
 export * from "./liquidityLadder";

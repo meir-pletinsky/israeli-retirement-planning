@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 
 import type { RetirementKpis } from "../domain";
-import { MAX_PLANNING_AGE } from "../domain/constants";
+import { IncomeComposition } from "./IncomeComposition";
 import { KpiCard } from "./KpiCard";
 import { useFormatAge } from "./useFormatAge";
 
@@ -18,14 +18,7 @@ export function RetirementSnapshot({ kpis, irregularMonthly }: RetirementSnapsho
   const formatAge = useFormatAge();
   const currencySymbol = t("common.currencySymbol");
   const money = (amount: number) => `${currencySymbol}${Math.round(amount).toLocaleString()}`;
-  const { plannedMonthlySpending, withdrawalRate, lifelongPension, pensionWithdrawals, stateBenefits, access } = kpis;
-
-  const startsAt = (income: { monthly: number; fromAge: number | null }, key: string, none?: string) =>
-    income.monthly > 0 && income.fromAge !== null
-      ? t(key, { age: formatAge(income.fromAge) })
-      : (none ?? t("dashboard.snapshot.none"));
-
-  const hasWithdrawals = pensionWithdrawals.monthly > 0 && pensionWithdrawals.fromAge !== null;
+  const { plannedMonthlySpending, withdrawalRate, incomeComposition, access } = kpis;
 
   return (
     <section aria-labelledby="retirement-snapshot-title" className="flex flex-col gap-3">
@@ -70,30 +63,6 @@ export function RetirementSnapshot({ kpis, irregularMonthly }: RetirementSnapsho
           )}
         />
         <KpiCard
-          label={t("dashboard.snapshot.pension")}
-          value={lifelongPension.monthly > 0 ? money(lifelongPension.monthly) : "—"}
-          note={startsAt(
-            lifelongPension,
-            "dashboard.snapshot.pensionFromAge",
-            hasWithdrawals ? t("dashboard.snapshot.pensionNotAnnuity") : undefined,
-          )}
-        />
-        {hasWithdrawals && (
-          <KpiCard
-            label={t("dashboard.snapshot.pensionWithdrawals")}
-            value={money(pensionWithdrawals.monthly)}
-            note={t("dashboard.snapshot.pensionWithdrawalsNote", {
-              age: formatAge(pensionWithdrawals.fromAge as number),
-              endAge: formatAge(MAX_PLANNING_AGE),
-            })}
-          />
-        )}
-        <KpiCard
-          label={t("dashboard.snapshot.stateBenefits")}
-          value={stateBenefits.monthly > 0 ? money(stateBenefits.monthly) : "—"}
-          note={startsAt(stateBenefits, "dashboard.snapshot.stateBenefitsFromAge")}
-        />
-        <KpiCard
           label={t("dashboard.snapshot.availableFunds")}
           value={money(access.accessibleAtRetirement)}
           note={
@@ -106,6 +75,7 @@ export function RetirementSnapshot({ kpis, irregularMonthly }: RetirementSnapsho
           }
         />
       </div>
+      <IncomeComposition stages={incomeComposition} />
     </section>
   );
 }
