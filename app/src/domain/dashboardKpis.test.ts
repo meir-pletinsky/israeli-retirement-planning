@@ -47,33 +47,50 @@ describe("calculateRetirementKpis", () => {
   });
 
   describe("withdrawal rate", () => {
-    it("is the first year's income over the savings at retirement when no state pension helps", () => {
+    it("is the planned spending's first-year draw over the savings that can be spent then", () => {
       const profile = plan();
-      const { monthlyIncomeTodayMoney, netWorthAtRetirement } = estimateRetirementIncome(profile);
+      const { netWorthAtRetirement } = estimateRetirementIncome(profile);
       const rate = calculateRetirementKpis(profile).withdrawalRate;
 
       expect(rate).not.toBeNull();
-      expect(rate!).toBeCloseTo((monthlyIncomeTodayMoney * 12) / netWorthAtRetirement, 3);
-      // Over a long retirement at a 3% real return the sustainable draw is a few percent.
-      expect(rate!).toBeGreaterThan(0.03);
-      expect(rate!).toBeLessThan(0.08);
+      expect(rate!).toBeCloseTo((9_000 * 12) / netWorthAtRetirement, 3);
     });
 
-    it("is unchanged by a state pension that starts the day the user retires", () => {
+    it("follows the planned spending, not the income the savings could sustain", () => {
+      const base = calculateRetirementKpis(plan()).withdrawalRate!;
+      const more = calculateRetirementKpis(plan({ retirementMonthlyExpenses: 12_000 })).withdrawalRate!;
+      const less = calculateRetirementKpis(plan({ retirementMonthlyExpenses: 6_000 })).withdrawalRate!;
+
+      expect(more).toBeCloseTo((base * 12_000) / 9_000, 6);
+      expect(less).toBeCloseTo((base * 6_000) / 9_000, 6);
+    });
+
+    it("passes 100% when the savings cannot pay the planned spending", () => {
+      const rate = calculateRetirementKpis(plan({ retirementMonthlyExpenses: 400_000 })).withdrawalRate;
+      expect(rate!).toBeGreaterThan(1);
+    });
+
+    it("is lower when a state pension starts the day the user retires", () => {
       const without = calculateRetirementKpis(plan()).withdrawalRate!;
       const withBl = calculateRetirementKpis(
         plan({ bituachLeumi: { includeInProjection: true, monthlyPensionOverride: 4_000 } }),
       ).withdrawalRate!;
-      expect(withBl).toBeCloseTo(without, 6);
+      expect(withBl).toBeCloseTo(((9_000 - 4_000) / 9_000) * without, 3);
     });
 
-    it("is higher when the savings carry the years before the state pension starts", () => {
+    it("ignores a state pension that has not started when the savings start to be drawn", () => {
       const early = { retirementAge: 60 };
       const without = calculateRetirementKpis(plan(early)).withdrawalRate!;
       const withBl = calculateRetirementKpis(
         plan({ ...early, bituachLeumi: { includeInProjection: true, monthlyPensionOverride: 4_000 } }),
       ).withdrawalRate!;
-      expect(withBl).toBeGreaterThan(without);
+      expect(withBl).toBeCloseTo(without, 6);
+    });
+
+    it("is null when no spending is planned", () => {
+      expect(
+        calculateRetirementKpis(plan({ retirementMonthlyExpenses: undefined })).withdrawalRate,
+      ).toBeNull();
     });
 
     it("is null when there are no savings to draw on", () => {

@@ -998,10 +998,14 @@ describe("Dashboard", () => {
         minimumFractionDigits: 1,
         maximumFractionDigits: 1,
       });
-      expect(within(card("Safe withdrawal rate")).getByText(rate)).toBeInTheDocument();
+      expect(within(card("Your withdrawal rate")).getByText(rate)).toBeInTheDocument();
       expect(
-        within(card("Safe withdrawal rate")).getByText(/first year, before tax/),
+        within(card("Your withdrawal rate")).getByText(/planned spending as a share of the funds available/),
       ).toBeInTheDocument();
+      expect(
+        within(card("Your withdrawal rate")).getByText(/Rates above about 4% rely more on investment returns/),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/Safe withdrawal rate/)).not.toBeInTheDocument();
       expect(within(card("Monthly pension income")).getByText(shekel(pension.monthly))).toBeInTheDocument();
       expect(
         within(card("Monthly pension income")).getByText("Before tax, from age 67"),
@@ -1058,6 +1062,12 @@ describe("Dashboard", () => {
       const spendingCard = card("Planned monthly spending");
       expect(within(spendingCard).getByText("—")).toBeInTheDocument();
       expect(within(spendingCard).getByText("Not entered yet")).toBeInTheDocument();
+
+      const rateCard = card("Your withdrawal rate");
+      expect(within(rateCard).getByText("—")).toBeInTheDocument();
+      expect(
+        within(rateCard).getByText("Needs planned spending and funds available at retirement"),
+      ).toBeInTheDocument();
     });
   });
 

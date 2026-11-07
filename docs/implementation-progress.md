@@ -1209,14 +1209,14 @@ two places, with no new inputs and no external data.
 Decisions (my judgement calls; the user has not yet reviewed them):
 - **Same engines as the charts.** `calculateRetirementKpis` reads the household income
   estimate, the drawdown and the income breakdown, so the numbers agree with Projections.
-- **Safe withdrawal rate** = the plan's first-year draw ÷ the spendable (unlocked, not
-  annuitised) capital in that year. The plan's income is the largest the savings can
-  sustain to the horizon, so it is the rate they can support, before tax. It is not the
-  user's planned rate and not a share of total net worth: capital that already pays an
-  annuity is outside the pool, and the note says "available funds" to match the
-  neighbouring "Funds available at retirement" card. A state pension that starts at
-  retirement leaves it unchanged; one that starts later raises it, because the savings
-  carry the gap years.
+- **Withdrawal rate** (reworked by UXB-16; first built as the "safe withdrawal rate") = the
+  planned spending's first-year draw, plus any part the savings cannot pay, ÷ the spendable
+  (unlocked, not annuitised) capital in that year. The first version used the sustainable
+  income, so it ignored the planned spending and "safe" was misleading. It is not a share of
+  total net worth: capital that already pays an annuity is outside the pool, and the note says
+  "available funds" to match the neighbouring "Funds available at retirement" card. A state
+  pension that starts at retirement lowers it; one that starts later does not touch the first
+  year.
 - **Pension income** = pension fund + provident fund + managers insurance bands at the
   first age they are above 0, with that age. Study fund and other investments are left out.
 - **State benefits** = the largest Bituach Leumi band over retirement and the age it first
@@ -2194,6 +2194,15 @@ of its section 10 (UXB-14 is skipped on request).
       the new field ids via `components/retirementAgeTargets.ts` (the spouse's opens the partner
       tab). `NumberField` gained a `placeholder`. Tests: `household.test.ts`,
       `inputGuidance.test.ts`, `AssumedRetirementAgeBanner.test.tsx`, `Dashboard.test.tsx`.
+- [x] **UXB-16 The "Safe withdrawal rate" no longer calls a rate safe that the user's plan may not meet.**
+      The old figure was the first-year draw of the *sustainable* income, so it did not move with
+      the planned spending (5.6% at both ₪21,166 and ₪42,000 a month). The tile is now "Your
+      withdrawal rate": the planned spending's first-year draw (plus any part the savings cannot
+      pay) over the spendable savings, before tax, with a neutral note ("Rates above about 4%
+      rely more on investment returns"). Pension and state income that have started reduce it;
+      "—" with a reason when no spending is planned or no savings are spendable.
+      `RetirementKpis.withdrawalRate` (`domain/dashboardKpis.ts`) changed meaning accordingly.
+      Tests: `dashboardKpis.test.ts`, `Dashboard.test.tsx`.
 
 ## Modeling assumptions (by phase)
 

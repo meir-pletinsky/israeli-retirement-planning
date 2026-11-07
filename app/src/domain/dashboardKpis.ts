@@ -20,9 +20,10 @@ export interface RetirementKpis {
   /** What the user wants to spend each month in retirement; null when none is entered. */
   plannedMonthlySpending: number | null;
   /**
-   * The share of the spendable savings the plan draws in its first drawing year, before tax.
-   * The plan's income is the largest the savings can sustain, so this is the rate they can
-   * support to the end of the planning horizon. Null when no savings are spendable then.
+   * What the planned spending asks of the savings in the first drawing year: the draw, before
+   * tax, as a share of the savings that can be spent then. Pension and state income that have
+   * started reduce it; it passes 100% when the spending is more than the spendable savings can
+   * pay. Null when no spending is planned or no savings are spendable then.
    */
   withdrawalRate: number | null;
   /** Monthly income paid from the pension, provident and managers-insurance accounts. */
@@ -48,21 +49,26 @@ export function calculateRetirementKpis(
   const household = buildHousehold(profile, timing);
   const income = estimateHouseholdRetirementIncome(household);
 
-  const rows = simulateHouseholdDrawdown(household, income.monthlyIncomeTodayMoney, { lean: true });
   // Drawing starts in the first year at or after retirement, and never in year 0 (today).
-  const firstDrawingRow = rows[Math.max(1, Math.ceil(household.retirementYears))];
+  const firstDrawingIndex = Math.max(1, Math.ceil(household.retirementYears));
+  const desiredSpending = desiredRetirementMonthly(profile.expenses);
+  const plannedMonthlySpending = desiredSpending !== null && desiredSpending > 0 ? desiredSpending : null;
+  const plannedRow =
+    plannedMonthlySpending === null
+      ? undefined
+      : simulateHouseholdDrawdown(household, plannedMonthlySpending, { lean: true })[firstDrawingIndex];
+  // What the spending asks for, not what the savings can pay: the unmet part counts too.
   const withdrawalRate =
-    firstDrawingRow && firstDrawingRow.spendable > 0
-      ? firstDrawingRow.drawn / firstDrawingRow.spendable
+    plannedRow && plannedRow.spendable > 0
+      ? (plannedRow.drawn + plannedRow.unmet) / plannedRow.spendable
       : null;
 
   const points = estimateIncomeBreakdownForTiming(profile, timing);
   const firstPension = points.find((point) => pensionBands(point) > 0);
   const firstStateBenefit = points.find((point) => point.bituachLeumi > 0);
-  const desiredSpending = desiredRetirementMonthly(profile.expenses);
 
   return {
-    plannedMonthlySpending: desiredSpending !== null && desiredSpending > 0 ? desiredSpending : null,
+    plannedMonthlySpending,
     withdrawalRate,
     pension: {
       monthly: firstPension ? pensionBands(firstPension) : 0,

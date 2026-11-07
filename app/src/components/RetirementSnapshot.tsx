@@ -60,7 +60,11 @@ export function RetirementSnapshot({ kpis, irregularMonthly }: RetirementSnapsho
                   maximumFractionDigits: 1,
                 })
           }
-          note={t("dashboard.snapshot.withdrawalRateNote")}
+          note={t(
+            withdrawalRate === null
+              ? "dashboard.snapshot.withdrawalRateUnavailable"
+              : "dashboard.snapshot.withdrawalRateNote",
+          )}
         />
         <KpiCard
           label={t("dashboard.snapshot.pension")}
