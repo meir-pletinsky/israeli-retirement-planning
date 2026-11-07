@@ -4,6 +4,7 @@ import { useProfile } from "../../app/ProfileContext";
 import { CheckboxField } from "../../components/fields/CheckboxField";
 import { CollapsibleSection } from "../../components/CollapsibleSection";
 import { suggestedRetirementAge } from "../../domain/bituachLeumi";
+import { DEFAULT_RETIREMENT_AGE } from "../../domain/constants";
 import { NumberField } from "../../components/fields/NumberField";
 import { SelectField } from "../../components/fields/SelectField";
 import type { Gender } from "../../types";
@@ -65,9 +66,11 @@ export function SpouseSection({ error }: SpouseSectionProps) {
             ]}
           />
           <NumberField
+            id="spouse-retirement-age"
             label={t(`${prefix}.spouseRetirementAge`)}
             importance="required"
             helperText={t(`${prefix}.spouseRetirementAgeHelper`)}
+            placeholder={t("myData.assumedIfEmpty", { age: DEFAULT_RETIREMENT_AGE })}
             value={spouse.retirementAge}
             onChange={(retirementAge) => updateSpouse({ retirementAge })}
             min={18}

@@ -74,6 +74,17 @@ export function resolveSpouseRetirementAge(
   return shiftRetirementAge(profile.spouse.retirementAge ?? DEFAULT_RETIREMENT_AGE, scenario);
 }
 
+/**
+ * Who is being planned with the default retirement age because none was entered. The spouse
+ * counts only while the plan covers one. Used to say so wherever the age shapes a figure.
+ */
+export function assumedRetirementAges(profile: ProfileData): { self: boolean; spouse: boolean } {
+  return {
+    self: profile.personal.retirementAge === null,
+    spouse: isHouseholdActive(profile) && profile.spouse.retirementAge === null,
+  };
+}
+
 /** When one person retires: the age, and the whole years from now (floored at 0). */
 export interface PersonRetirementTiming {
   retirementAge: number;

@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 
 import { useProfile } from "../app/ProfileContext";
 import { ActiveAssumptions } from "../components/ActiveAssumptions";
+import { AssumedRetirementAgeBanner } from "../components/AssumedRetirementAgeBanner";
 import { PathEventsList } from "../components/BalancePathNotes";
 import { BituachLeumiCard } from "../components/BituachLeumiCard";
 import { BudgetCard } from "../components/BudgetCard";
@@ -27,6 +28,7 @@ import {
   MAX_PLANNING_AGE,
   MAX_RETIREMENT_SEARCH_AGE,
   aggregateCurrentNetWorth,
+  assumedRetirementAges,
   breakdownPortfolio,
   calculateFundingGap,
   calculateRetirementKpis,
@@ -101,6 +103,9 @@ export function Dashboard() {
   const coverNotices = findCoverNotices(profile);
   const money = (amount: number) => `${currencySymbol}${amount.toLocaleString()}`;
   const timing = retirementWhen(profile, "standard");
+  const assumedAges = assumedRetirementAges(profile);
+  const ageText = (age: number, assumed: boolean) =>
+    assumed ? t("dashboard.kpi.ageAssumed", { age: formatAge(age) }) : formatAge(age);
   const yearsAway = (yearsToGo: number) =>
     yearsToGo === 0
       ? t("dashboard.kpi.retiringNow")
@@ -109,6 +114,8 @@ export function Dashboard() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-semibold text-slate-900">{t("dashboard.title")}</h1>
+
+      <AssumedRetirementAgeBanner />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <KpiCard
@@ -210,7 +217,7 @@ export function Dashboard() {
             <div className="flex flex-col gap-1">
               <p>
                 {t("dashboard.kpi.retirementSelf", {
-                  age: formatAge(timing.self.retirementAge),
+                  age: ageText(timing.self.retirementAge, assumedAges.self),
                   away: yearsAway(timing.self.yearsToGo),
                 })}
               </p>
@@ -218,7 +225,7 @@ export function Dashboard() {
                 <>
                   <p>
                     {t("dashboard.kpi.retirementSpouse", {
-                      age: formatAge(timing.spouse.retirementAge),
+                      age: ageText(timing.spouse.retirementAge, assumedAges.spouse),
                       away: yearsAway(timing.spouse.yearsToGo),
                     })}
                   </p>

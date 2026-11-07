@@ -4,6 +4,7 @@ import { desiredRetirementMonthly } from "./expenses";
 import {
   accountsInPlan,
   aggregateCurrentNetWorth,
+  assumedRetirementAges,
   isHouseholdActive,
   ownAccounts,
   spouseAccounts,
@@ -14,6 +15,8 @@ import {
  * result. Each gap names the My Data step where it is fixed.
  */
 export type DataGapId =
+  | "retirementAge"
+  | "spouseRetirementAge"
   | "retirementSpending"
   | "noSavings"
   | "spouseMissing"
@@ -49,9 +52,11 @@ function totalRatePercent(account: PensionAccount): number {
 
 /**
  * Lists the optional inputs that are missing and would change the result,
- * most important first. Age and retirement age are not listed: the Personal
- * step will not continue without them. Spouse gaps appear only while the plan
- * covers a spouse, so a single person never sees them.
+ * most important first. Age is not listed: the Personal step will not
+ * continue without it. A missing retirement age is: the plan falls back to a
+ * default one, so every figure would otherwise rest on it unannounced. Spouse
+ * gaps appear only while the plan covers a spouse, so a single person never
+ * sees them.
  */
 export function findDataGaps(profile: ProfileData): DataGap[] {
   const gaps: DataGap[] = [];
@@ -60,12 +65,15 @@ export function findDataGaps(profile: ProfileData): DataGap[] {
   };
 
   const isCouple = isHouseholdActive(profile);
+  const assumed = assumedRetirementAges(profile);
   const counted = accountsInPlan(profile).filter(hasBalance);
   const own = ownAccounts(profile);
   const spouse = spouseAccounts(profile);
   const ownSalary = profile.personal.monthlyGrossSalary ?? 0;
   const spouseSalary = profile.spouse.monthlyGrossSalary ?? 0;
 
+  if (assumed.self) add("retirementAge", "personal");
+  if (assumed.spouse) add("spouseRetirementAge", "personal");
   if ((desiredRetirementMonthly(profile.expenses) ?? 0) <= 0) add("retirementSpending", "expenses");
   if (aggregateCurrentNetWorth(profile) <= 0) add("noSavings", "pension-savings");
   if (profile.personal.maritalStatus === "married" && !isCouple) add("spouseMissing", "personal");

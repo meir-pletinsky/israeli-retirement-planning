@@ -190,6 +190,7 @@
       "yearsToHouseholdRetirement": "Years until your household retires",
       "retirementSelf": "Your retirement: age {{age}}, {{away}}",
       "retirementSpouse": "Your spouse's retirement: age {{age}}, {{away}}",
+      "ageAssumed": "{{age}} (assumed)",
       "householdTimingNote": "Counted until the later of the two.",
       "retiringNow": "now",
       "yearsAway_one": "in 1 year",
@@ -242,6 +243,8 @@
       "intro": "Optional details that would change your result. Your estimate already works without them.",
       "goTo": "Open {{step}}",
       "items": {
+        "retirementAge": "No retirement age entered, so every figure assumes {{age}}.",
+        "spouseRetirementAge": "No retirement age entered for your spouse, so every figure assumes {{age}} for them.",
         "retirementSpending": "No expected retirement spending: the funding gap, plan status and earliest retirement age can't be worked out.",
         "noSavings": "No savings entered yet, so the projection starts from zero.",
         "spouseMissing": "You are marked as married but your spouse's age is empty, so the plan covers only you.",
@@ -363,6 +366,7 @@
       },
       "moreDetails": "More details"
     },
+    "assumedIfEmpty": "{{age}} if empty",
     "validation": {
       "required": "This field is required.",
       "summary": "Some required details need fixing before you can continue. The first one is highlighted.",
@@ -857,6 +861,13 @@
         }
       }
     }
+  },
+  "assumedRetirementAge": {
+    "label": "Assumed retirement age",
+    "self": "Using an assumed retirement age of {{age}}, because you haven't entered yours.",
+    "spouse": "Using an assumed retirement age of {{age}} for your spouse, because you haven't entered theirs.",
+    "setSelf": "Set your retirement age",
+    "setSpouse": "Set your spouse's retirement age"
   },
   "assumptionsSummary": {
     "label": "Assumptions in use",

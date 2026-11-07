@@ -1,7 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
-import type { DataGap, DataGapStep } from "../domain";
+import { DEFAULT_RETIREMENT_AGE, type DataGap, type DataGapId, type DataGapStep } from "../domain";
+import { RETIREMENT_AGE_TARGET } from "./retirementAgeTargets";
 
 interface DataGapsCardProps {
   gaps: DataGap[];
@@ -11,6 +12,12 @@ const STEP_LABEL_KEYS: Record<DataGapStep, string> = {
   personal: "myData.steps.personal.label",
   "pension-savings": "myData.steps.pensionSavings.label",
   expenses: "myData.steps.expenses.label",
+};
+
+/** Gaps that open the page at their own field rather than at the top of the step. */
+const FIELD_TARGETS: Partial<Record<DataGapId, string>> = {
+  retirementAge: RETIREMENT_AGE_TARGET.self,
+  spouseRetirementAge: RETIREMENT_AGE_TARGET.spouse,
 };
 
 /** Optional inputs that are missing and would change the estimate, each linking to where it is entered. */
@@ -34,9 +41,14 @@ export function DataGapsCard({ gaps }: DataGapsCardProps) {
       <ul className="mt-3 flex flex-col gap-2">
         {gaps.map((gap) => (
           <li key={gap.id} className="flex flex-col gap-0.5 text-sm text-slate-700 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
-            <span>{t(`dashboard.gaps.items.${gap.id}`, { count: gap.count })}</span>
+            <span>
+              {t(`dashboard.gaps.items.${gap.id}`, {
+                count: gap.count,
+                age: DEFAULT_RETIREMENT_AGE,
+              })}
+            </span>
             <Link
-              to={`/my-data/${gap.step}`}
+              to={FIELD_TARGETS[gap.id] ?? `/my-data/${gap.step}`}
               className="shrink-0 text-xs font-medium text-brand-700 hover:underline"
             >
               {t("dashboard.gaps.goTo", { step: t(STEP_LABEL_KEYS[gap.step]) })}

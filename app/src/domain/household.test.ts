@@ -14,6 +14,7 @@ import { estimateIncomeBreakdownForTiming } from "./incomeBreakdown";
 import {
   aggregateCurrentNetWorth,
   aggregatePensionBalance,
+  assumedRetirementAges,
   isHouseholdActive,
   retirementWhen,
   yearsToRetirement,
@@ -153,6 +154,29 @@ describe("retirement timing", () => {
       spouse: null,
       householdYears: 0,
     });
+  });
+
+  it("names who is planned with the default retirement age because none was entered", () => {
+    const entered = buildTestProfile({
+      age: 50,
+      retirementAge: 60,
+      ...MARRIED,
+      spouse: { age: 40, retirementAge: 67 },
+    });
+    expect(assumedRetirementAges(entered)).toEqual({ self: false, spouse: false });
+
+    const bothMissing = buildTestProfile({ age: 50, ...MARRIED, spouse: { age: 40 } });
+    expect(assumedRetirementAges(bothMissing)).toEqual({ self: true, spouse: true });
+
+    const spouseMissing = buildTestProfile({ age: 50, retirementAge: 60, ...MARRIED, spouse: { age: 40 } });
+    expect(assumedRetirementAges(spouseMissing)).toEqual({ self: false, spouse: true });
+  });
+
+  it("never reports a spouse the plan does not cover as assumed", () => {
+    const noSpouseAge = buildTestProfile({ age: 50, retirementAge: 60, ...MARRIED });
+    expect(assumedRetirementAges(noSpouseAge)).toEqual({ self: false, spouse: false });
+    const single = buildTestProfile({ age: 50, maritalStatus: "single", spouse: { age: 40 } });
+    expect(assumedRetirementAges(single)).toEqual({ self: true, spouse: false });
   });
 });
 

@@ -18,6 +18,12 @@ describe("findDataGaps", () => {
     expect(gaps).toEqual(["retirementSpending", "noSavings", "gender"]);
   });
 
+  it("lists a missing retirement age first, since the default it falls back on shapes every figure", () => {
+    const gaps = findDataGaps(buildTestProfile({ age: 40, gender: "male" }));
+    expect(gaps.map((gap) => gap.id)).toEqual(["retirementAge", "retirementSpending", "noSavings"]);
+    expect(gaps[0]).toMatchObject({ step: "personal", count: 1 });
+  });
+
   it("reports nothing for a complete single-person profile", () => {
     const profile = buildTestProfile({
       age: 40,
@@ -194,6 +200,19 @@ describe("findDataGaps", () => {
         pensionAccountOverrides: [ACTIVE, { ...ACTIVE, owner: "spouse" }],
       });
       expect(ids(profile)).toEqual(["spouseSalary", "spouseGender"]);
+    });
+
+    it("flags a spouse retirement age left empty, but only once the spouse is in the plan", () => {
+      const noSpouseAge = buildTestProfile({ ...couple, pensionBalances: [100_000] });
+      expect(ids(noSpouseAge)).not.toContain("spouseRetirementAge");
+
+      const profile = buildTestProfile({
+        ...couple,
+        spouse: { age: 38, gender: "female", monthlyGrossSalary: 12_000 },
+        pensionBalances: [100_000],
+        pensionAccountOverrides: [ACTIVE],
+      });
+      expect(ids(profile)).toEqual(["spouseRetirementAge"]);
     });
 
     it("is complete when both spouses are filled in", () => {

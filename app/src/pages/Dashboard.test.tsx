@@ -838,6 +838,35 @@ describe("Dashboard", () => {
       expect(screen.queryByText("Years until your household retires")).not.toBeInTheDocument();
     });
 
+    it("marks the retirement age as assumed, and says so above the figures, while none is entered", async () => {
+      await seed(buildTestProfile({ age: 60, ...zeroRealReturn }));
+
+      renderWithProviders(<Dashboard />);
+
+      const kpi = (await screen.findByText("Years to Retirement")).parentElement as HTMLElement;
+      expect(within(kpi).getByText("Your retirement: age 67 (assumed), in 7 years")).toBeInTheDocument();
+      const banner = screen.getByRole("note", { name: "Assumed retirement age" });
+      expect(within(banner).getByRole("link", { name: "Set your retirement age" })).toHaveAttribute(
+        "href",
+        "/my-data/personal#retirement-age",
+      );
+      const gaps = screen.getByRole("region", { name: "Improve your estimate" });
+      expect(
+        within(gaps).getByText("No retirement age entered, so every figure assumes 67."),
+      ).toBeInTheDocument();
+    });
+
+    it("shows no assumption notice once the retirement age is entered", async () => {
+      await seed(buildTestProfile({ age: 60, retirementAge: 65, ...zeroRealReturn }));
+
+      renderWithProviders(<Dashboard />);
+
+      const kpi = (await screen.findByText("Years to Retirement")).parentElement as HTMLElement;
+      expect(within(kpi).getByText("Your retirement: age 65, in 5 years")).toBeInTheDocument();
+      expect(screen.queryByRole("note", { name: "Assumed retirement age" })).not.toBeInTheDocument();
+      expect(screen.queryByText(/assumed/i)).not.toBeInTheDocument();
+    });
+
     it("keeps the single-person feasibility card unchanged", async () => {
       await seed(
         buildTestProfile({

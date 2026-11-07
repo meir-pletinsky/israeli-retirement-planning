@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { useProfile } from "../app/ProfileContext";
 import { ActiveAssumptions } from "../components/ActiveAssumptions";
+import { AssumedRetirementAgeBanner } from "../components/AssumedRetirementAgeBanner";
 import { BalanceTable, PathEventsList } from "../components/BalancePathNotes";
 import { BudgetCard } from "../components/BudgetCard";
 import { IncomeBreakdownChart } from "../components/charts/IncomeBreakdownChart";
@@ -118,6 +119,8 @@ export function Projections() {
       <h1 className="text-xl font-semibold text-slate-900">
         {t("projections.title")}
       </h1>
+
+      <AssumedRetirementAgeBanner />
 
       <ActiveAssumptions assumptions={profile.assumptions} />
 

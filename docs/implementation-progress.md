@@ -2184,6 +2184,16 @@ of its section 10 (UXB-14 is skipped on request).
       `SummaryTable` puts its `id` on its section and `NumberField` takes an `id`; the new
       scroll handling (UXB-06) does the rest. Tests: `components/portfolioInputTargets.test.tsx`
       checks that every target exists on the step it names; `Dashboard.test.tsx` checks the links.
+- [x] **UXB-05 A retirement age the user never entered is no longer presented as theirs.**
+      While `personal.retirementAge` is empty (or the spouse's, while the plan covers one) the
+      plan still falls back to 67, but now says so: a banner above the Dashboard and Projections
+      figures ("Using an assumed retirement age of 67", linking to the field), "67 (assumed)" in
+      the "Years to Retirement" note, a first "Improve your estimate" item (`retirementAge` /
+      `spouseRetirementAge` in `findDataGaps`) and a "67 if empty" placeholder on the field.
+      `assumedRetirementAges` (`domain/profileBasics.ts`) decides who is assumed; the links go to
+      the new field ids via `components/retirementAgeTargets.ts` (the spouse's opens the partner
+      tab). `NumberField` gained a `placeholder`. Tests: `household.test.ts`,
+      `inputGuidance.test.ts`, `AssumedRetirementAgeBanner.test.tsx`, `Dashboard.test.tsx`.
 
 ## Modeling assumptions (by phase)
 

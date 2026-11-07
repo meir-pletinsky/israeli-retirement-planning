@@ -5,6 +5,7 @@ import { useProfile } from "../../app/ProfileContext";
 import { CheckboxField } from "../../components/fields/CheckboxField";
 import { CollapsibleSection } from "../../components/CollapsibleSection";
 import { suggestedRetirementAge } from "../../domain/bituachLeumi";
+import { DEFAULT_RETIREMENT_AGE } from "../../domain/constants";
 import { NumberField } from "../../components/fields/NumberField";
 import { SelectField } from "../../components/fields/SelectField";
 import type { Gender, MaritalStatus } from "../../types";
@@ -156,8 +157,10 @@ export function PersonalStep() {
         )}
       </p>
       <NumberField
+        id="retirement-age"
         label={t("myData.steps.personal.retirementAge")}
         importance="required"
+        placeholder={t("myData.assumedIfEmpty", { age: DEFAULT_RETIREMENT_AGE })}
         value={personal.retirementAge}
         onChange={(retirementAge) =>
           updateProfile({ personal: { ...personal, retirementAge } })

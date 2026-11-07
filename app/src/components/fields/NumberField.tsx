@@ -14,6 +14,8 @@ interface NumberFieldProps {
   min?: number;
   max?: number;
   step?: number;
+  /** Shown while the field is empty, e.g. the value used when none is entered. */
+  placeholder?: string;
   error?: string;
 }
 
@@ -28,6 +30,7 @@ export function NumberField({
   min,
   max,
   step,
+  placeholder,
   error,
 }: NumberFieldProps) {
   const messageId = useId();
@@ -49,6 +52,7 @@ export function NumberField({
             min={min}
             max={max}
             step={step}
+            placeholder={placeholder}
             value={value ?? ""}
             aria-required={importance === "required" || undefined}
             aria-invalid={error ? true : undefined}

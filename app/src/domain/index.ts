@@ -33,7 +33,12 @@ export * from "./sourceCosts";
 export * from "./stressTests";
 export * from "./tax";
 export * from "./taxRates";
-export { resolveCurrentAge, retirementWhen, type RetirementWhen } from "./profileBasics";
+export {
+  assumedRetirementAges,
+  resolveCurrentAge,
+  retirementWhen,
+  type RetirementWhen,
+} from "./profileBasics";
 export * from "./timeline";
 export * from "./trace";
 export * from "./traceCheck";
