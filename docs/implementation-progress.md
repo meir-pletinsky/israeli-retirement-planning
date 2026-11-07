@@ -2422,6 +2422,23 @@ of its section 10 (UXB-14 is skipped on request).
       Dashboard keeps its single net-worth line. Tests: `cashFlow.test.ts`, `csv.test.ts`,
       `CashFlowCard.test.tsx`, `BalancesByKindChart.test.tsx`, `RetirementTimeline.test.tsx`,
       `chartTakeaways.test.tsx`, `Projections.test.tsx`.
+- [x] **UXB-08 "Other Investments" pool: what it holds, what can be spent, and in what
+      currency** (bounded). The projection's `otherInvestments` source is renamed everywhere to
+      "Investments (deposits, shares, cash)" (en/he/ru; `projections.sourceInvestments`), and
+      the bank-deposits and pool notes use that name. The Dashboard "What you have" card
+      (`PortfolioSummaryCard`, `domain/portfolioBreakdown.ts`) now groups its rows as "Usable now"
+      and "Locked for now", each with a subtotal, per account: an account is locked when
+      `accountUnlockAge` is above its owner's age, so one row (e.g. provident funds) can span both
+      groups, and the groups always add up to the total. A locked row says "opens at age N" (the
+      earliest unlock among its accounts, shown in the primary user's age). Shares (private and
+      employer) carry a `$` marker, with a line giving the shekel amount and share of the total
+      that is priced in dollars; the unvested note starts with "Not yet yours." A note says every
+      asset is assumed to grow at the plan's single return (`profile.assumptions
+      .investmentReturnPct`), with a link to the assumptions. Not built (needs a modeling
+      decision, see UXB-09): a true per-holding drawdown (sub-pools, per-holding exhaustion and
+      withdrawals), a per-asset return and the interim "illustrative split" of the pool's yearly
+      balance. Tests: `portfolioBreakdown.test.ts`, `Dashboard.test.tsx`, `Projections.test.tsx`,
+      `localeParity.test.ts`.
 
 ## Modeling assumptions (by phase)
 

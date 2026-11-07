@@ -5,9 +5,11 @@ import {
   aggregateCurrentNetWorth,
   holdingValueIls,
   isHouseholdActive,
+  resolveCurrentAge,
+  resolveSpouseCurrentAge,
   usdToIlsRate,
 } from "./profileBasics";
-import { sourceKindForCategory } from "./sources";
+import { accountUnlockAge, sourceKindForCategory } from "./sources";
 import { engineNowMs } from "./trace";
 import { isEmployerGrant, vestedQuantityAt } from "./vesting";
 
@@ -33,10 +35,35 @@ export const PORTFOLIO_ROW_KEYS: readonly PortfolioRowKey[] = [
   "cashAndOther",
 ];
 
+/** Shares are priced in dollars, so their shekel value moves with the exchange rate. */
+const DOLLAR_PRICED_ROWS: ReadonlySet<PortfolioRowKey> = new Set(["privateShares", "employerShares"]);
+
 export interface PortfolioRow {
   key: PortfolioRowKey;
   /** Whole shekels. */
   amount: number;
+  /** Priced in US dollars and converted at the exchange rate. */
+  dollarPriced: boolean;
+}
+
+/** Whether the money can be spent today or is locked until an age. */
+export type PortfolioAccessKey = "usableNow" | "locked";
+
+export interface PortfolioGroupRow {
+  key: PortfolioRowKey;
+  /** Whole shekels. */
+  amount: number;
+  dollarPriced: boolean;
+  /** Locked rows: the primary user's age when the first of their locked accounts opens, to the nearest year. */
+  opensAtAge: number | null;
+}
+
+/** The part of Net Worth Today that can be spent now, or is locked, with its rows. */
+export interface PortfolioGroup {
+  key: PortfolioAccessKey;
+  /** Whole shekels; the groups add up to `total`. */
+  amount: number;
+  rows: PortfolioGroupRow[];
 }
 
 export interface PortfolioFxBasis {
@@ -49,6 +76,10 @@ export interface PortfolioFxBasis {
 export interface PortfolioBreakdown {
   /** The non-empty rows. They add up to `total` exactly. */
   rows: PortfolioRow[];
+  /** The same rows split by whether the money is usable now; empty groups are left out. */
+  groups: PortfolioGroup[];
+  /** Total of the rows that are priced in dollars. */
+  dollarPriced: number;
   /** `aggregateCurrentNetWorth`, in whole shekels. */
   total: number;
   /** Value of employer shares that have not vested yet, which Net Worth Today leaves out. */
@@ -62,7 +93,9 @@ export interface PortfolioBreakdown {
 /**
  * Splits Net Worth Today into the kinds of assets it counts. It uses the same pieces as
  * `aggregateCurrentNetWorth`, so the rows add up to that figure: whole-shekel rounding is
- * settled on the largest row rather than leaving the list a shekel off its total.
+ * settled on the largest row rather than leaving the list a shekel off its total. The same
+ * rows are also split by access (`groups`): an account is usable now when the age it opens at
+ * has passed for its owner, and locked until then.
  */
 export function breakdownPortfolio(profile: ProfileData): PortfolioBreakdown {
   const nowMs = engineNowMs();
@@ -81,11 +114,33 @@ export function breakdownPortfolio(profile: ProfileData): PortfolioBreakdown {
     employerShares: 0,
     cashAndOther: profile.pensionSavings.otherAssets ?? 0,
   };
+  const lockedAmounts: Record<PortfolioRowKey, number> = {
+    pensionFund: 0,
+    providentFund: 0,
+    managersInsurance: 0,
+    studyFund: 0,
+    bankDeposits: 0,
+    privateShares: 0,
+    employerShares: 0,
+    cashAndOther: 0,
+  };
+  const opensAt: Partial<Record<PortfolioRowKey, number>> = {};
+  const primaryAge = resolveCurrentAge(profile);
 
   for (const account of accountsInPlan(profile)) {
     const kind = sourceKindForCategory(account.productCategory);
+    const key: PortfolioRowKey = kind === "otherInvestments" ? "cashAndOther" : kind;
+    const balance = account.totalAccumulatedBalance ?? 0;
     // An account is never an "other investments" source; the fallback only keeps the rows summing to the total.
-    amounts[kind === "otherInvestments" ? "cashAndOther" : kind] += account.totalAccumulatedBalance ?? 0;
+    amounts[key] += balance;
+
+    const ownerAge = account.owner === "spouse" ? resolveSpouseCurrentAge(profile) : primaryAge;
+    const unlockAge = accountUnlockAge(account, ownerAge);
+    if (balance > 0 && unlockAge > ownerAge) {
+      lockedAmounts[key] += balance;
+      const opensAtYourAge = Math.round(primaryAge + (unlockAge - ownerAge));
+      opensAt[key] = Math.min(opensAt[key] ?? opensAtYourAge, opensAtYourAge);
+    }
   }
 
   let unvestedEmployerShares = 0;
@@ -104,14 +159,40 @@ export function breakdownPortfolio(profile: ProfileData): PortfolioBreakdown {
   }
 
   const total = Math.round(aggregateCurrentNetWorth(profile));
-  const rows = PORTFOLIO_ROW_KEYS.map((key) => ({ key, amount: Math.round(amounts[key]) })).filter(
-    (row) => row.amount > 0,
-  );
+  const rows: PortfolioRow[] = PORTFOLIO_ROW_KEYS.map((key) => ({
+    key,
+    amount: Math.round(amounts[key]),
+    dollarPriced: DOLLAR_PRICED_ROWS.has(key),
+  })).filter((row) => row.amount > 0);
   const rounding = total - rows.reduce((sum, row) => sum + row.amount, 0);
   if (rounding !== 0 && rows.length > 0) {
     const largest = rows.reduce((best, row) => (row.amount > best.amount ? row : best));
     largest.amount += rounding;
   }
+
+  const lockedRows: PortfolioGroupRow[] = [];
+  const usableRows: PortfolioGroupRow[] = [];
+  for (const row of rows) {
+    const locked = Math.min(Math.round(lockedAmounts[row.key]), row.amount);
+    if (locked > 0) {
+      lockedRows.push({ ...row, amount: locked, opensAtAge: opensAt[row.key] ?? null });
+    }
+    if (row.amount - locked > 0) {
+      usableRows.push({ ...row, amount: row.amount - locked, opensAtAge: null });
+    }
+  }
+  const groups: PortfolioGroup[] = (
+    [
+      { key: "usableNow", rows: usableRows },
+      { key: "locked", rows: lockedRows },
+    ] as const
+  )
+    .filter((group) => group.rows.length > 0)
+    .map((group) => ({
+      key: group.key,
+      amount: group.rows.reduce((sum, row) => sum + row.amount, 0),
+      rows: group.rows,
+    }));
 
   const { usdToIlsRate: storedRate, usdToIlsRateDate } = profile.equity;
   const fx: PortfolioFxBasis | null =
@@ -125,6 +206,8 @@ export function breakdownPortfolio(profile: ProfileData): PortfolioBreakdown {
 
   return {
     rows,
+    groups,
+    dollarPriced: rows.filter((row) => row.dollarPriced).reduce((sum, row) => sum + row.amount, 0),
     total,
     unvestedEmployerShares: Math.round(unvestedEmployerShares),
     fx,

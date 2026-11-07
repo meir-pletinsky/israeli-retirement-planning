@@ -2,19 +2,31 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
 import { formatDate, type PortfolioBreakdown } from "../domain";
+import { formatPercent } from "../pages/MyData/summaryFormat";
 import { PORTFOLIO_KIND_COLORS } from "./charts/portfolioColors";
 import { PORTFOLIO_INPUT_TARGET } from "./portfolioInputTargets";
 
 /** The anchor the Net Worth Today figure on the Dashboard links to. */
 const PORTFOLIO_SUMMARY_ID = "portfolio-summary";
 
+/** Keeps digits reading left to right when inserted into a right-to-left sentence. */
+const isolate = (text: string) => `\u2066${text}\u2069`;
+
 /**
  * What you have: Net Worth Today, drawn as one bar split by kind of asset, and the same split as
- * rows that add up to the figure (the rows are the bar's legend). Employer shares that have not
- * vested are listed apart as left out, with the exchange rate that turned dollar share prices
- * into shekels.
+ * rows that add up to the figure (the rows are the bar's legend). The rows are grouped by whether
+ * the money can be spent now or is locked until an age, and shares carry a dollar marker. Employer
+ * shares that have not vested are listed apart as left out, with the exchange rate that turned
+ * dollar share prices into shekels. `returnPct` is the one yearly return the plan assumes for
+ * every row.
  */
-export function PortfolioSummaryCard({ portfolio }: { portfolio: PortfolioBreakdown }) {
+export function PortfolioSummaryCard({
+  portfolio,
+  returnPct,
+}: {
+  portfolio: PortfolioBreakdown;
+  returnPct?: number;
+}) {
   const { t } = useTranslation();
   const currencySymbol = t("common.currencySymbol");
   const money = (amount: number) => `${currencySymbol}${amount.toLocaleString()}`;
@@ -66,34 +78,64 @@ export function PortfolioSummaryCard({ portfolio }: { portfolio: PortfolioBreakd
             <th scope="col">{t("dashboard.portfolio.share")}</th>
           </tr>
         </thead>
-        <tbody>
-          {portfolio.rows.map((row) => (
-            <tr key={row.key} className="border-t border-slate-100">
-              <th scope="row" className="py-2 pe-3 text-start font-normal text-slate-700">
-                <span
-                  aria-hidden="true"
-                  className="me-2 inline-block h-2.5 w-2.5 rounded-sm align-baseline"
-                  style={{ backgroundColor: PORTFOLIO_KIND_COLORS[row.key] }}
-                />
-                <Link
-                  to={PORTFOLIO_INPUT_TARGET[row.key]}
-                  className="font-medium text-brand-700 hover:underline"
-                >
-                  {t(`dashboard.portfolio.rows.${row.key}`)}
-                </Link>
+        {portfolio.groups.map((group) => (
+          <tbody key={group.key}>
+            <tr className="border-t border-slate-200 bg-slate-50">
+              <th scope="rowgroup" className="py-1.5 ps-2 pe-3 text-start text-xs font-semibold text-slate-700">
+                {t(`dashboard.portfolio.groups.${group.key}`)}{" "}
+                <span className="font-normal text-slate-500">
+                  {t(`dashboard.portfolio.groups.${group.key}Note`)}
+                </span>
               </th>
-              <td className="py-2 text-end tabular-nums text-slate-900">
-                <span dir="ltr">{money(row.amount)}</span>
+              <td className="py-1.5 text-end text-xs font-semibold tabular-nums text-slate-700">
+                <span dir="ltr">{money(group.amount)}</span>
               </td>
-              <td className="w-14 py-2 ps-3 text-end text-xs tabular-nums text-slate-500">
-                <span dir="ltr">{percentText(shareOf(row.amount))}</span>
+              <td className="w-14 py-1.5 ps-3 pe-2 text-end text-xs tabular-nums text-slate-500">
+                <span dir="ltr">{percentText(shareOf(group.amount))}</span>
               </td>
             </tr>
-          ))}
-        </tbody>
+            {group.rows.map((row) => (
+              <tr key={row.key} className="border-t border-slate-100">
+                <th scope="row" className="py-2 ps-2 pe-3 text-start font-normal text-slate-700">
+                  <span
+                    aria-hidden="true"
+                    className="me-2 inline-block h-2.5 w-2.5 rounded-sm align-baseline"
+                    style={{ backgroundColor: PORTFOLIO_KIND_COLORS[row.key] }}
+                  />
+                  <Link
+                    to={PORTFOLIO_INPUT_TARGET[row.key]}
+                    className="font-medium text-brand-700 hover:underline"
+                  >
+                    {t(`dashboard.portfolio.rows.${row.key}`)}
+                  </Link>
+                  {row.dollarPriced && (
+                    <span
+                      title={t("dashboard.portfolio.dollarPriced")}
+                      className="ms-2 rounded bg-slate-100 px-1 text-xs font-medium text-slate-600"
+                    >
+                      <span aria-hidden="true">$</span>
+                      <span className="sr-only">{t("dashboard.portfolio.dollarPriced")}</span>
+                    </span>
+                  )}
+                  {row.opensAtAge !== null && (
+                    <span className="ms-2 text-xs text-slate-500">
+                      {t("dashboard.portfolio.opensAt", { age: isolate(String(row.opensAtAge)) })}
+                    </span>
+                  )}
+                </th>
+                <td className="py-2 text-end tabular-nums text-slate-900">
+                  <span dir="ltr">{money(row.amount)}</span>
+                </td>
+                <td className="w-14 py-2 ps-3 pe-2 text-end text-xs tabular-nums text-slate-500">
+                  <span dir="ltr">{percentText(shareOf(row.amount))}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        ))}
         <tfoot>
           <tr className="border-t border-slate-300 font-semibold text-slate-900">
-            <th scope="row" className="py-2 pe-3 text-start">
+            <th scope="row" className="py-2 ps-2 pe-3 text-start">
               {t("dashboard.portfolio.total")}
             </th>
             <td className="py-2 text-end tabular-nums">
@@ -103,7 +145,6 @@ export function PortfolioSummaryCard({ portfolio }: { portfolio: PortfolioBreakd
           </tr>
         </tfoot>
       </table>
-
 
       <div className="mt-2 flex flex-col gap-1 text-xs text-slate-500">
         {portfolio.includesSpouse && <p>{t("dashboard.portfolio.householdNote")}</p>}
@@ -117,7 +158,18 @@ export function PortfolioSummaryCard({ portfolio }: { portfolio: PortfolioBreakd
         )}
         {portfolio.unvestedEmployerShares > 0 && (
           <p>
+            <span className="font-semibold text-slate-700">
+              {t("dashboard.portfolio.groups.unvested")}.
+            </span>{" "}
             {t("dashboard.portfolio.unvested", { amount: money(portfolio.unvestedEmployerShares) })}
+          </p>
+        )}
+        {portfolio.dollarPriced > 0 && (
+          <p>
+            {t("dashboard.portfolio.dollarShare", {
+              amount: isolate(money(portfolio.dollarPriced)),
+              percent: isolate(percentText(shareOf(portfolio.dollarPriced))),
+            })}
           </p>
         )}
         {fx && (
@@ -128,6 +180,14 @@ export function PortfolioSummaryCard({ portfolio }: { portfolio: PortfolioBreakd
             })}{" "}
             <Link to="/my-data/equity" className="font-medium text-brand-700 hover:underline">
               {t("dashboard.portfolio.fx.change")}
+            </Link>
+          </p>
+        )}
+        {returnPct !== undefined && (
+          <p>
+            {t("dashboard.portfolio.returnNote", { returnPct: isolate(formatPercent(returnPct)) })}{" "}
+            <Link to="/my-data/assumptions" className="font-medium text-brand-700 hover:underline">
+              {t("assumptionsSummary.change")}
             </Link>
           </p>
         )}

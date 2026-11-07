@@ -323,7 +323,10 @@ export function Dashboard() {
       </div>
 
       <div className="grid items-start gap-6 xl:grid-cols-2">
-        <PortfolioSummaryCard portfolio={breakdownPortfolio(profile)} />
+        <PortfolioSummaryCard
+          portfolio={breakdownPortfolio(profile)}
+          returnPct={profile.assumptions.investmentReturnPct}
+        />
         <div className="flex flex-col gap-6">
           <RetirementSnapshot kpis={snapshot.kpis} irregularMonthly={irregular?.monthly} />
           <BudgetCard expenses={profile.expenses} netMonthlyIncome={fundingGap.estimatedMonthlyIncome} />

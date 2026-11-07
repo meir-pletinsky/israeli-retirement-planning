@@ -330,6 +330,17 @@
       "kind": "Kind of asset",
       "amount": "Amount",
       "share": "Share of the total",
+      "groups": {
+        "usableNow": "Usable now",
+        "usableNowNote": "can be spent today",
+        "locked": "Locked for now",
+        "lockedNote": "can be spent only from the age shown",
+        "unvested": "Not yet yours"
+      },
+      "opensAt": "opens at age {{age}}",
+      "dollarPriced": "Priced in US dollars",
+      "dollarShare": "{{amount}} ({{percent}} of the total) is priced in US dollars, so its value in shekels moves with the exchange rate.",
+      "returnNote": "Every asset above is assumed to grow at the same {{returnPct}} a year (before inflation), whether it is a deposit, a share or a pension fund.",
       "rows": {
         "pensionFund": "Pension funds",
         "providentFund": "Provident funds",
@@ -1067,7 +1078,7 @@
     "sourceProvidentFund": "Provident Fund",
     "sourceManagersInsurance": "Managers Insurance",
     "sourceStudyFund": "Study Fund",
-    "sourceInvestments": "Other Investments",
+    "sourceInvestments": "Investments (deposits, shares, cash)",
     "sourceBituachLeumi": "Bituach Leumi",
     "ladder": {
       "title": "When your money becomes usable",
@@ -1276,7 +1287,7 @@
       "downloadCsv": "Download as CSV",
       "seeLink": "See the year-by-year cash flow"
     },
-    "bankDepositsNote": "Your bank deposits are counted in “Other Investments”: the plan treats them as money you can use at any time, growing at the plan's return. Each deposit's own maturity date, early-withdrawal terms and renewal are not modeled individually.",
+    "bankDepositsNote": "Your bank deposits are counted in “Investments (deposits, shares, cash)”: the plan treats them as money you can use at any time, growing at the plan's return. Each deposit's own maturity date, early-withdrawal terms and renewal are not modeled individually.",
     "netIncomePlannedNote": "The dashed line is your planned spending after tax.",
     "netIncomePlanned": "Planned spending",
     "basis": {
@@ -1296,7 +1307,7 @@
       "withdrawalOf": "{{source}} (withdrawal)",
       "note": "Recurring payments keep arriving without using up your savings: Bituach Leumi and any pension annuity that has started. Withdrawals are money taken out of your savings to cover the rest, so they can include your original capital, not only returns. The plan does not separate interest or dividends from capital.",
       "noteShort": "Withdrawals come out of your savings and can include your original capital, not only returns.",
-      "investmentsPool": "{{source}} is one pool: bank deposits, private shares, vested employer shares, cash and other assets are drawn on together and cannot be split here."
+      "investmentsPool": "{{source}} form one pool: bank deposits, private shares, vested employer shares, cash and other assets are drawn on together and cannot be split here."
     },
     "path": {
       "title": "What shapes this path",

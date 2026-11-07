@@ -34,7 +34,7 @@ describe("Projections", () => {
 
     expect(rows.length).toBeGreaterThanOrEqual(2);
     expect(within(rows[0]).getByText("55\u201359")).toBeInTheDocument();
-    expect(within(rows[0]).getByText("Other Investments")).toBeInTheDocument();
+    expect(within(rows[0]).getByText("Investments (deposits, shares, cash)")).toBeInTheDocument();
     expect(within(rows[0]).queryByText("Pension Fund")).not.toBeInTheDocument();
     expect(within(rows[1]).getByText("Pension Fund")).toBeInTheDocument();
     expect(within(rows[0]).queryByText("Spouse:")).not.toBeInTheDocument();
@@ -228,7 +228,9 @@ describe("Projections", () => {
         buildTestProfile({ age: 60, retirementAge: 60, otherAssets: 300_000, bankDeposits: [{ amount: 100_000 }] }),
       );
       expect(
-        screen.getByText(/Other Investments is one pool: bank deposits, private shares, vested employer shares/),
+        screen.getByText(
+          /Investments \(deposits, shares, cash\) form one pool: bank deposits, private shares, vested employer shares/,
+        ),
       ).toBeInTheDocument();
     });
   });
@@ -743,7 +745,7 @@ describe("Projections", () => {
 
       expect(rows).toHaveLength(2);
       expect(within(rows[0]).getByText("When you retire")).toBeInTheDocument();
-      expect(within(rows[0]).getByText("Other Investments")).toBeInTheDocument();
+      expect(within(rows[0]).getByText("Investments (deposits, shares, cash)")).toBeInTheDocument();
       expect(within(rows[0]).getByText("₪60,000", { selector: "span.text-slate-500" })).toBeInTheDocument();
       expect(within(rows[1]).getByText(reads(/^Age 60 \(2031\)$/))).toBeInTheDocument();
       expect(within(rows[1]).getByText("Pension Fund")).toBeInTheDocument();
@@ -850,7 +852,7 @@ describe("Projections", () => {
       );
 
       const note = within(card).getByRole("note");
-      expect(note).toHaveTextContent(/bank deposits are counted in .Other Investments./i);
+      expect(note).toHaveTextContent(/bank deposits are counted in .Investments \(deposits, shares, cash\)./i);
       expect(note).toHaveTextContent(/use at any time, growing at the plan's return/);
       expect(note).toHaveTextContent(/maturity date, early-withdrawal terms and renewal are not modeled individually/);
       expect(within(card).getByText(/including bank deposits/)).toBeInTheDocument();
@@ -1165,7 +1167,7 @@ describe("Projections", () => {
       expect(within(rows[0]).getByText("Study Fund")).toBeInTheDocument();
       expect(within(rows[0]).getByText("No tax")).toBeInTheDocument();
       expect(within(rows[0]).getByText(reads(/^Usable from age 60 \(2026\)$/))).toBeInTheDocument();
-      expect(within(rows[1]).getByText("Other Investments")).toBeInTheDocument();
+      expect(within(rows[1]).getByText("Investments (deposits, shares, cash)")).toBeInTheDocument();
       expect(within(rows[1]).getByText(reads(/^₪8 tax$/))).toBeInTheDocument();
       expect(within(rows[1]).getByText(reads(/^Draw ₪108 to keep ₪100$/))).toBeInTheDocument();
       expect(within(card).getByRole("columnheader", { name: reads(/^Tax to raise ₪100 a month$/) })).toBeInTheDocument();
@@ -1654,7 +1656,7 @@ describe("Projections", () => {
       const headers = within(table)
         .getAllByRole("columnheader")
         .map((header) => header.textContent);
-      expect(headers).toEqual(["Age", "Pension Fund", "Study Fund", "Other Investments", "Total"]);
+      expect(headers).toEqual(["Age", "Pension Fund", "Study Fund", "Investments (deposits, shares, cash)", "Total"]);
       const first = within(table).getAllByRole("row")[1];
       const cells = within(first).getAllByRole("cell");
       const amounts = cells.slice(1).map((cell) => Number(cell.textContent!.replace(/[₪,]/g, "")));
@@ -1672,7 +1674,7 @@ describe("Projections", () => {
       expect(within(card).getByText(/Balances are at the end of each year, in today's money\./)).toBeInTheDocument();
       expect(within(card).getByText(/no longer a balance: it is paid out as monthly income/)).toBeInTheDocument();
       expect(plain(card)).toContain(
-        "Bank deposits, shares and other holdings are modeled as one investments pool, shown in the Other Investments column.",
+        "Bank deposits, shares and other holdings are modeled as one investments pool, shown in the Investments (deposits, shares, cash) column.",
       );
     });
 

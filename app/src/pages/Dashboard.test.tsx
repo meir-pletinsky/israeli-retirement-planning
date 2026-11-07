@@ -1502,6 +1502,85 @@ describe("Dashboard", () => {
       expect(summary()).toHaveAttribute("id", "portfolio-summary");
     });
 
+    it("splits the rows into what can be spent now and what is locked until an age", async () => {
+      await saveProfileToDb(rich);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      const groupRow = (name: string) =>
+        within(summary())
+          .getAllByRole("rowgroup")
+          .find((group) => group.textContent!.startsWith(name));
+      const usable = groupRow("Usable now")!;
+      const locked = groupRow("Locked for now")!;
+      expect(usable).toBeDefined();
+      expect(locked).toBeDefined();
+
+      expect(within(locked).getByRole("link", { name: "Pension funds" })).toBeInTheDocument();
+      expect(within(locked).queryByRole("link", { name: "Study funds" })).not.toBeInTheDocument();
+      expect(
+        within(locked).getByText((_, element) => element?.textContent?.replace(BIDI_MARKS, "") === "opens at age 60"),
+      ).toBeInTheDocument();
+      for (const name of ["Study funds", "Bank deposits", "Employer shares (vested)", "Cash and other assets"]) {
+        expect(within(usable).getByRole("link", { name })).toBeInTheDocument();
+      }
+      expect(within(usable).queryByText(/opens at age/)).not.toBeInTheDocument();
+
+      const subtotal = (group: HTMLElement) =>
+        within(within(group).getAllByRole("row")[0])
+          .getByText(/^\u20aa/)
+          .textContent!.replace(BIDI_MARKS, "");
+      expect(subtotal(locked)).toBe("\u20aa500,000");
+      expect(subtotal(usable)).toBe("\u20aa323,600");
+    });
+
+    it("marks the holdings priced in dollars and says how much of the total they are", async () => {
+      await saveProfileToDb(rich);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      const sharesRow = within(summary()).getByRole("row", { name: /Employer shares/ });
+      expect(within(sharesRow).getByText("Priced in US dollars")).toBeInTheDocument();
+      const depositsRow = within(summary()).getByRole("row", { name: /Bank deposits/ });
+      expect(within(depositsRow).queryByText("Priced in US dollars")).not.toBeInTheDocument();
+      expect(summary().textContent!.replace(BIDI_MARKS, "")).toContain(
+        "\u20aa3,600 (<1% of the total) is priced in US dollars",
+      );
+    });
+
+    it("says every asset is assumed to grow at the same return, and links to where to change it", async () => {
+      await saveProfileToDb(rich);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      const text = summary().textContent!.replace(BIDI_MARKS, "");
+      expect(text).toContain("Every asset above is assumed to grow at the same");
+      expect(text).toContain("a year (before inflation), whether it is a deposit, a share or a pension fund.");
+      const links = within(summary()).getAllByRole("link", { name: "Change assumptions" });
+      expect(links.some((link) => link.getAttribute("href") === "/my-data/assumptions")).toBe(true);
+    });
+
+    it("has no dollar line and no dollar marker when there are no shares", async () => {
+      await saveProfileToDb(
+        buildTestProfile({
+          age: 50,
+          retirementAge: 67,
+          pensionBalances: [500_000],
+          pensionAccountOverrides: [{ productCategory: "comprehensivePension" }],
+          bankDeposits: [{ amount: 200_000 }],
+        }),
+      );
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      expect(within(summary()).queryByText("Priced in US dollars")).not.toBeInTheDocument();
+      expect(summary().textContent).not.toContain("is priced in US dollars");
+    });
+
     it("says what is left out because it has not vested, and the exchange rate used", async () => {
       await saveProfileToDb(rich);
       await saveOnboardedToDb(true);

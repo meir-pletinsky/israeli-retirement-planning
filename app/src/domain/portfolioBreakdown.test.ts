@@ -82,6 +82,102 @@ describe("breakdownPortfolio", () => {
     expect(amountOf(profile)).toEqual({ privateShares: Math.round(10 * 10 * 3.7) });
   });
 
+  describe("what can be spent now and what is locked", () => {
+    const groupAmounts = (profile: Parameters<typeof breakdownPortfolio>[0]) =>
+      Object.fromEntries(breakdownPortfolio(profile).groups.map((group) => [group.key, group.amount]));
+
+    it("locks pension-like accounts until 60 and leaves the rest usable", () => {
+      const result = breakdownPortfolio({ ...rich, personal: { ...rich.personal, age: 45 } });
+      const locked = result.groups.find((group) => group.key === "locked");
+      const usable = result.groups.find((group) => group.key === "usableNow");
+      expect(locked?.rows).toEqual([
+        { key: "pensionFund", amount: 500_000, dollarPriced: false, opensAtAge: 60 },
+        { key: "providentFund", amount: 100_000, dollarPriced: false, opensAtAge: 60 },
+        { key: "managersInsurance", amount: 80_000, dollarPriced: false, opensAtAge: 60 },
+      ]);
+      // The study fund has no join or liquidity date, so the model treats it as liquid.
+      expect(usable?.rows.map((row) => row.key)).toEqual([
+        "studyFund",
+        "bankDeposits",
+        "privateShares",
+        "employerShares",
+        "cashAndOther",
+      ]);
+      expect(locked?.amount).toBe(680_000);
+      expect(result.groups.reduce((sum, group) => sum + group.amount, 0)).toBe(result.total);
+    });
+
+    it("has nothing locked once the owner is past 60", () => {
+      const profile = buildTestProfile({ age: 62, pensionBalances: [500_000], otherAssets: 20_000 });
+      expect(groupAmounts(profile)).toEqual({ usableNow: 520_000 });
+    });
+
+    it("locks a study fund until its liquidity date, in the owner's age", () => {
+      const profile = buildTestProfile({
+        age: 45,
+        pensionBalances: [90_000],
+        pensionAccountOverrides: [{ productCategory: "studyFund", liquidityDate: "2029-06-15" }],
+      });
+      expect(breakdownPortfolio(profile).groups).toEqual([
+        {
+          key: "locked",
+          amount: 90_000,
+          rows: [{ key: "studyFund", amount: 90_000, dollarPriced: false, opensAtAge: 48 }],
+        },
+      ]);
+    });
+
+    it("states when a spouse's locked account opens in the primary user's age", () => {
+      const profile = buildTestProfile({
+        age: 62,
+        maritalStatus: "married",
+        spouse: { age: 45 },
+        pensionBalances: [100_000, 40_000],
+        pensionAccountOverrides: [
+          { productCategory: "comprehensivePension" },
+          { owner: "spouse", productCategory: "comprehensivePension" },
+        ],
+      });
+      const { groups } = breakdownPortfolio(profile);
+      // The spouse reaches 60 in 15 years, when the primary user is 77.
+      expect(groups).toEqual([
+        { key: "usableNow", amount: 100_000, rows: [{ key: "pensionFund", amount: 100_000, dollarPriced: false, opensAtAge: null }] },
+        { key: "locked", amount: 40_000, rows: [{ key: "pensionFund", amount: 40_000, dollarPriced: false, opensAtAge: 77 }] },
+      ]);
+    });
+
+    it("keeps the rows of one kind together when part of it is locked", () => {
+      const profile = buildTestProfile({
+        age: 45,
+        pensionBalances: [100_000, 60_000],
+        pensionAccountOverrides: [
+          { productCategory: "providentFund" },
+          { productCategory: "investmentProvidentFund" },
+        ],
+      });
+      expect(groupAmounts(profile)).toEqual({ usableNow: 60_000, locked: 100_000 });
+      const { groups, rows } = breakdownPortfolio(profile);
+      expect(rows).toEqual([{ key: "providentFund", amount: 160_000, dollarPriced: false }]);
+      expect(groups.every((group) => group.rows.length === 1 && group.rows[0].key === "providentFund")).toBe(true);
+    });
+
+    it("leaves no group for an empty profile", () => {
+      expect(breakdownPortfolio(buildTestProfile({})).groups).toEqual([]);
+    });
+  });
+
+  describe("the part priced in dollars", () => {
+    it("adds up the share rows", () => {
+      expect(breakdownPortfolio(rich).dollarPriced).toBe(15_000 + 3_600);
+      expect(breakdownPortfolio(rich).rows.find((row) => row.key === "privateShares")?.dollarPriced).toBe(true);
+      expect(breakdownPortfolio(rich).rows.find((row) => row.key === "bankDeposits")?.dollarPriced).toBe(false);
+    });
+
+    it("is zero without shares", () => {
+      expect(breakdownPortfolio(buildTestProfile({ otherAssets: 10 })).dollarPriced).toBe(0);
+    });
+  });
+
   describe("the exchange rate behind the share values", () => {
     const holding = [{ quantity: 10, priceUSD: 10, category: "personalBrokeragePurchase" as const }];
 
