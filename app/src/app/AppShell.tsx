@@ -2,6 +2,7 @@ import clsx from "clsx";
 import { useTranslation } from "react-i18next";
 import { Link, NavLink, Outlet } from "react-router-dom";
 
+import { BackupReminder } from "../components/BackupReminder";
 import { BuildInfo } from "../components/BuildInfo";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { LogoMark } from "../components/LogoMark";
@@ -72,6 +73,7 @@ export function AppShell() {
         </div>
         <main className="flex-1 overflow-y-auto p-4 pb-24 md:p-6 md:pb-6">
           <SampleDataBanner />
+          <BackupReminder />
           <Outlet />
           <BuildInfo />
         </main>

@@ -4,8 +4,18 @@ import { buildTestProfile } from "../test/domainFixtures";
 import {
   clearAllData,
   clearBeforeImportRestorePoint,
+  loadBackupSnoozedUntilFromDb,
   loadBeforeImportRestorePoint,
+  loadCpiLookupEnabledFromDb,
+  loadFxLookupEnabledFromDb,
+  loadLastExportedAtFromDb,
+  loadOnboardedFromDb,
+  saveBackupSnoozedUntilToDb,
   saveBeforeImportRestorePoint,
+  saveCpiLookupEnabledToDb,
+  saveFxLookupEnabledToDb,
+  saveLastExportedAtToDb,
+  saveOnboardedToDb,
 } from "./db";
 
 beforeEach(async () => {
@@ -47,5 +57,47 @@ describe("before-import restore point", () => {
     await clearAllData();
 
     expect(await loadBeforeImportRestorePoint()).toBeUndefined();
+  });
+});
+
+describe("backup timestamps", () => {
+  it("are absent until saved", async () => {
+    expect(await loadLastExportedAtFromDb()).toBeNull();
+    expect(await loadBackupSnoozedUntilFromDb()).toBeNull();
+  });
+
+  it("keep the moment of the last export and how long the reminder is snoozed", async () => {
+    await saveLastExportedAtToDb("2026-06-01T08:00:00.000Z");
+    await saveBackupSnoozedUntilToDb("2026-06-08T08:00:00.000Z");
+
+    expect(await loadLastExportedAtFromDb()).toBe("2026-06-01T08:00:00.000Z");
+    expect(await loadBackupSnoozedUntilFromDb()).toBe("2026-06-08T08:00:00.000Z");
+  });
+
+  it("are deleted together with all other data", async () => {
+    await saveLastExportedAtToDb("2026-06-01T08:00:00.000Z");
+    await saveBackupSnoozedUntilToDb("2026-06-08T08:00:00.000Z");
+    await clearAllData();
+
+    expect(await loadLastExportedAtFromDb()).toBeNull();
+    expect(await loadBackupSnoozedUntilFromDb()).toBeNull();
+  });
+
+  it("leave the on/off settings stored beside them untouched", async () => {
+    await saveOnboardedToDb(true);
+    await saveFxLookupEnabledToDb(false);
+    await saveCpiLookupEnabledToDb(false);
+    await saveLastExportedAtToDb("2026-06-01T08:00:00.000Z");
+
+    expect(await loadOnboardedFromDb()).toBe(true);
+    expect(await loadFxLookupEnabledFromDb()).toBe(false);
+    expect(await loadCpiLookupEnabledFromDb()).toBe(false);
+  });
+
+  it("are not mistaken for an on/off setting", async () => {
+    await saveLastExportedAtToDb("2026-06-01T08:00:00.000Z");
+
+    expect(await loadOnboardedFromDb()).toBe(false);
+    expect(await loadFxLookupEnabledFromDb()).toBe(true);
   });
 });

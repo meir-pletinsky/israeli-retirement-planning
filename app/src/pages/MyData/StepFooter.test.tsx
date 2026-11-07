@@ -38,6 +38,12 @@ describe("step footer", () => {
     expect(screen.getByText("Saved")).toBeInTheDocument();
   });
 
+  it("says that the plan was never exported", async () => {
+    await renderLastStep();
+
+    expect(screen.getByText("Last exported: never")).toBeInTheDocument();
+  });
+
   it("offers View my results rather than Save on the last step", async () => {
     const user = userEvent.setup();
     await renderLastStep();

@@ -8,14 +8,17 @@ import {
   loadBeforeImportRestorePoint,
   loadCpiLookupEnabledFromDb,
   loadFxLookupEnabledFromDb,
+  loadLastExportedAtFromDb,
   loadProfileFromDb,
   saveBeforeImportRestorePoint,
   saveCpiLookupEnabledToDb,
   saveFxLookupEnabledToDb,
+  saveLastExportedAtToDb,
   saveProfileToDb,
 } from "../storage/db";
 import { buildTestProfile } from "../test/domainFixtures";
 import { renderWithProviders } from "../test/renderWithProviders";
+import { stubDownloads } from "../test/stubDownloads";
 import { Settings } from "./Settings";
 
 const TODAY = { date: "2026-10-30", base: "USD", quote: "ILS", rate: 3.118 };
@@ -301,5 +304,121 @@ describe("Settings — privacy", () => {
     expect(section).toHaveTextContent("Inflation figures:");
     expect(section).toHaveTextContent("Stock prices:");
     expect(section).toHaveTextContent("The app never uploads them.");
+  });
+});
+
+describe("Settings — keeping the plan safe", () => {
+  // The dates are wrapped in direction marks so they read correctly inside right-to-left text.
+  const plain = {
+    normalizer: (text: string) =>
+      text
+        .replace(/[\u2066\u2069]/g, "")
+        .replace(/\s+/g, " ")
+        .trim(),
+  };
+
+  function stubBrowser(overrides: { storage?: Partial<StorageManager>; userAgent?: string }) {
+    if (overrides.storage) {
+      Object.defineProperty(navigator, "storage", { configurable: true, value: overrides.storage });
+    }
+    if (overrides.userAgent) {
+      Object.defineProperty(navigator, "userAgent", { configurable: true, value: overrides.userAgent });
+    }
+  }
+
+  let downloads: ReturnType<typeof stubDownloads>;
+
+  beforeEach(() => {
+    downloads = stubDownloads();
+  });
+
+  afterEach(() => {
+    downloads.restore();
+    Reflect.deleteProperty(navigator, "storage");
+    Reflect.deleteProperty(navigator, "userAgent");
+  });
+
+  it("says the plan was never exported, then shows the date once it is", async () => {
+    await saveProfileToDb(buildTestProfile({ age: 40 }));
+    const user = userEvent.setup();
+    renderWithProviders(<Settings />, { route: "/settings" });
+
+    expect(await screen.findByText("Last exported: never")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Export data" }));
+
+    expect(downloads.count()).toBe(1);
+    expect(await screen.findByText(/^Last exported: \d{2}\/\d{2}\/\d{4}$/, plain)).toBeInTheDocument();
+    expect(await loadLastExportedAtFromDb()).not.toBeNull();
+  });
+
+  it("shows the date of an earlier export", async () => {
+    await saveLastExportedAtToDb("2026-06-01T09:00:00.000Z");
+    renderWithProviders(<Settings />, { route: "/settings" });
+
+    expect(await screen.findByText("Last exported: 01/06/2026", plain)).toBeInTheDocument();
+  });
+
+  it("says when the browser has agreed to keep the plan, and offers nothing to ask", async () => {
+    stubBrowser({ storage: { persisted: () => Promise.resolve(true) } });
+    renderWithProviders(<Settings />, { route: "/settings" });
+
+    expect(await screen.findByText("Your browser has agreed to keep this plan.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ask my browser to keep this plan" })).not.toBeInTheDocument();
+  });
+
+  it("warns when the browser may clear the plan, and lets the user ask it to keep it", async () => {
+    const persist = vi.fn(() => Promise.resolve(true));
+    stubBrowser({ storage: { persisted: () => Promise.resolve(false), persist } });
+    const user = userEvent.setup();
+    renderWithProviders(<Settings />, { route: "/settings" });
+
+    expect(await screen.findByText(/Your browser may clear this plan/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Ask my browser to keep this plan" }));
+
+    expect(persist).toHaveBeenCalled();
+    expect(await screen.findByText("Your browser has agreed to keep this plan.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ask my browser to keep this plan" })).not.toBeInTheDocument();
+  });
+
+  it("says so when the browser declines", async () => {
+    stubBrowser({
+      storage: { persisted: () => Promise.resolve(false), persist: () => Promise.resolve(false) },
+    });
+    const user = userEvent.setup();
+    renderWithProviders(<Settings />, { route: "/settings" });
+
+    await user.click(await screen.findByRole("button", { name: "Ask my browser to keep this plan" }));
+
+    expect(await screen.findByText(/It declined when asked\./)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ask my browser to keep this plan" })).toBeInTheDocument();
+  });
+
+  it("says the browser cannot confirm when it has no storage manager", async () => {
+    renderWithProviders(<Settings />, { route: "/settings" });
+
+    expect(await screen.findByText(/cannot confirm that it will keep this plan/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ask my browser to keep this plan" })).not.toBeInTheDocument();
+  });
+
+  it("warns Safari users that the browser may erase the data after a week", async () => {
+    stubBrowser({
+      userAgent:
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15",
+    });
+    renderWithProviders(<Settings />, { route: "/settings" });
+
+    expect(await screen.findByText(/Safari, and every browser on an iPhone or iPad/)).toBeInTheDocument();
+  });
+
+  it("does not show the Safari warning in other browsers", async () => {
+    stubBrowser({
+      userAgent:
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+    });
+    renderWithProviders(<Settings />, { route: "/settings" });
+
+    expect(await screen.findByText(/Last exported/)).toBeInTheDocument();
+    expect(screen.queryByText(/Safari, and every browser/)).not.toBeInTheDocument();
   });
 });

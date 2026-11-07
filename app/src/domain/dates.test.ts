@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDate, isCompleteDateText, parseDate } from "./dates";
+import { formatDate, formatLocalDate, isCompleteDateText, parseDate } from "./dates";
 
 describe("formatDate", () => {
   it("shows an ISO date day first", () => {
@@ -9,6 +9,16 @@ describe("formatDate", () => {
 
   it("returns text that is not an ISO date unchanged", () => {
     expect(formatDate("soon")).toBe("soon");
+  });
+});
+
+describe("formatLocalDate", () => {
+  it("shows the day of a timestamp in the viewer's time zone, day first", () => {
+    expect(formatLocalDate(new Date(2026, 2, 5, 23, 30).toISOString())).toBe("05/03/2026");
+  });
+
+  it("is empty for a timestamp that cannot be read", () => {
+    expect(formatLocalDate("not a date")).toBe("");
   });
 });
 

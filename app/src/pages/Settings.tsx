@@ -8,12 +8,16 @@ import {
   saveBeforeImportRestorePoint,
   type RestorePoint,
 } from "../storage/db";
-import { exportProfileToFile, readProfileFile, type ProfileFile } from "../storage/profileIO";
-import { formatDate } from "../domain/dates";
+import { readProfileFile, type ProfileFile } from "../storage/profileIO";
+import { currentBrowserIsSafari } from "../storage/persistentStorage";
+import { formatDate, formatLocalDate } from "../domain/dates";
 import { areasEmptiedByImport, summarizePlan } from "../domain/planSummary";
 import { hasProfileData, type ProfileData } from "../types";
+import { useBackupStatus } from "../app/backupStatus";
 import { useProfile } from "../app/ProfileContext";
+import { useExportBackup } from "../app/useExportBackup";
 import { useLatestUsdIlsRate } from "../app/useLatestUsdIlsRate";
+import { usePersistenceStatus } from "../app/usePersistenceStatus";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { CheckboxField } from "../components/fields/CheckboxField";
 import { ImportPreviewDialog } from "../components/ImportPreviewDialog";
@@ -42,6 +46,10 @@ export function Settings() {
   const [toast, setToast] = useState<string | null>(null);
   const [toastTone, setToastTone] = useState<"default" | "error">("default");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const exportBackup = useExportBackup();
+  const { lastExportedAt } = useBackupStatus();
+  const persistence = usePersistenceStatus();
+  const showSafariNote = currentBrowserIsSafari();
 
   useEffect(() => {
     let cancelled = false;
@@ -54,7 +62,7 @@ export function Settings() {
   }, []);
 
   function handleExport() {
-    exportProfileToFile(profile);
+    exportBackup();
     setToastTone("default");
     setToast(t("settings.exportSuccess"));
   }
@@ -176,6 +184,33 @@ export function Settings() {
         <h2 className="mb-3 text-sm font-semibold text-slate-700">
           {t("settings.dataManagement")}
         </h2>
+        <div className="mb-3 flex flex-col gap-1.5 text-sm text-slate-700">
+          <p>
+            {lastExportedAt
+              ? t("settings.backup.lastExported", { date: `\u2066${formatLocalDate(lastExportedAt)}\u2069` })
+              : t("settings.backup.neverExported")}
+          </p>
+          {persistence.status !== null && (
+            <p aria-live="polite">
+              {t(`settings.persistence.${persistence.status}`)}
+              {persistence.status === "notPersisted" && persistence.declined && (
+                <> {t("settings.persistence.declined")}</>
+              )}
+            </p>
+          )}
+          {persistence.status === "notPersisted" && (
+            <button
+              type="button"
+              onClick={() => void persistence.ask()}
+              className="self-start rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            >
+              {t("settings.persistence.ask")}
+            </button>
+          )}
+          {showSafariNote && (
+            <p className="text-xs text-slate-500">{t("settings.persistence.safari")}</p>
+          )}
+        </div>
         <div className="flex flex-col gap-2">
           <button
             type="button"

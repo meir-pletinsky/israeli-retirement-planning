@@ -15,6 +15,8 @@
     "viewResults": "View my results",
     "autosave": {
       "note": "Changes save automatically on this device.",
+      "lastExported": "Last exported: {{date}}",
+      "neverExported": "Last exported: never",
       "saving": "Saving\u2026",
       "saved": "Saved",
       "error": "Your latest change could not be saved on this device. Check that your browser lets this site store data, and use \u201cExport data\u201d in Settings to keep a copy."
@@ -1587,12 +1589,34 @@
       "files": "Files you export or import stay with you. The app never uploads them."
     }
   },
+  "backup": {
+    "reminder": {
+      "title": "Download a backup of your plan",
+      "bodyNever": "Your plan is stored only in this browser, and clearing browser data would erase it. Download a copy and keep it somewhere safe; you can load it back from Settings.",
+      "bodyOverdue": "You last exported your plan on {{date}}. Download a fresh copy so your recent changes are safe.",
+      "download": "Download backup",
+      "later": "Remind me later",
+      "done": "Backup downloaded. Keep the file somewhere safe."
+    }
+  },
   "settings": {
     "title": "Settings",
     "language": "Language",
     "currency": "Display currency",
     "dataManagement": "Data management",
     "exchangeRates": "Exchange rates",
+    "backup": {
+      "lastExported": "Last exported: {{date}}",
+      "neverExported": "Last exported: never"
+    },
+    "persistence": {
+      "persisted": "Your browser has agreed to keep this plan.",
+      "notPersisted": "Your browser may clear this plan if the device runs low on space or you clear browsing data. Export your data to keep a copy.",
+      "unsupported": "Your browser cannot confirm that it will keep this plan. Export your data to keep a copy.",
+      "ask": "Ask my browser to keep this plan",
+      "declined": "It declined when asked.",
+      "safari": "Safari, and every browser on an iPhone or iPad, may erase a site's data after about a week without a visit. Export your data regularly, and add this app to your Home Screen if you can."
+    },
     "fxLookup": "Look up exchange rates online",
     "fxCurrent": "Current rate: ₪{{rate}} per US dollar (Bank of Israel, {{date}}). Checked every hour while the app is open.",
     "fxCurrentLoading": "Loading the current rate…",

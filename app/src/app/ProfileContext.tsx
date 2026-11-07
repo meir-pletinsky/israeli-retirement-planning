@@ -12,16 +12,22 @@ import {
 import { pinEngineClock, pinEngineClockToNow } from "../domain";
 import {
   clearAllData,
+  loadBackupSnoozedUntilFromDb,
   loadCpiLookupEnabledFromDb,
   loadFxLookupEnabledFromDb,
+  loadLastExportedAtFromDb,
   loadOnboardedFromDb,
   loadProfileFromDb,
   migrateLegacyLocalStorageIfNeeded,
+  saveBackupSnoozedUntilToDb,
   saveCpiLookupEnabledToDb,
   saveFxLookupEnabledToDb,
+  saveLastExportedAtToDb,
   saveOnboardedToDb,
   saveProfileToDb,
 } from "../storage/db";
+import { snoozeUntil } from "../storage/backupReminder";
+import { requestPersistentStorageOnce } from "../storage/persistentStorage";
 import {
   EMPTY_PROFILE,
   hasProfileData,
@@ -29,6 +35,7 @@ import {
   type ProfileData,
 } from "../types";
 
+import { BackupStatusContext, type BackupStatus } from "./backupStatus";
 import { SaveStatusContext, type SaveStatus } from "./saveStatus";
 
 interface ProfileContextValue {
@@ -75,8 +82,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [cpiLookupEnabled, setCpiLookupEnabled] = useState(true);
   const [isReady, setIsReady] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
+  const [lastExportedAt, setLastExportedAt] = useState<string | null>(null);
+  const [snoozedUntil, setSnoozedUntil] = useState<string | null>(null);
   const saveCountRef = useRef(0);
   const hasLoadedRef = useRef(false);
+  const requestedPersistenceRef = useRef(false);
 
   // Load persisted state from IndexedDB (via Dexie) once on mount. Routing
   // decisions (e.g. onboarded -> /dashboard) must not run against stale
@@ -86,17 +96,28 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     void (async () => {
       await migrateLegacyLocalStorageIfNeeded();
-      const [storedProfile, storedOnboarded, storedFxLookup, storedCpiLookup] = await Promise.all([
+      const [
+        storedProfile,
+        storedOnboarded,
+        storedFxLookup,
+        storedCpiLookup,
+        storedLastExportedAt,
+        storedSnoozedUntil,
+      ] = await Promise.all([
         loadProfileFromDb(),
         loadOnboardedFromDb(),
         loadFxLookupEnabledFromDb(),
         loadCpiLookupEnabledFromDb(),
+        loadLastExportedAtFromDb(),
+        loadBackupSnoozedUntilFromDb(),
       ]);
       if (cancelled) return;
       if (storedProfile) setProfile(normalizeProfile(storedProfile));
       setOnboarded(storedOnboarded);
       setFxLookupEnabled(storedFxLookup);
       setCpiLookupEnabled(storedCpiLookup);
+      setLastExportedAt(storedLastExportedAt);
+      setSnoozedUntil(storedSnoozedUntil);
       hasLoadedRef.current = true;
       setIsReady(true);
     })();
@@ -136,6 +157,31 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }, [cpiLookupEnabled]);
 
   const hasData = useMemo(() => hasProfileData(profile), [profile]);
+
+  // The first time this browser holds a plan, ask it not to evict the data (see Settings for the result).
+  useEffect(() => {
+    if (!isReady || !hasData || requestedPersistenceRef.current) return;
+    requestedPersistenceRef.current = true;
+    void requestPersistentStorageOnce();
+  }, [isReady, hasData]);
+
+  const backupStatus = useMemo<BackupStatus>(
+    () => ({
+      lastExportedAt,
+      snoozedUntil,
+      recordExport: () => {
+        const now = new Date().toISOString();
+        setLastExportedAt(now);
+        void saveLastExportedAtToDb(now);
+      },
+      snoozePrompt: () => {
+        const until = snoozeUntil(new Date());
+        setSnoozedUntil(until);
+        void saveBackupSnoozedUntilToDb(until);
+      },
+    }),
+    [lastExportedAt, snoozedUntil],
+  );
 
   // One moment for every calculation until the profile changes or the tab comes back after a
   // while, so the same figure on two screens is never computed at two different clock readings.
@@ -187,6 +233,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         setOnboarded(false);
         setFxLookupEnabled(true);
         setCpiLookupEnabled(true);
+        setLastExportedAt(null);
+        setSnoozedUntil(null);
+        requestedPersistenceRef.current = false;
       },
       fxLookupEnabled,
       setFxLookupEnabled,
@@ -201,7 +250,9 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
   return (
     <ProfileContext.Provider value={value}>
-      <SaveStatusContext.Provider value={saveStatus}>{children}</SaveStatusContext.Provider>
+      <SaveStatusContext.Provider value={saveStatus}>
+        <BackupStatusContext.Provider value={backupStatus}>{children}</BackupStatusContext.Provider>
+      </SaveStatusContext.Provider>
     </ProfileContext.Provider>
   );
 }

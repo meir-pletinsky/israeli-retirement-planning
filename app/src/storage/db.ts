@@ -12,10 +12,10 @@ interface ProfileRecord {
   data: ProfileData;
 }
 
-/** Generic key/value row for small app-level flags (e.g. onboarding state). */
+/** Generic key/value row for small app-level flags (e.g. onboarding state) and timestamps. */
 interface MetaRecord {
   key: string;
-  value: boolean;
+  value: boolean | string;
 }
 
 /** The plan as it was just before an import replaced it. */
@@ -54,6 +54,9 @@ const BEFORE_IMPORT_ID = "before-import";
 const ONBOARDED_KEY = "onboarded";
 const FX_LOOKUP_OFF_KEY = "fxLookupOff";
 const CPI_LOOKUP_OFF_KEY = "cpiLookupOff";
+const LAST_EXPORTED_AT_KEY = "lastExportedAt";
+const BACKUP_SNOOZED_UNTIL_KEY = "backupSnoozedUntil";
+const PERSISTENCE_ASKED_KEY = "persistenceAsked";
 
 export async function loadProfileFromDb(): Promise<ProfileData | undefined> {
   const record = await db.profile.get(PROFILE_ID);
@@ -66,7 +69,7 @@ export async function saveProfileToDb(data: ProfileData): Promise<void> {
 
 export async function loadOnboardedFromDb(): Promise<boolean> {
   const record = await db.meta.get(ONBOARDED_KEY);
-  return record?.value ?? false;
+  return record?.value === true;
 }
 
 export async function saveOnboardedToDb(value: boolean): Promise<void> {
@@ -76,7 +79,7 @@ export async function saveOnboardedToDb(value: boolean): Promise<void> {
 /** Whether the user allows looking up exchange rates online; on until they turn it off. */
 export async function loadFxLookupEnabledFromDb(): Promise<boolean> {
   const record = await db.meta.get(FX_LOOKUP_OFF_KEY);
-  return !(record?.value ?? false);
+  return record?.value !== true;
 }
 
 export async function saveFxLookupEnabledToDb(enabled: boolean): Promise<void> {
@@ -86,11 +89,43 @@ export async function saveFxLookupEnabledToDb(enabled: boolean): Promise<void> {
 /** Whether the user allows looking up Israeli inflation online; on until they turn it off. */
 export async function loadCpiLookupEnabledFromDb(): Promise<boolean> {
   const record = await db.meta.get(CPI_LOOKUP_OFF_KEY);
-  return !(record?.value ?? false);
+  return record?.value !== true;
 }
 
 export async function saveCpiLookupEnabledToDb(enabled: boolean): Promise<void> {
   await db.meta.put({ key: CPI_LOOKUP_OFF_KEY, value: !enabled });
+}
+
+async function loadTimestamp(key: string): Promise<string | null> {
+  const record = await db.meta.get(key);
+  return typeof record?.value === "string" ? record.value : null;
+}
+
+/** ISO timestamp of the last time the user downloaded a backup of the plan, or null if never. */
+export function loadLastExportedAtFromDb(): Promise<string | null> {
+  return loadTimestamp(LAST_EXPORTED_AT_KEY);
+}
+
+export async function saveLastExportedAtToDb(isoTimestamp: string): Promise<void> {
+  await db.meta.put({ key: LAST_EXPORTED_AT_KEY, value: isoTimestamp });
+}
+
+/** ISO timestamp until which the user asked not to be reminded about a backup, or null. */
+export function loadBackupSnoozedUntilFromDb(): Promise<string | null> {
+  return loadTimestamp(BACKUP_SNOOZED_UNTIL_KEY);
+}
+
+export async function saveBackupSnoozedUntilToDb(isoTimestamp: string): Promise<void> {
+  await db.meta.put({ key: BACKUP_SNOOZED_UNTIL_KEY, value: isoTimestamp });
+}
+
+/** Whether this browser has already been asked to keep the plan; it is asked once, not every visit. */
+export async function loadPersistenceAskedFromDb(): Promise<boolean> {
+  return (await db.meta.get(PERSISTENCE_ASKED_KEY))?.value === true;
+}
+
+export async function savePersistenceAskedToDb(): Promise<void> {
+  await db.meta.put({ key: PERSISTENCE_ASKED_KEY, value: true });
 }
 
 /** Sets the current plan aside so an import can be undone; only the latest one is kept. */

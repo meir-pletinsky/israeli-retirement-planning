@@ -2379,6 +2379,25 @@ of its section 10 (UXB-14 is skipped on request).
       the usable-over-time visual (V-2), the concentration flag (UXB-10), balances by kind
       (UXB-34), the milestone strip (V-8), a "Savings last to age" tile, the backup reminder
       (UXB-07) and the tabbed full-report structure.
+- [x] **UXB-07 The plan can no longer be lost silently.** The plan lives only in this browser, so
+      three things now protect it. (1) On the first data a browser holds, the app asks it not to
+      evict the plan (`navigator.storage.persist()`), once per device (the `persistenceAsked`
+      flag; Firefox shows a prompt each time `persist()` is called, Chrome decides silently).
+      Settings > Data management shows the result ("Your browser has agreed to keep this plan" or
+      a warning), with an "Ask my browser to keep this plan" button when it has not, and the
+      "It declined when asked" answer. Safari, and every browser on an iPhone or iPad, gets a note
+      that stored data may be erased after about a week without a visit (user-agent detection,
+      `isSafariStorageBrowser`). (2) The moment of the last backup export is stored (`meta`
+      records `lastExportedAt`; only backup exports count, not the verification export) and shown
+      as "Last exported: dd/mm/yyyy" (viewer's time zone, `formatLocalDate`) or "never" in the
+      autosave line under every step and in Settings. (3) A "Download a backup of your plan"
+      prompt shows on the Dashboard and Projections when the plan has data and was never
+      exported or the last export is 14 days old or more. "Download backup" exports and confirms
+      with a toast; "Remind me later" hides it for 7 days (`backupSnoozedUntil`). It is not shown
+      on data entry or Settings. The rule is time-based only (it does not track how much changed
+      since the last export). `resetProfile` / `clearAllData` clear all of this. Tests:
+      `backupReminder.test.ts`, `persistentStorage.test.ts`, `db.test.ts`, `dates.test.ts`,
+      `AppShell.test.tsx`, `Settings.test.tsx`, `StepFooter.test.tsx`, `ProfileContext.test.tsx`.
 
 ## Modeling assumptions (by phase)
 

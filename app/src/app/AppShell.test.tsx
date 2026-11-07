@@ -1,11 +1,20 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Route, Routes } from "react-router-dom";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { clearAllData, loadProfileFromDb, saveProfileToDb } from "../storage/db";
+import {
+  clearAllData,
+  loadBackupSnoozedUntilFromDb,
+  loadLastExportedAtFromDb,
+  loadProfileFromDb,
+  saveBackupSnoozedUntilToDb,
+  saveLastExportedAtToDb,
+  saveProfileToDb,
+} from "../storage/db";
 import { buildTestProfile } from "../test/domainFixtures";
 import { renderWithProviders } from "../test/renderWithProviders";
+import { stubDownloads } from "../test/stubDownloads";
 import { createEmptyPensionAccount, type ProfileData } from "../types";
 import { AppShell } from "./AppShell";
 
@@ -14,6 +23,8 @@ function renderShell(route: string) {
     <Routes>
       <Route element={<AppShell />}>
         <Route path="/dashboard" element={<p>Dashboard page</p>} />
+        <Route path="/projections" element={<p>Projections page</p>} />
+        <Route path="/my-data/personal" element={<p>My data page</p>} />
         <Route path="/settings" element={<p>Settings page</p>} />
       </Route>
     </Routes>,
@@ -133,5 +144,122 @@ describe("AppShell — sample data notice", () => {
     });
     expect(saved.pensionSavings.accounts[0].totalAccumulatedBalance).toBe(50_000);
     expect(saved.pensionSavings.reports).toEqual([]);
+  });
+});
+
+describe("AppShell — backup reminder", () => {
+  const REMINDER = "Download a backup of your plan";
+  const daysAgo = (days: number) => new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
+  let downloads: ReturnType<typeof stubDownloads>;
+
+  beforeEach(() => {
+    downloads = stubDownloads();
+  });
+
+  afterEach(() => {
+    downloads.restore();
+  });
+
+  async function saveSomeData() {
+    await saveProfileToDb(buildTestProfile({ age: 40, pensionBalances: [50_000] }));
+  }
+
+  it("is shown on the results pages when the plan was never exported", async () => {
+    await saveSomeData();
+    renderShell("/dashboard");
+
+    const note = await screen.findByRole("note", { name: REMINDER });
+    expect(note).toHaveTextContent("stored only in this browser");
+  });
+
+  it("is also shown on the projections page", async () => {
+    await saveSomeData();
+    renderShell("/projections");
+
+    expect(await screen.findByRole("note", { name: REMINDER })).toBeInTheDocument();
+  });
+
+  it("stays out of the way on data entry", async () => {
+    await saveSomeData();
+    renderShell("/my-data/personal");
+
+    expect(await screen.findByText("My data page")).toBeInTheDocument();
+    expect(screen.queryByRole("note", { name: REMINDER })).not.toBeInTheDocument();
+  });
+
+  it("is not shown on Settings", async () => {
+    await saveSomeData();
+    renderShell("/settings");
+
+    expect(await screen.findByText("Settings page")).toBeInTheDocument();
+    expect(screen.queryByRole("note", { name: REMINDER })).not.toBeInTheDocument();
+  });
+
+  it("is not shown when there is nothing to back up", async () => {
+    renderShell("/dashboard");
+
+    expect(await screen.findByText("Dashboard page")).toBeInTheDocument();
+    expect(screen.queryByRole("note", { name: REMINDER })).not.toBeInTheDocument();
+  });
+
+  it("downloads the backup, remembers when, and goes away", async () => {
+    await saveSomeData();
+    const user = userEvent.setup();
+    renderShell("/dashboard");
+
+    await user.click(await screen.findByRole("button", { name: "Download backup" }));
+
+    expect(downloads.count()).toBe(1);
+    expect(await screen.findByText("Backup downloaded. Keep the file somewhere safe.")).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("note", { name: REMINDER })).not.toBeInTheDocument());
+    await waitFor(async () => expect(await loadLastExportedAtFromDb()).not.toBeNull());
+    expect(new Date((await loadLastExportedAtFromDb())!).getTime()).toBe(Date.now());
+  });
+
+  it("hides for a week after 'Remind me later', and remembers that across visits", async () => {
+    await saveSomeData();
+    const user = userEvent.setup();
+    const first = renderShell("/dashboard");
+
+    await user.click(await screen.findByRole("button", { name: "Remind me later" }));
+
+    await waitFor(() => expect(screen.queryByRole("note", { name: REMINDER })).not.toBeInTheDocument());
+    await waitFor(async () => expect(await loadBackupSnoozedUntilFromDb()).not.toBeNull());
+    const until = (await loadBackupSnoozedUntilFromDb())!;
+    expect(new Date(until).getTime() - Date.now()).toBe(7 * 24 * 3600 * 1000);
+    expect(downloads.count()).toBe(0);
+
+    first.unmount();
+    renderShell("/dashboard");
+    expect(await screen.findByText("Dashboard page")).toBeInTheDocument();
+    expect(screen.queryByRole("note", { name: REMINDER })).not.toBeInTheDocument();
+  });
+
+  it("comes back when the snooze has run out", async () => {
+    await saveSomeData();
+    await saveBackupSnoozedUntilToDb(daysAgo(1));
+    renderShell("/dashboard");
+
+    expect(await screen.findByRole("note", { name: REMINDER })).toBeInTheDocument();
+  });
+
+  it("is not shown right after an export", async () => {
+    await saveSomeData();
+    await saveLastExportedAtToDb(daysAgo(2));
+    renderShell("/dashboard");
+
+    expect(await screen.findByText("Dashboard page")).toBeInTheDocument();
+    expect(screen.queryByRole("note", { name: REMINDER })).not.toBeInTheDocument();
+  });
+
+  it("names the date of the last export once it is overdue", async () => {
+    await saveSomeData();
+    await saveLastExportedAtToDb(daysAgo(30));
+    renderShell("/dashboard");
+
+    const note = await screen.findByRole("note", { name: REMINDER });
+    expect(note.textContent?.replace(/[\u2066\u2069]/g, "")).toContain(
+      "You last exported your plan on 16/05/2026.",
+    );
   });
 });

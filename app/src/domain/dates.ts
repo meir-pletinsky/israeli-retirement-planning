@@ -44,6 +44,15 @@ export function formatDate(iso: string): string {
   return match ? `${match[3]}/${match[2]}/${match[1]}` : iso;
 }
 
+/** The calendar day of an ISO timestamp as dd/mm/yyyy in the viewer's time zone; "" if unreadable. */
+export function formatLocalDate(isoTimestamp: string): string {
+  const date = new Date(isoTimestamp);
+  if (Number.isNaN(date.getTime())) return "";
+  return [date.getDate(), date.getMonth() + 1, date.getFullYear()]
+    .map((part, index) => pad(part, index === 2 ? 4 : 2))
+    .join("/");
+}
+
 export interface ParseDateOptions {
   /** Accept years written with two digits (24 is 2024, 70 is 1970). */
   twoDigitYear?: boolean;
