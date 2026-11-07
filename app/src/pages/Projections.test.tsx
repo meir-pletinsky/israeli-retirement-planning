@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Link, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { clearAllData, loadProfileFromDb, saveOnboardedToDb, saveProfileToDb } from "../storage/db";
@@ -1453,9 +1454,9 @@ describe("Projections", () => {
     });
 
     it("separates the scenario choice from the age comparison", async () => {
-      const selector = await renderScenarios();
+      await renderScenarios();
 
-      expect(selector.getByText(/age comparison above is separate/i)).toBeInTheDocument();
+      expect(screen.getByText(/do not follow this choice/i)).toBeInTheDocument();
       const comparison = within(screen.getByRole("region", { name: "Compare retirement ages" }));
       expect(comparison.getByText(/has its own ages/i)).toBeInTheDocument();
     });
@@ -1466,7 +1467,7 @@ describe("Projections", () => {
       expect(selector.getByRole("button", { name: "Early - age 60" })).toBeDisabled();
       expect(selector.getByRole("button", { name: "Standard - age 60" })).toBeEnabled();
       expect(selector.getByRole("button", { name: "Delayed - age 63" })).toBeEnabled();
-      expect(selector.getByText(/never goes below age 60/i)).toBeInTheDocument();
+      expect(screen.getByText(/never goes below age 60/i)).toBeInTheDocument();
     });
 
     it("never makes Early later than the age the user chose", async () => {
@@ -1493,6 +1494,97 @@ describe("Projections", () => {
         "Age 60Your plan",
         "Age 63",
       ]);
+    });
+  });
+
+  describe("plan bar", () => {
+    const BIDI_MARKS = /[\u2066\u2069]/g;
+    const planned = {
+      age: 55,
+      retirementAge: 65,
+      monthlyGrossSalary: 20_000,
+      pensionBalances: [1_500_000],
+      retirementMonthlyExpenses: 9_000,
+      otherAssets: 200_000,
+      investmentReturnPct: 4,
+      inflationPct: 4,
+      planningHorizonAge: 95 as const,
+    };
+
+    async function renderBar(overrides: Partial<typeof planned> = {}) {
+      await saveProfileToDb(buildTestProfile({ ...planned, ...overrides }));
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+      return within(await screen.findByRole("region", { name: "Retirement scenario" }));
+    }
+
+    const facts = (bar: ReturnType<typeof within>) =>
+      bar
+        .getAllByRole("listitem")
+        .map((item) => (item.textContent ?? "").replace(BIDI_MARKS, ""));
+
+    it("states the retirement age, the planned spending and how far the savings reach", async () => {
+      const bar = await renderBar({ pensionBalances: [6_000_000] });
+
+      expect(facts(bar)).toEqual(["Retire at age 65", "Planned spending ₪9,000 a month", "Funded to age 95"]);
+    });
+
+    it("says when the savings run out before the planning horizon", async () => {
+      const bar = await renderBar({ pensionBalances: [200_000], otherAssets: 0, retirementMonthlyExpenses: 20_000 });
+
+      expect(facts(bar)[2]).toMatch(/^Savings run out at age \d+$/);
+    });
+
+    it("leaves out the spending figures when no spending is planned", async () => {
+      const bar = await renderBar({ retirementMonthlyExpenses: 0 });
+
+      expect(facts(bar)).toEqual(["Retire at age 65"]);
+    });
+
+    it("shows the figures of the chosen scenario", async () => {
+      const user = userEvent.setup();
+      const bar = await renderBar({ pensionBalances: [6_000_000] });
+
+      await user.click(bar.getByRole("button", { name: "Delayed - age 68" }));
+
+      expect(facts(bar)[0]).toBe("Retire at age 68");
+    });
+
+    it("remembers the chosen scenario when the page is left and opened again", async () => {
+      const user = userEvent.setup();
+      await saveProfileToDb(buildTestProfile(planned));
+      await saveOnboardedToDb(true);
+      renderWithProviders(
+        <>
+          <Link to="/away">Away</Link>
+          <Link to="/">Back</Link>
+          <Routes>
+            <Route path="/" element={<Projections />} />
+            <Route path="/away" element={<p>Elsewhere</p>} />
+          </Routes>
+        </>,
+      );
+      const bar = within(await screen.findByRole("region", { name: "Retirement scenario" }));
+      await user.click(bar.getByRole("button", { name: "Delayed - age 68" }));
+
+      await user.click(screen.getByRole("link", { name: "Away" }));
+      expect(await screen.findByText("Elsewhere")).toBeInTheDocument();
+      await user.click(screen.getByRole("link", { name: "Back" }));
+
+      const again = within(await screen.findByRole("region", { name: "Retirement scenario" }));
+      expect(again.getByRole("button", { name: "Delayed - age 68" })).toHaveAttribute("aria-pressed", "true");
+      const timeline = within(await screen.findByRole("region", { name: "Retirement timeline" }));
+      expect(timeline.getByText("Delayed - age 68")).toBeInTheDocument();
+    });
+
+    it("sits directly in the page, which is what lets it stay in view while the page scrolls", async () => {
+      await renderBar();
+
+      const region = screen.getByRole("region", { name: "Retirement scenario" });
+      const page = screen.getByRole("heading", { level: 1, name: "Projections" }).parentElement;
+      expect(region.parentElement).toBe(page);
+      expect(region).toHaveAttribute("data-sticky-bar");
+      expect(region).toHaveClass("md:sticky");
     });
   });
 

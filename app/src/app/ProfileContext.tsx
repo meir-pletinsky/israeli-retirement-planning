@@ -33,9 +33,11 @@ import {
   hasProfileData,
   normalizeProfile,
   type ProfileData,
+  type RetirementScenario,
 } from "../types";
 
 import { BackupStatusContext, type BackupStatus } from "./backupStatus";
+import { ChosenScenarioContext } from "./chosenScenario";
 import { SaveStatusContext, type SaveStatus } from "./saveStatus";
 
 interface ProfileContextValue {
@@ -84,6 +86,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [lastExportedAt, setLastExportedAt] = useState<string | null>(null);
   const [snoozedUntil, setSnoozedUntil] = useState<string | null>(null);
+  const [chosenScenario, setChosenScenario] = useState<RetirementScenario>("standard");
   const saveCountRef = useRef(0);
   const hasLoadedRef = useRef(false);
   const requestedPersistenceRef = useRef(false);
@@ -235,6 +238,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         setCpiLookupEnabled(true);
         setLastExportedAt(null);
         setSnoozedUntil(null);
+        setChosenScenario("standard");
         requestedPersistenceRef.current = false;
       },
       fxLookupEnabled,
@@ -246,12 +250,19 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     [profile, evaluatedAt, onboarded, hasData, fxLookupEnabled, cpiLookupEnabled, setUsdToIlsRate],
   );
 
+  const scenarioChoice = useMemo(
+    () => ({ scenario: chosenScenario, setScenario: setChosenScenario }),
+    [chosenScenario],
+  );
+
   if (!isReady) return null;
 
   return (
     <ProfileContext.Provider value={value}>
       <SaveStatusContext.Provider value={saveStatus}>
-        <BackupStatusContext.Provider value={backupStatus}>{children}</BackupStatusContext.Provider>
+        <BackupStatusContext.Provider value={backupStatus}>
+          <ChosenScenarioContext.Provider value={scenarioChoice}>{children}</ChosenScenarioContext.Provider>
+        </BackupStatusContext.Provider>
       </SaveStatusContext.Provider>
     </ProfileContext.Provider>
   );

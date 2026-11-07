@@ -975,8 +975,15 @@
     "scenarioEarly": "Early",
     "scenarioDelayed": "Delayed",
     "scenarioOption": "{{name}} - age {{age}}",
-    "scenarioScope": "Applies to the charts and cards below. The age comparison above is separate and does not follow this choice.",
-    "scenarioEarlyFloor": "In these scenarios Early never goes below age {{age}}, so for your plan it matches Standard and is switched off. The age comparison above can go lower.",
+    "scenarioScope": "Applies to the charts and cards on this page, except the earliest feasible age and the retirement age comparison, which do not follow this choice.",
+    "scenarioEarlyFloor": "In these scenarios Early never goes below age {{age}}, so for your plan it matches Standard and is switched off. The age comparison can go lower.",
+    "planBar": {
+      "facts": "Plan summary",
+      "retireAt": "Retire at age {{age}}",
+      "planned": "Planned spending {{amount}} a month",
+      "fundedTo": "Funded to age {{age}}",
+      "runsOutAt": "Savings run out at age {{age}}"
+    },
     "netWorthChart": "Net Worth Projection",
     "incomeChart": "Sustainable income by source",
     "netIncomeChart": "Sustainable income after tax",

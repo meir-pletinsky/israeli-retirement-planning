@@ -71,7 +71,7 @@ export function AppShell() {
           </header>
           <PrivacyBanner variant="strip" />
         </div>
-        <main className="flex-1 overflow-y-auto p-4 pb-24 md:p-6 md:pb-6">
+        <main className="flex-1 overflow-x-clip p-4 pb-24 md:p-6 md:pb-6">
           <SampleDataBanner />
           <BackupReminder />
           <Outlet />

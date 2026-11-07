@@ -2494,6 +2494,21 @@ of its section 10 (UXB-14 is skipped on request).
       Tests: `longevityTest.test.ts`, `household.test.ts`, `normalizeProfile.test.ts`,
       `netWorth.test.ts`, `AssumptionsStep.test.tsx`, `Projections.test.tsx`,
       `Dashboard.test.tsx`.
+- [x] **UXB-35 The scenario choice is lost and out of view** (bounded). The retirement
+      scenario picked on Projections is now kept in the profile provider
+      (`app/chosenScenario.ts`), so it survives leaving the page and coming back while the app
+      is open. It is a view choice, so it is not saved or exported and resets when the plan is
+      replaced. The scenario selector is now a plan bar (`PlanBar`): the scenario buttons plus
+      the retirement age, the planned spending and whether the savings reach the planning
+      horizon or run out at an age. On `md` and wider screens it is sticky and stays in view
+      while the page scrolls; on small screens it is not sticky, because the header already is.
+      Its notes (what the choice applies to, Early at the floor, the household note) sit under
+      it and are not sticky; they no longer say "above"/"below". To let a sticky element reach
+      the window, `main` in `AppShell` is clipped (`overflow-x-clip`) instead of
+      `overflow-y-auto`, which had made it the scroll container, and `index.css` adds scroll
+      padding so a link to a section stops below the bar. Checked in a browser at 768, 1024 and
+      1280px: the bar sticks at the top, no content is clipped at 320 to 375px. Tests:
+      `Projections.test.tsx`.
 
 ## Modeling assumptions (by phase)
 

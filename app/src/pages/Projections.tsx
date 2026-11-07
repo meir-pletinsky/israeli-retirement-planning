@@ -2,6 +2,7 @@ import clsx from "clsx";
 import { useDeferredValue, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { useChosenScenario } from "../app/chosenScenario";
 import { useProfile } from "../app/ProfileContext";
 import { ActiveAssumptions } from "../components/ActiveAssumptions";
 import { AssumedRetirementAgeBanner } from "../components/AssumedRetirementAgeBanner";
@@ -22,6 +23,7 @@ import { IncomeSplitNote } from "../components/IncomeSplitNote";
 import { IrregularCostsCard } from "../components/IrregularCostsCard";
 import { LiquidityLadderCard } from "../components/LiquidityLadderCard";
 import { LongevityCard } from "../components/LongevityCard";
+import { PlanBar } from "../components/PlanBar";
 import { RetirementTimeline } from "../components/RetirementTimeline";
 import { RiskAnalysisCard } from "../components/RiskAnalysisCard";
 import { RiskBasisCard } from "../components/RiskBasisCard";
@@ -32,11 +34,9 @@ import { SourceCostCard } from "../components/SourceCostCard";
 import { StressTestCard } from "../components/StressTestCard";
 import { UnvestedSharesCard } from "../components/UnvestedSharesCard";
 import { useRetirementFeasibility } from "../components/useRetirementFeasibility";
-import { useScenarioLabel } from "../components/useScenarioLabel";
 import { WithdrawalStrategyCard } from "../components/WithdrawalStrategyCard";
 import {
   MAX_RETIREMENT_SEARCH_AGE,
-  MIN_RETIREMENT_AGE,
   type IncomeBandKey,
   type SourceKind,
   buildLeavingEarlyCost,
@@ -65,19 +65,17 @@ import {
 } from "../domain";
 import type { AccountOwner, CoverOption, RetirementScenario } from "../types";
 
-const SCENARIOS: RetirementScenario[] = ["early", "standard", "delayed"];
 const TIMELINE_BASES = ["sustainable", "planned"] as const;
 type TimelineBasis = (typeof TIMELINE_BASES)[number];
 
 export function Projections() {
   const { t } = useTranslation();
   const { profile, updateProfile } = useProfile();
-  const [chosenScenario, setScenario] = useState<RetirementScenario>("standard");
+  const { scenario: chosenScenario, setScenario } = useChosenScenario();
   const [view, setView] = useState<"chart" | "table">("chart");
   const [chosenTimelineBasis, setTimelineBasis] = useState<TimelineBasis>("sustainable");
   const currencySymbol = t("common.currencySymbol");
   const takeaways = useChartTakeaways();
-  const scenarioLabel = useScenarioLabel(profile);
   const earlyAtStandard =
     resolveRetirementAge(profile, "early") === resolveRetirementAge(profile, "standard");
   // An Early that matches Standard is switched off; a choice made before the ages met is dropped.
@@ -158,6 +156,14 @@ export function Projections() {
 
       <ActiveAssumptions assumptions={profile.assumptions} />
 
+      <PlanBar
+        profile={profile}
+        scenario={scenario}
+        onScenarioChange={setScenario}
+        funding={funding}
+        isCouple={isCouple}
+      />
+
       <FeasibilityCard
         feasibility={feasibility}
         confidentAge={confidentAge}
@@ -165,47 +171,6 @@ export function Projections() {
       />
 
       <ScenarioComparison profile={profile} />
-
-      <section
-        aria-labelledby="scenario-title"
-        className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
-      >
-        <h2 id="scenario-title" className="text-sm font-semibold text-slate-700">
-          {t("projections.scenario")}
-        </h2>
-        <p className="mt-1 text-xs text-slate-500">{t("projections.scenarioScope")}</p>
-        <div
-          role="group"
-          aria-labelledby="scenario-title"
-          className="mt-3 flex flex-wrap gap-1 rounded-2xl bg-slate-100 p-1"
-        >
-          {SCENARIOS.map((s) => {
-            const duplicate = s === "early" && earlyAtStandard;
-            return (
-              <button
-                key={s}
-                type="button"
-                aria-pressed={scenario === s}
-                disabled={duplicate}
-                onClick={() => setScenario(s)}
-                className={clsx(
-                  "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
-                  scenario === s ? "bg-white text-brand-700 shadow" : "text-slate-500",
-                  duplicate && "cursor-not-allowed opacity-50",
-                )}
-              >
-                {scenarioLabel(s)}
-              </button>
-            );
-          })}
-        </div>
-        {earlyAtStandard && (
-          <p className="mt-2 text-xs text-slate-500">
-            {t("projections.scenarioEarlyFloor", { age: MIN_RETIREMENT_AGE })}
-          </p>
-        )}
-        {isCouple && <p className="mt-2 text-xs text-slate-500">{t("projections.householdNote")}</p>}
-      </section>
 
       <BudgetCard
         expenses={profile.expenses}
