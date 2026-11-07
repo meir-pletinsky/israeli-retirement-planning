@@ -2599,6 +2599,20 @@ of its section 10 (UXB-14 is skipped on request).
       and the mobile header, whose heights vary. Tests: `chartConsistency.test.tsx`,
       `Projections.test.tsx`, `CashFlowCard.test.tsx` (no vertical scroll area around the
       table, every row present).
+- [x] **UXB-29 (follow-up) Remaining copy slips and the Russian wording**. The first UXB-29
+      pass had already fixed the Hebrew banner typo and plural, the backtest "all starting
+      years" wording, the date-field icon and the duplicate scenario. This pass: "EOSP" is
+      now "ESOP" in all three languages; scenario options use an en dash ("Early – age 60",
+      "Досрочный – возраст 62"); the Hebrew shortfall banner agrees ("שיידרש"); the Hebrew
+      helper for the contributions field quotes the status the list actually shows ("פעיל —
+      בהפקדה"). Russian: "Примерные счета" is now "Счета из примера"; the active status
+      reads "Активный — идут взносы" in both the option and the helper; "Оплаченный /
+      заморожен" is "Взносы прекращены / счёт заморожен"; "Цель достигнута" is "На верном
+      пути" (as in the banner); the surplus row uses "Излишек", like the KPI; one term per
+      concept (керен хиштальмут, купат гемель, аннуитет not "рента", допущения, снятие not
+      "изъятие"); "влияют" agrees with the plural subject. The choices are recorded in the
+      new `docs/i18n-glossary.md`. Tests: `Projections.test.tsx` (en-dash labels), the
+      locale parity tests.
 
 ## Modeling assumptions (by phase)
 

@@ -1425,9 +1425,9 @@ describe("Projections", () => {
     it("names each scenario with the retirement age it stands for", async () => {
       const selector = await renderScenarios();
 
-      expect(selector.getByRole("button", { name: "Early - age 60" })).toBeInTheDocument();
-      expect(selector.getByRole("button", { name: "Standard - age 65" })).toHaveAttribute("aria-pressed", "true");
-      expect(selector.getByRole("button", { name: "Delayed - age 68" })).toHaveAttribute("aria-pressed", "false");
+      expect(selector.getByRole("button", { name: "Early – age 60" })).toBeInTheDocument();
+      expect(selector.getByRole("button", { name: "Standard – age 65" })).toHaveAttribute("aria-pressed", "true");
+      expect(selector.getByRole("button", { name: "Delayed – age 68" })).toHaveAttribute("aria-pressed", "false");
       expect(selector.queryByText(/never goes below age 60/i)).not.toBeInTheDocument();
     });
 
@@ -1436,20 +1436,20 @@ describe("Projections", () => {
       const selector = await renderScenarios();
 
       const timeline = within(await screen.findByRole("region", { name: "Retirement timeline" }));
-      expect(timeline.getByText("Standard - age 65")).toBeInTheDocument();
+      expect(timeline.getByText("Standard – age 65")).toBeInTheDocument();
       expect(timeline.getByRole("heading", { name: "Retirement timeline" })).toBeInTheDocument();
       const netWorth = screen.getByRole("heading", { name: "Net Worth Projection" }).parentElement!;
-      expect(within(netWorth).getByText("Standard - age 65")).toBeInTheDocument();
+      expect(within(netWorth).getByText("Standard – age 65")).toBeInTheDocument();
 
-      await user.click(selector.getByRole("button", { name: "Delayed - age 68" }));
+      await user.click(selector.getByRole("button", { name: "Delayed – age 68" }));
 
-      expect(selector.getByRole("button", { name: "Delayed - age 68" })).toHaveAttribute("aria-pressed", "true");
-      expect(selector.getByRole("button", { name: "Standard - age 65" })).toHaveAttribute("aria-pressed", "false");
-      expect(timeline.getByText("Delayed - age 68")).toBeInTheDocument();
-      expect(within(netWorth).getByText("Delayed - age 68")).toBeInTheDocument();
+      expect(selector.getByRole("button", { name: "Delayed – age 68" })).toHaveAttribute("aria-pressed", "true");
+      expect(selector.getByRole("button", { name: "Standard – age 65" })).toHaveAttribute("aria-pressed", "false");
+      expect(timeline.getByText("Delayed – age 68")).toBeInTheDocument();
+      expect(within(netWorth).getByText("Delayed – age 68")).toBeInTheDocument();
       for (const name of ["Risk analysis", "Historical backtest", "Sustainable income by source"]) {
         const heading = screen.getByRole("heading", { name: new RegExp(`^${name}$`, "i") });
-        expect(within(heading.parentElement!).getByText("Delayed - age 68")).toBeInTheDocument();
+        expect(within(heading.parentElement!).getByText("Delayed – age 68")).toBeInTheDocument();
       }
     });
 
@@ -1464,23 +1464,23 @@ describe("Projections", () => {
     it("explains that Early does not go below the floor in these scenarios, and switches it off", async () => {
       const selector = await renderScenarios({ retirementAge: 60 });
 
-      expect(selector.getByRole("button", { name: "Early - age 60" })).toBeDisabled();
-      expect(selector.getByRole("button", { name: "Standard - age 60" })).toBeEnabled();
-      expect(selector.getByRole("button", { name: "Delayed - age 63" })).toBeEnabled();
+      expect(selector.getByRole("button", { name: "Early – age 60" })).toBeDisabled();
+      expect(selector.getByRole("button", { name: "Standard – age 60" })).toBeEnabled();
+      expect(selector.getByRole("button", { name: "Delayed – age 63" })).toBeEnabled();
       expect(screen.getByText(/never goes below age 60/i)).toBeInTheDocument();
     });
 
     it("never makes Early later than the age the user chose", async () => {
       const selector = await renderScenarios({ retirementAge: 58 });
 
-      expect(selector.getByRole("button", { name: "Early - age 58" })).toBeDisabled();
-      expect(selector.getByRole("button", { name: "Standard - age 58" })).toBeEnabled();
+      expect(selector.getByRole("button", { name: "Early – age 58" })).toBeDisabled();
+      expect(selector.getByRole("button", { name: "Standard – age 58" })).toBeEnabled();
     });
 
     it("leaves Early selectable while it differs from Standard", async () => {
       const selector = await renderScenarios();
 
-      expect(selector.getByRole("button", { name: "Early - age 60" })).toBeEnabled();
+      expect(selector.getByRole("button", { name: "Early – age 60" })).toBeEnabled();
     });
 
     it("compares three different ages by default, even for a plan to retire at 60", async () => {
@@ -1545,7 +1545,7 @@ describe("Projections", () => {
       const user = userEvent.setup();
       const bar = await renderBar({ pensionBalances: [6_000_000] });
 
-      await user.click(bar.getByRole("button", { name: "Delayed - age 68" }));
+      await user.click(bar.getByRole("button", { name: "Delayed – age 68" }));
 
       expect(facts(bar)[0]).toBe("Retire at age 68");
     });
@@ -1565,16 +1565,16 @@ describe("Projections", () => {
         </>,
       );
       const bar = within(await screen.findByRole("region", { name: "Retirement scenario" }));
-      await user.click(bar.getByRole("button", { name: "Delayed - age 68" }));
+      await user.click(bar.getByRole("button", { name: "Delayed – age 68" }));
 
       await user.click(screen.getByRole("link", { name: "Away" }));
       expect(await screen.findByText("Elsewhere")).toBeInTheDocument();
       await user.click(screen.getByRole("link", { name: "Back" }));
 
       const again = within(await screen.findByRole("region", { name: "Retirement scenario" }));
-      expect(again.getByRole("button", { name: "Delayed - age 68" })).toHaveAttribute("aria-pressed", "true");
+      expect(again.getByRole("button", { name: "Delayed – age 68" })).toHaveAttribute("aria-pressed", "true");
       const timeline = within(await screen.findByRole("region", { name: "Retirement timeline" }));
-      expect(timeline.getByText("Delayed - age 68")).toBeInTheDocument();
+      expect(timeline.getByText("Delayed – age 68")).toBeInTheDocument();
     });
 
     it("sits directly in the page, which is what lets it stay in view while the page scrolls", async () => {
@@ -1723,18 +1723,18 @@ describe("Projections", () => {
       renderWithProviders(<Projections />);
 
       await screen.findByRole("region", { name: "Retirement budget" });
-      expect(within(budget()).getByText("Standard - age 65")).toBeInTheDocument();
+      expect(within(budget()).getByText("Standard – age 65")).toBeInTheDocument();
       expect(rowText("Essential budget")).toContain("\u20aa8,000");
       expect(rowText("Full planned budget")).toContain("\u20aa9,000");
       const standardEssential = rowText("Essential budget");
 
       await user.click(
         within(screen.getByRole("region", { name: "Retirement scenario" })).getByRole("button", {
-          name: "Delayed - age 68",
+          name: "Delayed – age 68",
         }),
       );
 
-      expect(within(budget()).getByText("Delayed - age 68")).toBeInTheDocument();
+      expect(within(budget()).getByText("Delayed – age 68")).toBeInTheDocument();
       expect(rowText("Essential budget")).not.toBe(standardEssential);
     });
 
@@ -1888,7 +1888,7 @@ describe("Projections", () => {
         "Holidays\u20aa24,000Once a year\u20aa2,000",
       );
       expect(card.getByText(/not a payment schedule/)).toBeInTheDocument();
-      expect(card.queryByText("Standard - age 65")).not.toBeInTheDocument();
+      expect(card.queryByText("Standard – age 65")).not.toBeInTheDocument();
     });
 
     it("is not shown when every cost is regular", async () => {

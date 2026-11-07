@@ -106,7 +106,7 @@
       "steps": {
         "personal": "Your age, gender, salary and family details.",
         "pensionSavings": "Pension, provident and study funds, with balances, deposits and fees.",
-        "equity": "Stocks, employee share plans (ESPP, EOSP), bank deposits and other investments.",
+        "equity": "Stocks, employee share plans (ESPP, ESOP), bank deposits and other investments.",
         "expenses": "What you expect to spend in retirement.",
         "assumptions": "Returns, inflation and other settings. Sensible defaults are used if you skip this."
       },
@@ -988,7 +988,7 @@
     "scenarioStandard": "Standard",
     "scenarioEarly": "Early",
     "scenarioDelayed": "Delayed",
-    "scenarioOption": "{{name}} - age {{age}}",
+    "scenarioOption": "{{name}} – age {{age}}",
     "scenarioScope": "Applies to the charts and cards on this page, except the earliest feasible age and the retirement age comparison, which do not follow this choice.",
     "scenarioEarlyFloor": "In these scenarios Early never goes below age {{age}}, so for your plan it matches Standard and is switched off. The age comparison can go lower.",
     "planBar": {
