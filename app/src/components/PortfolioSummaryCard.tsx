@@ -1,19 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
-import { formatDate, type PortfolioBreakdown, type PortfolioRowKey } from "../domain";
-
-/** Where each kind of asset is entered, so a row can lead to its detail. */
-const INPUT_ROUTE: Record<PortfolioRowKey, string> = {
-  pensionFund: "/my-data/pension-savings",
-  providentFund: "/my-data/pension-savings",
-  managersInsurance: "/my-data/pension-savings",
-  studyFund: "/my-data/pension-savings",
-  bankDeposits: "/my-data/pension-savings",
-  privateShares: "/my-data/equity",
-  employerShares: "/my-data/equity",
-  cashAndOther: "/my-data/pension-savings",
-};
+import { formatDate, type PortfolioBreakdown } from "../domain";
+import { PORTFOLIO_INPUT_TARGET } from "./portfolioInputTargets";
 
 /** The anchor the Net Worth Today figure on the Dashboard links to. */
 const PORTFOLIO_SUMMARY_ID = "portfolio-summary";
@@ -58,7 +47,7 @@ export function PortfolioSummaryCard({ portfolio }: { portfolio: PortfolioBreakd
             <tr key={row.key} className="border-t border-slate-100">
               <th scope="row" className="py-2 pe-3 text-start font-normal text-slate-700">
                 <Link
-                  to={INPUT_ROUTE[row.key]}
+                  to={PORTFOLIO_INPUT_TARGET[row.key]}
                   className="font-medium text-brand-700 hover:underline"
                 >
                   {t(`dashboard.portfolio.rows.${row.key}`)}

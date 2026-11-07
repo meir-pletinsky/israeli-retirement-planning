@@ -3,6 +3,8 @@ import { useId, type ReactNode } from "react";
 import { FieldLabel, type FieldImportance } from "./FieldLabel";
 
 interface NumberFieldProps {
+  /** Lets a link from another screen open the page at this field. */
+  id?: string;
   label: string;
   importance?: FieldImportance;
   helperText?: string;
@@ -16,6 +18,7 @@ interface NumberFieldProps {
 }
 
 export function NumberField({
+  id,
   label,
   importance,
   helperText,
@@ -40,6 +43,7 @@ export function NumberField({
           }`}
         >
           <input
+            id={id}
             type="number"
             inputMode="decimal"
             min={min}

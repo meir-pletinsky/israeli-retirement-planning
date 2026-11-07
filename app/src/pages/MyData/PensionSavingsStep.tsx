@@ -155,6 +155,7 @@ export function PensionSavingsStep() {
 
       <div className="flex max-w-lg flex-col gap-4">
         <NumberField
+          id="other-assets"
           label={t(`${FIELDS}.otherAssets`)}
           helperText={showPeople ? t(`${FIELDS}.otherAssetsShared`) : undefined}
           value={pensionSavings.otherAssets}

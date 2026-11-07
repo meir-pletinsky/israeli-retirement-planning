@@ -186,6 +186,7 @@ export function SummaryTable<Row>({
 
   return (
     <section
+      id={id}
       aria-labelledby={`${id}-title`}
       className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
     >

@@ -2176,6 +2176,14 @@ of its section 10 (UXB-14 is skipped on request).
       other screens; on small screens `scroll-padding-top` keeps a linked section below the
       sticky header, and the focused heading shows no ring. Tests:
       `app/RouteScrollManager.test.tsx`.
+- [x] **UXB-23 "Bank deposits" opens the step where deposits are entered, at the deposits
+      table.** Each row of "What Net Worth Today is made of" now links to its own section
+      (`components/portfolioInputTargets.ts`): deposits to `/my-data/equity#bank-deposits-summary`,
+      employer shares and private shares to their holdings tables, pension and savings accounts
+      to the accounts table and "Cash and other assets" to the "Other assets" field. For this
+      `SummaryTable` puts its `id` on its section and `NumberField` takes an `id`; the new
+      scroll handling (UXB-06) does the rest. Tests: `components/portfolioInputTargets.test.tsx`
+      checks that every target exists on the step it names; `Dashboard.test.tsx` checks the links.
 
 ## Modeling assumptions (by phase)
 

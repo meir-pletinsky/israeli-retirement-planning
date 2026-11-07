@@ -1300,19 +1300,23 @@ describe("Dashboard", () => {
       expect(within(summary()).queryByText("Private shares and ESPP")).not.toBeInTheDocument();
     });
 
-    it("links each row to where it is entered, and the figure to the summary", async () => {
+    it("links each row to its own section of the step where it is entered, and the figure to the summary", async () => {
       await saveProfileToDb(rich);
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
       await screen.findByText("Net Worth Today");
-      expect(within(summary()).getByRole("link", { name: "Bank deposits" })).toHaveAttribute(
+      const link = (name: string) => within(summary()).getByRole("link", { name });
+      expect(link("Pension funds")).toHaveAttribute("href", "/my-data/pension-savings#pension-summary");
+      expect(link("Study funds")).toHaveAttribute("href", "/my-data/pension-savings#pension-summary");
+      expect(link("Bank deposits")).toHaveAttribute("href", "/my-data/equity#bank-deposits-summary");
+      expect(link("Employer shares (vested)")).toHaveAttribute(
         "href",
-        "/my-data/pension-savings",
+        "/my-data/equity#equity-summary-employerGrantedStock",
       );
-      expect(within(summary()).getByRole("link", { name: "Employer shares (vested)" })).toHaveAttribute(
+      expect(link("Cash and other assets")).toHaveAttribute(
         "href",
-        "/my-data/equity",
+        "/my-data/pension-savings#other-assets",
       );
       expect(screen.getByRole("link", { name: "See what it is made of" })).toHaveAttribute(
         "href",
