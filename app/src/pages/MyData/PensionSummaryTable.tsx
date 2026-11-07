@@ -135,6 +135,7 @@ export function PensionSummaryTable({
       columns={columns}
       toolbar={toolbar}
       emptyMessage={emptyMessage}
+      collapseSecondary
       rowActions={(account, describedBy) => (
         <RowActions
           describedBy={describedBy}

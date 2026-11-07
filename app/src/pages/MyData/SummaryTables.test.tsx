@@ -353,8 +353,8 @@ describe("My Data summary tables — Equity & Investments", () => {
     expect(uncategorisedTotals).toHaveTextContent("$10");
 
     expect(
-      screen.getByText(/Total across all categories/),
-    ).toHaveTextContent(`Total across all categories: $2,610 / ${SHEKEL}9,657`);
+      screen.getByText(/Total of shares/),
+    ).toHaveTextContent(`Total of shares: $2,610 / ${SHEKEL}9,657`);
     expect(screen.getByLabelText("Shekels per US dollar")).toHaveValue(3.7);
     expect(screen.getByText(/A rough built-in rate/)).toBeInTheDocument();
   });
@@ -408,7 +408,7 @@ describe("My Data summary tables — Equity & Investments", () => {
     const quantityIndex = headers.findIndex((header) => header.textContent === "Quantity (shares)");
     const vestedIndex = headers.findIndex((header) => header.textContent === "Vested quantity (shares)");
     expect(quantityIndex).toBeGreaterThanOrEqual(0);
-    expect(vestedIndex).toBe(quantityIndex + 1);
+    expect(vestedIndex).toBeGreaterThan(quantityIndex);
 
     const [, partlyVested, noSchedule] = within(esop).getAllByRole("row");
     const cellsOf = (row: HTMLElement) => within(row).getAllByRole("cell");
@@ -437,7 +437,7 @@ describe("My Data summary tables — Equity & Investments", () => {
     expect(screen.getByText(/No private trades added yet/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add bank deposit" })).toBeInTheDocument();
     expect(screen.getByText(/No bank deposits added yet/)).toBeInTheDocument();
-    expect(screen.queryByText(/Total across all categories/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Total of shares/)).not.toBeInTheDocument();
   });
 
   it("leaves a cell empty while the date or a price is missing", async () => {
@@ -450,10 +450,13 @@ describe("My Data summary tables — Equity & Investments", () => {
     renderStep("equity");
 
     const table = await screen.findByRole("table", { name: "Privately purchased stocks at a glance" });
-    const [, row] = within(table).getAllByRole("row");
-    const cells = within(row).getAllByRole("cell");
-    expect(cells[3]).toHaveTextContent("\u2014");
-    expect(cells[4]).toHaveTextContent("\u2014");
+    const [header, row] = within(table).getAllByRole("row");
+    const cellUnder = (name: string) => {
+      const index = within(header).getAllByRole("columnheader").findIndex((th) => th.textContent === name);
+      return within(row).getAllByRole("cell")[index];
+    };
+    expect(cellUnder("Purchase date")).toHaveTextContent("\u2014");
+    expect(cellUnder("Purchase price per share")).toHaveTextContent("\u2014");
     expect(row).toHaveTextContent("$60");
   });
 
@@ -735,6 +738,168 @@ describe("My Data summary tables — narrow screens", () => {
     expect(face).toHaveTextContent(`${SHEKEL}120`);
     expect(first.querySelector("details")).toHaveTextContent("Current price (USD)");
     expect(within(first).getByRole("button", { name: "Edit" })).toHaveAccessibleDescription(/AAA/);
+  });
+});
+
+describe("My Data summary tables — laptop width", () => {
+  beforeEach(() => {
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: query === "(max-width: 1279px)",
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const headersOf = (table: HTMLElement) =>
+    within(within(table).getAllByRole("row")[0])
+      .getAllByRole("columnheader")
+      .map((header) => header.textContent);
+
+  it("keeps the values and their totals in the row, right after the name, and folds the rest away", async () => {
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 50,
+        usdToIlsRate: { rate: 3, date: "2026-10-30" },
+        equity: [
+          {
+            category: "employerGrantedStock",
+            ticker: "AAA",
+            quantity: 4,
+            priceUSD: 10,
+            entry: { date: "2024-03-01", priceUSD: 8 },
+          },
+        ],
+      }),
+    );
+    renderStep("equity");
+
+    const table = await screen.findByRole("table", { name: "ESOP / RSU at a glance" });
+    expect(headersOf(table)).toEqual([
+      "Ticker symbol",
+      "Quantity (shares)",
+      "Value (USD)",
+      "Value (ILS)",
+      "Actions",
+    ]);
+    const [, row, totals] = within(table).getAllByRole("row");
+    expect(row).toHaveTextContent("$40");
+    expect(row).toHaveTextContent(`${SHEKEL}120`);
+    expect(totals).toHaveTextContent("$40");
+    expect(totals).toHaveTextContent(`${SHEKEL}120`);
+
+    const details = row.querySelector("details")!;
+    expect(details).not.toHaveAttribute("open");
+    for (const name of [
+      "Custodian / broker",
+      "Vested quantity (shares)",
+      "Grant date",
+      "Share price at grant",
+      "Current price (USD)",
+    ]) {
+      expect(details).toHaveTextContent(name);
+    }
+    expect(details).toHaveTextContent("01/03/2024");
+    expect(within(row).getByRole("button", { name: "Edit" })).toHaveAccessibleDescription(/^AAA/);
+    expect(within(row).getByRole("button", { name: "Edit" })).not.toHaveAccessibleDescription(/Custodian/);
+  });
+
+  it("does the same for the bank deposits, whose current value and total stay in view", async () => {
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 50,
+        bankDeposits: [{ amount: 100_000, bankName: "Bank A", rateType: "fixed", startDate: "2030-01-01" }],
+      }),
+    );
+    renderStep("equity");
+
+    const table = await screen.findByRole("table", { name: "Bank deposits" });
+    expect(headersOf(table).slice(0, 3)).toEqual(["Bank / institution", "Amount deposited", "Current value (ILS)"]);
+    expect(headersOf(table)).not.toContain("Rate type");
+    const [, row, totals] = within(table).getAllByRole("row");
+    expect(row).toHaveTextContent(`${SHEKEL}100,000`);
+    expect(totals).toHaveTextContent(`${SHEKEL}100,000`);
+    expect(row.querySelector("details")).toHaveTextContent("Rate type");
+  });
+
+  it("opens the folded details on request", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(
+      buildTestProfile({ age: 50, equity: [{ category: "employerEsppDiscount", ticker: "BBB", quantity: 1, priceUSD: 10 }] }),
+    );
+    renderStep("equity");
+
+    const table = await screen.findByRole("table", { name: "ESPP at a glance" });
+    const [, row] = within(table).getAllByRole("row");
+    await user.click(within(row).getByText("More details"));
+    expect(row.querySelector("details")).toHaveAttribute("open");
+  });
+});
+
+describe("My Data summary tables — wide screens", () => {
+  it("shows every column in the row, with no folded details", async () => {
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 50,
+        equity: [{ category: "employerEsppDiscount", ticker: "BBB", quantity: 1, priceUSD: 10 }],
+      }),
+    );
+    renderStep("equity");
+
+    const table = await screen.findByRole("table", { name: "ESPP at a glance" });
+    const headers = within(within(table).getAllByRole("row")[0])
+      .getAllByRole("columnheader")
+      .map((header) => header.textContent);
+    expect(headers.slice(0, 4)).toEqual(["Ticker symbol", "Quantity (shares)", "Value (USD)", "Value (ILS)"]);
+    expect(headers).toContain("Custodian / broker");
+    expect(headers).toContain("Current price (USD)");
+    expect(table.querySelector("details")).toBeNull();
+  });
+});
+
+describe("My Data summary tables — step total", () => {
+  const withRate = { age: 50, usdToIlsRate: { rate: 3, date: "2026-10-30" } };
+  const shares = [{ category: "employerGrantedStock" as const, ticker: "AAA", quantity: 4, priceUSD: 10 }];
+  const deposits = [{ amount: 100_000, bankName: "Bank A" }];
+
+  it("adds the shares and the bank deposits together", async () => {
+    await saveProfileToDb(buildTestProfile({ ...withRate, equity: shares, bankDeposits: deposits }));
+    renderStep("equity");
+
+    const total = await screen.findByText(/^Total of shares and deposits/);
+    expect(total).toHaveTextContent(`Total of shares and deposits: ${SHEKEL}100,120`);
+  });
+
+  it("is left out when there is only one kind, as it would repeat that table's total", async () => {
+    await saveProfileToDb(buildTestProfile({ ...withRate, equity: shares }));
+    renderStep("equity");
+    await screen.findByRole("table", { name: "ESOP / RSU at a glance" });
+    expect(screen.queryByText(/Total of shares and deposits/)).not.toBeInTheDocument();
+  });
+
+  it("is left out when there are only deposits", async () => {
+    await saveProfileToDb(buildTestProfile({ ...withRate, bankDeposits: deposits }));
+    renderStep("equity");
+    await screen.findByRole("table", { name: "Bank deposits" });
+    expect(screen.queryByText(/Total of shares and deposits/)).not.toBeInTheDocument();
+  });
+
+  it("names the share total as shares only, so it is not mistaken for the whole step", async () => {
+    await saveProfileToDb(
+      buildTestProfile({
+        ...withRate,
+        equity: [...shares, { category: "employerEsppDiscount" as const, ticker: "BBB", quantity: 1, priceUSD: 10 }],
+        bankDeposits: deposits,
+      }),
+    );
+    renderStep("equity");
+
+    expect(await screen.findByText(/^Total of shares:/)).toHaveTextContent(`Total of shares: $50 / ${SHEKEL}150`);
+    expect(screen.getByText(/^Total of shares and deposits/)).toHaveTextContent(`${SHEKEL}100,150`);
   });
 });
 

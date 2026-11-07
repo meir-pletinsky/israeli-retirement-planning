@@ -6,6 +6,9 @@ import { useMediaQuery } from "../../app/useMediaQuery";
 /** The layout where the app swaps the sidebar for the bottom navigation: tables become cards. */
 const NARROW_SCREEN = "(max-width: 767px)";
 
+/** Below this width a table with many columns would scroll sideways, hiding its value columns. */
+const LAPTOP_SCREEN = "(max-width: 1279px)";
+
 export interface SummaryColumn<Row> {
   key: string;
   header: string;
@@ -13,7 +16,8 @@ export interface SummaryColumn<Row> {
   numeric?: boolean;
   /**
    * On a narrow screen, where each row becomes a card: shown on the card itself instead of under
-   * "More details". The first column is always the card's title.
+   * "More details". The first column is always the card's title. On a laptop-width screen, a table
+   * with `collapseSecondary` keeps only these columns in the row.
    */
   primary?: boolean;
   cell: (row: Row) => ReactNode;
@@ -37,6 +41,12 @@ interface SummaryTableProps<Row> {
   rowActions?: (row: Row, describedBy: string) => ReactNode;
   /** Shown instead of the table while there are no rows. */
   emptyMessage?: ReactNode;
+  /**
+   * For a table with many columns: on a laptop-width screen, keep only the title and the primary
+   * columns in each row and put the others under that row's "More details", so the values and
+   * their totals stay in view instead of scrolling off to the side.
+   */
+  collapseSecondary?: boolean;
   /** Notes shown under the table. */
   children?: ReactNode;
 }
@@ -54,10 +64,12 @@ export function SummaryTable<Row>({
   toolbar,
   rowActions,
   emptyMessage,
+  collapseSecondary,
   children,
 }: SummaryTableProps<Row>) {
   const { t } = useTranslation();
   const narrow = useMediaQuery(NARROW_SCREEN);
+  const laptop = useMediaQuery(LAPTOP_SCREEN);
   const hasTotals = columns.some((column) => column.total !== undefined);
   const alignment = (numeric?: boolean) => (numeric ? "text-end tabular-nums" : "text-start");
   const labelId = (row: Row) => `${id}-${rowKey(row)}-label`;
@@ -79,6 +91,15 @@ export function SummaryTable<Row>({
         <dd className="break-words text-sm text-slate-900">{value(column, row)}</dd>
       </div>
     ));
+  const moreDetails = (row: Row, className: string) => (
+    <details className={className}>
+      <summary className="cursor-pointer text-xs font-medium text-brand-700">
+        {t("myData.summary.moreDetails")}
+        <span className="sr-only"> {titleColumn?.header}</span>
+      </summary>
+      <dl className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1.5">{pairs(detailColumns, row)}</dl>
+    </details>
+  );
 
   const cards = (
     <>
@@ -93,15 +114,7 @@ export function SummaryTable<Row>({
             {faceColumns.length > 0 && (
               <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5">{pairs(faceColumns, row)}</dl>
             )}
-            {detailColumns.length > 0 && (
-              <details className="mt-2">
-                <summary className="cursor-pointer text-xs font-medium text-brand-700">
-                  {t("myData.summary.moreDetails")}
-                  <span className="sr-only"> {titleColumn?.header}</span>
-                </summary>
-                <dl className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1.5">{pairs(detailColumns, row)}</dl>
-              </details>
-            )}
+            {detailColumns.length > 0 && moreDetails(row, "mt-2")}
             {rowActions && (
               <div className="mt-2 border-t border-slate-100 pt-2">{rowActions(row, labelId(row))}</div>
             )}
@@ -126,13 +139,19 @@ export function SummaryTable<Row>({
     </>
   );
 
+  // The columns left out of the row on a laptop-width screen are reachable from its "More details".
+  const collapsed = Boolean(collapseSecondary) && laptop && detailColumns.length > 0;
+  const shownColumns = collapsed
+    ? columns.filter((column, index) => index === 0 || column.primary)
+    : columns;
+
   const table = (
     <div className="mt-3 overflow-x-auto">
       <table className="w-full min-w-[32rem] text-sm">
         <caption className="sr-only">{title}</caption>
         <thead>
           <tr className="border-b border-slate-200">
-            {columns.map((column, index) => (
+            {shownColumns.map((column, index) => (
               <th
                 key={column.key}
                 scope="col"
@@ -151,13 +170,20 @@ export function SummaryTable<Row>({
         <tbody>
           {rows.map((row) => (
             <tr key={rowKey(row)} className="border-t border-slate-100 align-top">
-              {columns.map((column, index) => (
+              {shownColumns.map((column, index) => (
                 <td
                   key={column.key}
-                  id={index === 0 && rowActions ? labelId(row) : undefined}
-                  className={`px-2 py-1.5 text-slate-800 ${alignment(column.numeric)} ${index === 0 ? firstColumn : ""}`}
+                  id={index === 0 && rowActions && !collapsed ? labelId(row) : undefined}
+                  className={`px-2 py-1.5 text-slate-800 ${alignment(column.numeric)} ${index === 0 ? (collapsed ? "min-w-[14rem]" : firstColumn) : ""}`}
                 >
-                  {value(column, row)}
+                  {index === 0 && collapsed ? (
+                    <>
+                      <div id={rowActions ? labelId(row) : undefined}>{value(column, row)}</div>
+                      {moreDetails(row, "mt-1.5")}
+                    </>
+                  ) : (
+                    value(column, row)
+                  )}
                 </td>
               ))}
               {rowActions && <td className={actionCell}>{rowActions(row, labelId(row))}</td>}
@@ -167,7 +193,7 @@ export function SummaryTable<Row>({
         {hasTotals && (
           <tfoot>
             <tr className="border-t-2 border-slate-200 font-semibold text-slate-900">
-              {columns.map((column, index) => (
+              {shownColumns.map((column, index) => (
                 <td key={column.key} className={`px-2 py-1.5 ${alignment(column.numeric)}`}>
                   {index === 0 ? (
                     t("myData.summary.total")

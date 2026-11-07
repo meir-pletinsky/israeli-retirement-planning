@@ -412,7 +412,8 @@
         "personalBrokeragePurchase": "Сводка: акции, купленные самостоятельно",
         "none": "Позиции без категории"
       },
-      "equityTotalAllCategories": "Итого по всем категориям",
+      "equityTotalShares": "Итого по акциям",
+      "equityStepTotal": "Итого по акциям и депозитам",
       "actions": "Действия",
       "total": "Итого",
       "currentPriceUsd": "Текущая цена (USD)",

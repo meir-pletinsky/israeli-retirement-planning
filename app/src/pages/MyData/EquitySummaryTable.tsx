@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { useProfile } from "../../app/ProfileContext";
 import {
+  aggregateBankDepositsBalance,
   engineNowMs,
   formatDate,
   hasGainBasis,
@@ -12,7 +13,7 @@ import {
   usdToIlsRate,
   vestedQuantityAt,
 } from "../../domain";
-import type { InvestmentCategory, ProfileData, StockHolding } from "../../types";
+import type { BankDeposit, InvestmentCategory, ProfileData, StockHolding } from "../../types";
 import { entryDate, entryPriceUsd } from "./holdingEntry";
 import { RowActions } from "./RowActions";
 import { EMPTY_CELL, formatCurrency } from "./summaryFormat";
@@ -69,6 +70,7 @@ export function EquityCategoryTable({
   const totalUsd = sumUsd(holdings);
   const totalIls = sumIls(holdings, rate);
 
+  // The values come right after the name, so they are what stays in view when the table is narrowed.
   const columns: SummaryColumn<StockHolding>[] = [
     {
       key: "holding",
@@ -85,17 +87,36 @@ export function EquityCategoryTable({
       ),
     },
     {
-      key: "custodian",
-      header: t(`${FIELDS}.fields.custodianOrBroker`),
-      cell: (holding) => holding.custodianOrBroker || EMPTY_CELL,
-    },
-    {
       key: "quantity",
       header: t(`${FIELDS}.fields.quantity`),
       numeric: true,
       primary: true,
       cell: (holding) =>
         holding.quantity === null ? EMPTY_CELL : holding.quantity.toLocaleString(),
+    },
+    {
+      key: "valueUsd",
+      header: t("myData.summary.valueUsd"),
+      numeric: true,
+      primary: true,
+      cell: (holding) => formatCurrency(holdingValueUsd(holding), "$"),
+      total: formatCurrency(totalUsd, "$"),
+    },
+    {
+      key: "valueIls",
+      header: t("myData.summary.valueIls"),
+      numeric: true,
+      primary: true,
+      cell: (holding) =>
+        holdingValueUsd(holding) === null
+          ? EMPTY_CELL
+          : formatCurrency(Math.round(holdingValueIls(holding, rate)), currency),
+      total: formatCurrency(Math.round(totalIls), currency),
+    },
+    {
+      key: "custodian",
+      header: t(`${FIELDS}.fields.custodianOrBroker`),
+      cell: (holding) => holding.custodianOrBroker || EMPTY_CELL,
     },
   ];
 
@@ -143,24 +164,6 @@ export function EquityCategoryTable({
       numeric: true,
       cell: (holding) => formatCurrency(holding.currentMarketPriceUSD, "$"),
     },
-    {
-      key: "valueUsd",
-      header: t("myData.summary.valueUsd"),
-      numeric: true,
-      cell: (holding) => formatCurrency(holdingValueUsd(holding), "$"),
-      total: formatCurrency(totalUsd, "$"),
-    },
-    {
-      key: "valueIls",
-      header: t("myData.summary.valueIls"),
-      numeric: true,
-      primary: true,
-      cell: (holding) =>
-        holdingValueUsd(holding) === null
-          ? EMPTY_CELL
-          : formatCurrency(Math.round(holdingValueIls(holding, rate)), currency),
-      total: formatCurrency(Math.round(totalIls), currency),
-    },
   );
 
   // Employer grants are taxed by route, which has no single gain figure per holding.
@@ -192,6 +195,7 @@ export function EquityCategoryTable({
       columns={columns}
       toolbar={toolbar}
       emptyMessage={emptyMessage}
+      collapseSecondary
       rowActions={(holding, describedBy) => (
         <RowActions
           describedBy={describedBy}
@@ -279,7 +283,7 @@ export function EquityTotalsFooter({ holdings, nonEmptyTableCount }: EquityTotal
     <div className="flex flex-col gap-2 text-xs text-slate-500">
       {nonEmptyTableCount > 1 && (
         <p className="text-sm font-semibold text-slate-900">
-          {t("myData.summary.equityTotalAllCategories")}:{" "}
+          {t("myData.summary.equityTotalShares")}:{" "}
           <span dir="ltr">{formatCurrency(sumUsd(holdings), "$")}</span>
           {" / "}
           <span dir="ltr">{formatCurrency(Math.round(sumIls(holdings, rate)), currency)}</span>
@@ -287,5 +291,31 @@ export function EquityTotalsFooter({ holdings, nonEmptyTableCount }: EquityTotal
       )}
       <UsdIlsRateControl equity={profile.equity} rate={rate} />
     </div>
+  );
+}
+
+/**
+ * The step's grand total: the shares and the bank deposits together. Shown only when both exist,
+ * since otherwise it would repeat the one table's own total.
+ */
+export function EquityStepTotal({
+  holdings,
+  deposits,
+}: {
+  holdings: readonly StockHolding[];
+  deposits: readonly BankDeposit[];
+}) {
+  const { t } = useTranslation();
+  const { profile } = useProfile();
+  if (holdings.length === 0 || deposits.length === 0) return null;
+
+  const total =
+    sumIls(holdings, usdToIlsRate(profile)) +
+    aggregateBankDepositsBalance(deposits, profile.assumptions.inflationPct, engineNowMs());
+  return (
+    <p className="text-sm font-semibold text-slate-900">
+      {t("myData.summary.equityStepTotal")}:{" "}
+      <span dir="ltr">{formatCurrency(Math.round(total), t("common.currencySymbol"))}</span>
+    </p>
   );
 }

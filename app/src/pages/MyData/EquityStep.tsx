@@ -13,7 +13,7 @@ import {
 } from "../../types";
 import { BankDepositForm } from "./BankDepositForm";
 import { BankDepositsTable } from "./BankDepositsTable";
-import { EquityCategoryTable, EquityTotalsFooter } from "./EquitySummaryTable";
+import { EquityCategoryTable, EquityStepTotal, EquityTotalsFooter } from "./EquitySummaryTable";
 import { HoldingDialog } from "./HoldingDialog";
 import { CATEGORY_ORDER, createHoldingForCategory } from "./holdingEntry";
 import { StepFooter } from "./StepFooter";
@@ -143,6 +143,8 @@ export function EquityStep() {
           </button>
         }
       />
+
+      <EquityStepTotal holdings={equity.holdings} deposits={bankDeposits} />
 
       <div className="max-w-lg">
         <StepFooter currentKey="equity" />

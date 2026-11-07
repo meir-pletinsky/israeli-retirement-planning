@@ -2344,6 +2344,18 @@ of its section 10 (UXB-14 is skipped on request).
       entry price on an ESPP or private holding now have that gain taxed, so their income after
       tax drops. Tests: `purchaseLots.test.ts`, `sources.test.ts`, `inputGuidance.test.ts`,
       `SummaryTables.test.tsx`, `EquityStep.test.tsx`, `Dashboard.test.tsx`.
+- [x] **UXB-13 The holdings and deposit tables keep their values in view at laptop width.**
+      `SummaryTable` gained `collapseSecondary`: between the phone layout (below 768 px) and 1280
+      px, a table that sets it keeps only the name and the `primary` columns in each row and puts
+      the other columns under the row's own "More details" (the same disclosure the phone cards
+      use). The Equity holdings tables, the bank deposits table and the pension accounts table set
+      it; the expenses table (five columns) does not. In the holdings tables the quantity, the
+      value in dollars and the value in shekels (all `primary`) now come right after the name at
+      every width, and the totals row keeps those columns. Same for the deposit amount and current
+      value. "Total across all categories" is renamed "Total of shares", and a new "Total of
+      shares and deposits" line under the deposits table gives the step's grand total (shown only
+      when both shares and deposits exist, as otherwise it would repeat one table's total). Tests:
+      `SummaryTables.test.tsx`.
 
 ## Modeling assumptions (by phase)
 

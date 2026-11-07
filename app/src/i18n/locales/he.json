@@ -412,7 +412,8 @@
         "personalBrokeragePurchase": "סיכום מניות שנרכשו באופן פרטי",
         "none": "אחזקות ללא קטגוריה"
       },
-      "equityTotalAllCategories": "סה\"כ בכל הקטגוריות",
+      "equityTotalShares": "סה\"כ מניות",
+      "equityStepTotal": "סה\"כ מניות ופיקדונות",
       "actions": "פעולות",
       "total": "סה\"כ",
       "currentPriceUsd": "מחיר נוכחי (דולר)",

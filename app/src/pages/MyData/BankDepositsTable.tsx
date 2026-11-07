@@ -45,6 +45,15 @@ export function BankDepositsTable({ deposits, toolbar, emptyMessage, onEdit, onR
       cell: (deposit) => formatWholeCurrency(deposit.amount, currency),
     },
     {
+      key: "currentValue",
+      header: t(`${FIELDS}.currentValue`),
+      numeric: true,
+      primary: true,
+      cell: (deposit) =>
+        formatCurrency(Math.round(bankDepositValueIls(deposit, inflationPct, nowMs)), currency),
+      total: formatCurrency(Math.round(totalValue), currency),
+    },
+    {
       key: "rateType",
       header: t(`${FIELDS}.fields.rateType`),
       cell: (deposit) =>
@@ -73,15 +82,6 @@ export function BankDepositsTable({ deposits, toolbar, emptyMessage, onEdit, onR
       numeric: true,
       cell: (deposit) => deposit.maturityDate ? formatDate(deposit.maturityDate) : EMPTY_CELL,
     },
-    {
-      key: "currentValue",
-      header: t(`${FIELDS}.currentValue`),
-      numeric: true,
-      primary: true,
-      cell: (deposit) =>
-        formatCurrency(Math.round(bankDepositValueIls(deposit, inflationPct, nowMs)), currency),
-      total: formatCurrency(Math.round(totalValue), currency),
-    },
   ];
 
   return (
@@ -93,6 +93,7 @@ export function BankDepositsTable({ deposits, toolbar, emptyMessage, onEdit, onR
       columns={columns}
       toolbar={toolbar}
       emptyMessage={emptyMessage}
+      collapseSecondary
       rowActions={(deposit, describedBy) => (
         <RowActions
           describedBy={describedBy}
