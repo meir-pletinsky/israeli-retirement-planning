@@ -224,6 +224,9 @@ describe("HoldingDialog — bulk entry", () => {
     await waitFor(() => expect(price).toHaveValue(11));
     expect(await screen.findByText(/it will be saved as 100 shares/)).toBeInTheDocument();
 
+    const total = screen.getByText(/^Total value:/);
+    await waitFor(() => expect(total).toHaveTextContent("$1,500"));
+    expect(total).toHaveTextContent("as reported: 10 shares \u00b7 $150");
     await user.clear(price);
     await user.type(price, "110");
     await user.click(screen.getByRole("button", { name: "Save" }));

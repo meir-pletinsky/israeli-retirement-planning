@@ -577,7 +577,8 @@
         "splits": {
           "asReported": "Quantities and prices are as originally reported (before later stock splits)",
           "asReportedHelper": "Keep this on for numbers taken from a broker or clearing-house statement: they are restated in today's shares using the stock's split history. Turn it off if you already converted them.",
-          "singleNote": "A split since this date means each share became ×{{factor}}: it will be saved as {{quantity}} shares. A price you typed is divided by the same factor; an estimated price is already adjusted."
+          "singleNote": "A split since this date means each share became ×{{factor}}: it will be saved as {{quantity}} shares. A price you typed is divided by the same factor; an estimated price is already adjusted.",
+          "totalAsReported": "as reported: {{quantity}} shares · {{value}}"
         },
         "bulk": {
           "symbolHelper": "All rows below are for this stock. To add another stock, use this dialog again.",

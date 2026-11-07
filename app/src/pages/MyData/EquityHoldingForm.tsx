@@ -37,11 +37,14 @@ const TAX_TRACKS: TaxTrack[] = [
 interface EquityHoldingFormProps {
   holding: StockHolding;
   onChange: (change: HoldingChange) => void;
+  /** The quantity the holding will be saved with, when a split restates what was typed. */
+  restatedQuantity?: number | null;
 }
 
 export function EquityHoldingForm({
   holding,
   onChange,
+  restatedQuantity,
 }: EquityHoldingFormProps) {
   const { t } = useTranslation();
   const f = (key: string) => t(`myData.steps.equity.fields.${key}`);
@@ -52,7 +55,9 @@ export function EquityHoldingForm({
     holding;
   const quantity = holding.quantity ?? 0;
   const price = holding.currentMarketPriceUSD ?? 0;
-  const totalValue = quantity * price;
+  const savedQuantity = restatedQuantity ?? quantity;
+  const restatedByASplit = savedQuantity !== quantity;
+  const totalValue = savedQuantity * price;
   const category = holding.investmentCategory;
   const detailsOpen = hasAdvancedDetails(holding);
   const { suggestions, hint } = useStockPriceAutofill(holding, onChange);
@@ -184,6 +189,17 @@ export function EquityHoldingForm({
         <span className="font-semibold text-slate-900">
           ${totalValue.toLocaleString()}
         </span>
+        {restatedByASplit && (
+          <span className="text-slate-500">
+            {" "}
+            (
+            {t("myData.steps.equity.splits.totalAsReported", {
+              quantity: quantity.toLocaleString("en-US", { maximumFractionDigits: 6 }),
+              value: `$${(quantity * price).toLocaleString()}`,
+            })}
+            )
+          </span>
+        )}
       </p>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <TextField

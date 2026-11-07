@@ -172,6 +172,7 @@ export function HoldingDialog({ holding, isNew, onClose, onSave }: HoldingDialog
           <>
             <EquityHoldingForm
               holding={draft}
+              restatedQuantity={restated.factor !== 1 ? restated.holding.quantity : undefined}
               onChange={(change) => setDraft((current) => applyHoldingChange(current, change))}
             />
             {restated.factor !== 1 && (

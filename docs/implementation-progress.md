@@ -2238,6 +2238,12 @@ of its section 10 (UXB-14 is skipped on request).
       total, estimated annuity), the person cards, the bank-deposit amount, the expense-item amount,
       the typed-total note and the import preview use it. Dollar prices keep their cents, and the
       edit dialogs still hold the exact stored value. Tests: `SummaryTables.test.tsx`.
+- [x] **UXB-12 The holding dialog previews the restated value.**
+      With "Quantities and prices are as originally reported" ticked and a later split, the dialog's
+      "Total value" used the typed share count while the saved row used the restated one (4× for a
+      ×4 split). `EquityHoldingForm` now takes the restated quantity from `HoldingDialog`, shows the
+      value on that quantity and keeps the typed figures in brackets ("as reported: 10 shares ·
+      $150", `splits.totalAsReported`). Tests: `BulkHoldings.test.tsx`.
 
 ## Modeling assumptions (by phase)
 
