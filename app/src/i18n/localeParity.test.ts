@@ -109,3 +109,56 @@ describe("he status banner", () => {
     }
   });
 });
+
+describe("he form of address", () => {
+  // Hebrew letters are not word characters in a regular expression, so words are split by hand.
+  const SINGULAR_ADDRESS = new Set([
+    "אתה",
+    "שלך",
+    "לך",
+    "אותך",
+    "ממך",
+    "עליך",
+    "אליך",
+    "אינך",
+    "לעיונך",
+    "מכיסך",
+    "תרצה",
+    "תבחר",
+    "תזין",
+    "תוכל",
+    "הזן",
+    "בחר",
+    "הוסף",
+    "השאר",
+    "השווה",
+    "נסה",
+    "עיין",
+    "ערוך",
+    "פתח",
+    "השתמש",
+    "החלף",
+    "העבר",
+    "ייבא",
+    "הנח",
+    "כבה",
+  ]);
+  const strings = flatten(he as unknown as Strings);
+  // "העבר" and "השאר" are nouns here ("the past", "the rest"), not commands.
+  const NOUN_USES = new Set([
+    "projections.history.noTarget: העבר",
+    "projections.history.notForecast: העבר",
+    "projections.split.note: השאר",
+  ]);
+
+  it("addresses the reader in the plural everywhere, never as 'אתה', 'שלך' or a singular command", () => {
+    const offenders = Object.entries(strings)
+      .flatMap(([key, text]) =>
+        (text.match(/[\u05d0-\u05ea]+/g) ?? [])
+          .filter((word) => SINGULAR_ADDRESS.has(word) || SINGULAR_ADDRESS.has(word.replace(/^ו/, "")))
+          .map((word) => `${key}: ${word}`),
+      )
+      .filter((offender) => !NOUN_USES.has(offender));
+    expect(offenders).toEqual([]);
+  });
+});

@@ -2644,6 +2644,16 @@ of its section 10 (UXB-14 is skipped on request).
       output is unchanged. Tests: `formatters.test.ts` (all three languages),
       `localizedRender.test.tsx` (the Dashboard in en / ru / he), `DateField.test.tsx`
       (Russian display, placeholder and typing).
+- [x] **UXB-29 (follow-up) One form of address in Hebrew**. The Hebrew texts mixed the
+      singular ("שלך" 75 times, "אתה", "הזן", "בחר", "אינך", "תוכל") with the plural ("שלכם"
+      68 times, "הזינו"), so the form of address changed from text to text. Every text now
+      addresses the reader in the plural, which also suits a household of two: "אתם" /
+      "שלכם", plural commands ("הזינו", "בחרו", "השאירו") and agreeing verbs and adjectives
+      ("ייתכן שתהיו זכאים"). The person labels that contrast the reader with the spouse
+      ("self") use the plural pronoun too. The rule is recorded in `docs/i18n-glossary.md`.
+      Test: `localeParity.test.ts` fails on any Hebrew text that contains a singular form
+      of address from a list of pronouns, suffixes and commands. The Hebrew wording needs a
+      native speaker's review.
 
 ## Modeling assumptions (by phase)
 

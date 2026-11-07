@@ -38,6 +38,8 @@ placeholder is directly followed by one of these nouns without a plural key.
 
 ## Hebrew
 
-The reader is addressed in the plural ("אתם", "שלכם") throughout. Avoid the singular
-"אתה" and "שלך", and use plural imperatives ("הזינו", "בחרו"). Status labels in the
+The reader is addressed in the plural ("אתם", "שלכם") throughout, which also suits a
+household of two. Avoid the singular "אתה" and "שלך", and use plural imperatives
+("הזינו", "בחרו") and agreeing verbs and adjectives ("תהיו זכאים"). `localeParity.test.ts`
+flags the common singular forms. Status labels in the
 account list and in the helper text use the same words ("פעיל — בהפקדה").
