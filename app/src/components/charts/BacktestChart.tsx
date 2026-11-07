@@ -3,8 +3,9 @@ import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, XAx
 import type { BacktestWindow } from "../../domain";
 import { BACKTEST_COLOURS } from "./backtestColours";
 import { chartA11y } from "./chartA11y";
+import { ageAxis, moneyAxis } from "./chartAxes";
 import { CHART_COLORS } from "./chartPalette";
-import { formatAxisMoney } from "./formatAxisMoney";
+import { useChartTexts } from "./useChartTexts";
 
 interface BacktestChartProps {
   /** The chart's accessible name. */
@@ -33,6 +34,7 @@ export function BacktestChart({
   drawdownStartAge,
   currencySymbol,
 }: BacktestChartProps) {
+  const texts = useChartTexts();
   const points = (windows[0]?.netWorth ?? []).map((_, yearsFromNow) => {
     const point: Record<string, number> = { age: currentAge + yearsFromNow };
     for (const window of windows) point[`y${window.startYear}`] = window.netWorth[yearsFromNow];
@@ -49,12 +51,8 @@ export function BacktestChart({
     <ResponsiveContainer width="100%" height={280}>
       <LineChart data={points} margin={{ top: 8, right: 8, left: 8, bottom: 0 }} {...chartA11y(name, description)}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-        <XAxis dataKey="age" tick={{ fontSize: 12 }} stroke="#94a3b8" />
-        <YAxis
-          tick={{ fontSize: 12 }}
-          stroke="#94a3b8"
-          tickFormatter={(value: number) => formatAxisMoney(value, currencySymbol)}
-        />
+        <XAxis {...ageAxis(texts.ageAxis)} />
+        <YAxis {...moneyAxis(texts.balanceAxis, currencySymbol)} />
         <ReferenceLine x={drawdownStartAge} stroke={CHART_COLORS.marker} strokeDasharray="4 4" />
         {ordered.map((window) => {
           const worst = window.startYear === worstStartYear;

@@ -12,10 +12,11 @@ import {
 
 import { BAND_FOR_KIND, type BalancePoint, type SourceKind } from "../../domain";
 import { chartA11y } from "./chartA11y";
+import { ageAxis, moneyAxis } from "./chartAxes";
 import { CHART_COLORS } from "./chartPalette";
-import { formatAxisMoney } from "./formatAxisMoney";
 import { INCOME_BAND_COLORS } from "./incomeBandColors";
 import type { NetWorthMarker } from "./NetWorthChart";
+import { useChartTexts } from "./useChartTexts";
 
 interface BalancesByKindChartProps {
   /** The chart's accessible name. */
@@ -54,6 +55,7 @@ export function BalancesByKindChart({
   shortfallLabel,
   currencySymbol,
 }: BalancesByKindChartProps) {
+  const texts = useChartTexts();
   const money = (value: number) => `${currencySymbol}${Math.round(value).toLocaleString()}`;
   const rows = points.map((point) => ({ age: point.age, ...point.byKind }));
 
@@ -62,15 +64,18 @@ export function BalancesByKindChart({
       <ResponsiveContainer width="100%" height={280}>
         <AreaChart data={rows} margin={{ top: 20, right: 8, left: 8, bottom: 0 }} {...chartA11y(name, description)}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-          <XAxis dataKey="age" tick={{ fontSize: 12 }} stroke="#94a3b8" />
-          <YAxis
-            tick={{ fontSize: 12 }}
-            stroke="#94a3b8"
-            tickFormatter={(v: number) => formatAxisMoney(v, currencySymbol)}
-          />
+          <XAxis {...ageAxis(texts.ageAxis)} />
+          <YAxis {...moneyAxis(texts.balanceAxis, currencySymbol)} />
           <Tooltip
             content={(props: TooltipContentProps) => (
-              <BalancesTooltip {...props} kinds={kinds} kindLabels={kindLabels} money={money} totalLabel={totalLabel} />
+              <BalancesTooltip
+                {...props}
+                kinds={kinds}
+                kindLabels={kindLabels}
+                money={money}
+                totalLabel={totalLabel}
+                ageHeading={texts.ageHeading}
+              />
             )}
           />
           {kinds.map((kind) => (
@@ -128,10 +133,20 @@ interface BalancesTooltipProps extends TooltipContentProps {
   kindLabels: Record<SourceKind, string>;
   money: (value: number) => string;
   totalLabel: string;
+  ageHeading: (age: unknown) => string;
 }
 
 /** Lists the kinds of savings that hold a balance at this age, top of the stack first, and the total. */
-function BalancesTooltip({ active, payload, label, kinds, kindLabels, money, totalLabel }: BalancesTooltipProps) {
+function BalancesTooltip({
+  active,
+  payload,
+  label,
+  kinds,
+  kindLabels,
+  money,
+  totalLabel,
+  ageHeading,
+}: BalancesTooltipProps) {
   if (!active || !payload?.length) return null;
   const entries = [...kinds]
     .reverse()
@@ -140,7 +155,7 @@ function BalancesTooltip({ active, payload, label, kinds, kindLabels, money, tot
   const total = entries.reduce((sum, { value }) => sum + value, 0);
   return (
     <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs shadow-sm">
-      <p className="mb-1 font-medium text-slate-800">{label}</p>
+      <p className="mb-1 font-medium text-slate-800">{ageHeading(label)}</p>
       <ul className="flex flex-col gap-0.5">
         {entries.map(({ kind, value }) => (
           <li key={kind} className="flex items-center gap-1.5">

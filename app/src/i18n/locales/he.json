@@ -41,6 +41,16 @@
       "cashFlowShortfall": "ההוצאה המתוכננת שלכם, {{planned}} בחודש, מכוסה במלואה עד גיל {{coveredTo}}. מכאן היא אינה מכוסה, ובגיל {{lastAge}} {{unfunded}} בחודש אינם מכוסים.",
       "cashFlowFromStart": "ההוצאה המתוכננת שלכם, {{planned}} בחודש, אינה מכוסה במלואה כבר בשנה הראשונה של הפרישה, בגיל {{age}}: בגיל {{lastAge}} {{unfunded}} בחודש אינם מכוסים."
     },
+    "axis": {
+      "age": "גיל",
+      "retirementAge": "גיל פרישה",
+      "balance": "בכסף של היום",
+      "monthly": "לחודש, בכסף של היום"
+    },
+    "tooltip": {
+      "age": "גיל {{age}}",
+      "retireAt": "פרישה בגיל {{age}}"
+    },
     "table": {
       "age": "גיל",
       "netWorth": "שווי נקי",

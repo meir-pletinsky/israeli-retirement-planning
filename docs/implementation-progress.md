@@ -2573,6 +2573,20 @@ of its section 10 (UXB-14 is skipped on request).
       decision. `projectBalancePath` returns the figures as `unvestedShares`
       (`unvestedSharesInPath`, which leaves out batches that would be forfeited). Tests:
       `domain/balancePath.test.ts`, `Dashboard.test.tsx`, `Projections.test.tsx`.
+- [x] **UXB-27 Chart axes and tooltips**. The net-worth line was called "netWorth" in its
+      tooltip, the tooltip showed only a bare number, and none of the charts said what their
+      axes measure. All seven charts now take their axis props from `chartAxes.ts` and their
+      texts from the `useChartTexts` hook (`charts.axis.*`, `charts.tooltip.*`): the X axis is
+      captioned "Age" (on the comparison chart "Retirement age"), the Y axis "Today's money"
+      (on the monthly charts "Per month, today's money"). The currency symbol is left out of
+      the caption because the ticks already carry it. The series is named "Net worth", tooltip
+      headings read "Age N" (comparison: "Retiring at N"), and the net-worth tooltip lists what
+      the savings are made of (each kind of savings in the Projections order and with the same
+      labels, then the total). `NetWorthChartPoint` is the net-worth point with the optional
+      split by kind; the Dashboard already passes it. The backtest chart has no tooltip, so it
+      only got the captions. The plot area is about 14 px shorter and the Y axis 20 px wider
+      because of the captions. Tests: `chartConsistency.test.tsx` (captions on each chart,
+      tooltip content, hook texts), `BalancesByKindChart.test.tsx`.
 
 ## Modeling assumptions (by phase)
 

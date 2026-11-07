@@ -11,8 +11,9 @@ import {
 } from "recharts";
 
 import { chartA11y } from "./chartA11y";
+import { ageAxis, moneyAxis } from "./chartAxes";
 import { CHART_COLORS, PLANNED_LINE_STYLE } from "./chartPalette";
-import { formatAxisMoney } from "./formatAxisMoney";
+import { useChartTexts } from "./useChartTexts";
 
 export interface ComparisonChartPoint {
   age: number;
@@ -45,20 +46,19 @@ export function ComparisonChart({
   netLabel,
   targetLabel,
 }: ComparisonChartProps) {
+  const texts = useChartTexts();
   return (
     <ResponsiveContainer width="100%" height={220}>
       <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }} {...chartA11y(name, description)}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-        <XAxis dataKey="age" tick={{ fontSize: 12 }} stroke="#94a3b8" />
+        <XAxis {...ageAxis(texts.retirementAgeAxis)} />
         <YAxis
-          tick={{ fontSize: 12 }}
-          stroke="#94a3b8"
+          {...moneyAxis(texts.monthlyAxis, currencySymbol)}
           domain={[0, (dataMax: number) => Math.max(dataMax, target ?? 0)]}
-          tickFormatter={(v: number) => formatAxisMoney(v, currencySymbol)}
         />
         <Tooltip
           formatter={(value) => `${currencySymbol}${Number(value).toLocaleString()}`}
-          labelFormatter={(age) => String(age)}
+          labelFormatter={texts.retireAtHeading}
         />
         <Bar dataKey="netMonthly" name={netLabel} maxBarSize={72} radius={[4, 4, 0, 0]}>
           {data.map((point) => (

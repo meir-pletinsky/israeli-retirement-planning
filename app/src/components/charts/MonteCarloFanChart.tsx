@@ -12,8 +12,9 @@ import {
 
 import type { MonteCarloFanPoint } from "../../domain";
 import { chartA11y } from "./chartA11y";
+import { ageAxis, moneyAxis } from "./chartAxes";
 import { CHART_COLORS } from "./chartPalette";
-import { formatAxisMoney } from "./formatAxisMoney";
+import { useChartTexts } from "./useChartTexts";
 
 interface MonteCarloFanChartProps {
   /** The chart's accessible name. */
@@ -38,6 +39,7 @@ export function MonteCarloFanChart({
   bandLabel,
   medianLabel,
 }: MonteCarloFanChartProps) {
+  const texts = useChartTexts();
   const money = (value: number) => `${currencySymbol}${Math.round(value).toLocaleString()}`;
   const points = data.map((point) => ({ ...point, band: [point.p10, point.p90] }));
 
@@ -45,16 +47,13 @@ export function MonteCarloFanChart({
     <ResponsiveContainer width="100%" height={280}>
       <ComposedChart data={points} margin={{ top: 8, right: 8, left: 8, bottom: 0 }} {...chartA11y(name, description)}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-        <XAxis dataKey="age" tick={{ fontSize: 12 }} stroke="#94a3b8" />
-        <YAxis
-          tick={{ fontSize: 12 }}
-          stroke="#94a3b8"
-          tickFormatter={(value: number) => formatAxisMoney(value, currencySymbol)}
-        />
+        <XAxis {...ageAxis(texts.ageAxis)} />
+        <YAxis {...moneyAxis(texts.balanceAxis, currencySymbol)} />
         <Tooltip
           formatter={(value) =>
             Array.isArray(value) ? `${money(value[0])} – ${money(value[1])}` : money(Number(value))
           }
+          labelFormatter={texts.ageHeading}
         />
         <ReferenceLine x={drawdownStartAge} stroke={CHART_COLORS.marker} strokeDasharray="4 4" />
         <Area

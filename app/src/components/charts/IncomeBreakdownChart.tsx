@@ -19,9 +19,10 @@ import {
 } from "../../domain";
 import { BandSwatch } from "./BandSwatch";
 import { chartA11y } from "./chartA11y";
+import { ageAxis, moneyAxis } from "./chartAxes";
 import { CHART_COLORS, PLANNED_LINE_STYLE } from "./chartPalette";
-import { formatAxisMoney } from "./formatAxisMoney";
 import { INCOME_BAND_COLORS } from "./incomeBandColors";
+import { useChartTexts } from "./useChartTexts";
 
 export interface IncomeBreakdownTexts {
   /** Heading of the recurring payments (Bituach Leumi, annuities). */
@@ -90,6 +91,7 @@ export function IncomeBreakdownChart({
   planned,
   unfundedLabel,
 }: IncomeBreakdownChartProps) {
+  const chartTexts = useChartTexts();
   const patternPrefix = useId().replace(/:/g, "");
 
   const payments: Series[] = INCOME_BAND_KEYS.filter((band) =>
@@ -161,15 +163,17 @@ export function IncomeBreakdownChart({
             )}
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-          <XAxis dataKey="age" tick={{ fontSize: 12 }} stroke="#94a3b8" />
-          <YAxis
-            tick={{ fontSize: 12 }}
-            stroke="#94a3b8"
-            tickFormatter={(v: number) => formatAxisMoney(v, currencySymbol)}
-          />
+          <XAxis {...ageAxis(chartTexts.ageAxis)} />
+          <YAxis {...moneyAxis(chartTexts.monthlyAxis, currencySymbol)} />
           <Tooltip
             content={(props: TooltipContentProps) => (
-              <IncomeTooltip {...props} series={series} money={money} totalLabel={texts.total} />
+              <IncomeTooltip
+                {...props}
+                series={series}
+                money={money}
+                totalLabel={texts.total}
+                ageHeading={chartTexts.ageHeading}
+              />
             )}
           />
           {series.map((entry, index) => (
@@ -255,10 +259,11 @@ interface IncomeTooltipProps extends TooltipContentProps {
   series: Series[];
   money: (value: number) => string;
   totalLabel: string;
+  ageHeading: (age: unknown) => string;
 }
 
 /** Lists only the sources that pay at this age, so unused categories do not pad the tooltip. */
-function IncomeTooltip({ active, payload, label, series, money, totalLabel }: IncomeTooltipProps) {
+function IncomeTooltip({ active, payload, label, series, money, totalLabel, ageHeading }: IncomeTooltipProps) {
   if (!active || !payload?.length) return null;
   const entries = series
     .map((entry) => ({
@@ -271,7 +276,7 @@ function IncomeTooltip({ active, payload, label, series, money, totalLabel }: In
   const total = income.reduce((sum, { value }) => sum + value, 0);
   return (
     <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs shadow-sm">
-      <p className="mb-1 font-medium text-slate-800">{label}</p>
+      <p className="mb-1 font-medium text-slate-800">{ageHeading(label)}</p>
       <ul className="flex flex-col gap-0.5">
         {income.map(({ entry, value }) => (
           <li key={entry.dataKey} className="flex items-center gap-1.5">

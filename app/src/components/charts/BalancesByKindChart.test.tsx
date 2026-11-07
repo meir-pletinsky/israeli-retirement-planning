@@ -3,6 +3,7 @@ import { cloneElement, type ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { BalancePoint, SourceKind } from "../../domain";
+import "../../i18n";
 import { BalancesByKindChart } from "./BalancesByKindChart";
 
 // jsdom has no layout, so the real container draws nothing; give it a size.

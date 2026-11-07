@@ -12,8 +12,9 @@ import {
 
 import type { NetIncomeYear } from "../../domain";
 import { chartA11y } from "./chartA11y";
+import { ageAxis, moneyAxis } from "./chartAxes";
 import { CHART_COLORS, PLANNED_LINE_STYLE } from "./chartPalette";
-import { formatAxisMoney } from "./formatAxisMoney";
+import { useChartTexts } from "./useChartTexts";
 
 interface NetIncomeChartProps {
   /** The chart's accessible name. */
@@ -40,18 +41,16 @@ export function NetIncomeChart({
   plannedMonthly,
   plannedLabel,
 }: NetIncomeChartProps) {
+  const texts = useChartTexts();
   return (
     <ResponsiveContainer width="100%" height={280}>
       <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }} {...chartA11y(name, description)}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-        <XAxis dataKey="age" tick={{ fontSize: 12 }} stroke="#94a3b8" />
-        <YAxis
-          tick={{ fontSize: 12 }}
-          stroke="#94a3b8"
-          tickFormatter={(v: number) => formatAxisMoney(v, currencySymbol)}
-        />
+        <XAxis {...ageAxis(texts.ageAxis)} />
+        <YAxis {...moneyAxis(texts.monthlyAxis, currencySymbol)} />
         <Tooltip
           formatter={(value) => `${currencySymbol}${Number(value).toLocaleString()}`}
+          labelFormatter={texts.ageHeading}
         />
         <Legend wrapperStyle={{ fontSize: 12 }} />
         <Bar dataKey="netMonthly" name={netLabel} stackId="income" fill={CHART_COLORS.total} />

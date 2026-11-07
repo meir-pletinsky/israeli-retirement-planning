@@ -41,6 +41,16 @@
       "cashFlowShortfall": "Your planned {{planned}} a month is fully covered up to age {{coveredTo}}. After that it is not, and {{unfunded}} a month is unfunded at age {{lastAge}}.",
       "cashFlowFromStart": "Your planned {{planned}} a month is not fully covered from the first year of retirement, age {{age}}: {{unfunded}} a month is unfunded at age {{lastAge}}."
     },
+    "axis": {
+      "age": "Age",
+      "retirementAge": "Retirement age",
+      "balance": "Today's money",
+      "monthly": "Per month, today's money"
+    },
+    "tooltip": {
+      "age": "Age {{age}}",
+      "retireAt": "Retiring at {{age}}"
+    },
     "table": {
       "age": "Age",
       "netWorth": "Net worth",

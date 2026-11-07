@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, renderHook, screen } from "@testing-library/react";
 import { cloneElement, type ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -13,7 +13,8 @@ import { ComparisonChart } from "./ComparisonChart";
 import { INCOME_BAND_COLORS } from "./incomeBandColors";
 import { MonteCarloFanChart } from "./MonteCarloFanChart";
 import { NetIncomeChart } from "./NetIncomeChart";
-import { NetWorthChart } from "./NetWorthChart";
+import { NetWorthChart, NetWorthTooltip } from "./NetWorthChart";
+import { useChartTexts } from "./useChartTexts";
 
 // jsdom has no layout, so the real container draws nothing; give it a size.
 vi.mock("recharts", async (importOriginal) => {
@@ -178,6 +179,117 @@ describe("chart tables", () => {
       expect(table.querySelectorAll("thead th").length).toBeGreaterThan(1);
       expect(table.querySelectorAll("tbody th[scope='row']")).toHaveLength(rows);
     }
+  });
+});
+
+describe("chart captions and tooltips", () => {
+  const captions = (container: HTMLElement) =>
+    [...container.querySelectorAll("svg text")].map((node) => node.textContent);
+
+  it("captions the age axis and the money axis of the net worth chart", () => {
+    const { container } = render(
+      <NetWorthChart name={NAME} description={DESCRIPTION} data={netWorth} currencySymbol="₪" />,
+    );
+    expect(captions(container)).toEqual(expect.arrayContaining(["Age", "Today's money"]));
+  });
+
+  it("captions the monthly charts as per month and the comparison's age axis as the retirement age", () => {
+    const comparison = render(
+      <ComparisonChart
+        name={NAME}
+        description={DESCRIPTION}
+        data={[{ age: 67, netMonthly: 10_000 }]}
+        target={null}
+        currencySymbol="₪"
+        netLabel="Net"
+        targetLabel="Planned"
+      />,
+    );
+    expect(captions(comparison.container)).toEqual(
+      expect.arrayContaining(["Retirement age", "Per month, today's money"]),
+    );
+    comparison.unmount();
+
+    const income = render(
+      <NetIncomeChart
+        name={NAME}
+        description={DESCRIPTION}
+        data={netIncome}
+        currencySymbol="₪"
+        netLabel="Kept"
+        taxLabel="Tax"
+      />,
+    );
+    expect(captions(income.container)).toEqual(expect.arrayContaining(["Age", "Per month, today's money"]));
+  });
+
+  it("captions the market simulation charts", () => {
+    const fanChart = render(
+      <MonteCarloFanChart
+        name={NAME}
+        description={DESCRIPTION}
+        data={fan}
+        drawdownStartAge={67}
+        currencySymbol="₪"
+        bandLabel="Range"
+        medianLabel="Median"
+      />,
+    );
+    expect(captions(fanChart.container)).toEqual(expect.arrayContaining(["Age", "Today's money"]));
+    fanChart.unmount();
+
+    const backtest = render(
+      <BacktestChart
+        name={NAME}
+        description={DESCRIPTION}
+        windows={windows}
+        worstStartYear={2000}
+        currentAge={60}
+        drawdownStartAge={62}
+        currencySymbol="₪"
+      />,
+    );
+    expect(captions(backtest.container)).toEqual(expect.arrayContaining(["Age", "Today's money"]));
+  });
+
+  it("shows the age and what the savings are made of in the net worth tooltip", () => {
+    const point = {
+      age: 70,
+      netWorth: 1_400_000,
+      byKind: { pensionFund: 900_000, studyFund: 100_000, otherInvestments: 400_000 },
+    };
+    render(<NetWorthTooltip active payload={[{ payload: point }]} label={70} currencySymbol="₪" />);
+
+    expect(screen.getByText("Age 70")).toBeInTheDocument();
+    expect(screen.getByText("Pension Fund")).toBeInTheDocument();
+    expect(screen.getByText("₪900,000")).toBeInTheDocument();
+    expect(screen.getByText("Study Fund")).toBeInTheDocument();
+    expect(screen.getByText("Investments (deposits, shares, cash)")).toBeInTheDocument();
+    expect(screen.getByText("₪400,000")).toBeInTheDocument();
+    expect(screen.getByText("Net worth")).toBeInTheDocument();
+    expect(screen.getByText("₪1,400,000")).toBeInTheDocument();
+    expect(screen.queryByText("Provident Fund")).not.toBeInTheDocument();
+  });
+
+  it("shows only the net worth in the tooltip when the point carries no split", () => {
+    render(
+      <NetWorthTooltip active payload={[{ payload: { age: 80, netWorth: 900_000 } }]} label={80} currencySymbol="₪" />,
+    );
+
+    expect(screen.getByText("Age 80")).toBeInTheDocument();
+    expect(screen.getByText("₪900,000")).toBeInTheDocument();
+    expect(screen.queryByText("Pension Fund")).not.toBeInTheDocument();
+  });
+
+  it("shows no tooltip when nothing is hovered", () => {
+    const { container } = render(<NetWorthTooltip active={false} payload={[]} currencySymbol="₪" />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("heads the comparison tooltip with the retirement age", () => {
+    const { result } = renderHook(() => useChartTexts());
+    expect(result.current.retireAtHeading(65)).toBe("Retiring at 65");
+    expect(result.current.ageHeading(65)).toBe("Age 65");
   });
 });
 
