@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
-import { budgetBreakdown } from "../domain";
+import { budgetBreakdown, hasRetirementBudget } from "../domain";
 import type { ExpensesData } from "../types";
 import { necessityFill } from "./charts/portfolioColors";
 import { ScenarioTitle } from "./ScenarioTag";
@@ -13,6 +13,8 @@ interface BudgetCardProps {
   netMonthlyIncome: number;
   /** A `ScenarioTag`, when the card follows a chosen retirement scenario. */
   scenarioTag?: ReactNode;
+  /** The comparison only, with a link to the full budget on Projections: for the Dashboard. */
+  summary?: boolean;
 }
 
 const CATEGORY = "myData.steps.expenses.category";
@@ -21,15 +23,15 @@ const NECESSITY = "myData.steps.expenses.necessity";
 /**
  * The retirement budget on the decision screens: the essential minimum and the full planned
  * budget, how the estimated net income compares with each, and where the money goes by category.
- * With one typed total there is no split, so it asks to itemise instead.
+ * With one typed total there is no split, so it asks to itemise instead. The summary leaves out
+ * the category breakdown, which lives on Projections only.
  */
-export function BudgetCard({ expenses, netMonthlyIncome, scenarioTag }: BudgetCardProps) {
+export function BudgetCard({ expenses, netMonthlyIncome, scenarioTag, summary = false }: BudgetCardProps) {
   const { t } = useTranslation();
   const currencySymbol = t("common.currencySymbol");
   const money = (amount: number) => `${currencySymbol}${Math.round(amount).toLocaleString()}`;
   const budget = budgetBreakdown(expenses);
-  const hasTypedTotal = expenses.mode === "totals" && (expenses.retirementMonthly ?? 0) > 0;
-  if (!budget && !hasTypedTotal) return null;
+  if (!hasRetirementBudget(expenses)) return null;
 
   const gapText = (budgetAmount: number) => {
     const gap = Math.round(netMonthlyIncome - budgetAmount);
@@ -46,6 +48,7 @@ export function BudgetCard({ expenses, netMonthlyIncome, scenarioTag }: BudgetCa
 
   return (
     <section
+      id="retirement-budget"
       aria-labelledby="budget-title"
       className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
     >
@@ -93,55 +96,59 @@ export function BudgetCard({ expenses, netMonthlyIncome, scenarioTag }: BudgetCa
             </tbody>
           </table>
 
-          <h3 className="mt-4 text-xs font-semibold text-slate-600">{t("dashboard.budget.byCategory")}</h3>
-          <table className="mt-1 w-full text-xs">
-            <thead className="text-slate-500">
-              <tr>
-                <th scope="col" className="pb-1 pe-3 text-start font-medium">
-                  {t("dashboard.budget.category")}
-                </th>
-                {(["essential", "discretionary"] as const).map((necessity) => (
-                  <th key={necessity} scope="col" className="pb-1 pe-3 text-end font-medium last:pe-0">
-                    <span
-                      aria-hidden="true"
-                      className="me-1.5 inline-block h-2 w-2 rounded-sm border border-slate-700"
-                      style={necessityFill(necessity)}
-                    />
-                    {t(`${NECESSITY}.${necessity}`)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {budget.categories.map((row) => (
-                <tr key={row.category} className="border-t border-slate-100">
-                  <th scope="row" className="w-1/2 py-1 pe-3 text-start font-normal text-slate-700">
-                    {t(`${CATEGORY}.${row.category}`)}
-                    <div
-                      aria-hidden="true"
-                      className="mt-1 flex h-1.5 overflow-hidden rounded-sm"
-                      style={{ width: `${((row.essential + row.discretionary) / largestCategory) * 100}%` }}
-                    >
-                      <span
-                        className="block h-full"
-                        style={{ flexGrow: row.essential, flexBasis: 0, ...necessityFill("essential") }}
-                      />
-                      <span
-                        className="block h-full"
-                        style={{ flexGrow: row.discretionary, flexBasis: 0, ...necessityFill("discretionary") }}
-                      />
-                    </div>
-                  </th>
-                  <td className="py-1 pe-3 text-end tabular-nums text-slate-900">
-                    <span dir="ltr">{row.essential > 0 ? money(row.essential) : "—"}</span>
-                  </td>
-                  <td className="py-1 text-end tabular-nums text-slate-900">
-                    <span dir="ltr">{row.discretionary > 0 ? money(row.discretionary) : "—"}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {!summary && (
+            <>
+              <h3 className="mt-4 text-xs font-semibold text-slate-600">{t("dashboard.budget.byCategory")}</h3>
+              <table className="mt-1 w-full text-xs">
+                <thead className="text-slate-500">
+                  <tr>
+                    <th scope="col" className="pb-1 pe-3 text-start font-medium">
+                      {t("dashboard.budget.category")}
+                    </th>
+                    {(["essential", "discretionary"] as const).map((necessity) => (
+                      <th key={necessity} scope="col" className="pb-1 pe-3 text-end font-medium last:pe-0">
+                        <span
+                          aria-hidden="true"
+                          className="me-1.5 inline-block h-2 w-2 rounded-sm border border-slate-700"
+                          style={necessityFill(necessity)}
+                        />
+                        {t(`${NECESSITY}.${necessity}`)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {budget.categories.map((row) => (
+                    <tr key={row.category} className="border-t border-slate-100">
+                      <th scope="row" className="w-1/2 py-1 pe-3 text-start font-normal text-slate-700">
+                        {t(`${CATEGORY}.${row.category}`)}
+                        <div
+                          aria-hidden="true"
+                          className="mt-1 flex h-1.5 overflow-hidden rounded-sm"
+                          style={{ width: `${((row.essential + row.discretionary) / largestCategory) * 100}%` }}
+                        >
+                          <span
+                            className="block h-full"
+                            style={{ flexGrow: row.essential, flexBasis: 0, ...necessityFill("essential") }}
+                          />
+                          <span
+                            className="block h-full"
+                            style={{ flexGrow: row.discretionary, flexBasis: 0, ...necessityFill("discretionary") }}
+                          />
+                        </div>
+                      </th>
+                      <td className="py-1 pe-3 text-end tabular-nums text-slate-900">
+                        <span dir="ltr">{row.essential > 0 ? money(row.essential) : "—"}</span>
+                      </td>
+                      <td className="py-1 text-end tabular-nums text-slate-900">
+                        <span dir="ltr">{row.discretionary > 0 ? money(row.discretionary) : "—"}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
 
           <p className="mt-3 text-xs text-slate-500">{t("dashboard.budget.caveat")}</p>
         </>
@@ -149,12 +156,16 @@ export function BudgetCard({ expenses, netMonthlyIncome, scenarioTag }: BudgetCa
         <p className="mt-1 text-xs text-slate-500">{t("dashboard.budget.typedTotal")}</p>
       )}
 
-      <Link
-        to="/my-data/expenses"
-        className="mt-2 inline-block text-xs font-medium text-brand-700 hover:underline"
-      >
-        {budget ? t("dashboard.budget.edit") : t("dashboard.budget.itemise")}
-      </Link>
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-medium">
+        <Link to="/my-data/expenses" className="text-brand-700 hover:underline">
+          {budget ? t("dashboard.budget.edit") : t("dashboard.budget.itemise")}
+        </Link>
+        {summary && budget && (
+          <Link to="/projections#retirement-budget" className="text-brand-700 hover:underline">
+            {t("dashboard.budget.seeDetail")}
+          </Link>
+        )}
+      </div>
     </section>
   );
 }

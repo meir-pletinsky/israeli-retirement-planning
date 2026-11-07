@@ -382,7 +382,8 @@
       "caveat": "Both budgets are compared with the same estimated net income. The risk analysis tests the full planned budget, so being above the essential line does not make the essentials certain.",
       "typedTotal": "Your plan uses one typed monthly figure, so it cannot tell essential spending from discretionary spending. Itemise your expenses to see the essential minimum against your income.",
       "edit": "Edit expenses",
-      "itemise": "Itemise my expenses"
+      "itemise": "Itemise my expenses",
+      "seeDetail": "Budget by category on Projections"
     },
     "irregular": {
       "title": "Irregular costs included in your monthly average",
@@ -391,7 +392,7 @@
       "share": "{{percent}} of your planned monthly spending.",
       "reserve": "The largest single payment is {{amount}} ({{name}}). When it falls due you need that much in funds you can reach; the monthly average does not show it.",
       "snapshotNote": "Includes {{amount}} per month of irregular costs, averaged.",
-      "snapshotLink": "See which"
+      "snapshotLink": "See which on Projections"
     }
   },
   "myData": {
@@ -984,6 +985,17 @@
       "fundedTo": "Funded to age {{age}}",
       "runsOutAt": "Savings run out at age {{age}}"
     },
+    "sections": {
+      "nav": "Sections on this page",
+      "backToTop": "Back to top",
+      "overview": { "title": "Overview", "question": "What happens over the years?" },
+      "income": { "title": "Income and tax", "question": "What do I receive, from where, and after tax?" },
+      "savings": { "title": "Savings", "question": "What do I have, when can I use it, and what about my shares?" },
+      "spending": { "title": "Spending", "question": "What do I spend, and how much of it is irregular?" },
+      "risk": { "title": "Risk", "question": "How sure is it, and what could go wrong?" },
+      "age": { "title": "Retirement age", "question": "When can I retire? These do not follow the scenario above." },
+      "insurance": { "title": "Insurance", "question": "What about the cover that ends?" }
+    },
     "netWorthChart": "Net Worth Projection",
     "incomeChart": "Sustainable income by source",
     "netIncomeChart": "Sustainable income after tax",
@@ -1071,7 +1083,7 @@
     "compare": {
       "title": "Compare retirement ages",
       "intro": "Pick any three ages at which you could retire to see how your income and savings change. Per month, in today's money.",
-      "independent": "This comparison has its own ages. It does not follow the retirement scenario chosen below.",
+      "independent": "This comparison has its own ages. It does not follow the retirement scenario chosen above.",
       "coupleNote": "Your spouse's retirement moves by the same number of years as yours.",
       "ageLabel": "Retirement age, option {{index}}",
       "ageSuffix": "years",

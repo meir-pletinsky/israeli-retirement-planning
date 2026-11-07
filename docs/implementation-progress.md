@@ -2509,6 +2509,25 @@ of its section 10 (UXB-14 is skipped on request).
       padding so a link to a section stops below the bar. Checked in a browser at 768, 1024 and
       1280px: the bar sticks at the top, no content is clipped at 320 to 375px. Tests:
       `Projections.test.tsx`.
+- [x] **UXB-20 Very long result pages, no in-page navigation, duplicated expense cards**
+      (bounded: the "smaller version" of the review's section 12.6, without tabs). The
+      Projections page is now grouped under seven titled sections that each say the question
+      they answer: Overview, Income and tax, Savings, Spending, Risk, Retirement age and
+      Insurance (`ProjectionSectionGroup`, ids in `components/projectionSections.ts`). The
+      sections with nothing to show (Savings, Spending, Insurance) are left out. The plan bar
+      carries a section index (a `nav` of anchor links) and, below `md`, each section ends with
+      a "Back to top" button that moves the focus to the page heading. The bar is taller with
+      the index, so `index.css` scroll padding is 11rem from `md` and 8.5rem from `lg`. The
+      budget by category and the irregular-costs card now live only on Projections; the
+      Dashboard keeps the essential/full comparison with a link to
+      `/projections#retirement-budget`, and the planned-spending link goes to
+      `/projections#irregular-costs`. `hasRetirementBudget` (domain/expenses) decides whether
+      the Spending section exists. "chosen below" became "chosen above" in the comparison,
+      since the plan bar is now above it. Not built: tabs or routes per section, a full-report
+      view, lazy per-section calculation (see UXB-24), collapsible cards and a scroll-spy
+      highlight. Checked in a browser at 768, 1024 and 1280px: the index fits without
+      overflow, anchors stop below the bar, and the Dashboard link lands on the budget.
+      Tests: `Projections.test.tsx`, `Dashboard.test.tsx`.
 
 ## Modeling assumptions (by phase)
 

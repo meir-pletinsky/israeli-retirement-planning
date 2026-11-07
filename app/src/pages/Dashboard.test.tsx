@@ -1912,42 +1912,19 @@ describe("Dashboard", () => {
       expect(planned.getByText("\u20aa7,700")).toBeInTheDocument();
     });
 
-    it("breaks the budget down by category, largest first, with the totals adding up", async () => {
+    it("is a summary: the category breakdown is left to Projections, which the card links to", async () => {
       await saveProfileToDb(itemised);
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
       await screen.findByText("Net Worth Today");
-      const rows = within(budget())
-        .getAllByRole("row")
-        .map((row) => row.textContent!.replace(BIDI_MARKS, ""));
-      const categoryRows = rows.filter((text) => /^(Housing|Food|Travel|Personal)/.test(text));
-      expect(categoryRows).toEqual([
-        "Housing\u20aa5,000\u2014",
-        "Food and household\u20aa1,500\u2014",
-        "Personal and lifestyle\u2014\u20aa1,000",
-        "Travel and leisure\u2014\u20aa200",
-      ]);
-    });
-
-    it("draws a bar under each category, sized against the largest and split by necessity", async () => {
-      await saveProfileToDb(itemised);
-      await saveOnboardedToDb(true);
-      renderWithProviders(<Dashboard />);
-
-      await screen.findByText("Net Worth Today");
-      const bar = (name: string) =>
-        within(budget())
-          .getByRole("row", { name: new RegExp(`^${name}`) })
-          .querySelector("th [aria-hidden='true']") as HTMLElement;
-      expect(bar("Housing").style.width).toBe("100%");
-      expect(bar("Food and household").style.width).toBe("30%");
-      expect(bar("Personal and lifestyle").style.width).toBe("20%");
-      expect(bar("Travel and leisure").style.width).toBe("4%");
-      const [essential, discretionary] = Array.from(bar("Personal and lifestyle").children) as HTMLElement[];
-      expect(essential.style.flexGrow).toBe("0");
-      expect(discretionary.style.flexGrow).toBe("1000");
-      expect(discretionary.style.backgroundImage).toContain("repeating-linear-gradient");
+      expect(within(budget()).queryByRole("heading", { name: "Where the budget goes" })).not.toBeInTheDocument();
+      expect(within(budget()).getAllByRole("table")).toHaveLength(1);
+      expect(within(budget()).queryByRole("row", { name: /Housing|Food and household/ })).not.toBeInTheDocument();
+      expect(within(budget()).getByRole("link", { name: "Budget by category on Projections" })).toHaveAttribute(
+        "href",
+        "/projections#retirement-budget",
+      );
     });
 
     it("links to the expenses step", async () => {
@@ -1985,6 +1962,7 @@ describe("Dashboard", () => {
         "href",
         "/my-data/expenses",
       );
+      expect(within(budget()).queryByRole("link", { name: "Budget by category on Projections" })).not.toBeInTheDocument();
     });
 
     it("is not shown when no spending has been entered", async () => {
@@ -1999,9 +1977,6 @@ describe("Dashboard", () => {
 
   describe("irregular costs", () => {
     const BIDI_MARKS = /[\u2066\u2069]/g;
-    const card = () => screen.getByRole("region", { name: "Irregular costs included in your monthly average" });
-    const rowText = (name: string) =>
-      within(card()).getByRole("row", { name: new RegExp(name) }).textContent!.replace(BIDI_MARKS, "");
 
     const profile = buildTestProfile({
       age: 66,
@@ -2022,54 +1997,23 @@ describe("Dashboard", () => {
       ],
     });
 
-    it("lists the payments made once a year or less often, with how often and what each adds", async () => {
+    it("leaves the list of payments to Projections, and the planned spending figure points there", async () => {
       await saveProfileToDb(profile);
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
       await screen.findByText("Net Worth Today");
-      expect(rowText("Holidays")).toBe("Holidays\u20aa24,000Once a year\u20aa2,000");
-      expect(rowText("Car replacement")).toBe("Car replacement\u20aa60,000Every 5 years\u20aa1,000");
-      expect(within(card()).queryByRole("row", { name: /Rent|Arnona/ })).not.toBeInTheDocument();
-      expect(rowText("Total in your monthly average")).toBe("Total in your monthly average\u20aa3,000");
-    });
-
-    it("says it is an average, not a schedule, and what share of the spending it is", async () => {
-      await saveProfileToDb(profile);
-      await saveOnboardedToDb(true);
-      renderWithProviders(<Dashboard />);
-
-      await screen.findByText("Net Worth Today");
-      const text = card().textContent!.replace(BIDI_MARKS, "");
-      expect(text).toContain("This is an average, not a payment schedule");
-      expect(text).toContain("the plan does not know when any of them falls due");
-      // 3,000 of the 9,900 a month
-      expect(text).toContain("30% of your planned monthly spending.");
-    });
-
-    it("states the cash the largest payment needs when it falls due", async () => {
-      await saveProfileToDb(profile);
-      await saveOnboardedToDb(true);
-      renderWithProviders(<Dashboard />);
-
-      await screen.findByText("Net Worth Today");
-      expect(card().textContent!.replace(BIDI_MARKS, "")).toContain(
-        "The largest single payment is \u20aa60,000 (Car replacement).",
-      );
-    });
-
-    it("is pointed to from the planned spending figure, which says how much of it is averaged", async () => {
-      await saveProfileToDb(profile);
-      await saveOnboardedToDb(true);
-      renderWithProviders(<Dashboard />);
-
-      await screen.findByText("Net Worth Today");
+      expect(
+        screen.queryByRole("region", { name: "Irregular costs included in your monthly average" }),
+      ).not.toBeInTheDocument();
       const planned = screen.getByText("Planned monthly spending").parentElement as HTMLElement;
       expect(planned.textContent!.replace(BIDI_MARKS, "")).toContain(
         "Includes \u20aa3,000 per month of irregular costs, averaged.",
       );
-      expect(within(planned).getByRole("link", { name: "See which" })).toHaveAttribute("href", "#irregular-costs");
-      expect(card()).toHaveAttribute("id", "irregular-costs");
+      expect(within(planned).getByRole("link", { name: "See which on Projections" })).toHaveAttribute(
+        "href",
+        "/projections#irregular-costs",
+      );
     });
 
     it("is not shown when every cost is regular, and says nothing under the planned spending", async () => {

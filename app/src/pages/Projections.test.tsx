@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Link, Route, Routes } from "react-router-dom";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { clearAllData, loadProfileFromDb, saveOnboardedToDb, saveProfileToDb } from "../storage/db";
 import { buildTestProfile } from "../test/domainFixtures";
@@ -1519,7 +1519,7 @@ describe("Projections", () => {
     }
 
     const facts = (bar: ReturnType<typeof within>) =>
-      bar
+      within(bar.getByRole("list", { name: "Plan summary" }))
         .getAllByRole("listitem")
         .map((item) => (item.textContent ?? "").replace(BIDI_MARKS, ""));
 
@@ -1588,6 +1588,103 @@ describe("Projections", () => {
     });
   });
 
+  describe("section index", () => {
+    const planned = {
+      age: 55,
+      retirementAge: 65,
+      monthlyGrossSalary: 20_000,
+      pensionBalances: [1_500_000],
+      otherAssets: 200_000,
+      retirementMonthlyExpenses: 9_000,
+      investmentReturnPct: 4,
+      inflationPct: 4,
+    };
+
+    async function renderPage(overrides: Parameters<typeof buildTestProfile>[0] = {}) {
+      await saveProfileToDb(
+        buildTestProfile({
+          ...planned,
+          expenseItems: [
+            { name: "Rent", amount: 6_000 },
+            { name: "Holidays", amount: 24_000, frequency: "yearly" },
+          ],
+          ...overrides,
+        }),
+      );
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+      await screen.findByRole("region", { name: "Retirement scenario" });
+    }
+
+    const index = () => within(screen.getByRole("navigation", { name: "Sections on this page" }));
+    const group = (name: string) => screen.getByRole("group", { name });
+
+    it("links each section of the page, in the order they appear, from the plan bar", async () => {
+      await renderPage();
+
+      const links = index().getAllByRole("link");
+      expect(links.map((link) => link.textContent)).toEqual([
+        "Overview",
+        "Income and tax",
+        "Savings",
+        "Spending",
+        "Risk",
+        "Retirement age",
+      ]);
+      const targets = links.map((link) => link.getAttribute("href")!.slice(1));
+      expect(targets.map((id) => document.getElementById(id))).not.toContain(null);
+      const order = [...document.querySelectorAll("[role=group][id^=projections-]")].map((el) => el.id);
+      expect(order).toEqual(targets);
+      expect(screen.getByRole("region", { name: "Retirement scenario" })).toContainElement(
+        screen.getByRole("navigation", { name: "Sections on this page" }),
+      );
+    });
+
+    it("titles each section and says which question it answers", async () => {
+      await renderPage();
+
+      expect(within(group("Overview")).getByText("What happens over the years?")).toBeInTheDocument();
+      expect(within(group("Overview")).getByRole("heading", { level: 2, name: "Overview" })).toBeInTheDocument();
+      expect(within(group("Risk")).getByText("How sure is it, and what could go wrong?")).toBeInTheDocument();
+    });
+
+    it("keeps the budget and the irregular costs together in the spending section", async () => {
+      await renderPage();
+
+      const spending = within(group("Spending"));
+      expect(spending.getByRole("region", { name: "Retirement budget" })).toBeInTheDocument();
+      expect(
+        spending.getByRole("region", { name: "Irregular costs included in your monthly average" }),
+      ).toBeInTheDocument();
+    });
+
+    it("keeps the retirement age comparisons in their own section, apart from the scenario", async () => {
+      await renderPage();
+
+      expect(within(group("Retirement age")).getByText(/do not follow the scenario above/i)).toBeInTheDocument();
+    });
+
+    it("leaves out the sections that have nothing to show", async () => {
+      await renderPage({ otherAssets: 0, retirementMonthlyExpenses: 0, expenseItems: [] });
+
+      expect(screen.queryByRole("group", { name: "Spending" })).not.toBeInTheDocument();
+      expect(index().queryByRole("link", { name: "Spending" })).not.toBeInTheDocument();
+      expect(index().getByRole("link", { name: "Risk" })).toBeInTheDocument();
+    });
+
+    it("returns to the top of the page and puts the focus on the page heading", async () => {
+      const user = userEvent.setup();
+      await renderPage();
+      const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+
+      await user.click(within(group("Risk")).getByRole("button", { name: "Back to top" }));
+
+      expect(scrollTo).toHaveBeenCalledWith({ top: 0 });
+      expect(screen.getByRole("heading", { level: 1, name: "Projections" })).toHaveFocus();
+      scrollTo.mockRestore();
+    });
+  });
+
   describe("retirement budget", () => {
     const BIDI_MARKS = /[\u2066\u2069]/g;
     const profile = buildTestProfile({
@@ -1605,6 +1702,17 @@ describe("Projections", () => {
       ],
     });
     const budget = () => screen.getByRole("region", { name: "Retirement budget" });
+    const itemised = buildTestProfile({
+      age: 66,
+      retirementAge: 67,
+      pensionBalances: [900_000],
+      expenseItems: [
+        { amount: 5_000, category: "housing", necessity: "essential" },
+        { amount: 1_500, category: "food", necessity: "essential" },
+        { amount: 2_400, category: "travel", frequency: "yearly", necessity: "discretionary" },
+        { amount: 1_000, category: "lifestyle", necessity: "discretionary" },
+      ],
+    });
     const rowText = (name: string) =>
       within(budget()).getByRole("row", { name: new RegExp(name) }).textContent!.replace(BIDI_MARKS, "");
 
@@ -1630,6 +1738,56 @@ describe("Projections", () => {
       expect(rowText("Essential budget")).not.toBe(standardEssential);
     });
 
+    it("breaks the budget down by category, largest first, with the totals adding up", async () => {
+      await saveProfileToDb(itemised);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      await screen.findByRole("region", { name: "Retirement budget" });
+      expect(within(budget()).getByRole("heading", { name: "Where the budget goes" })).toBeInTheDocument();
+      const rows = within(budget())
+        .getAllByRole("row")
+        .map((row) => row.textContent!.replace(BIDI_MARKS, ""));
+      const categoryRows = rows.filter((text) => /^(Housing|Food|Travel|Personal)/.test(text));
+      expect(categoryRows).toEqual([
+        "Housing\u20aa5,000\u2014",
+        "Food and household\u20aa1,500\u2014",
+        "Personal and lifestyle\u2014\u20aa1,000",
+        "Travel and leisure\u2014\u20aa200",
+      ]);
+    });
+
+    it("draws a bar under each category, sized against the largest and split by necessity", async () => {
+      await saveProfileToDb(itemised);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      await screen.findByRole("region", { name: "Retirement budget" });
+      const bar = (name: string) =>
+        within(budget())
+          .getByRole("row", { name: new RegExp(`^${name}`) })
+          .querySelector("th [aria-hidden='true']") as HTMLElement;
+      expect(bar("Housing").style.width).toBe("100%");
+      expect(bar("Food and household").style.width).toBe("30%");
+      expect(bar("Personal and lifestyle").style.width).toBe("20%");
+      expect(bar("Travel and leisure").style.width).toBe("4%");
+      const [essential, discretionary] = Array.from(bar("Personal and lifestyle").children) as HTMLElement[];
+      expect(essential.style.flexGrow).toBe("0");
+      expect(discretionary.style.flexGrow).toBe("1000");
+      expect(discretionary.style.backgroundImage).toContain("repeating-linear-gradient");
+    });
+
+    it("is the target of the Dashboard's link to the budget by category", async () => {
+      await saveProfileToDb(itemised);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      expect(await screen.findByRole("region", { name: "Retirement budget" })).toHaveAttribute(
+        "id",
+        "retirement-budget",
+      );
+    });
+
     it("is not shown when no spending has been entered", async () => {
       await saveProfileToDb(buildTestProfile({ age: 55, retirementAge: 65, pensionBalances: [1_500_000] }));
       await saveOnboardedToDb(true);
@@ -1641,6 +1799,75 @@ describe("Projections", () => {
   });
 
   describe("irregular costs", () => {
+    const BIDI_MARKS = /[\u2066\u2069]/g;
+    const profile = buildTestProfile({
+      age: 66,
+      retirementAge: 67,
+      pensionBalances: [900_000],
+      expenseItems: [
+        { name: "Rent", amount: 6_000, category: "housing", necessity: "essential" },
+        { name: "Arnona", amount: 1_800, frequency: "bimonthly", category: "housing", necessity: "essential" },
+        { name: "Holidays", amount: 24_000, frequency: "yearly", category: "travel", necessity: "discretionary" },
+        {
+          name: "Car replacement",
+          amount: 60_000,
+          frequency: "everyYears",
+          everyYears: 5,
+          category: "transport",
+          necessity: "discretionary",
+        },
+      ],
+    });
+    const card = () => screen.getByRole("region", { name: "Irregular costs included in your monthly average" });
+    const rowText = (name: string) =>
+      within(card()).getByRole("row", { name: new RegExp(name) }).textContent!.replace(BIDI_MARKS, "");
+
+    it("lists the payments made once a year or less often, with how often and what each adds", async () => {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      await screen.findByRole("region", { name: "Irregular costs included in your monthly average" });
+      expect(rowText("Holidays")).toBe("Holidays\u20aa24,000Once a year\u20aa2,000");
+      expect(rowText("Car replacement")).toBe("Car replacement\u20aa60,000Every 5 years\u20aa1,000");
+      expect(within(card()).queryByRole("row", { name: /Rent|Arnona/ })).not.toBeInTheDocument();
+      expect(rowText("Total in your monthly average")).toBe("Total in your monthly average\u20aa3,000");
+    });
+
+    it("says it is an average, not a schedule, and what share of the spending it is", async () => {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      await screen.findByRole("region", { name: "Irregular costs included in your monthly average" });
+      const text = card().textContent!.replace(BIDI_MARKS, "");
+      expect(text).toContain("This is an average, not a payment schedule");
+      expect(text).toContain("the plan does not know when any of them falls due");
+      // 3,000 of the 9,900 a month
+      expect(text).toContain("30% of your planned monthly spending.");
+    });
+
+    it("states the cash the largest payment needs when it falls due", async () => {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      await screen.findByRole("region", { name: "Irregular costs included in your monthly average" });
+      expect(card().textContent!.replace(BIDI_MARKS, "")).toContain(
+        "The largest single payment is \u20aa60,000 (Car replacement).",
+      );
+    });
+
+    it("is the target of the planned spending figure's link on the Dashboard", async () => {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      expect(
+        await screen.findByRole("region", { name: "Irregular costs included in your monthly average" }),
+      ).toHaveAttribute("id", "irregular-costs");
+    });
+
     it("shows the payments hidden in the monthly average, apart from the chosen scenario", async () => {
       await saveProfileToDb(
         buildTestProfile({

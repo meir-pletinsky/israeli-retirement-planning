@@ -107,6 +107,15 @@ export function budgetBreakdown(expenses: ExpensesData): BudgetBreakdown | null 
   return { essential, discretionary: total - essential, total, categories };
 }
 
+/**
+ * Whether there is a retirement budget to show: an itemised list with amounts, or one typed
+ * monthly total (which has no split, so it can only ask to itemise).
+ */
+export function hasRetirementBudget(expenses: ExpensesData): boolean {
+  if (budgetBreakdown(expenses)) return true;
+  return expenses.mode === "totals" && (expenses.retirementMonthly ?? 0) > 0;
+}
+
 /** A payment made once a year or less often is irregular: it is lumpy rather than a running cost. */
 export const IRREGULAR_MIN_MONTHS = 12;
 

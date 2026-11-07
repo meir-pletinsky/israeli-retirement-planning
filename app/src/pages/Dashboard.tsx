@@ -17,7 +17,6 @@ import { CoverNoticeCard } from "../components/CoverNoticeCard";
 import { DataGapsCard } from "../components/DataGapsCard";
 import { EmptyState } from "../components/EmptyState";
 import { FeasibilityCard } from "../components/FeasibilityCard";
-import { IrregularCostsCard } from "../components/IrregularCostsCard";
 import { KpiCard } from "../components/KpiCard";
 import { MoreDetail } from "../components/MoreDetail";
 import { PortfolioSummaryCard } from "../components/PortfolioSummaryCard";
@@ -329,7 +328,11 @@ export function Dashboard() {
         />
         <div className="flex flex-col gap-6">
           <RetirementSnapshot kpis={snapshot.kpis} irregularMonthly={irregular?.monthly} />
-          <BudgetCard expenses={profile.expenses} netMonthlyIncome={fundingGap.estimatedMonthlyIncome} />
+          <BudgetCard
+            expenses={profile.expenses}
+            netMonthlyIncome={fundingGap.estimatedMonthlyIncome}
+            summary
+          />
         </div>
       </div>
 
@@ -371,8 +374,6 @@ export function Dashboard() {
       <CoverNoticeCard notices={coverNotices} />
 
       <MoreDetail summary={t("dashboard.moreDetail")}>
-        <IrregularCostsCard expenses={profile.expenses} />
-
         <FeasibilityCard
           feasibility={feasibility}
           confidentAge={confidentAge}

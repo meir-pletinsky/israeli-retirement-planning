@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 
 import type { RetirementKpis } from "../domain";
 import { IncomeComposition } from "./IncomeComposition";
@@ -38,9 +39,9 @@ export function RetirementSnapshot({ kpis, irregularMonthly }: RetirementSnapsho
             ) : irregularMonthly ? (
               <div className="flex flex-col gap-1">
                 <p>{t("dashboard.irregular.snapshotNote", { amount: isolate(money(irregularMonthly)) })}</p>
-                <a href="#irregular-costs" className="font-medium text-brand-700 hover:underline">
+                <Link to="/projections#irregular-costs" className="font-medium text-brand-700 hover:underline">
                   {t("dashboard.irregular.snapshotLink")}
-                </a>
+                </Link>
               </div>
             ) : undefined
           }

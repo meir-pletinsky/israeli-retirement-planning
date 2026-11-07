@@ -24,6 +24,8 @@ import { IrregularCostsCard } from "../components/IrregularCostsCard";
 import { LiquidityLadderCard } from "../components/LiquidityLadderCard";
 import { LongevityCard } from "../components/LongevityCard";
 import { PlanBar } from "../components/PlanBar";
+import { ProjectionSectionGroup } from "../components/ProjectionSectionGroup";
+import { PROJECTION_SECTIONS, type ProjectionSection } from "../components/projectionSections";
 import { RetirementTimeline } from "../components/RetirementTimeline";
 import { RiskAnalysisCard } from "../components/RiskAnalysisCard";
 import { RiskBasisCard } from "../components/RiskBasisCard";
@@ -53,6 +55,8 @@ import {
   estimateIncomeBreakdown,
   estimateNetIncome,
   groupPathEvents,
+  hasRetirementBudget,
+  irregularCosts,
   isHouseholdActive,
   planForOption,
   projectBalancePath,
@@ -146,6 +150,17 @@ export function Projections() {
     otherInvestments: bandLabels.investments,
   };
 
+  const showSection: Record<ProjectionSection, boolean> = {
+    overview: true,
+    income: true,
+    savings: ladder.rungs.length > 0 || leavingEarly !== null,
+    spending: hasRetirementBudget(profile.expenses) || irregularCosts(profile.expenses) !== null,
+    risk: true,
+    age: true,
+    insurance: coverComparisons.length > 0,
+  };
+  const sections = PROJECTION_SECTIONS.filter((section) => showSection[section]);
+
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-semibold text-slate-900">
@@ -162,222 +177,241 @@ export function Projections() {
         onScenarioChange={setScenario}
         funding={funding}
         isCouple={isCouple}
+        sections={sections}
       />
 
-      <FeasibilityCard
-        feasibility={feasibility}
-        confidentAge={confidentAge}
-        maxSearchAge={MAX_RETIREMENT_SEARCH_AGE}
-      />
-
-      <ScenarioComparison profile={profile} />
-
-      <BudgetCard
-        expenses={profile.expenses}
-        netMonthlyIncome={calculateFundingGap(profile, scenario).estimatedMonthlyIncome}
-        scenarioTag={scenarioTag}
-      />
-
-      <IrregularCostsCard expenses={profile.expenses} />
-
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <ScenarioTitle tag={scenarioTag}>{t("projections.netWorthChart")}</ScenarioTitle>
-          <button
-            type="button"
-            onClick={() => setView(view === "chart" ? "table" : "chart")}
-            className="text-xs font-medium text-brand-700 hover:underline"
-          >
-            {view === "chart"
-              ? t("projections.viewTable")
-              : t("projections.viewChart")}
-          </button>
-        </div>
-        <NetWorthBasisNote funding={funding} />
-        {netWorthTakeaway && <p className="mb-2 text-sm text-slate-700">{netWorthTakeaway}</p>}
-        {view === "chart" ? (
-          <>
-            <BalancesByKindChart
-              name={t("projections.netWorthChart")}
-              description={netWorthTakeaway ?? t("projections.netWorthChart")}
-              points={balancePath.points}
-              kinds={balancePath.kinds}
-              kindLabels={kindLabels}
-              totalLabel={t("projections.path.total")}
-              markers={netWorthMarkers(eventGroups)}
-              currencySymbol={currencySymbol}
-              shortfallAge={funding.shortfallAge}
-              shortfallLabel={t("projections.basis.shortfallMarker")}
-            />
-            <PathEventsList groups={eventGroups} funding={funding} />
-            {cashFlow && funding.shortfallAge !== null && (
-              <p className="mt-2 text-xs">
-                <a href="#cash-flow" className="font-medium text-brand-700 hover:underline">
-                  {t("projections.cashFlow.seeLink")}
-                </a>
-              </p>
-            )}
-          </>
-        ) : (
-          <BalanceTable path={balancePath} />
-        )}
-      </div>
-
-      {cashFlow && <CashFlowCard plan={cashFlow} labels={bandLabels} scenarioTag={scenarioTag} />}
-
-      {hasTarget && (
-        <RiskBasisCard assumptions={profile.assumptions} stress={stress} scenarioTag={scenarioTag} />
-      )}
-
-      <RiskAnalysisCard
-        result={riskAnalysis}
-        hasTarget={hasTarget}
-        updating={riskUpdating}
-        scenarioTag={scenarioTag}
-      />
-
-      <HistoricalBacktestCard
-        profile={profile}
-        scenario={scenario}
-        hasTarget={hasTarget}
-        scenarioTag={scenarioTag}
-      />
-
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="mb-2">
-          <ScenarioTitle tag={scenarioTag}>{t("projections.incomeChart")}</ScenarioTitle>
-          <IncomeBasisNote funding={funding} continuingMonthly={continuingMonthly} />
-          <IncomeSplitNote variant="full" showInvestmentsPool={hasInvestmentsBand} />
-        </div>
-        <ChartFrame
-          takeaway={incomeTakeaway}
-          table={
-            <IncomeBreakdownTable
-              points={incomeData}
-              labels={bandLabels}
-              caption={t("projections.incomeChart")}
-            />
-          }
-        >
-          <IncomeBreakdownChart
-            name={t("projections.incomeChart")}
-            description={incomeTakeaway ?? t("projections.incomeChart")}
-            data={incomeData}
-            currencySymbol={currencySymbol}
-            labels={bandLabels}
-            texts={{
-              payments: t("projections.split.payments"),
-              withdrawals: t("projections.split.withdrawals"),
-              total: t("projections.split.total"),
-              paymentOf: (source) => t("projections.split.paymentOf", { source }),
-              withdrawalOf: (source) => t("projections.split.withdrawalOf", { source }),
-            }}
-          />
-        </ChartFrame>
-      </div>
-
-      {hasNetIncome && (
+      <ProjectionSectionGroup section="overview">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <ScenarioTitle tag={scenarioTag}>{t("projections.netIncomeChart")}</ScenarioTitle>
-          <p className="mb-2 mt-1 text-xs text-slate-500">
-            {t("projections.netIncomeNote")}
-            {funding.monthlySpending > 0 && ` ${t("projections.netIncomePlannedNote")}`}
-          </p>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <ScenarioTitle tag={scenarioTag}>{t("projections.netWorthChart")}</ScenarioTitle>
+            <button
+              type="button"
+              onClick={() => setView(view === "chart" ? "table" : "chart")}
+              className="text-xs font-medium text-brand-700 hover:underline"
+            >
+              {view === "chart" ? t("projections.viewTable") : t("projections.viewChart")}
+            </button>
+          </div>
+          <NetWorthBasisNote funding={funding} />
+          {netWorthTakeaway && <p className="mb-2 text-sm text-slate-700">{netWorthTakeaway}</p>}
+          {view === "chart" ? (
+            <>
+              <BalancesByKindChart
+                name={t("projections.netWorthChart")}
+                description={netWorthTakeaway ?? t("projections.netWorthChart")}
+                points={balancePath.points}
+                kinds={balancePath.kinds}
+                kindLabels={kindLabels}
+                totalLabel={t("projections.path.total")}
+                markers={netWorthMarkers(eventGroups)}
+                currencySymbol={currencySymbol}
+                shortfallAge={funding.shortfallAge}
+                shortfallLabel={t("projections.basis.shortfallMarker")}
+              />
+              <PathEventsList groups={eventGroups} funding={funding} />
+              {cashFlow && funding.shortfallAge !== null && (
+                <p className="mt-2 text-xs">
+                  <a href="#cash-flow" className="font-medium text-brand-700 hover:underline">
+                    {t("projections.cashFlow.seeLink")}
+                  </a>
+                </p>
+              )}
+            </>
+          ) : (
+            <BalanceTable path={balancePath} />
+          )}
+        </div>
+
+        {cashFlow && <CashFlowCard plan={cashFlow} labels={bandLabels} scenarioTag={scenarioTag} />}
+
+        <RetirementTimeline
+          segments={timelineBasis === "planned" ? plannedTimeline : timeline}
+          labels={bandLabels}
+          currencySymbol={currencySymbol}
+          spouseAgeAt={isCouple ? (age) => spouseAgeAt(profile, age) : undefined}
+          scenarioTag={scenarioTag}
+          controls={
+            cashFlow && (
+              <div
+                role="group"
+                aria-label={t("projections.timeline.basisGroup")}
+                className="mt-3 inline-flex flex-wrap gap-1 rounded-2xl bg-slate-100 p-1"
+              >
+                {TIMELINE_BASES.map((basis) => (
+                  <button
+                    key={basis}
+                    type="button"
+                    aria-pressed={timelineBasis === basis}
+                    onClick={() => setTimelineBasis(basis)}
+                    className={clsx(
+                      "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
+                      timelineBasis === basis ? "bg-white text-brand-700 shadow" : "text-slate-500",
+                    )}
+                  >
+                    {t(`projections.timeline.basis.${basis}`)}
+                  </button>
+                ))}
+              </div>
+            )
+          }
+          basisNote={
+            <>
+              {timelineBasis === "planned" && cashFlow ? (
+                <p className="mt-1 text-xs text-slate-500">
+                  {t("projections.timeline.plannedBasis", {
+                    amount: `\u2066${currencySymbol}${Math.round(cashFlow.monthlySpending).toLocaleString()}\u2069`,
+                  })}
+                </p>
+              ) : (
+                <IncomeBasisNote funding={funding} continuingMonthly={continuingMonthly} />
+              )}
+              <IncomeSplitNote variant="short" />
+            </>
+          }
+        />
+      </ProjectionSectionGroup>
+
+      <ProjectionSectionGroup section="income">
+        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mb-2">
+            <ScenarioTitle tag={scenarioTag}>{t("projections.incomeChart")}</ScenarioTitle>
+            <IncomeBasisNote funding={funding} continuingMonthly={continuingMonthly} />
+            <IncomeSplitNote variant="full" showInvestmentsPool={hasInvestmentsBand} />
+          </div>
           <ChartFrame
-            takeaway={netIncomeTakeaway}
-            table={<NetIncomeTable years={netIncomeYears} caption={t("projections.netIncomeChart")} />}
+            takeaway={incomeTakeaway}
+            table={
+              <IncomeBreakdownTable
+                points={incomeData}
+                labels={bandLabels}
+                caption={t("projections.incomeChart")}
+              />
+            }
           >
-            <NetIncomeChart
-              name={t("projections.netIncomeChart")}
-              description={netIncomeTakeaway ?? t("projections.netIncomeChart")}
-              data={netIncomeYears}
+            <IncomeBreakdownChart
+              name={t("projections.incomeChart")}
+              description={incomeTakeaway ?? t("projections.incomeChart")}
+              data={incomeData}
               currencySymbol={currencySymbol}
-              netLabel={t("projections.netIncomeKept")}
-              taxLabel={t("projections.netIncomeTax")}
-              plannedMonthly={funding.monthlySpending}
-              plannedLabel={t("projections.netIncomePlanned")}
+              labels={bandLabels}
+              texts={{
+                payments: t("projections.split.payments"),
+                withdrawals: t("projections.split.withdrawals"),
+                total: t("projections.split.total"),
+                paymentOf: (source) => t("projections.split.paymentOf", { source }),
+                withdrawalOf: (source) => t("projections.split.withdrawalOf", { source }),
+              }}
             />
           </ChartFrame>
         </div>
+
+        {hasNetIncome && (
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <ScenarioTitle tag={scenarioTag}>{t("projections.netIncomeChart")}</ScenarioTitle>
+            <p className="mb-2 mt-1 text-xs text-slate-500">
+              {t("projections.netIncomeNote")}
+              {funding.monthlySpending > 0 && ` ${t("projections.netIncomePlannedNote")}`}
+            </p>
+            <ChartFrame
+              takeaway={netIncomeTakeaway}
+              table={<NetIncomeTable years={netIncomeYears} caption={t("projections.netIncomeChart")} />}
+            >
+              <NetIncomeChart
+                name={t("projections.netIncomeChart")}
+                description={netIncomeTakeaway ?? t("projections.netIncomeChart")}
+                data={netIncomeYears}
+                currencySymbol={currencySymbol}
+                netLabel={t("projections.netIncomeKept")}
+                taxLabel={t("projections.netIncomeTax")}
+                plannedMonthly={funding.monthlySpending}
+                plannedLabel={t("projections.netIncomePlanned")}
+              />
+            </ChartFrame>
+          </div>
+        )}
+
+        {hasNetIncome && (
+          <WithdrawalStrategyCard
+            comparison={withdrawalComparison}
+            onSelect={(withdrawalStrategy) =>
+              updateProfile({ assumptions: { ...profile.assumptions, withdrawalStrategy } })
+            }
+            scenarioTag={scenarioTag}
+          />
+        )}
+
+        <SourceCostCard
+          rows={sourceCosts}
+          isCouple={isCouple}
+          scenarioTag={scenarioTag}
+          hasBankDeposits={hasBankDeposits}
+        />
+      </ProjectionSectionGroup>
+
+      {showSection.savings && (
+        <ProjectionSectionGroup section="savings">
+          <LiquidityLadderCard
+            ladder={ladder}
+            isCouple={isCouple}
+            scenarioTag={scenarioTag}
+            hasBankDeposits={hasBankDeposits}
+          />
+
+          <UnvestedSharesCard cost={leavingEarly} scenarioTag={scenarioTag} />
+        </ProjectionSectionGroup>
       )}
 
-      {hasNetIncome && (
-        <WithdrawalStrategyCard
-          comparison={withdrawalComparison}
-          onSelect={(withdrawalStrategy) =>
-            updateProfile({ assumptions: { ...profile.assumptions, withdrawalStrategy } })
-          }
+      {showSection.spending && (
+        <ProjectionSectionGroup section="spending">
+          <BudgetCard
+            expenses={profile.expenses}
+            netMonthlyIncome={calculateFundingGap(profile, scenario).estimatedMonthlyIncome}
+            scenarioTag={scenarioTag}
+          />
+
+          <IrregularCostsCard expenses={profile.expenses} />
+        </ProjectionSectionGroup>
+      )}
+
+      <ProjectionSectionGroup section="risk">
+        {hasTarget && (
+          <RiskBasisCard assumptions={profile.assumptions} stress={stress} scenarioTag={scenarioTag} />
+        )}
+
+        <RiskAnalysisCard
+          result={riskAnalysis}
+          hasTarget={hasTarget}
+          updating={riskUpdating}
           scenarioTag={scenarioTag}
         />
+
+        <HistoricalBacktestCard
+          profile={profile}
+          scenario={scenario}
+          hasTarget={hasTarget}
+          scenarioTag={scenarioTag}
+        />
+
+        <StressTestCard stress={stress} scenarioTag={scenarioTag} />
+
+        <LongevityCard longevity={longevity} scenarioTag={scenarioTag} />
+      </ProjectionSectionGroup>
+
+      <ProjectionSectionGroup section="age">
+        <FeasibilityCard
+          feasibility={feasibility}
+          confidentAge={confidentAge}
+          maxSearchAge={MAX_RETIREMENT_SEARCH_AGE}
+        />
+
+        <ScenarioComparison profile={profile} />
+      </ProjectionSectionGroup>
+
+      {showSection.insurance && (
+        <ProjectionSectionGroup section="insurance">
+          <CoverOptionsCard comparisons={coverComparisons} onSelect={chooseCover} />
+        </ProjectionSectionGroup>
       )}
-
-      <LiquidityLadderCard
-        ladder={ladder}
-        isCouple={isCouple}
-        scenarioTag={scenarioTag}
-        hasBankDeposits={hasBankDeposits}
-      />
-
-      <SourceCostCard
-        rows={sourceCosts}
-        isCouple={isCouple}
-        scenarioTag={scenarioTag}
-        hasBankDeposits={hasBankDeposits}
-      />
-
-      <UnvestedSharesCard cost={leavingEarly} scenarioTag={scenarioTag} />
-
-      <CoverOptionsCard comparisons={coverComparisons} onSelect={chooseCover} />
-
-      <StressTestCard stress={stress} scenarioTag={scenarioTag} />
-
-      <LongevityCard longevity={longevity} scenarioTag={scenarioTag} />
-
-      <RetirementTimeline
-        segments={timelineBasis === "planned" ? plannedTimeline : timeline}
-        labels={bandLabels}
-        currencySymbol={currencySymbol}
-        spouseAgeAt={isCouple ? (age) => spouseAgeAt(profile, age) : undefined}
-        scenarioTag={scenarioTag}
-        controls={
-          cashFlow && (
-            <div
-              role="group"
-              aria-label={t("projections.timeline.basisGroup")}
-              className="mt-3 inline-flex flex-wrap gap-1 rounded-2xl bg-slate-100 p-1"
-            >
-              {TIMELINE_BASES.map((basis) => (
-                <button
-                  key={basis}
-                  type="button"
-                  aria-pressed={timelineBasis === basis}
-                  onClick={() => setTimelineBasis(basis)}
-                  className={clsx(
-                    "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
-                    timelineBasis === basis ? "bg-white text-brand-700 shadow" : "text-slate-500",
-                  )}
-                >
-                  {t(`projections.timeline.basis.${basis}`)}
-                </button>
-              ))}
-            </div>
-          )
-        }
-        basisNote={
-          <>
-            {timelineBasis === "planned" && cashFlow ? (
-              <p className="mt-1 text-xs text-slate-500">
-                {t("projections.timeline.plannedBasis", {
-                  amount: `\u2066${currencySymbol}${Math.round(cashFlow.monthlySpending).toLocaleString()}\u2069`,
-                })}
-              </p>
-            ) : (
-              <IncomeBasisNote funding={funding} continuingMonthly={continuingMonthly} />
-            )}
-            <IncomeSplitNote variant="short" />
-          </>
-        }
-      />
     </div>
   );
 }
