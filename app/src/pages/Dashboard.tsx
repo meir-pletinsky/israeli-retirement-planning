@@ -366,7 +366,7 @@ export function Dashboard() {
             shortfallLabel={t("projections.basis.shortfallMarker")}
           />
         </ChartFrame>
-        <PathEventsList groups={eventGroups} funding={funding} />
+        <PathEventsList groups={eventGroups} funding={funding} unvestedShares={balancePath.unvestedShares} />
         {isCouple && (
           <p className="mt-2 text-xs text-slate-500">{t("dashboard.householdChartNote")}</p>
         )}

@@ -1373,6 +1373,8 @@
       "retireHousehold": "Age {{age}}: the later of you two has retired, and the household starts drawing on its savings.",
       "retireHouseholdNoSpending": "Age {{age}}: the later of you two has retired. No spending is entered, so nothing is drawn from your savings.",
       "shortfall": "Age {{age}}: at your planned spending your usable savings run out.",
+      "unvestedRange": "Why the line starts above your total today: {{amount}} of employer shares have not vested yet. They vest between ages {{from}} and {{to}}, but the plan counts them from the start of the line, at today's share price.",
+      "unvestedOne": "Why the line starts above your total today: {{amount}} of employer shares have not vested yet. They vest at age {{from}}, but the plan counts them from the start of the line, at today's share price.",
       "annuity": "Age {{age}}: {{kind}}. The {{capital}} of capital becomes an annuity of {{monthly}} a month. It is paid out as monthly income, so it is no longer a balance you can spend and it leaves the line.",
       "tableNote": "Balances are at the end of each year, in today's money. Capital that has become an annuity is no longer a balance: it is paid out as monthly income. Capital that is still locked until its access age is included.",
       "poolNote": "Bank deposits, shares and other holdings are modeled as one investments pool, shown in the {{pool}} column. The model has no separate path for each of them.",

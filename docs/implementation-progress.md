@@ -2561,6 +2561,18 @@ of its section 10 (UXB-14 is skipped on request).
       deposits are listed there as a separate area. Checked in a browser: the link area
       covers the card and a click on its blank part opens the step. Tests: `Welcome.test.tsx`,
       `MyDataStepper.test.tsx`, `Dashboard.test.tsx`.
+- [x] **UXB-26 The net-worth line starts above "Net Worth Today"**. The plan keeps the
+      employer-share batches that will have vested by retirement (and, when the grant keeps
+      vesting after leaving, the later ones) in the investments pool from today, at today's
+      share price, so the first point of the line includes shares that are not vested yet. The
+      list under the chart ("What shapes this path") now ends with an unnumbered note that
+      gives their worth at today's price and the age (or range of ages) at which they vest, and
+      says that the plan counts them from the start of the line. The same note is in the
+      Projections table view. The model itself is unchanged: moving the shares to their vesting
+      dates would shift every projection and feasibility figure, so that is left as a modelling
+      decision. `projectBalancePath` returns the figures as `unvestedShares`
+      (`unvestedSharesInPath`, which leaves out batches that would be forfeited). Tests:
+      `domain/balancePath.test.ts`, `Dashboard.test.tsx`, `Projections.test.tsx`.
 
 ## Modeling assumptions (by phase)
 

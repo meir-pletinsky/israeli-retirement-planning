@@ -1962,6 +1962,29 @@ describe("Projections", () => {
       );
     });
 
+    it("says why the line starts above today's total when employer shares have not vested yet, in the chart and the table", async () => {
+      const user = userEvent.setup();
+      const inYears = (years: number) =>
+        new Date(Date.now() + years * 365.25 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+      const card = await renderPlan({
+        age: 55,
+        retirementAge: 65,
+        equity: [
+          {
+            quantity: 500,
+            priceUSD: 50,
+            employerGrant: { vestingTranches: [{ vestDate: inYears(9.5), quantity: 400 }] },
+          },
+        ],
+      });
+
+      const note = "₪74,000 of employer shares have not vested yet. They vest at age 64";
+      expect(plain(within(card).getByRole("region", { name: "What shapes this path" }))).toContain(note);
+
+      await user.click(within(card).getByRole("button", { name: "Show as table" }));
+      expect(plain(card)).toContain(note);
+    });
+
     it("lists only the retirement when no savings become an annuity", async () => {
       const card = await renderPlan({
         pensionBalances: [100_000],

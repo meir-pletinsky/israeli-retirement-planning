@@ -2096,6 +2096,64 @@ describe("Dashboard", () => {
       const events = await screen.findByRole("region", { name: "What shapes this path" });
       expect(plain(events)).toContain("the later of you two has retired, and the household starts drawing on its savings.");
     });
+
+    describe("employer shares that have not vested yet", () => {
+      const isoDateInYears = (years: number) =>
+        new Date(Date.now() + years * 365.25 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+      const withShares = (keepsVestingAfterLeaving: boolean) =>
+        buildTestProfile({
+          age: 55,
+          retirementAge: 65,
+          pensionBalances: [400_000],
+          equity: [
+            {
+              quantity: 1_100,
+              priceUSD: 50,
+              employerGrant: {
+                keepsVestingAfterLeaving,
+                vestingTranches: [
+                  { vestDate: isoDateInYears(9.5), quantity: 400 },
+                  { vestDate: isoDateInYears(10.5), quantity: 300 },
+                  { vestDate: isoDateInYears(11.5), quantity: 300 },
+                ],
+              },
+            },
+          ],
+        });
+
+      it("says why the line starts above today's total, with the amount and the age they vest", async () => {
+        await saveProfileToDb(withShares(false));
+        await saveOnboardedToDb(true);
+        renderWithProviders(<Dashboard />);
+
+        const events = await screen.findByRole("region", { name: "What shapes this path" });
+        expect(plain(events)).toContain(
+          "Why the line starts above your total today: ₪74,000 of employer shares have not vested yet. They vest at age 64, but the plan counts them from the start of the line, at today's share price.",
+        );
+        // An unnumbered note, not one of the events behind the chart's lines.
+        expect(within(events).getAllByRole("listitem")).toHaveLength(1);
+      });
+
+      it("gives the range of ages when the batches vest over several years", async () => {
+        await saveProfileToDb(withShares(true));
+        await saveOnboardedToDb(true);
+        renderWithProviders(<Dashboard />);
+
+        const events = await screen.findByRole("region", { name: "What shapes this path" });
+        expect(plain(events)).toContain("₪185,000 of employer shares have not vested yet. They vest between ages 64 and 66,");
+      });
+
+      it("adds no note when every share has vested", async () => {
+        await saveProfileToDb(
+          buildTestProfile({ age: 55, retirementAge: 65, pensionBalances: [400_000], retirementMonthlyExpenses: 3_000 }),
+        );
+        await saveOnboardedToDb(true);
+        renderWithProviders(<Dashboard />);
+
+        const events = await screen.findByRole("region", { name: "What shapes this path" });
+        expect(plain(events)).not.toContain("have not vested yet");
+      });
+    });
   });
 
   describe("which spending the figures follow", () => {

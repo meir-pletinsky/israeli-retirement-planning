@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildTestProfile } from "../test/domainFixtures";
-import { groupPathEvents, projectBalancePath } from "./balancePath";
+import { groupPathEvents, projectBalancePath, unvestedSharesInPath } from "./balancePath";
 import { simulateDrawdown } from "./drawdown";
 import { projectNetWorth } from "./netWorth";
 import { SOURCE_KINDS } from "./sources";
@@ -121,6 +121,77 @@ describe("projectBalancePath", () => {
     );
 
     expect(events.filter((event) => event.type === "annuity")).toEqual([]);
+  });
+});
+
+describe("unvestedSharesInPath", () => {
+  /** An ISO date `years` from now (the test clock is pinned to 2026-06-15). */
+  const isoDateInYears = (years: number) =>
+    new Date(Date.now() + years * 365.25 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+
+  /** A 55-year-old retiring at 65 with 1,100 shares at $50: 100 vested, then 400, 300 and 300 vesting in 9.5, 10.5 and 11.5 years. */
+  const profileWith = (keepsVestingAfterLeaving: boolean) =>
+    buildTestProfile({
+      age: 55,
+      retirementAge: 65,
+      pensionBalances: [400_000],
+      equity: [
+        {
+          quantity: 1_100,
+          priceUSD: 50,
+          employerGrant: {
+            keepsVestingAfterLeaving,
+            vestingTranches: [
+              { vestDate: isoDateInYears(9.5), quantity: 400 },
+              { vestDate: isoDateInYears(10.5), quantity: 300 },
+              { vestDate: isoDateInYears(11.5), quantity: 300 },
+            ],
+          },
+        },
+      ],
+    });
+
+  it("counts the batches that vest by retirement, at today's share price, with the age they vest", () => {
+    // 400 shares * $50 * 3.7.
+    expect(unvestedSharesInPath(profileWith(false))).toEqual({ value: 74_000, firstVestAge: 64, lastVestAge: 64 });
+  });
+
+  it("counts the later batches too when the grant keeps vesting after leaving", () => {
+    // 1,000 shares * $50 * 3.7.
+    expect(unvestedSharesInPath(profileWith(true))).toEqual({ value: 185_000, firstVestAge: 64, lastVestAge: 66 });
+  });
+
+  it("follows the scenario's retirement age", () => {
+    expect(unvestedSharesInPath(profileWith(false), "early")).toBeNull();
+    expect(unvestedSharesInPath(profileWith(false), "delayed")?.value).toBe(185_000);
+  });
+
+  it("is null when every share has vested or there are no employer shares", () => {
+    const vested = buildTestProfile({
+      age: 55,
+      retirementAge: 65,
+      equity: [
+        {
+          quantity: 100,
+          priceUSD: 50,
+          employerGrant: { vestingTranches: [{ vestDate: isoDateInYears(-1), quantity: 100 }] },
+        },
+      ],
+    });
+    expect(unvestedSharesInPath(vested)).toBeNull();
+    expect(unvestedSharesInPath(buildTestProfile({ age: 55, retirementAge: 65 }))).toBeNull();
+  });
+
+  it("is part of the balance path, which counts those shares from its first year", () => {
+    const path = projectBalancePath(profileWith(false));
+    const without = projectBalancePath({
+      ...profileWith(false),
+      equity: { ...profileWith(false).equity, holdings: [] },
+    });
+
+    expect(path.unvestedShares).toEqual(unvestedSharesInPath(profileWith(false)));
+    expect(without.unvestedShares).toBeNull();
+    expect(path.points[0].netWorth - without.points[0].netWorth).toBeGreaterThanOrEqual(74_000 - 1);
   });
 });
 

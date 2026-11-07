@@ -1,6 +1,13 @@
 import { useTranslation } from "react-i18next";
 
-import type { BalancePath, PathEvent, PathEventGroup, SourceKind, SpendingFunding } from "../domain";
+import type {
+  BalancePath,
+  PathEvent,
+  PathEventGroup,
+  SourceKind,
+  SpendingFunding,
+  UnvestedShares,
+} from "../domain";
 
 const isolate = (text: string) => `\u2066${text}\u2069`;
 
@@ -16,6 +23,20 @@ const KIND_LABELS: Record<SourceKind, string> = {
 function useKindLabel() {
   const { t } = useTranslation();
   return (kind: SourceKind) => t(KIND_LABELS[kind]);
+}
+
+/** Why the line starts above the total of what is vested today; null when no unvested shares are counted. */
+function useUnvestedSharesText(unvestedShares: UnvestedShares | null | undefined): string | null {
+  const { t } = useTranslation();
+  if (!unvestedShares) return null;
+  const params = {
+    amount: isolate(`${t("common.currencySymbol")}${unvestedShares.value.toLocaleString()}`),
+    from: isolate(String(unvestedShares.firstVestAge)),
+    to: isolate(String(unvestedShares.lastVestAge)),
+  };
+  return unvestedShares.firstVestAge === unvestedShares.lastVestAge
+    ? t("projections.path.unvestedOne", params)
+    : t("projections.path.unvestedRange", params);
 }
 
 function PathEventText({ event, drawing }: { event: PathEvent; drawing: boolean }) {
@@ -51,17 +72,22 @@ interface PathEventsListProps {
   groups: readonly PathEventGroup[];
   /** What the planned spending does to the savings; without it the list says nothing about spending. */
   funding?: SpendingFunding;
+  /** Employer shares that have not vested yet but are counted from the start of the line. */
+  unvestedShares?: UnvestedShares | null;
 }
 
 /**
  * The events behind the steps of the balance chart, numbered like the lines on it: when drawing
  * on savings starts (or that nothing is drawn, when no spending is entered), and when a kind of
  * savings stops being a balance because it became an annuity (the chart shows the balance you
- * could spend, and an annuity is paid as monthly income). The age at which the planned spending
- * goes unfunded follows, unnumbered, because the chart marks it with its own line.
+ * could spend, and an annuity is paid as monthly income). Unnumbered notes follow: the employer
+ * shares that are counted from the start although they vest later (the reason the line starts
+ * above the total of what is vested today), and the age at which the planned spending goes
+ * unfunded, which the chart marks with its own line.
  */
-export function PathEventsList({ groups, funding }: PathEventsListProps) {
+export function PathEventsList({ groups, funding, unvestedShares }: PathEventsListProps) {
   const { t } = useTranslation();
+  const unvestedText = useUnvestedSharesText(unvestedShares);
   if (groups.length === 0) return null;
   const drawing = funding === undefined || funding.monthlySpending > 0;
 
@@ -89,6 +115,17 @@ export function PathEventsList({ groups, funding }: PathEventsListProps) {
           </li>
         ))}
       </ol>
+      {unvestedText && (
+        <p className="mt-1.5 flex items-start gap-2 text-xs text-slate-600">
+          <span
+            aria-hidden="true"
+            className="mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-600"
+          >
+            i
+          </span>
+          <span>{unvestedText}</span>
+        </p>
+      )}
       {funding?.shortfallAge != null && (
         <p className="mt-1.5 flex items-start gap-2 text-xs font-medium text-rose-700">
           <span
@@ -118,6 +155,7 @@ export function BalanceTable({ path }: BalanceTableProps) {
   const kindLabel = useKindLabel();
   const currencySymbol = t("common.currencySymbol");
   const money = (amount: number) => `${currencySymbol}${amount.toLocaleString()}`;
+  const unvestedText = useUnvestedSharesText(path.unvestedShares);
 
   return (
     <div>
@@ -126,6 +164,7 @@ export function BalanceTable({ path }: BalanceTableProps) {
         {path.kinds.includes("otherInvestments") && (
           <p>{t("projections.path.poolNote", { pool: isolate(kindLabel("otherInvestments")) })}</p>
         )}
+        {unvestedText && <p>{unvestedText}</p>}
       </div>
       <div className="max-h-72 overflow-auto">
         <table className="w-full min-w-max text-sm">

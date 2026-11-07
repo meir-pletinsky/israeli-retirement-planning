@@ -211,7 +211,7 @@ export function Projections() {
                 shortfallAge={funding.shortfallAge}
                 shortfallLabel={t("projections.basis.shortfallMarker")}
               />
-              <PathEventsList groups={eventGroups} funding={funding} />
+              <PathEventsList groups={eventGroups} funding={funding} unvestedShares={balancePath.unvestedShares} />
               {cashFlow && funding.shortfallAge !== null && (
                 <p className="mt-2 text-xs">
                   <a href="#cash-flow" className="font-medium text-brand-700 hover:underline">
