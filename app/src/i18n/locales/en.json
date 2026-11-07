@@ -233,11 +233,11 @@
       "retiringNow": "now",
       "yearsAway_one": "in 1 year",
       "yearsAway_other": "in {{count}} years",
-      "netWorthNote": "Everything you have entered, at today's values.",
-      "netWorthBreakdown": "See what it is made of"
+      "netWorthNote": "Everything you have entered, at today's values."
     },
+    "moreDetail": "More detail: irregular costs, earliest feasible age, access to your savings, Bituach Leumi and income tax",
     "snapshot": {
-      "title": "Retirement snapshot",
+      "title": "What you will live on",
       "subtitle": "Monthly amounts are in today's money; income is before tax.",
       "plannedSpending": "Planned monthly spending",
       "noSpending": "Not entered yet",
@@ -320,10 +320,11 @@
     "emptyBody": "Complete your profile to see your personalized retirement projection.",
     "emptyCta": "Start My Data",
     "portfolio": {
-      "title": "What Net Worth Today is made of",
+      "title": "What you have",
       "intro": "The rows add up to the Net Worth Today figure above. Select a row to see or change what you entered.",
       "kind": "Kind of asset",
       "amount": "Amount",
+      "share": "Share of the total",
       "rows": {
         "pensionFund": "Pension funds",
         "providentFund": "Provident funds",

@@ -235,11 +235,11 @@
       "yearsAway_two": "בעוד שנתיים",
       "yearsAway_many": "בעוד {{count}} שנים",
       "yearsAway_other": "בעוד {{count}} שנים",
-      "netWorthNote": "כל מה שהזנתם, לפי השווי היום.",
-      "netWorthBreakdown": "ממה זה מורכב"
+      "netWorthNote": "כל מה שהזנתם, לפי השווי היום."
     },
+    "moreDetail": "פירוט נוסף: עלויות לא קבועות, גיל הפרישה המוקדם ביותר האפשרי, הגישה לחיסכון, ביטוח לאומי ומס הכנסה",
     "snapshot": {
-      "title": "תמונת מצב לפרישה",
+      "title": "ממה תחיו",
       "subtitle": "הסכומים החודשיים בכסף של היום; ההכנסה לפני מס.",
       "plannedSpending": "הוצאה חודשית מתוכננת",
       "noSpending": "טרם הוזנה",
@@ -322,10 +322,11 @@
     "emptyBody": "\u05d4\u05e9\u05dc\u05dd \u05d0\u05ea \u05d4\u05e4\u05e8\u05d5\u05e4\u05d9\u05dc \u05e9\u05dc\u05da \u05db\u05d3\u05d9 \u05dc\u05e8\u05d0\u05d5\u05ea \u05ea\u05d7\u05d6\u05d9\u05ea \u05e4\u05e8\u05d9\u05e9\u05d4 \u05d0\u05d9\u05e9\u05d9\u05ea.",
     "emptyCta": "\u05de\u05dc\u05d0 \u05d0\u05ea \u05d4\u05e0\u05ea\u05d5\u05e0\u05d9\u05dd \u05e9\u05dc\u05d9",
     "portfolio": {
-      "title": "ממה מורכב השווי הנקי הנוכחי",
+      "title": "מה יש לכם",
       "intro": "השורות מסתכמות בשווי הנקי הנוכחי שמוצג למעלה. לחצו על שורה כדי לראות או לשנות את מה שהזנתם.",
       "kind": "סוג נכס",
       "amount": "סכום",
+      "share": "חלק מהסך הכול",
       "rows": {
         "pensionFund": "קרנות פנסיה",
         "providentFund": "קופות גמל",

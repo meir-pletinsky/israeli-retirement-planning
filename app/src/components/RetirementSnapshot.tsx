@@ -28,7 +28,7 @@ export function RetirementSnapshot({ kpis, irregularMonthly }: RetirementSnapsho
         </h2>
         <p className="text-xs text-slate-500">{t("dashboard.snapshot.subtitle")}</p>
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <KpiCard
           label={t("dashboard.snapshot.plannedSpending")}
           value={plannedMonthlySpending === null ? "—" : money(plannedMonthlySpending)}

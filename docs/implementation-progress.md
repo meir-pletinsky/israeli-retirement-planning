@@ -2356,6 +2356,29 @@ of its section 10 (UXB-14 is skipped on request).
       shares and deposits" line under the deposits table gives the step's grand total (shown only
       when both shares and deposits exist, as otherwise it would repeat one table's total). Tests:
       `SummaryTables.test.tsx`.
+- [x] **UXB-32/33 The Dashboard is organised by question, and the asset and budget breakdowns are
+      drawn.** A bounded version of the review's section 12.5. Order now: basis line, verdict
+      (above the figures, so the answer comes first), four tiles (income after tax, monthly
+      surplus or shortfall, simulated coverage, years to retirement), then "What you have" and
+      "What you will live on" (with the budget under it) side by side from 1280 px (stacked
+      below; the sidebar leaves about 736 px at 1024 px, too narrow for two columns), the
+      net-worth chart, the to-do cards (data gaps, Cover notices), and a collapsed "More detail"
+      block holding irregular costs, earliest feasible age, retire-at checks, access to savings,
+      Bituach Leumi and income tax. The block is a native `<details>` (`MoreDetail`) that opens
+      itself when the address or a followed link points at something inside it, so
+      `#irregular-costs` and `#feasibility-title` still work. The separate Net Worth Today tile
+      is gone: the figure now heads "What you have" (formerly "What Net Worth Today is made of"),
+      above one 100% bar split by kind of asset (each kind has its own colour, never red,
+      each at least 3:1 against white; `portfolioColors.ts`) and rows that carry the same
+      colour swatch and a share column ("<1%" for a small one). "Retirement snapshot" is renamed
+      "What you will live on", and its tiles and the income stages stack in the narrow column (a
+      container query, so the layout follows the card, not the window). In the budget, each
+      category has an inline bar sized against the largest category, solid for essential and
+      hatched for discretionary spending (the legend is in the column headings). Tests:
+      `Dashboard.test.tsx`, `MoreDetail.test.tsx`, `portfolioColors.test.ts`. Not built here:
+      the usable-over-time visual (V-2), the concentration flag (UXB-10), balances by kind
+      (UXB-34), the milestone strip (V-8), a "Savings last to age" tile, the backup reminder
+      (UXB-07) and the tabbed full-report structure.
 
 ## Modeling assumptions (by phase)
 

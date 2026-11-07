@@ -38,7 +38,7 @@ export function IncomeComposition({ stages }: { stages: IncomeCompositionStage[]
   return (
     <section
       aria-labelledby="income-composition-title"
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="@container rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
     >
       <h3 id="income-composition-title" className="text-sm font-semibold text-slate-700">
         {t("dashboard.snapshot.income.title")}
@@ -50,7 +50,7 @@ export function IncomeComposition({ stages }: { stages: IncomeCompositionStage[]
           <p className="mt-1 text-xs text-slate-500">
             {t("dashboard.snapshot.income.intro", { endAge: formatAge(MAX_PLANNING_AGE) })}
           </p>
-          <div className="mt-3 grid gap-5 md:grid-cols-2">
+          <div className="mt-3 grid gap-5 @lg:grid-cols-2">
             {stages.map((stage) => (
               <div key={stage.reason}>
                 <h4 className="text-sm font-medium text-slate-800">

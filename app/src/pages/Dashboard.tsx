@@ -19,6 +19,7 @@ import { EmptyState } from "../components/EmptyState";
 import { FeasibilityCard } from "../components/FeasibilityCard";
 import { IrregularCostsCard } from "../components/IrregularCostsCard";
 import { KpiCard } from "../components/KpiCard";
+import { MoreDetail } from "../components/MoreDetail";
 import { PortfolioSummaryCard } from "../components/PortfolioSummaryCard";
 import { RetireAgeChecksCard } from "../components/RetireAgeChecksCard";
 import { RetirementSnapshot } from "../components/RetirementSnapshot";
@@ -34,7 +35,6 @@ import {
   MAX_PLANNING_AGE,
   MAX_RETIREMENT_SEARCH_AGE,
   MONTE_CARLO_CONFIDENCE,
-  aggregateCurrentNetWorth,
   assumedRetirementAges,
   breakdownPortfolio,
   calculateFundingGap,
@@ -111,7 +111,6 @@ export function Dashboard() {
   const balancePath = projectBalancePath(profile, "standard");
   const eventGroups = groupPathEvents(balancePath.events);
   const funding = projectSpendingFunding(profile, "standard");
-  const netWorthToday = aggregateCurrentNetWorth(profile);
   const { monthlyIncomeTodayMoney, members, access } = estimateRetirementIncome(profile, "standard");
   const isCouple = members.length > 1;
   const netIncome = estimateNetIncome(profile, "standard");
@@ -144,9 +143,51 @@ export function Dashboard() {
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-semibold text-slate-900">{t("dashboard.title")}</h1>
 
+      <ActiveAssumptions assumptions={profile.assumptions} />
+
       <AssumedRetirementAgeBanner />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      {hasTarget && (
+        <StatusBanner
+          status={isShortfall ? "shortfall" : averageOnly ? "caution" : "onTrack"}
+          message={
+            isShortfall
+              ? levers
+                ? t("dashboard.statusShortfallLevers")
+                : t("dashboard.statusShortfall")
+              : averageOnly
+                ? t("dashboard.statusOnTrackAverage")
+                : t("dashboard.statusOnTrack")
+          }
+          details={
+            averageOnly && risk && coveragePercent !== null
+              ? [
+                  t("dashboard.statusAverageDetail", { percent: isolate(String(coveragePercent)) }),
+                  ...(risk.confidentNetMonthly !== null && risk.confidentNetMonthly < risk.targetNetMonthly
+                    ? [
+                        t("dashboard.statusConfidentSpending", {
+                          percent: isolate(String(confidencePercent)),
+                          amount: isolate(money(risk.confidentNetMonthly)),
+                          target: isolate(money(risk.targetNetMonthly)),
+                        }),
+                      ]
+                    : [])
+                ]
+              : undefined
+          }
+          action={
+            averageOnly ? (
+              <Link to="/projections" className="text-brand-700 hover:underline">
+                {t("dashboard.statusSeeRisk")}
+              </Link>
+            ) : undefined
+          }
+        >
+          {isShortfall && levers && <ShortfallLevers levers={levers} />}
+        </StatusBanner>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
           label={t("dashboard.kpi.monthlyIncome")}
           value={money(netIncome.netMonthlyIncome)}
@@ -169,21 +210,6 @@ export function Dashboard() {
                 </>
               )}
               <PlannedSpendingLine funding={funding} />
-            </div>
-          }
-        />
-        <KpiCard
-          label={t("dashboard.kpi.netWorth")}
-          value={`${currencySymbol}${Math.round(netWorthToday).toLocaleString()}`}
-          note={
-            <div className="flex flex-col gap-1">
-              <p>{t("dashboard.kpi.netWorthNote")}</p>
-              <a
-                href="#portfolio-summary"
-                className="font-medium text-brand-700 hover:underline"
-              >
-                {t("dashboard.kpi.netWorthBreakdown")}
-              </a>
             </div>
           }
         />
@@ -296,82 +322,13 @@ export function Dashboard() {
         />
       </div>
 
-      <ActiveAssumptions assumptions={profile.assumptions} />
-
-      {hasTarget && (
-        <StatusBanner
-          status={isShortfall ? "shortfall" : averageOnly ? "caution" : "onTrack"}
-          message={
-            isShortfall
-              ? levers
-                ? t("dashboard.statusShortfallLevers")
-                : t("dashboard.statusShortfall")
-              : averageOnly
-                ? t("dashboard.statusOnTrackAverage")
-                : t("dashboard.statusOnTrack")
-          }
-          details={
-            averageOnly && risk && coveragePercent !== null
-              ? [
-                  t("dashboard.statusAverageDetail", { percent: isolate(String(coveragePercent)) }),
-                  ...(risk.confidentNetMonthly !== null && risk.confidentNetMonthly < risk.targetNetMonthly
-                    ? [
-                        t("dashboard.statusConfidentSpending", {
-                          percent: isolate(String(confidencePercent)),
-                          amount: isolate(money(risk.confidentNetMonthly)),
-                          target: isolate(money(risk.targetNetMonthly)),
-                        }),
-                      ]
-                    : []),
-                ]
-              : undefined
-          }
-          action={
-            averageOnly ? (
-              <Link to="/projections" className="text-brand-700 hover:underline">
-                {t("dashboard.statusSeeRisk")}
-              </Link>
-            ) : undefined
-          }
-        >
-          {isShortfall && levers && <ShortfallLevers levers={levers} />}
-        </StatusBanner>
-      )}
-
-      <PortfolioSummaryCard portfolio={breakdownPortfolio(profile)} />
-
-      <RetirementSnapshot kpis={snapshot.kpis} irregularMonthly={irregular?.monthly} />
-
-      <BudgetCard expenses={profile.expenses} netMonthlyIncome={fundingGap.estimatedMonthlyIncome} />
-
-      <IrregularCostsCard expenses={profile.expenses} />
-
-      <DataGapsCard gaps={gaps} />
-
-      <CoverNoticeCard notices={coverNotices} />
-
-      <FeasibilityCard
-        feasibility={feasibility}
-        confidentAge={confidentAge}
-        maxSearchAge={MAX_RETIREMENT_SEARCH_AGE}
-      />
-
-      {snapshot.ageChecks && <RetireAgeChecksCard checks={snapshot.ageChecks} />}
-
-      <SourceAccessCard access={access} />
-
-      <BituachLeumiCard
-        members={members}
-        monthlyIncomeTodayMoney={monthlyIncomeTodayMoney}
-      />
-
-      <TaxCard
-        net={netIncome}
-        isCouple={isCouple}
-        hasEmployerStock={profile.equity.holdings.some(
-          (holding) => holding.investmentCategory === "employerGrantedStock",
-        )}
-      />
+      <div className="grid items-start gap-6 xl:grid-cols-2">
+        <PortfolioSummaryCard portfolio={breakdownPortfolio(profile)} />
+        <div className="flex flex-col gap-6">
+          <RetirementSnapshot kpis={snapshot.kpis} irregularMonthly={irregular?.monthly} />
+          <BudgetCard expenses={profile.expenses} netMonthlyIncome={fundingGap.estimatedMonthlyIncome} />
+        </div>
+      </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="mb-2 flex items-center justify-between">
@@ -405,6 +362,37 @@ export function Dashboard() {
           <p className="mt-2 text-xs text-slate-500">{t("dashboard.householdChartNote")}</p>
         )}
       </div>
+
+      <DataGapsCard gaps={gaps} />
+
+      <CoverNoticeCard notices={coverNotices} />
+
+      <MoreDetail summary={t("dashboard.moreDetail")}>
+        <IrregularCostsCard expenses={profile.expenses} />
+
+        <FeasibilityCard
+          feasibility={feasibility}
+          confidentAge={confidentAge}
+          maxSearchAge={MAX_RETIREMENT_SEARCH_AGE}
+        />
+
+        {snapshot.ageChecks && <RetireAgeChecksCard checks={snapshot.ageChecks} />}
+
+        <SourceAccessCard access={access} />
+
+        <BituachLeumiCard
+          members={members}
+          monthlyIncomeTodayMoney={monthlyIncomeTodayMoney}
+        />
+
+        <TaxCard
+          net={netIncome}
+          isCouple={isCouple}
+          hasEmployerStock={profile.equity.holdings.some(
+            (holding) => holding.investmentCategory === "employerGrantedStock",
+          )}
+        />
+      </MoreDetail>
     </div>
   );
 }

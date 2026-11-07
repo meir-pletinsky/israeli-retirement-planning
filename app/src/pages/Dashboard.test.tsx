@@ -820,7 +820,7 @@ describe("Dashboard", () => {
 
       renderWithProviders(<Dashboard />);
 
-      expect(await screen.findByText("Net Worth Today")).toBeInTheDocument();
+      expect(await screen.findByText("Sustainable income after tax")).toBeInTheDocument();
       expect(screen.queryByRole("region", { name: "Income tax in retirement" })).not.toBeInTheDocument();
     });
 
@@ -1070,7 +1070,7 @@ describe("Dashboard", () => {
       await saveProfileToDb(profile);
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
-      const heading = await screen.findByRole("heading", { name: "Retirement snapshot" });
+      const heading = await screen.findByRole("heading", { name: "What you will live on" });
       const section = heading.closest("section") as HTMLElement;
       const card = (label: string) =>
         within(section).getByText(label).parentElement as HTMLElement;
@@ -1425,7 +1425,7 @@ describe("Dashboard", () => {
 
   describe("portfolio summary", () => {
     const BIDI_MARKS = /[\u2066\u2069]/g;
-    const summary = () => screen.getByRole("region", { name: "What Net Worth Today is made of" });
+    const summary = () => screen.getByRole("region", { name: "What you have" });
     const rowAmount = (name: string) =>
       within(within(summary()).getByRole("row", { name: new RegExp(name) }))
         .getByText(/^\u20aa/)
@@ -1481,7 +1481,7 @@ describe("Dashboard", () => {
       expect(within(summary()).queryByText("Private shares and ESPP")).not.toBeInTheDocument();
     });
 
-    it("links each row to its own section of the step where it is entered, and the figure to the summary", async () => {
+    it("links each row to its own section of the step where it is entered", async () => {
       await saveProfileToDb(rich);
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
@@ -1498,10 +1498,6 @@ describe("Dashboard", () => {
       expect(link("Cash and other assets")).toHaveAttribute(
         "href",
         "/my-data/pension-savings#other-assets",
-      );
-      expect(screen.getByRole("link", { name: "See what it is made of" })).toHaveAttribute(
-        "href",
-        "#portfolio-summary",
       );
       expect(summary()).toHaveAttribute("id", "portfolio-summary");
     });
@@ -1597,8 +1593,116 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
+      await screen.findByText("Sustainable income after tax");
+      expect(screen.queryByRole("region", { name: "What you have" })).not.toBeInTheDocument();
+    });
+
+    it("shows Net Worth Today once, as the figure the card adds up to, not as a tile", async () => {
+      await saveProfileToDb(rich);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      const label = await screen.findByText("Net Worth Today");
+      expect(screen.getAllByText("Net Worth Today")).toHaveLength(1);
+      expect(summary()).toContainElement(label);
+      expect(within(label.parentElement as HTMLElement).getByText("\u20aa823,600")).toBeInTheDocument();
+    });
+
+    it("gives each row its share of the total, with a small one as under one percent", async () => {
+      await saveProfileToDb(rich);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
       await screen.findByText("Net Worth Today");
-      expect(screen.queryByRole("region", { name: "What Net Worth Today is made of" })).not.toBeInTheDocument();
+      const share = (name: string) =>
+        within(within(summary()).getByRole("row", { name: new RegExp(name) }))
+          .getAllByRole("cell")[1]
+          .textContent!.replace(BIDI_MARKS, "");
+      expect(share("Pension funds")).toBe("61%");
+      expect(share("Study funds")).toBe("12%");
+      expect(share("Bank deposits")).toBe("24%");
+      expect(share("Cash and other assets")).toBe("2%");
+      expect(share("Employer shares")).toBe("<1%");
+    });
+
+    it("draws one bar split in proportion to the rows, hidden from assistive technology", async () => {
+      await saveProfileToDb(rich);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      const bar = summary().querySelector(":scope > div[aria-hidden='true']") as HTMLElement;
+      const segments = Array.from(bar.children) as HTMLElement[];
+      expect(segments.map((segment) => segment.style.flexGrow)).toEqual([
+        "500000",
+        "100000",
+        "200000",
+        "3600",
+        "20000",
+      ]);
+      expect(new Set(segments.map((segment) => segment.style.backgroundColor)).size).toBe(5);
+    });
+  });
+
+  describe("page layout", () => {
+    const profile = buildTestProfile({
+      age: 55,
+      retirementAge: 67,
+      pensionBalances: [900_000],
+      retirementMonthlyExpenses: 6_000,
+    });
+
+    async function renderLayout() {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+      await screen.findByText("Sustainable income after tax");
+    }
+
+    const before = (first: HTMLElement, second: HTMLElement) =>
+      Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING);
+
+    it("puts the basis line and the verdict above the figures", async () => {
+      await renderLayout();
+
+      const basis = screen.getByRole("note", { name: "Assumptions in use" });
+      const verdict = screen.getByText(
+        /^You're on track|^On track in average|^Your plan falls short|^You may need additional savings/,
+      );
+      const income = screen.getByText("Sustainable income after tax");
+      expect(before(basis, verdict)).toBe(true);
+      expect(before(verdict, income)).toBe(true);
+    });
+
+    it("shows four figures, then what you have and what you will live on side by side", async () => {
+      await renderLayout();
+
+      const tiles = [
+        "Sustainable income after tax",
+        /^(Monthly surplus|Monthly shortfall)$/,
+        /^Simulated spending coverage to age/,
+        "Years to Retirement",
+      ];
+      for (const tile of tiles) expect(screen.getByText(tile)).toBeInTheDocument();
+
+      const have = screen.getByRole("region", { name: "What you have" });
+      const live = screen.getByRole("region", { name: "What you will live on" });
+      expect(have.parentElement).toBe(live.parentElement?.parentElement);
+    });
+
+    it("keeps the cards that matter less in a collapsed block, apart from the main ones", async () => {
+      await renderLayout();
+
+      const more = screen.getByText(/^More detail:/).closest("details") as HTMLDetailsElement;
+      expect(more.open).toBe(false);
+      for (const name of ["Income tax in retirement", "Bituach Leumi Old-Age Pension"]) {
+        const card = screen.queryByRole("region", { name });
+        if (card) expect(more).toContainElement(card);
+      }
+      expect(within(more).getByText("Earliest Feasible Retirement")).toBeInTheDocument();
+      expect(more).not.toContainElement(screen.getByRole("region", { name: "What you have" }));
+      expect(more).not.toContainElement(screen.getByRole("region", { name: "What you will live on" }));
+      expect(more).not.toContainElement(screen.getByRole("region", { name: "Retirement budget" }));
     });
   });
 
@@ -1643,7 +1747,7 @@ describe("Dashboard", () => {
       renderWithProviders(<Dashboard />);
 
       await screen.findByText("Net Worth Today");
-      const planned = within(screen.getByRole("region", { name: "Retirement snapshot" }));
+      const planned = within(screen.getByRole("region", { name: "What you will live on" }));
       expect(planned.getByText("\u20aa7,700")).toBeInTheDocument();
     });
 
@@ -1663,6 +1767,26 @@ describe("Dashboard", () => {
         "Personal and lifestyle\u2014\u20aa1,000",
         "Travel and leisure\u2014\u20aa200",
       ]);
+    });
+
+    it("draws a bar under each category, sized against the largest and split by necessity", async () => {
+      await saveProfileToDb(itemised);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Dashboard />);
+
+      await screen.findByText("Net Worth Today");
+      const bar = (name: string) =>
+        within(budget())
+          .getByRole("row", { name: new RegExp(`^${name}`) })
+          .querySelector("th [aria-hidden='true']") as HTMLElement;
+      expect(bar("Housing").style.width).toBe("100%");
+      expect(bar("Food and household").style.width).toBe("30%");
+      expect(bar("Personal and lifestyle").style.width).toBe("20%");
+      expect(bar("Travel and leisure").style.width).toBe("4%");
+      const [essential, discretionary] = Array.from(bar("Personal and lifestyle").children) as HTMLElement[];
+      expect(essential.style.flexGrow).toBe("0");
+      expect(discretionary.style.flexGrow).toBe("1000");
+      expect(discretionary.style.backgroundImage).toContain("repeating-linear-gradient");
     });
 
     it("links to the expenses step", async () => {
@@ -2074,7 +2198,7 @@ describe("Dashboard shortfall levers", () => {
     await saveProfileToDb(profile);
     await saveOnboardedToDb(true);
     renderWithProviders(<Dashboard />);
-    await screen.findByText("Net Worth Today");
+    await screen.findByText("Sustainable income after tax");
   }
 
   const shortfallBanner = () =>

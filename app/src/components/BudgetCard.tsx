@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 
 import { budgetBreakdown } from "../domain";
 import type { ExpensesData } from "../types";
+import { necessityFill } from "./charts/portfolioColors";
 import { ScenarioTitle } from "./ScenarioTag";
 
 interface BudgetCardProps {
@@ -38,6 +39,10 @@ export function BudgetCard({ expenses, netMonthlyIncome, scenarioTag }: BudgetCa
   };
   const gapTone = (budgetAmount: number) =>
     netMonthlyIncome - budgetAmount >= 0 ? "text-emerald-700" : "text-rose-700";
+  const largestCategory = Math.max(
+    ...(budget?.categories.map((row) => row.essential + row.discretionary) ?? []),
+    1,
+  );
 
   return (
     <section
@@ -95,19 +100,37 @@ export function BudgetCard({ expenses, netMonthlyIncome, scenarioTag }: BudgetCa
                 <th scope="col" className="pb-1 pe-3 text-start font-medium">
                   {t("dashboard.budget.category")}
                 </th>
-                <th scope="col" className="pb-1 pe-3 text-end font-medium">
-                  {t(`${NECESSITY}.essential`)}
-                </th>
-                <th scope="col" className="pb-1 text-end font-medium">
-                  {t(`${NECESSITY}.discretionary`)}
-                </th>
+                {(["essential", "discretionary"] as const).map((necessity) => (
+                  <th key={necessity} scope="col" className="pb-1 pe-3 text-end font-medium last:pe-0">
+                    <span
+                      aria-hidden="true"
+                      className="me-1.5 inline-block h-2 w-2 rounded-sm border border-slate-700"
+                      style={necessityFill(necessity)}
+                    />
+                    {t(`${NECESSITY}.${necessity}`)}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {budget.categories.map((row) => (
                 <tr key={row.category} className="border-t border-slate-100">
-                  <th scope="row" className="py-1 pe-3 text-start font-normal text-slate-700">
+                  <th scope="row" className="w-1/2 py-1 pe-3 text-start font-normal text-slate-700">
                     {t(`${CATEGORY}.${row.category}`)}
+                    <div
+                      aria-hidden="true"
+                      className="mt-1 flex h-1.5 overflow-hidden rounded-sm"
+                      style={{ width: `${((row.essential + row.discretionary) / largestCategory) * 100}%` }}
+                    >
+                      <span
+                        className="block h-full"
+                        style={{ flexGrow: row.essential, flexBasis: 0, ...necessityFill("essential") }}
+                      />
+                      <span
+                        className="block h-full"
+                        style={{ flexGrow: row.discretionary, flexBasis: 0, ...necessityFill("discretionary") }}
+                      />
+                    </div>
                   </th>
                   <td className="py-1 pe-3 text-end tabular-nums text-slate-900">
                     <span dir="ltr">{row.essential > 0 ? money(row.essential) : "—"}</span>
