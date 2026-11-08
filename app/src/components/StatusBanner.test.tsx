@@ -29,7 +29,7 @@ describe("StatusBanner", () => {
     expect(screen.getByText("Checking your plan…")).toBeInTheDocument();
     expect(screen.queryByText("✓")).not.toBeInTheDocument();
     expect(screen.queryByText("!")).not.toBeInTheDocument();
-    expect(container.firstElementChild).toHaveClass("bg-slate-50");
+    expect(container.firstElementChild).toHaveClass("bg-white", "border-s-slate-400");
   });
 
   it("lists the details in order, then the action", () => {

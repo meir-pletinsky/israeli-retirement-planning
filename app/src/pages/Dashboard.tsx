@@ -188,7 +188,7 @@ export function Dashboard() {
         </StatusBanner>
       )}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4 [&>*]:min-w-0">
         <KpiCard
           label={t("dashboard.kpi.monthlyIncome")}
           value={money(netIncome.netMonthlyIncome)}
@@ -342,12 +342,12 @@ export function Dashboard() {
 
       <div className="card">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-700">
+          <h2 className="text-base font-semibold text-slate-900">
             {t("dashboard.chartTitle")}
           </h2>
           <Link
             to="/my-data/assumptions"
-            className="text-xs font-medium text-brand-700 hover:underline"
+            className="btn btn-sm btn-ghost"
           >
             {t("dashboard.adjustAssumptions")}
           </Link>

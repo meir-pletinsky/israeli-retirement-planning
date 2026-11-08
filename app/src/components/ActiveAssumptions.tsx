@@ -28,9 +28,9 @@ export function ActiveAssumptions({ assumptions }: ActiveAssumptionsProps) {
     <div
       role="note"
       aria-label={t("assumptionsSummary.label")}
-      className="flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600"
+      className="-mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600"
     >
-      <span className="font-semibold text-slate-800">
+      <span className="chip bg-brand-50 text-brand-800 ring-1 ring-brand-100">
         {t(`myData.steps.assumptions.${matchingPreset(assumptions)}`)}
       </span>
       <span>
