@@ -54,8 +54,14 @@ export function MyDataLayout() {
           currentKey={currentKey}
           onStepClick={(key) => navigate(`/my-data/${key}`)}
         />
-        {!STEPS_WITHOUT_LEGEND.includes(currentKey) && <FieldLegend />}
-        <Outlet />
+        {STEPS_WITHOUT_LEGEND.includes(currentKey) ? (
+          <Outlet />
+        ) : (
+          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,40rem)_minmax(16rem,20rem)] lg:gap-10">
+            <div className="lg:sticky lg:top-8 lg:order-last"><FieldLegend /></div>
+            <div className="card min-w-0"><Outlet /></div>
+          </div>
+        )}
       </div>
     </ActivePersonProvider>
   );

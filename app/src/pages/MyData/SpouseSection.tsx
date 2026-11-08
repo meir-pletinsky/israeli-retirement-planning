@@ -30,7 +30,7 @@ export function SpouseSection({ error }: SpouseSectionProps) {
   return (
     <section aria-label={t(`${prefix}.spouseSection`)} className="flex flex-col gap-4">
       <div>
-        <h3 className="text-sm font-semibold text-slate-800">{t(`${prefix}.spouseSection`)}</h3>
+        <h3 className="text-base font-semibold text-slate-900">{t(`${prefix}.spouseSection`)}</h3>
         <p className="mt-1 text-sm text-slate-600">{t(`${prefix}.spouseIntro`)}</p>
       </div>
       <NumberField

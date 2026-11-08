@@ -97,7 +97,7 @@ export function PensionSavingsStep() {
           <div className="flex flex-wrap gap-2">
             <Link
               to={importTarget}
-              className="rounded-md border border-brand-600 bg-white px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-50"
+              className="btn btn-sm btn-secondary text-brand-800"
             >
               {t(showPeople ? `clearingHouse.entryButtonFor.${person}` : "clearingHouse.entryButton")}
             </Link>

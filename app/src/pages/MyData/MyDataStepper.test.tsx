@@ -36,10 +36,10 @@ describe("MyDataLayout — stepper reports what is entered, not where the user i
 
     for (const name of [/^Pension & Savings/, /^Investments & Deposits/, /^Expenses/]) {
       expect(step(name)).toHaveTextContent("Nothing entered yet");
-      expect(step(name)).not.toHaveTextContent("✓");
+      expect(step(name).querySelector("svg")).toBeNull();
     }
     expect(step(/^Personal/)).toHaveTextContent("Required details missing");
-    expect(step(/^Personal/)).not.toHaveTextContent("✓");
+    expect(step(/^Personal/).querySelector("svg")).toBeNull();
     expect(step(/^Assumptions/)).toHaveTextContent("Using defaults");
     expect(step(/^Assumptions/)).toHaveAttribute("aria-current", "step");
   });
@@ -52,11 +52,11 @@ describe("MyDataLayout — stepper reports what is entered, not where the user i
     await screen.findByText("personal step");
 
     expect(step(/^Personal/)).toHaveTextContent("Required details complete");
-    expect(step(/^Personal/)).toHaveTextContent("✓");
+    expect(step(/^Personal/).querySelector("svg")).toHaveAttribute("aria-hidden", "true");
     expect(step(/^Expenses/)).toHaveTextContent("Details entered");
-    expect(step(/^Expenses/)).toHaveTextContent("✓");
+    expect(step(/^Expenses/).querySelector("svg")).toHaveAttribute("aria-hidden", "true");
     expect(step(/^Pension & Savings/)).toHaveTextContent("Nothing entered yet");
-    expect(step(/^Pension & Savings/)).not.toHaveTextContent("✓");
+    expect(step(/^Pension & Savings/).querySelector("svg")).toBeNull();
   });
 
   it("reads the status out with the step name", async () => {

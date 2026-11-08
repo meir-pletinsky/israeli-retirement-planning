@@ -34,6 +34,7 @@
   /* Type scale: 13 / 15 / 16 / 18 / 22 / 28 / 34. Nothing smaller than 13px. */
   --text-xs: 0.8125rem;   --text-xs--line-height: 1.125rem;
   --text-sm: 0.9375rem;   --text-sm--line-height: 1.375rem;
+  --text-table: 0.875rem; --text-table--line-height: 1.25rem;
   --text-base: 1rem;      --text-base--line-height: 1.5rem;
   --text-lg: 1.125rem;    --text-lg--line-height: 1.625rem;
   --text-xl: 1.375rem;    --text-xl--line-height: 1.75rem;

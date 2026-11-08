@@ -82,7 +82,7 @@ export function EquityStep() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-sm font-semibold text-slate-700">
+      <h2 className="text-base font-semibold text-slate-900">
         {t("myData.steps.equity.holdingsTitle")}
       </h2>
 

@@ -88,7 +88,7 @@ export function BulkHoldingsForm({
       </label>
 
       <div>
-        <h3 className="text-sm font-semibold text-slate-700">{b("previewTitle")}</h3>
+        <h3 className="text-base font-semibold text-slate-900">{b("previewTitle")}</h3>
         {parsed.rows.length === 0 ? (
           <p className="mt-1 text-sm text-slate-500">{b("noRows")}</p>
         ) : (

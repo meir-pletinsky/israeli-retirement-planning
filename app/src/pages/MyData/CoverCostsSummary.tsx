@@ -35,7 +35,7 @@ export function CoverCostsSummary() {
       data-testid="expenses-cover-costs"
       className="max-w-lg rounded-xl border border-slate-200 bg-slate-50 p-4"
     >
-      <h2 id="expenses-cover-title" className="text-sm font-semibold text-slate-800">
+      <h2 id="expenses-cover-title" className="text-base font-semibold text-slate-900">
         {t(`${COVER}.title`)}
       </h2>
       <ul className="mt-2 flex flex-col gap-2 text-sm text-slate-700">

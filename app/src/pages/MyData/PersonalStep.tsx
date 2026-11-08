@@ -281,7 +281,7 @@ export function PersonalStep() {
   );
 
   return (
-    <div ref={containerRef} className="flex max-w-lg flex-col gap-4">
+    <div ref={containerRef} className="flex flex-col gap-5">
       {isMarried ? (
         <PersonTabs id="personal" tabs={tabs} active={person} onChange={setPerson}>
           {person === "self" ? selfFields : <SpouseSection error={showErrors ? spouseError : null} />}

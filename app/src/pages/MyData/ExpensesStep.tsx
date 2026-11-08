@@ -96,7 +96,7 @@ export function ExpensesStep() {
               key={mode}
               className={`cursor-pointer rounded-md px-4 py-1.5 text-sm font-medium has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-500 ${
                 expenses.mode === mode
-                  ? "bg-brand-600 text-white"
+                  ? "bg-brand-50 font-semibold text-brand-900 ring-1 ring-brand-600"
                   : "text-slate-700 hover:bg-slate-100"
               }`}
             >
@@ -175,7 +175,7 @@ export function ExpensesStep() {
           </section>
 
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold text-slate-700">
+            <h2 className="text-base font-semibold text-slate-900">
               {t(`${EXPENSES}.itemsTitle`)}
             </h2>
             <div className="flex flex-wrap gap-2">
