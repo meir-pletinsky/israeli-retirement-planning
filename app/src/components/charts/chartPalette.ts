@@ -4,15 +4,15 @@
  */
 export const CHART_COLORS = {
   /** A total: net worth, the median path, income kept after tax. */
-  total: "#1e293b",
+  total: "#1c1a17",
   /** Secondary or deducted amounts: tax, the other compared ages. */
-  muted: "#7b8799",
+  muted: "#8c857a",
   /** The planned spending line. */
   planned: "#a21caf",
   /** Savings running out. The only use of red. */
   shortfall: "#be123c",
   /** Vertical lines for events such as retirement or the start of drawing. */
-  marker: "#475569",
+  marker: "#514b43",
 } as const;
 
 /** The planned spending is drawn the same way in every chart. */

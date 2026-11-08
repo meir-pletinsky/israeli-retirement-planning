@@ -148,12 +148,12 @@ export function IncomeBreakdownChart({
                 key={band}
                 id={patternId(band!)}
                 patternUnits="userSpaceOnUse"
-                width={6}
-                height={6}
+                width={8}
+                height={8}
                 patternTransform="rotate(45)"
               >
-                <rect width={6} height={6} fill="#ffffff" />
-                <rect width={3} height={6} fill={INCOME_BAND_COLORS[band!]} />
+                <rect width={8} height={8} fill={INCOME_BAND_COLORS[band!]} fillOpacity={0.55} />
+                <rect width={2.5} height={8} fill={INCOME_BAND_COLORS[band!]} />
               </pattern>
             ))}
             {unfunded.length > 0 && (
