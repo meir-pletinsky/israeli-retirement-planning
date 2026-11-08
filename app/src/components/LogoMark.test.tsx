@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
@@ -8,6 +11,21 @@ function gradientIds(svg: Element): string[] {
 }
 
 describe("LogoMark", () => {
+  it("uses the updated artwork palette consistently with the favicon", () => {
+    const { getByTestId } = render(<LogoMark />);
+    const favicon = new DOMParser().parseFromString(
+      readFileSync(resolve(process.cwd(), "public", "favicon.svg"), "utf8"),
+      "image/svg+xml",
+    );
+    const colors = (root: Element | Document) =>
+      [...root.querySelectorAll("stop")].map((stop) => stop.getAttribute("stop-color"));
+
+    expect(colors(getByTestId("logo-mark"))).toEqual([
+      "#0b6e99", "#032a40", "#fde68a", "#f59e0b", "#ff8a98", "#e11d48",
+    ]);
+    expect(colors(favicon)).toEqual(colors(getByTestId("logo-mark")));
+  });
+
   it("renders as a decorative square mark of the requested size", () => {
     const { getByTestId } = render(<LogoMark size={48} />);
     const svg = getByTestId("logo-mark");

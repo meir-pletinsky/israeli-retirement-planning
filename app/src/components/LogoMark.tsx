@@ -24,16 +24,16 @@ export function LogoMark({ size = 32, className }: LogoMarkProps) {
     >
       <defs>
         <linearGradient id={sea} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#0ea5c9" />
-          <stop offset="1" stopColor="#075985" />
+          <stop offset="0" stopColor="#0b6e99" />
+          <stop offset="1" stopColor="#032a40" />
         </linearGradient>
         <linearGradient id={gold} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#fde68a" />
           <stop offset="1" stopColor="#f59e0b" />
         </linearGradient>
         <linearGradient id={fruit} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#fb7185" />
-          <stop offset="1" stopColor="#be123c" />
+          <stop offset="0" stopColor="#ff8a98" />
+          <stop offset="1" stopColor="#e11d48" />
         </linearGradient>
       </defs>
       <rect width="64" height="64" rx="14" fill={`url(#${sea})`} />
