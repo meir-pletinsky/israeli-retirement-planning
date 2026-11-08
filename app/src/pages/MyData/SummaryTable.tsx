@@ -12,6 +12,7 @@ const LAPTOP_SCREEN = "(max-width: 1279px)";
 export interface SummaryColumn<Row> {
   key: string;
   header: string;
+  headerClassName?: string;
   /** Figures line up at the end of the cell. */
   numeric?: boolean;
   /**
@@ -155,7 +156,7 @@ export function SummaryTable<Row>({
               <th
                 key={column.key}
                 scope="col"
-                className={`px-2.5 py-2.5 align-bottom text-xs font-semibold leading-tight text-slate-600 first:rounded-s-lg ${alignment(column.numeric)} ${index === 0 ? firstColumn : ""}`}
+                className={`px-2.5 py-2.5 align-bottom text-xs font-semibold leading-tight text-slate-600 hyphens-auto [overflow-wrap:anywhere] first:rounded-s-lg ${alignment(column.numeric)} ${index === 0 ? firstColumn : ""} ${column.headerClassName ?? ""}`}
               >
                 {column.header}
               </th>

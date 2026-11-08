@@ -18,7 +18,7 @@ const BADGE_CLASSES: Record<FieldImportance, string> = {
 
 // On a tinted background the light fills would vanish, so the pill turns white.
 const BADGE_ON_TINT_CLASSES: Record<FieldImportance, string> = {
-  required: "bg-white text-rose-700",
+  required: "bg-white text-red-700",
   recommended: "bg-white text-brand-700",
   reference: "bg-white text-slate-500",
 };

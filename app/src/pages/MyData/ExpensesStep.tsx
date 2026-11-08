@@ -89,12 +89,12 @@ export function ExpensesStep() {
         <div
           role="radiogroup"
           aria-labelledby="expenses-mode-label"
-          className="mt-1 inline-flex rounded-lg border border-slate-300 bg-white p-0.5"
+          className="mt-1 inline-flex flex-wrap rounded-lg border border-field bg-white p-0.5"
         >
           {MODES.map((mode) => (
             <label
               key={mode}
-              className={`cursor-pointer rounded-md px-4 py-1.5 text-sm font-medium has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-500 ${
+              className={`inline-flex min-h-10 cursor-pointer items-center rounded-md px-4 py-1.5 text-sm font-medium has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-brand-600 has-[:focus-visible]:outline-offset-3 ${
                 expenses.mode === mode
                   ? "bg-brand-50 font-semibold text-brand-900 ring-1 ring-brand-600"
                   : "text-slate-700 hover:bg-slate-100"

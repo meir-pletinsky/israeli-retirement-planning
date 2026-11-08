@@ -74,7 +74,7 @@ export function ComparisonChart({
             y={target}
             stroke={CHART_COLORS.planned}
             {...PLANNED_LINE_STYLE}
-            label={{ value: targetLabel, position: "insideTopRight", fontSize: 11, fill: CHART_COLORS.planned }}
+            label={{ value: targetLabel, position: "insideTopRight", fontSize: 13, fill: CHART_COLORS.planned }}
           />
         )}
       </BarChart>

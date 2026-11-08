@@ -32,10 +32,33 @@ evolved in place into the real application — see `app/` and
 - **Charts**: Recharts line chart (net worth over time) and stacked bar
   (income by source); consistent color mapping per source across screens.
 
+## Visual design system
+
+The [visual design audit](design-audit/AUDIT.md) supersedes the MVP's
+typeface, colour and component styling. Implemented tokens and shared
+classes live in `app/src/index.css`: self-hosted Inter (Latin and Cyrillic)
+and Noto Sans Hebrew, warm stone neutrals, a 13 px minimum type size, 14 px
+table text, opaque focus outlines, and consistent buttons, cards, notices,
+chips and fields. Chart source colours are shared across the portfolio and
+income views; plot coordinates remain left to right in Hebrew.
+
+Desktop language selection now sits beside privacy in the sidebar; phones
+retain the header selector. Narrow pages use a start-aligned 40 rem reading
+width. KPI label, figure and explanation tracks align across each grid row,
+including wrapped Russian labels. The chart-first Dashboard order and
+phone-only KPI disclosures have independent `SIGN-OFF` commits.
+
+Existing calculation, storage, routing, disclosure and completeness
+semantics remain unchanged except for those two sign-off changes. In
+particular, the current Dashboard has four KPI tiles, with net worth shown
+once in the portfolio summary, rather than restoring the MVP's extra tile.
+Compact one-line sample/backup notices on phones remain a proposal, not
+an implemented behaviour change.
+
 ## Navigation Structure
 
 - **Desktop/tablet**: persistent left sidebar with sections below; content
-  area to the right; top bar has language switcher only.
+  area to the right; language switcher beside privacy in the sidebar.
 - **Mobile**: bottom tab bar with the same 4 primary sections; no sidebar.
 - In RTL (Hebrew), the sidebar moves to the right edge; icons/arrows mirror.
 

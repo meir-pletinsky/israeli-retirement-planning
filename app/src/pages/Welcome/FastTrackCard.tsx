@@ -27,7 +27,7 @@ export function FastTrackCard() {
     <section
       id="fast-track"
       aria-labelledby="welcome-fast-track-title"
-      className="rounded-xl border-2 border-amber-300 bg-amber-50 p-5 text-sm leading-relaxed text-slate-700 shadow-sm sm:p-6"
+      className="rounded-[var(--radius-card)] border border-amber-300 bg-amber-50 p-5 text-sm leading-relaxed text-slate-700 shadow-sm sm:p-6"
     >
       <p className="inline-flex items-center gap-1.5 rounded-full bg-amber-200 px-2.5 py-1 text-xs font-semibold text-amber-900">
         <span aria-hidden="true" className="[&>svg]:h-3.5 [&>svg]:w-3.5">
@@ -69,7 +69,7 @@ export function FastTrackCard() {
       <div className="mt-5 flex flex-col items-start gap-2">
         <Link
           to="/import/clearing-house"
-          className="btn btn-primary"
+          className="btn btn-primary min-h-12 text-base"
         >
           {t("clearingHouse.entryButton")}
         </Link>

@@ -30,10 +30,10 @@ export function KpiCard({ label, value, status = "neutral", note }: KpiCardProps
   const noteClass = "text-xs leading-snug text-slate-500 [&_p:first-child]:text-slate-700 [&_p]:mt-1 [&_p:first-child]:mt-0";
   return (
     <div className={clsx(
-      "relative flex h-full flex-col rounded-[var(--radius-card)] border border-slate-200 bg-white p-4 shadow-sm sm:p-5 before:absolute before:inset-x-0 before:top-0 before:h-1 before:rounded-t-[var(--radius-card)]",
+      "relative grid row-span-3 grid-rows-subgrid gap-y-0 rounded-[var(--radius-card)] border border-slate-200 bg-white p-4 shadow-sm sm:p-5 before:absolute before:inset-x-0 before:top-0 before:h-1 before:rounded-t-[var(--radius-card)]",
       STATUS_EDGE[status],
     )}>
-      <p className="text-sm font-medium leading-snug text-slate-600 sm:min-h-[2.75rem]">{label}</p>
+      <p className="text-sm font-medium leading-snug text-slate-600">{label}</p>
       <p
         className={clsx(
           "mt-1 text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl",

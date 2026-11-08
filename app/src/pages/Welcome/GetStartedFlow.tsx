@@ -69,7 +69,7 @@ export function GetStartedFlow({ id }: { id: string }) {
     <section
       id={id}
       aria-labelledby="welcome-flow-title"
-      className="scroll-mt-6 rounded-xl border border-slate-200 bg-white p-5 text-sm leading-relaxed text-slate-700 shadow-sm sm:p-6"
+      className="card scroll-mt-6 text-sm leading-relaxed text-slate-700"
     >
       <h2 id="welcome-flow-title" tabIndex={-1} className="text-base font-semibold text-slate-900 outline-none">
         {t("welcome.flow.title")}
@@ -126,7 +126,7 @@ export function GetStartedFlow({ id }: { id: string }) {
       <button
         type="button"
         onClick={() => navigate("/my-data/personal")}
-        className="mt-6 w-full btn btn-primary sm:w-auto sm:min-w-56"
+        className="btn btn-primary mt-6 min-h-12 w-full text-base sm:w-auto sm:min-w-56"
       >
         {t("welcome.start")}
       </button>

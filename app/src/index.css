@@ -69,13 +69,6 @@
   /* Control boundary (inputs, selects): 3:1 against white. */
   --color-field: #958e84;
 
-  /* One danger hue: rose is retired in favour of red. */
-  --color-rose-50: #fef2f2;
-  --color-rose-200: #fecaca;
-  --color-rose-400: #f87171;
-  --color-rose-500: #dc2626;
-  --color-rose-700: #b91c1c;
-
   /* Page background: lighter, less yellow stone. */
   --color-surface: #f6f3ec;
 
@@ -99,8 +92,8 @@ body {
 table, .tabular-nums, .recharts-cartesian-axis-tick { font-variant-numeric: tabular-nums; }
 
 @layer components {
-  .btn { @apply inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition-colors disabled:opacity-50; }
-  .btn-sm { @apply h-8 rounded-md px-3 text-xs; }
+  .btn { @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50; }
+  .btn-sm { @apply min-h-8 rounded-md px-3 py-1.5 text-xs; }
   .btn-primary { @apply bg-brand-600 text-white hover:bg-brand-700; }
   .btn-secondary { @apply border border-field bg-white text-slate-800 hover:bg-slate-50 hover:border-slate-400; }
   .btn-ghost { @apply text-brand-700 hover:bg-brand-50; }
@@ -187,5 +180,5 @@ h1[tabindex="-1"]:focus {
 .recharts-surface {
   direction: ltr;
 }
-.recharts-cartesian-axis-tick-value { fill: var(--color-slate-500); font-size: 12px; }
+.recharts-cartesian-axis-tick-value { fill: var(--color-slate-500); font-size: 13px; }
 .recharts-cartesian-grid line { stroke: var(--color-slate-200); }

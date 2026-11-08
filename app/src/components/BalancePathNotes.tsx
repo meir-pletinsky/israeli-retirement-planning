@@ -128,10 +128,10 @@ export function PathEventsList({ groups, funding, unvestedShares }: PathEventsLi
         </p>
       )}
       {funding?.shortfallAge != null && (
-        <p className="mt-1.5 flex items-start gap-2 text-xs font-medium text-rose-700">
+        <p className="mt-1.5 flex items-start gap-2 text-xs font-medium text-red-700">
           <span
             aria-hidden="true"
-            className="mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-rose-50 text-xs font-semibold"
+            className="mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-red-50 text-xs font-semibold"
           >
             !
           </span>

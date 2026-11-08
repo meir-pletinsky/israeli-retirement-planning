@@ -33,7 +33,7 @@ export function PasswordPrompt({ busy, errorMessage, onSubmit, onChooseOther }: 
           autoFocus
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className="field-control h-11 px-3"
         />
       </label>
       {busy && (

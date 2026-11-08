@@ -53,7 +53,7 @@ export function NetIncomeChart({
           formatter={(value) => `${currencySymbol}${formatNumber(Number(value))}`}
           labelFormatter={texts.ageHeading}
         />
-        <Legend wrapperStyle={{ fontSize: 12 }} />
+        <Legend wrapperStyle={{ fontSize: 13 }} formatter={(value) => <span className="text-slate-700">{value}</span>} />
         <Bar dataKey="netMonthly" name={netLabel} stackId="income" fill={CHART_COLORS.total} />
         <Bar
           dataKey="taxMonthly"
@@ -68,7 +68,7 @@ export function NetIncomeChart({
             ifOverflow="extendDomain"
             stroke={CHART_COLORS.planned}
             {...PLANNED_LINE_STYLE}
-            label={{ value: plannedLabel, position: "insideTopRight", fontSize: 11, fill: CHART_COLORS.planned }}
+            label={{ value: plannedLabel, position: "insideTopRight", fontSize: 13, fill: CHART_COLORS.planned }}
           />
         )}
       </BarChart>

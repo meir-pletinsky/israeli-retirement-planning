@@ -66,10 +66,10 @@ export function Stepper({ steps, currentKey, onStepClick }: StepperProps) {
                   ) : step.needsAttention ? "!" : index + 1}
                 </span>
                 <span className="flex min-w-0 flex-col leading-tight">
-                  <span className={clsx("whitespace-nowrap text-sm", isActive ? "font-semibold text-brand-900" : "font-medium text-slate-800")}>{step.label}</span>
+                  <span className={clsx("whitespace-nowrap text-sm md:whitespace-normal", isActive ? "font-semibold text-brand-900" : "font-medium text-slate-800")}>{step.label}</span>
                   {" "}
                   {step.status && (
-                    <span className={clsx("mt-0.5 whitespace-nowrap text-xs", step.needsAttention ? "text-amber-800" : "text-slate-500")}>{step.status}</span>
+                    <span className={clsx("mt-0.5 whitespace-nowrap text-xs md:whitespace-normal", step.needsAttention ? "text-amber-800" : "text-slate-500")}>{step.status}</span>
                   )}
                 </span>
               </button>

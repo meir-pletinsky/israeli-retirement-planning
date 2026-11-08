@@ -41,7 +41,7 @@ export function CashFlowTable({ years, columns, caption }: CashFlowTableProps) {
                 scope="col"
                 className={clsx(
                   "py-1 pe-3 text-start font-medium",
-                  column.kind === "unfunded" ? "text-rose-700" : "text-slate-500",
+                  column.kind === "unfunded" ? "text-red-700" : "text-slate-500",
                   column.kind === "income" && "font-semibold text-slate-700",
                 )}
               >
@@ -57,18 +57,18 @@ export function CashFlowTable({ years, columns, caption }: CashFlowTableProps) {
               <tr
                 key={year.age}
                 data-first-unfunded={isFirstShort ? "true" : undefined}
-                className={clsx("border-t border-slate-100", year.short && "bg-rose-50/60")}
+                className={clsx("border-t border-slate-100", year.short && "bg-red-50/60")}
               >
                 <th
                   scope="row"
                   className={clsx(
                     "sticky start-0 py-1 pe-3 text-start font-normal tabular-nums",
-                    year.short ? "bg-rose-50" : "bg-white",
+                    year.short ? "bg-red-50" : "bg-white",
                   )}
                 >
                   {year.age}
                   {isFirstShort && (
-                    <span className="block text-xs font-semibold text-rose-700">
+                    <span className="block text-xs font-semibold text-red-700">
                       {t("projections.basis.shortfallMarker")}
                     </span>
                   )}
@@ -82,7 +82,7 @@ export function CashFlowTable({ years, columns, caption }: CashFlowTableProps) {
                       className={clsx(
                         "py-1 pe-3 tabular-nums",
                         column.kind === "income" && "font-semibold",
-                        column.kind === "unfunded" && value !== null && value > 0 && "font-semibold text-rose-700",
+                        column.kind === "unfunded" && value !== null && value > 0 && "font-semibold text-red-700",
                         (column.kind === "tax" || column.kind === "unfunded") &&
                           (value === null || value === 0) &&
                           "text-slate-400",

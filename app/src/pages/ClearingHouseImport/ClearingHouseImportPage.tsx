@@ -102,7 +102,7 @@ export function ClearingHouseImportPage() {
   }
 
   return (
-    <div className="flex max-w-2xl flex-col gap-4">
+    <div className="flex w-full max-w-[40rem] flex-col gap-4">
       <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{t("clearingHouse.title")}</h1>
 
       {requestedOwner && stage.name !== "done" && (

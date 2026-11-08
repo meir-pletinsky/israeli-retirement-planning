@@ -206,7 +206,7 @@ export function IncomeBreakdownChart({
               ifOverflow="extendDomain"
               stroke={CHART_COLORS.planned}
               {...PLANNED_LINE_STYLE}
-              label={{ value: planned.label, position: "insideTopRight", fontSize: 11, fill: CHART_COLORS.planned }}
+              label={{ value: planned.label, position: "insideTopRight", fontSize: 13, fill: CHART_COLORS.planned }}
             />
           )}
         </BarChart>

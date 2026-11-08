@@ -80,7 +80,7 @@ export function BulkHoldingsForm({
           rows={6}
           dir="ltr"
           spellCheck={false}
-          className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 font-mono text-sm text-slate-900 focus:border-brand-500 focus:outline-none"
+          className="field-control mt-1 w-full px-3 py-2 font-mono"
         />
         <span className="mt-1 block text-xs text-slate-400">
           {b(personal ? "csvHelperPersonal" : "csvHelperEmployer")}

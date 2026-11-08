@@ -90,7 +90,7 @@ export function ExpenseSuggestionsModal({
                 return (
                   <div
                     key={suggestion.key}
-                    className={`flex items-center gap-3 rounded-md px-2 py-1.5 ${already ? "opacity-60" : "hover:bg-slate-50"}`}
+                    className={`flex items-center gap-3 rounded-md px-2 py-1.5 ${already ? "bg-slate-50" : "hover:bg-slate-50"}`}
                   >
                     <label className="flex min-w-0 flex-1 items-start gap-2 text-sm text-slate-800">
                       <input
@@ -98,7 +98,7 @@ export function ExpenseSuggestionsModal({
                         checked={already || checked.has(suggestion.key)}
                         disabled={already}
                         onChange={(event) => toggle(suggestion.key, event.target.checked)}
-                        className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                        className="mt-0.5 h-4 w-4 shrink-0"
                       />
                       <span className="min-w-0">
                         {name}
@@ -116,7 +116,7 @@ export function ExpenseSuggestionsModal({
                       </span>
                     </label>
                     {!already && (
-                      <div className="flex w-28 shrink-0 items-center rounded-md border border-slate-300 bg-white focus-within:border-brand-500">
+                      <div className="field-control flex h-11 w-28 shrink-0 items-center">
                         <input
                           type="number"
                           inputMode="decimal"
@@ -125,7 +125,7 @@ export function ExpenseSuggestionsModal({
                           aria-label={t(`${EXPENSES}.suggestions.amountLabel`, { name })}
                           value={amounts[suggestion.key] ?? ""}
                           onChange={(event) => setAmount(suggestion.key, event.target.value)}
-                          className="w-full rounded-md px-2 py-1 text-sm text-slate-900 focus:outline-none"
+                          className="min-w-0 w-full rounded-lg px-2 py-1 text-slate-900"
                         />
                         <span className="pe-2 text-sm text-slate-400">{currency}</span>
                       </div>

@@ -111,7 +111,7 @@ export function RetirementTimeline({
                   {currencySymbol}
                   {formatNumber(segment.monthlyIncome)}
                   {segment.unfunded !== undefined && (
-                    <span className="block text-xs font-semibold text-rose-700">
+                    <span className="block text-xs font-semibold text-red-700">
                       {t("projections.cashFlow.unfunded")} {currencySymbol}
                       {formatNumber(Math.round(segment.unfunded))}
                     </span>

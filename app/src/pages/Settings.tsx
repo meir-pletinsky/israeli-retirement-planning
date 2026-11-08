@@ -118,7 +118,7 @@ export function Settings() {
   }
 
   return (
-    <div className="flex max-w-lg flex-col gap-6">
+    <div className="flex w-full max-w-[40rem] flex-col gap-6">
       <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
         {t("settings.title")}
       </h1>
@@ -202,7 +202,7 @@ export function Settings() {
             <button
               type="button"
               onClick={() => void persistence.ask()}
-              className="self-start rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+              className="btn btn-sm btn-secondary self-start"
             >
               {t("settings.persistence.ask")}
             </button>

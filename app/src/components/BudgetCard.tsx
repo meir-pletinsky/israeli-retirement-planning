@@ -41,7 +41,7 @@ export function BudgetCard({ expenses, netMonthlyIncome, scenarioTag, summary = 
       : t("dashboard.retireChecks.short", { amount: money(-gap) });
   };
   const gapTone = (budgetAmount: number) =>
-    netMonthlyIncome - budgetAmount >= 0 ? "text-emerald-700" : "text-rose-700";
+    netMonthlyIncome - budgetAmount >= 0 ? "text-emerald-700" : "text-red-700";
   const largestCategory = Math.max(
     ...(budget?.categories.map((row) => row.essential + row.discretionary) ?? []),
     1,

@@ -453,7 +453,7 @@ function ReviewBody({ owner, result, sample, blocked, onApply, onStartOver }: Re
         data-fixed-actions
         role="region"
         aria-label={t("clearingHouse.review.actionBar.label")}
-        className="fixed inset-x-0 bottom-16 z-20 flex flex-col gap-1.5 border-t border-slate-200 bg-white px-4 py-2 shadow-[0_-2px_8px_rgba(15,23,42,0.08)] md:bottom-0 md:start-60 md:px-6 md:py-3"
+        className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-20 flex flex-col gap-1.5 border-t border-slate-200 bg-white px-4 py-2 shadow-[0_-2px_8px_rgba(28,26,23,0.08)] md:bottom-0 md:start-64 md:px-6 md:py-3"
       >
         <p className="text-xs font-medium text-slate-700">
           {t("clearingHouse.review.actionBar.selection", {

@@ -122,6 +122,7 @@ export function PensionSummaryTable({
     {
       key: "annuity",
       header: t(`${FIELDS}.fields.estimatedMonthlyAnnuity`),
+      headerClassName: "min-w-[6.25rem]",
       numeric: true,
       cell: (account) => formatWholeCurrency(account.annuityParameters.estimatedMonthlyAnnuity, currency),
     },

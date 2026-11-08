@@ -243,14 +243,14 @@ export function UsdIlsRateControl({ equity, rate }: { equity: ProfileData["equit
             onKeyDown={(event) => {
               if (event.key === "Enter") commit();
             }}
-            className="w-24 rounded-md border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 focus:border-brand-500 focus:outline-none"
+            className="field-control h-11 w-24 px-2"
           />
         </label>
         {typedByUser && (
           <button
             type="button"
             onClick={() => setUsdToIlsRate(null, null)}
-            className="rounded-md border border-slate-300 px-2 py-1 font-medium text-slate-700 hover:bg-slate-50"
+            className="btn btn-sm btn-secondary"
           >
             {t("myData.summary.fxRateUseAutomatic")}
           </button>
