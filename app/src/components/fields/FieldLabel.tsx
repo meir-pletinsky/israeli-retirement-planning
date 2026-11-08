@@ -11,9 +11,9 @@ import { useTranslation } from "react-i18next";
 export type FieldImportance = "required" | "recommended" | "reference";
 
 const BADGE_CLASSES: Record<FieldImportance, string> = {
-  required: "bg-rose-50 text-rose-700",
-  recommended: "bg-brand-50 text-brand-700",
-  reference: "bg-slate-100 text-slate-500",
+  required: "bg-red-50 text-red-800 ring-1 ring-red-200",
+  recommended: "bg-brand-50 text-brand-800 ring-1 ring-brand-100",
+  reference: "bg-slate-100 text-slate-600 ring-1 ring-slate-200",
 };
 
 // On a tinted background the light fills would vanish, so the pill turns white.
@@ -34,7 +34,7 @@ export function ImportanceBadge({
   return (
     <span
       className={clsx(
-        "inline-block rounded-full px-1.5 py-0.5 align-middle text-[10px] font-semibold leading-none",
+        "ms-1 inline-block rounded-md px-1.5 py-0.5 align-middle text-xs font-medium leading-4",
         (onTint ? BADGE_ON_TINT_CLASSES : BADGE_CLASSES)[importance],
       )}
     >

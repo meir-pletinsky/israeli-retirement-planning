@@ -33,9 +33,9 @@ export function BituachLeumiCard({ members, monthlyIncomeTodayMoney }: BituachLe
   return (
     <section
       aria-labelledby="bituach-leumi-title"
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="card"
     >
-      <h2 id="bituach-leumi-title" className="text-sm font-semibold text-slate-700">
+      <h2 id="bituach-leumi-title" className="text-base font-semibold text-slate-900">
         {t("dashboard.bituachLeumi.title")}
       </h2>
 

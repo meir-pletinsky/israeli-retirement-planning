@@ -36,7 +36,7 @@ export function DataGapsCard({ gaps, horizonAge }: DataGapsCardProps) {
       aria-labelledby="data-gaps-title"
       className="rounded-xl border border-brand-200 bg-brand-50/50 p-4 shadow-sm"
     >
-      <h2 id="data-gaps-title" className="text-sm font-semibold text-slate-700">
+      <h2 id="data-gaps-title" className="text-base font-semibold text-slate-900">
         {t("dashboard.gaps.title")}
       </h2>
       <p className="mt-1 text-xs text-slate-500">{t("dashboard.gaps.intro")}</p>

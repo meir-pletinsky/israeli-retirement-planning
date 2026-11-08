@@ -42,7 +42,7 @@ export function RetirementTimeline({
   return (
     <section
       aria-labelledby="retirement-timeline-title"
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="card"
     >
       <ScenarioTitle id="retirement-timeline-title" tag={scenarioTag}>
         {t("projections.timeline.title")}

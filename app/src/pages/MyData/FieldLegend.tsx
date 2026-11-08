@@ -62,7 +62,7 @@ export function CollapsibleFieldLegend() {
       >
         <span
           aria-hidden="true"
-          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-600 text-[11px] font-bold leading-none text-white"
+          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold leading-none text-white"
         >
           i
         </span>

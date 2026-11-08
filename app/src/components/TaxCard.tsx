@@ -38,9 +38,9 @@ export function TaxCard({ net, isCouple, hasEmployerStock }: TaxCardProps) {
   return (
     <section
       aria-labelledby="tax-title"
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="card"
     >
-      <h2 id="tax-title" className="text-sm font-semibold text-slate-700">
+      <h2 id="tax-title" className="text-base font-semibold text-slate-900">
         {t("dashboard.tax.title")}
       </h2>
       <p className="mt-1 text-xs text-slate-500">{t("dashboard.tax.intro")}</p>

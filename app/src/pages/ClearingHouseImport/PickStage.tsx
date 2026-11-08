@@ -31,7 +31,7 @@ export function PickStage({ busy, errorMessage, onFiles, onSample }: PickStagePr
 
   return (
     <div className="flex flex-col gap-4">
-      <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <section className="card">
         <h2 className="text-sm font-semibold text-slate-700">{t("clearingHouse.instructions.title")}</h2>
         <ol className="mt-2 list-decimal ps-5 text-sm text-slate-700">
           <li className="mb-1.5">{t("clearingHouse.instructions.step1")}</li>
@@ -61,7 +61,7 @@ export function PickStage({ busy, errorMessage, onFiles, onSample }: PickStagePr
         }`}
       >
         <label
-          className={`cursor-pointer rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white focus-within:ring-2 focus-within:ring-brand-400 focus-within:ring-offset-2 ${
+          className={`btn btn-primary cursor-pointer has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-brand-600 has-[:focus-visible]:outline-offset-3 ${
             busy ? "pointer-events-none opacity-60" : "hover:bg-brand-700"
           }`}
         >
@@ -93,7 +93,7 @@ export function PickStage({ busy, errorMessage, onFiles, onSample }: PickStagePr
           type="button"
           disabled={busy}
           onClick={onSample}
-          className="rounded-md border border-amber-500 bg-white px-4 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+          className="btn btn-warning disabled:cursor-not-allowed disabled:opacity-60"
         >
           {t("clearingHouse.sample.button")}
         </button>

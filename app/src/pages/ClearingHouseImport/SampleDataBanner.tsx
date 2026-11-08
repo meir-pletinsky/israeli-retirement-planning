@@ -22,17 +22,17 @@ export function SampleDataBanner() {
       <div
         role="note"
         aria-label={t("clearingHouse.sample.dataTitle")}
-        className="mb-4 flex flex-col gap-3 rounded-xl border-2 border-dashed border-amber-400 bg-amber-50 p-3 sm:flex-row sm:items-center"
+        className="notice border-amber-300 bg-amber-50"
       >
         <SampleBadge />
         <div className="flex flex-1 flex-col gap-0.5">
           <p className="text-sm font-semibold text-amber-900">{t("clearingHouse.sample.dataTitle")}</p>
-          <p className="text-xs text-amber-900">{t("clearingHouse.sample.dataBody", { count })}</p>
+          <p className="text-xs text-amber-900/90">{t("clearingHouse.sample.dataBody", { count })}</p>
         </div>
         <button
           type="button"
           onClick={() => setConfirming(true)}
-          className="self-start rounded-md border border-amber-500 bg-white px-3 py-1.5 text-sm font-medium text-amber-900 hover:bg-amber-100 sm:self-auto"
+          className="btn btn-sm btn-warning self-start sm:self-auto"
         >
           {t("clearingHouse.sample.remove")}
         </button>

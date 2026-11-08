@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 export function SampleBadge() {
   const { t } = useTranslation();
   return (
-    <span className="inline-block rounded-full bg-amber-500 px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-white">
+    <span className="inline-flex shrink-0 items-center self-start rounded-md border border-amber-300 bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900 sm:self-center">
       {t("clearingHouse.sample.badge")}
     </span>
   );
@@ -15,7 +15,7 @@ export function SampleBanner() {
   return (
     <div
       role="note"
-      className="flex items-start gap-3 rounded-xl border-2 border-dashed border-amber-400 bg-amber-50 p-3"
+      className="notice border-amber-300 bg-amber-50"
     >
       <SampleBadge />
       <div className="flex flex-col gap-0.5">

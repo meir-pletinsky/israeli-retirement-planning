@@ -46,7 +46,7 @@ export function CashFlowCard({ plan, labels, scenarioTag }: CashFlowCardProps) {
     <section
       id="cash-flow"
       aria-labelledby="cash-flow-title"
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="card"
     >
       <ScenarioTitle id="cash-flow-title" tag={scenarioTag}>
         {title}
@@ -85,7 +85,7 @@ export function CashFlowCard({ plan, labels, scenarioTag }: CashFlowCardProps) {
       <button
         type="button"
         onClick={downloadCsv}
-        className="mt-3 rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        className="mt-3 btn btn-sm btn-secondary"
       >
         {t("projections.cashFlow.downloadCsv")}
       </button>

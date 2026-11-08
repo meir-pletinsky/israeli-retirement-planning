@@ -62,7 +62,7 @@ export function Stepper({ steps, currentKey, onStepClick }: StepperProps) {
                   {" "}
                   <span
                     className={clsx(
-                      "text-[11px] font-normal",
+                      "text-xs font-normal",
                       isActive ? "text-white/80" : "opacity-80",
                     )}
                   >

@@ -47,9 +47,9 @@ export function IncomeComposition({
   return (
     <section
       aria-labelledby="income-composition-title"
-      className="@container rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="@container card"
     >
-      <h3 id="income-composition-title" className="text-sm font-semibold text-slate-700">
+      <h3 id="income-composition-title" className="text-base font-semibold text-slate-900">
         {t("dashboard.snapshot.income.title")}
       </h3>
       {stages.length === 0 ? (

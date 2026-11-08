@@ -43,11 +43,12 @@ export function BackupReminder() {
         <div
           role="note"
           aria-label={t("backup.reminder.title")}
-          className="mb-4 flex flex-col gap-3 rounded-xl border border-brand-100 bg-brand-50 p-3 sm:flex-row sm:items-center"
+          className="notice border-slate-200 bg-white shadow-sm"
         >
+          <span aria-hidden className="notice-icon hidden bg-brand-50 text-brand-700 sm:flex"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></svg></span>
           <div className="flex flex-1 flex-col gap-0.5">
-            <p className="text-sm font-semibold text-brand-900">{t("backup.reminder.title")}</p>
-            <p className="text-xs text-brand-900">
+            <p className="text-sm font-semibold text-slate-900">{t("backup.reminder.title")}</p>
+            <p className="text-xs text-slate-600">
               {lastExportedAt
                 ? t("backup.reminder.bodyOverdue", { date: isolate(formatLocalDate(lastExportedAt)) })
                 : t("backup.reminder.bodyNever")}
@@ -60,14 +61,14 @@ export function BackupReminder() {
                 exportBackup();
                 setToast(t("backup.reminder.done"));
               }}
-              className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-700"
+              className="btn btn-sm btn-primary"
             >
               {t("backup.reminder.download")}
             </button>
             <button
               type="button"
               onClick={snoozePrompt}
-              className="rounded-md border border-brand-200 bg-white px-3 py-1.5 text-sm font-medium text-brand-800 hover:bg-brand-50"
+              className="btn btn-sm btn-ghost"
             >
               {t("backup.reminder.later")}
             </button>

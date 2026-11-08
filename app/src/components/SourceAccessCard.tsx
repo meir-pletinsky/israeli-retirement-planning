@@ -31,9 +31,9 @@ export function SourceAccessCard({ access }: SourceAccessCardProps) {
   return (
     <section
       aria-labelledby="source-access-title"
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="card"
     >
-      <h2 id="source-access-title" className="text-sm font-semibold text-slate-700">
+      <h2 id="source-access-title" className="text-base font-semibold text-slate-900">
         {t("dashboard.sourceAccess.title")}
       </h2>
 

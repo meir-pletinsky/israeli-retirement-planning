@@ -17,7 +17,7 @@ const STATUS_CLASSES: Record<NonNullable<KpiCardProps["status"]>, string> = {
 
 export function KpiCard({ label, value, status = "neutral", note }: KpiCardProps) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="card">
       <p className="text-sm font-medium text-slate-500">{label}</p>
       <p
         className={clsx(

@@ -46,9 +46,9 @@ export function PortfolioSummaryCard({
     <section
       id={PORTFOLIO_SUMMARY_ID}
       aria-labelledby="portfolio-summary-title"
-      className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="scroll-mt-24 card"
     >
-      <h2 id="portfolio-summary-title" className="text-sm font-semibold text-slate-700">
+      <h2 id="portfolio-summary-title" className="text-base font-semibold text-slate-900">
         {t("dashboard.portfolio.title")}
       </h2>
 

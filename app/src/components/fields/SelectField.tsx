@@ -27,7 +27,7 @@ export function SelectField({
         value={value ?? ""}
         aria-required={importance === "required" || undefined}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand-500 focus:outline-none"
+        className="field-control mt-1.5 h-11 w-full px-3 focus:outline-none"
       >
         <option value="" disabled>
           …

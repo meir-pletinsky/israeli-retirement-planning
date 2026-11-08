@@ -38,7 +38,7 @@ export function RiskBasisCard({ assumptions, stress, scenarioTag }: RiskBasisCar
   return (
     <section
       aria-labelledby="risk-basis-title"
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="card"
     >
       <ScenarioTitle id="risk-basis-title" tag={scenarioTag}>
         {t("projections.riskBasis.title")}

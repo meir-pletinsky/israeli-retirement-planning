@@ -64,7 +64,7 @@ export function LiquidityLadderCard({ ladder, isCouple, scenarioTag, hasBankDepo
   return (
     <section
       aria-labelledby="liquidity-ladder-title"
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="card"
     >
       <ScenarioTitle id="liquidity-ladder-title" tag={scenarioTag}>
         {t("projections.ladder.title")}

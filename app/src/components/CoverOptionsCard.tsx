@@ -119,9 +119,9 @@ export function CoverOptionsCard({ comparisons, onSelect }: CoverOptionsCardProp
   return (
     <section
       aria-labelledby="cover-options-title"
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="card"
     >
-      <h2 id="cover-options-title" className="text-sm font-semibold text-slate-700">
+      <h2 id="cover-options-title" className="text-base font-semibold text-slate-900">
         {t("projections.cover.title")}
       </h2>
       <p className="mt-1 text-xs text-slate-500">{t("projections.cover.intro")}</p>
@@ -130,7 +130,7 @@ export function CoverOptionsCard({ comparisons, onSelect }: CoverOptionsCardProp
         const who = t(`projections.cover.person.${comparison.person}`);
         return (
           <div key={comparison.person} className="mt-4" data-testid={`cover-options-${comparison.person}`}>
-            {showPerson && <h3 className="text-sm font-semibold text-slate-800">{who}</h3>}
+            {showPerson && <h3 className="text-base font-semibold text-slate-900">{who}</h3>}
             <p className="text-xs text-slate-500">
               {t("projections.cover.depositsStop", { age: formatAge(comparison.retirementAge) })}
             </p>

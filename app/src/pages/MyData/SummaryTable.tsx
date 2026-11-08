@@ -214,7 +214,7 @@ export function SummaryTable<Row>({
     <section
       id={id}
       aria-labelledby={`${id}-title`}
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="card"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id={`${id}-title`} className="text-sm font-semibold text-slate-700">

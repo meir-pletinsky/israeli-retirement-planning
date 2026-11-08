@@ -17,9 +17,9 @@ export function RetireAgeChecksCard({ checks }: RetireAgeChecksCardProps) {
   return (
     <section
       aria-labelledby="retire-checks-title"
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="card"
     >
-      <h2 id="retire-checks-title" className="text-sm font-semibold text-slate-700">
+      <h2 id="retire-checks-title" className="text-base font-semibold text-slate-900">
         {t("dashboard.retireChecks.title")}
       </h2>
       <p className="mt-1 text-xs text-slate-500">{t("dashboard.retireChecks.subtitle")}</p>

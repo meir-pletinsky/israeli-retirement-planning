@@ -25,7 +25,7 @@ export function RetirementSnapshot({ kpis, irregularMonthly }: RetirementSnapsho
   return (
     <section aria-labelledby="retirement-snapshot-title" className="flex flex-col gap-3">
       <div>
-        <h2 id="retirement-snapshot-title" className="text-sm font-semibold text-slate-700">
+        <h2 id="retirement-snapshot-title" className="text-base font-semibold text-slate-900">
           {t("dashboard.snapshot.title")}
         </h2>
         <p className="text-xs text-slate-500">{t("dashboard.snapshot.subtitle")}</p>

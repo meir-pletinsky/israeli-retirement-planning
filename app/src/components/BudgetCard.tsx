@@ -51,7 +51,7 @@ export function BudgetCard({ expenses, netMonthlyIncome, scenarioTag, summary = 
     <section
       id="retirement-budget"
       aria-labelledby="budget-title"
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="card"
     >
       <ScenarioTitle id="budget-title" tag={scenarioTag}>
         {t("dashboard.budget.title")}

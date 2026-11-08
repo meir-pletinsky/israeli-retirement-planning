@@ -62,7 +62,7 @@ export function DateField({ label, importance, value, onChange }: DateFieldProps
       <label htmlFor={inputId} className="block">
         <FieldLabel label={label} importance={importance} />
       </label>
-      <div className="relative mt-1">
+      <div className="relative mt-1.5">
         <input
           id={inputId}
           type="text"
@@ -74,15 +74,15 @@ export function DateField({ label, importance, value, onChange }: DateFieldProps
           aria-invalid={invalid || undefined}
           onChange={(e) => handleChange(e.target.value)}
           onBlur={handleBlur}
-          className={`w-full rounded-md border bg-white py-2 pe-10 ps-3 text-sm text-slate-900 focus:outline-none ${
-            invalid ? "border-rose-400 focus:border-rose-500" : "border-slate-300 focus:border-brand-500"
+          className={`field-control h-11 w-full pe-12 ps-3 ${
+            invalid ? "border-red-600" : ""
           }`}
         />
         <button
           type="button"
           onClick={openPicker}
           aria-label={`${t("common.pickDate")}: ${label}`}
-          className="absolute end-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+          className="absolute end-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700"
         >
           <svg
             viewBox="0 0 20 20"

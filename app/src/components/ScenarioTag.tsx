@@ -12,7 +12,7 @@ interface ScenarioTagProps {
 export function ScenarioTag({ profile, scenario }: ScenarioTagProps) {
   const label = useScenarioLabel(profile)(scenario);
   return (
-    <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-700">
+    <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
       {label}
     </span>
   );
@@ -29,7 +29,7 @@ interface ScenarioTitleProps {
 export function ScenarioTitle({ id, tag, children }: ScenarioTitleProps) {
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-      <h2 id={id} className="text-sm font-semibold text-slate-700">
+      <h2 id={id} className="text-base font-semibold text-slate-900">
         {children}
       </h2>
       {tag}

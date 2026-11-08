@@ -32,7 +32,7 @@ export function UnvestedSharesCard({ cost, scenarioTag }: UnvestedSharesCardProp
   return (
     <section
       aria-labelledby="unvested-shares-title"
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="card"
     >
       <ScenarioTitle id="unvested-shares-title" tag={scenarioTag}>
         {t("projections.unvested.title")}

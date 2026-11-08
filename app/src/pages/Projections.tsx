@@ -185,7 +185,7 @@ export function Projections() {
       />
 
       <ProjectionSectionGroup section="overview">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="card">
           <div className="mb-2 flex items-center justify-between gap-2">
             <ScenarioTitle tag={scenarioTag}>{t("projections.netWorthChart")}</ScenarioTitle>
             <button
@@ -276,7 +276,7 @@ export function Projections() {
       </ProjectionSectionGroup>
 
       <ProjectionSectionGroup section="income">
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="card">
           <div className="mb-2">
             <ScenarioTitle tag={scenarioTag}>{t("projections.incomeChart")}</ScenarioTitle>
             <IncomeBasisNote funding={funding} continuingMonthly={continuingMonthly} />
@@ -310,7 +310,7 @@ export function Projections() {
         </div>
 
         {hasNetIncome && (
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="card">
             <ScenarioTitle tag={scenarioTag}>{t("projections.netIncomeChart")}</ScenarioTitle>
             <p className="mb-2 mt-1 text-xs text-slate-500">
               {t("projections.netIncomeNote")}

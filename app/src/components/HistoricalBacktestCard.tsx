@@ -95,7 +95,7 @@ export function HistoricalBacktestCard({
       aria-labelledby="history-title"
       aria-busy={updating}
       className={clsx(
-        "rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-opacity",
+        "card transition-opacity",
         updating && "opacity-50",
       )}
     >

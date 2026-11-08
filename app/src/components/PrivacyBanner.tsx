@@ -47,7 +47,7 @@ export function PrivacyBanner({ variant }: { variant: "card" | "strip" }) {
       aria-label={t("privacy.title")}
       className="rounded-lg border border-brand-100 bg-brand-50 p-3 text-xs leading-relaxed text-brand-900"
     >
-      <p className="mb-1 flex items-center gap-1.5 text-[13px] font-semibold text-brand-800">
+      <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-brand-800">
         <LockIcon />
         {t("privacy.title")}
       </p>

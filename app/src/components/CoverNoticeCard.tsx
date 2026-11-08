@@ -24,7 +24,7 @@ export function CoverNoticeCard({ notices }: CoverNoticeCardProps) {
       aria-labelledby="cover-notice-title"
       className="rounded-xl border border-amber-200 bg-amber-50/60 p-4 shadow-sm"
     >
-      <h2 id="cover-notice-title" className="text-sm font-semibold text-slate-700">
+      <h2 id="cover-notice-title" className="text-base font-semibold text-slate-900">
         {t("dashboard.coverNotice.title")}
       </h2>
       <p className="mt-1 text-xs text-slate-500">{t("dashboard.coverNotice.intro")}</p>

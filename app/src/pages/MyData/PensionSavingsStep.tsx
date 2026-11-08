@@ -104,7 +104,7 @@ export function PensionSavingsStep() {
             <button
               type="button"
               onClick={() => setEditingAccount({ ...createEmptyPensionAccount(), owner: person })}
-              className="rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
+              className="btn btn-sm btn-primary"
             >
               {t(`${FIELDS}.addAccount`)}
             </button>
@@ -187,14 +187,14 @@ export function PensionSavingsStep() {
             <button
               type="button"
               onClick={() => setEditingAccount(null)}
-              className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+              className="btn btn-ghost text-slate-700 hover:bg-slate-100"
             >
               {t("common.cancel")}
             </button>
             <button
               type="button"
               onClick={handleSave}
-              className="rounded-md bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+              className="btn btn-primary"
             >
               {t("common.save")}
             </button>

@@ -29,7 +29,7 @@ export function AppShell() {
           className="mb-6 flex items-center gap-2.5 rounded-md px-2 hover:opacity-80 focus-visible:outline-2 focus-visible:outline-brand-600"
         >
           <LogoMark size={36} className="shrink-0" />
-          <span className="text-[15px] font-semibold leading-tight text-slate-900">
+          <span className="text-sm font-semibold leading-tight text-slate-900">
             {t("common.appName")}
           </span>
         </Link>

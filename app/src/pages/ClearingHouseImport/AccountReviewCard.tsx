@@ -109,7 +109,7 @@ export function AccountReviewCard({
   }
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <section className="card">
       <div className="flex items-start gap-3">
         <input
           id={`${candidate.key}-include`}

@@ -41,8 +41,8 @@ export function NumberField({
       <label className="block">
         <FieldLabel label={label} importance={importance} />
         <div
-          className={`mt-1 flex items-center rounded-md border bg-white focus-within:border-brand-500 ${
-            error ? "border-red-400" : "border-slate-300"
+          className={`field-control mt-1.5 flex h-11 items-center ${
+            error ? "border-red-600 ring-3 ring-red-500/15" : ""
           }`}
         >
           <input
@@ -60,17 +60,17 @@ export function NumberField({
             onChange={(e) =>
               onChange(e.target.value === "" ? null : Number(e.target.value))
             }
-            className="w-full rounded-md px-3 py-2 text-sm text-slate-900 focus:outline-none"
+            className="h-full w-full rounded-lg bg-transparent px-3 text-base text-slate-900 focus:outline-none md:text-sm"
           />
           {suffix && (
-            <span className="pe-3 text-sm text-slate-400">{suffix}</span>
+            <span className="pe-3 text-sm font-medium text-slate-500">{suffix}</span>
           )}
         </div>
       </label>
       {message && (
         <span
           id={messageId}
-          className={`mt-1 block text-xs ${error ? "text-red-600" : "text-slate-400"}`}
+          className={`mt-1 block text-xs ${error ? "text-red-700" : "text-slate-500"}`}
         >
           {message}
         </span>

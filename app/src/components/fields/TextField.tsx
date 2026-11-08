@@ -39,10 +39,10 @@ export function TextField({
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         list={suggestions ? suggestionsId : undefined}
-        className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand-500 focus:outline-none"
+        className="field-control mt-1.5 h-11 w-full px-3 focus:outline-none"
       />
       {helperText && (
-        <span className="mt-1 block text-xs text-slate-400">{helperText}</span>
+        <span className="mt-1.5 block text-xs text-slate-500">{helperText}</span>
       )}
       {suggestions && suggestionsId && (
         <datalist id={suggestionsId}>

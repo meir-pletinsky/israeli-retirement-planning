@@ -119,7 +119,7 @@ export function ReviewStage({ parsed, sample, initialOwner = null, onApply, onSt
       )}
 
       {canChooseOwner && (
-        <fieldset className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <fieldset className="card">
           <legend className="px-1 text-sm font-semibold text-slate-700">
             {t("clearingHouse.review.whoseTitle")}
           </legend>
@@ -329,7 +329,7 @@ function ReviewBody({ owner, result, sample, blocked, onApply, onStartOver }: Re
     <div className="flex flex-col gap-4 pb-28">
       <section
         aria-labelledby="clearing-house-summary-title"
-        className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+        className="card"
       >
         <h3 id="clearing-house-summary-title" className="text-sm font-semibold text-slate-700">
           {t("clearingHouse.review.summary.title")}
@@ -344,7 +344,7 @@ function ReviewBody({ owner, result, sample, blocked, onApply, onStartOver }: Re
         </dl>
       </section>
       {personalRows.length > 0 && (
-        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <section className="card">
           <h3 className="text-sm font-semibold text-slate-700">
             {t(owner === "self" ? "clearingHouse.review.personalTitleSelf" : "clearingHouse.review.personalTitleSpouse")}
           </h3>
@@ -472,7 +472,7 @@ function ReviewBody({ owner, result, sample, blocked, onApply, onStartOver }: Re
             type="button"
             disabled={blocked || counts.values === 0}
             onClick={() => onApply(plan)}
-            className="rounded-md bg-brand-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300 md:py-2"
+            className="btn btn-primary disabled:cursor-not-allowed disabled:bg-slate-300 md:py-2"
           >
             {t(sample ? "clearingHouse.sample.apply" : "clearingHouse.review.apply")}
           </button>

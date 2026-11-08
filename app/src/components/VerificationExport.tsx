@@ -71,7 +71,7 @@ export function VerificationExport({ onNotify }: Props) {
   return (
     <section
       aria-labelledby="verification-title"
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="card"
     >
       <h2 id="verification-title" className="mb-1 text-sm font-semibold text-slate-700">
         {t("settings.verification.title")}

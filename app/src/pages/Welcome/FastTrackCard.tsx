@@ -69,7 +69,7 @@ export function FastTrackCard() {
       <div className="mt-5 flex flex-col items-start gap-2">
         <Link
           to="/import/clearing-house"
-          className="rounded-md bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
+          className="btn btn-primary"
         >
           {t("clearingHouse.entryButton")}
         </Link>

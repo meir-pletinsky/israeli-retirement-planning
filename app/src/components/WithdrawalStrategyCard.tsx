@@ -120,7 +120,7 @@ export function WithdrawalStrategyCard({
   return (
     <section
       aria-labelledby="withdrawal-strategy-title"
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="card"
     >
       <ScenarioTitle id="withdrawal-strategy-title" tag={scenarioTag}>
         {t("projections.withdrawal.title")}

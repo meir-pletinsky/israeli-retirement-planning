@@ -36,7 +36,7 @@ export function AssumedRetirementAgeBanner() {
     <div
       role="note"
       aria-label={t("assumedRetirementAge.label")}
-      className="flex flex-col gap-1 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
+      className="notice flex flex-col items-start gap-1 border-amber-300 bg-amber-50 text-amber-950"
     >
       {items.map((item) => (
         <p key={item.key} className="flex flex-wrap items-baseline gap-x-2">
