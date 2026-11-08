@@ -1835,7 +1835,7 @@ describe("Dashboard", () => {
       expect(before(verdict, income)).toBe(true);
     });
 
-    it("shows four figures, then what you have and what you will live on side by side", async () => {
+    it("shows four figures, then the chart, with assets and budget beside retirement income", async () => {
       await renderLayout();
 
       const tiles = [
@@ -1848,7 +1848,13 @@ describe("Dashboard", () => {
 
       const have = screen.getByRole("region", { name: "What you have" });
       const live = screen.getByRole("region", { name: "What you will live on" });
-      expect(have.parentElement).toBe(live.parentElement?.parentElement);
+      const budget = screen.getByRole("region", { name: "Retirement budget" });
+      const grid = screen.getByText("Sustainable income after tax").parentElement!.parentElement!;
+      const chart = screen.getByRole("heading", { name: "Net worth projection" }).closest(".card");
+      expect(grid.nextElementSibling).toBe(chart);
+      expect(have.parentElement).toBe(budget.parentElement);
+      expect(have.parentElement?.parentElement).toBe(live.parentElement);
+      expect(before(chart as HTMLElement, have)).toBe(true);
     });
 
     it("keeps the cards that matter less in a collapsed block, apart from the main ones", async () => {

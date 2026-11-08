@@ -325,21 +325,6 @@ export function Dashboard() {
         />
       </div>
 
-      <div className="grid items-start gap-6 xl:grid-cols-2">
-        <PortfolioSummaryCard
-          portfolio={breakdownPortfolio(profile)}
-          returnPct={profile.assumptions.investmentReturnPct}
-        />
-        <div className="flex flex-col gap-6">
-          <RetirementSnapshot kpis={snapshot.kpis} irregularMonthly={irregular?.monthly} />
-          <BudgetCard
-            expenses={profile.expenses}
-            netMonthlyIncome={fundingGap.estimatedMonthlyIncome}
-            summary
-          />
-        </div>
-      </div>
-
       <div className="card">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-base font-semibold text-slate-900">
@@ -371,6 +356,21 @@ export function Dashboard() {
         {isCouple && (
           <p className="mt-2 text-xs text-slate-500">{t("dashboard.householdChartNote")}</p>
         )}
+      </div>
+
+      <div className="grid items-start gap-6 xl:grid-cols-2">
+        <div className="flex flex-col gap-6">
+          <PortfolioSummaryCard
+            portfolio={breakdownPortfolio(profile)}
+            returnPct={profile.assumptions.investmentReturnPct}
+          />
+          <BudgetCard
+            expenses={profile.expenses}
+            netMonthlyIncome={fundingGap.estimatedMonthlyIncome}
+            summary
+          />
+        </div>
+        <RetirementSnapshot kpis={snapshot.kpis} irregularMonthly={irregular?.monthly} />
       </div>
 
       <DataGapsCard gaps={gaps} horizonAge={horizonAge} />
