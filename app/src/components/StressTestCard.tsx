@@ -65,7 +65,7 @@ export function StressTestCard({ stress, scenarioTag }: StressTestCardProps) {
     <section
       id="stress-test"
       aria-labelledby="stress-title"
-      className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="scroll-mt-24 card"
     >
       <ScenarioTitle id="stress-title" tag={scenarioTag}>
         {t("projections.stress.title")}

@@ -25,7 +25,7 @@ export function LongevityCard({ longevity, scenarioTag }: LongevityCardProps) {
     <section
       id="longevity-test"
       aria-labelledby="longevity-title"
-      className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="scroll-mt-24 card"
     >
       <ScenarioTitle id="longevity-title" tag={scenarioTag}>
         {t("projections.longevity.title")}

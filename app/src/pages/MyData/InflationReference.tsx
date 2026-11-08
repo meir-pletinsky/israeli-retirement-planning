@@ -66,7 +66,7 @@ export function InflationReference() {
                       label: row.label,
                     })}
                     onClick={() => updateProfile({ assumptions: { ...assumptions, inflationPct: value } })}
-                    className="w-24 rounded-md border border-slate-300 px-2 py-0.5 text-center text-xs font-medium text-brand-700 hover:bg-white"
+                    className="btn btn-sm btn-secondary min-w-24"
                   >
                     {t("myData.steps.assumptions.cpi.use")}
                   </button>

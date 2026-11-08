@@ -54,7 +54,7 @@ export function RiskAnalysisCard({
     <section
       aria-labelledby="risk-title"
       aria-busy={updating || calculating}
-      className={`rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-opacity ${
+      className={`card transition-opacity ${
         updating ? "opacity-50" : ""
       }`}
     >

@@ -45,6 +45,30 @@ describe("AppShell — home link and build info", () => {
     for (const link of links) expect(link).toHaveAttribute("href", "/");
   });
 
+  describe("AppShell — refreshed navigation", () => {
+    it("keeps accessible text names while hiding decorative SVG icons", async () => {
+      renderShell("/dashboard");
+      for (const name of ["Dashboard", "My Data", "Projections", "Settings"]) {
+        const links = await screen.findAllByRole("link", { name, exact: true });
+        expect(links).toHaveLength(2);
+        for (const link of links) {
+          expect(link.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+          if (name === "Dashboard") expect(link).toHaveAttribute("aria-current", "page");
+          else expect(link).not.toHaveAttribute("aria-current");
+        }
+      }
+    });
+
+    it("places the desktop language menu beside privacy and keeps the phone menu", async () => {
+      renderShell("/settings");
+      await screen.findByText("Settings page");
+      const sidebar = document.querySelector("aside")!;
+      expect(within(sidebar).getByRole("combobox", { name: "Language" })).toBeInTheDocument();
+      expect(within(sidebar).getByRole("note", { name: "Private by design" })).toBeInTheDocument();
+      expect(within(document.querySelector("header")!).getByRole("combobox", { name: "Language" })).toBeInTheDocument();
+    });
+  });
+
   it("shows which version is deployed and when it was built", async () => {
     renderShell("/dashboard");
 

@@ -41,7 +41,7 @@ export function BudgetCard({ expenses, netMonthlyIncome, scenarioTag, summary = 
       : t("dashboard.retireChecks.short", { amount: money(-gap) });
   };
   const gapTone = (budgetAmount: number) =>
-    netMonthlyIncome - budgetAmount >= 0 ? "text-emerald-700" : "text-rose-700";
+    netMonthlyIncome - budgetAmount >= 0 ? "text-emerald-700" : "text-red-700";
   const largestCategory = Math.max(
     ...(budget?.categories.map((row) => row.essential + row.discretionary) ?? []),
     1,
@@ -51,7 +51,7 @@ export function BudgetCard({ expenses, netMonthlyIncome, scenarioTag, summary = 
     <section
       id="retirement-budget"
       aria-labelledby="budget-title"
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="card"
     >
       <ScenarioTitle id="budget-title" tag={scenarioTag}>
         {t("dashboard.budget.title")}

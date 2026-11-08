@@ -12,6 +12,7 @@ const LAPTOP_SCREEN = "(max-width: 1279px)";
 export interface SummaryColumn<Row> {
   key: string;
   header: string;
+  headerClassName?: string;
   /** Figures line up at the end of the cell. */
   numeric?: boolean;
   /**
@@ -74,9 +75,9 @@ export function SummaryTable<Row>({
   const alignment = (numeric?: boolean) => (numeric ? "text-end tabular-nums" : "text-start");
   const labelId = (row: Row) => `${id}-${rowKey(row)}-label`;
   // The actions column keeps a solid background so the cells that scroll beneath it do not show through.
-  const actionCell = "sticky end-0 bg-white px-2 py-1.5 text-end whitespace-nowrap";
+  const actionCell = "sticky end-0 bg-white px-1 py-2 text-end whitespace-nowrap";
   // Keeps the name of the row readable on a narrow screen instead of wrapping word by word.
-  const firstColumn = "min-w-[9rem]";
+  const firstColumn = "min-w-[11rem]";
   const [titleColumn, ...otherColumns] = columns;
   const faceColumns = otherColumns.filter((column) => column.primary);
   const detailColumns = otherColumns.filter((column) => !column.primary);
@@ -105,7 +106,7 @@ export function SummaryTable<Row>({
     <>
       <ul aria-label={title} className="mt-3 flex flex-col gap-2">
         {rows.map((row) => (
-          <li key={rowKey(row)} className="rounded-lg border border-slate-200 p-3">
+          <li key={rowKey(row)} className="rounded-xl border border-slate-200 p-4">
             {titleColumn && (
               <div id={labelId(row)} className="min-w-0 break-words text-sm text-slate-800">
                 {titleColumn.cell(row)}
@@ -147,15 +148,15 @@ export function SummaryTable<Row>({
 
   const table = (
     <div className="mt-3 overflow-x-auto">
-      <table className="w-full min-w-[32rem] text-sm">
+      <table className="w-full min-w-[32rem] text-table">
         <caption className="sr-only">{title}</caption>
         <thead>
-          <tr className="border-b border-slate-200">
+          <tr className="border-b border-slate-200 bg-slate-50">
             {shownColumns.map((column, index) => (
               <th
                 key={column.key}
                 scope="col"
-                className={`px-2 py-1.5 text-xs font-semibold text-slate-600 ${alignment(column.numeric)} ${index === 0 ? firstColumn : ""}`}
+                className={`px-2.5 py-2.5 align-bottom text-xs font-semibold leading-tight text-slate-600 hyphens-auto [overflow-wrap:anywhere] first:rounded-s-lg ${alignment(column.numeric)} ${index === 0 ? firstColumn : ""} ${column.headerClassName ?? ""}`}
               >
                 {column.header}
               </th>
@@ -169,12 +170,12 @@ export function SummaryTable<Row>({
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={rowKey(row)} className="border-t border-slate-100 align-top">
+            <tr key={rowKey(row)} className="border-t border-slate-200/80 align-top transition-colors hover:bg-slate-50/70">
               {shownColumns.map((column, index) => (
                 <td
                   key={column.key}
                   id={index === 0 && rowActions && !collapsed ? labelId(row) : undefined}
-                  className={`px-2 py-1.5 text-slate-800 ${alignment(column.numeric)} ${index === 0 ? (collapsed ? "min-w-[14rem]" : firstColumn) : ""}`}
+                  className={`px-2.5 py-3 text-slate-800 ${alignment(column.numeric)} ${index === 0 ? (collapsed ? "min-w-[14rem]" : firstColumn) : ""}`}
                 >
                   {index === 0 && collapsed ? (
                     <>
@@ -214,10 +215,10 @@ export function SummaryTable<Row>({
     <section
       id={id}
       aria-labelledby={`${id}-title`}
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="card"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id={`${id}-title`} className="text-sm font-semibold text-slate-700">
+        <h2 id={`${id}-title`} className="text-base font-semibold text-slate-900">
           {title}
         </h2>
         {toolbar}

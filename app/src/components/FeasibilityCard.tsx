@@ -26,9 +26,9 @@ export function FeasibilityCard({
   return (
     <section
       aria-labelledby="feasibility-title"
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="card"
     >
-      <h2 id="feasibility-title" className="text-sm font-semibold text-slate-700">
+      <h2 id="feasibility-title" className="text-base font-semibold text-slate-900">
         {t("dashboard.feasibility.title")}
       </h2>
 

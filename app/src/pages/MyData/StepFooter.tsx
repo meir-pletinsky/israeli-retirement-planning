@@ -40,14 +40,14 @@ export function StepFooter({ currentKey, isValid = true, onInvalidAttempt }: Ste
           type="button"
           disabled={!prev}
           onClick={() => prev && navigate(`/my-data/${prev}`)}
-          className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 disabled:invisible"
+          className="btn btn-ghost text-slate-700 hover:bg-slate-100 disabled:invisible"
         >
           {t("common.back")}
         </button>
         <button
           type="button"
           onClick={handleNext}
-          className="rounded-md bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+          className="btn btn-primary"
         >
           {next ? t("common.next") : t("common.viewResults")}
         </button>

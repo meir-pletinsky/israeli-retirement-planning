@@ -95,7 +95,7 @@ export function HistoricalBacktestCard({
       aria-labelledby="history-title"
       aria-busy={updating}
       className={clsx(
-        "rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-opacity",
+        "card transition-opacity",
         updating && "opacity-50",
       )}
     >
@@ -134,7 +134,7 @@ export function HistoricalBacktestCard({
                 aria-describedby={`${controlsId}-mix-hint`}
                 value={stockSharePct}
                 onChange={(event) => setStockSharePct(Number(event.target.value))}
-                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-brand-500 focus:outline-none"
+                className="field-control mt-1 h-11 w-full px-3"
               >
                 {STOCK_SHARES.map((share) => (
                   <option key={share} value={share}>

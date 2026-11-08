@@ -90,14 +90,14 @@ export function Dashboard() {
   if (!onboarded || !snapshot) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-xl font-semibold text-slate-900">{t("dashboard.title")}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{t("dashboard.title")}</h1>
         <EmptyState
           title={t("dashboard.emptyTitle")}
           body={t("dashboard.emptyBody")}
           action={
             <Link
               to="/my-data/personal"
-              className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+              className="btn btn-primary"
             >
               {t("dashboard.emptyCta")}
             </Link>
@@ -140,7 +140,7 @@ export function Dashboard() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-semibold text-slate-900">{t("dashboard.title")}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{t("dashboard.title")}</h1>
 
       <ActiveAssumptions assumptions={profile.assumptions} />
 
@@ -188,7 +188,7 @@ export function Dashboard() {
         </StatusBanner>
       )}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4 [&>*]:min-w-0">
         <KpiCard
           label={t("dashboard.kpi.monthlyIncome")}
           value={money(netIncome.netMonthlyIncome)}
@@ -325,29 +325,14 @@ export function Dashboard() {
         />
       </div>
 
-      <div className="grid items-start gap-6 xl:grid-cols-2">
-        <PortfolioSummaryCard
-          portfolio={breakdownPortfolio(profile)}
-          returnPct={profile.assumptions.investmentReturnPct}
-        />
-        <div className="flex flex-col gap-6">
-          <RetirementSnapshot kpis={snapshot.kpis} irregularMonthly={irregular?.monthly} />
-          <BudgetCard
-            expenses={profile.expenses}
-            netMonthlyIncome={fundingGap.estimatedMonthlyIncome}
-            summary
-          />
-        </div>
-      </div>
-
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="card">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-700">
+          <h2 className="text-base font-semibold text-slate-900">
             {t("dashboard.chartTitle")}
           </h2>
           <Link
             to="/my-data/assumptions"
-            className="text-xs font-medium text-brand-700 hover:underline"
+            className="btn btn-sm btn-ghost"
           >
             {t("dashboard.adjustAssumptions")}
           </Link>
@@ -371,6 +356,21 @@ export function Dashboard() {
         {isCouple && (
           <p className="mt-2 text-xs text-slate-500">{t("dashboard.householdChartNote")}</p>
         )}
+      </div>
+
+      <div className="grid items-start gap-6 xl:grid-cols-2">
+        <div className="flex flex-col gap-6">
+          <PortfolioSummaryCard
+            portfolio={breakdownPortfolio(profile)}
+            returnPct={profile.assumptions.investmentReturnPct}
+          />
+          <BudgetCard
+            expenses={profile.expenses}
+            netMonthlyIncome={fundingGap.estimatedMonthlyIncome}
+            summary
+          />
+        </div>
+        <RetirementSnapshot kpis={snapshot.kpis} irregularMonthly={irregular?.monthly} />
       </div>
 
       <DataGapsCard gaps={gaps} horizonAge={horizonAge} />

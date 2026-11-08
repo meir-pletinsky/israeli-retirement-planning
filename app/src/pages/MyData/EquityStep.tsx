@@ -82,7 +82,7 @@ export function EquityStep() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-sm font-semibold text-slate-700">
+      <h2 className="text-base font-semibold text-slate-900">
         {t("myData.steps.equity.holdingsTitle")}
       </h2>
 
@@ -104,7 +104,7 @@ export function EquityStep() {
               <button
                 type="button"
                 onClick={() => setEditingHolding(createHoldingForCategory(category, holdings))}
-                className="rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
+                className="btn btn-sm btn-primary"
               >
                 {t(`myData.steps.equity.${copy.add}`)}
               </button>
@@ -137,7 +137,7 @@ export function EquityStep() {
           <button
             type="button"
             onClick={() => setEditingDeposit(createEmptyBankDeposit())}
-            className="rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
+            className="btn btn-sm btn-primary"
           >
             {t("myData.steps.bankDeposits.addDeposit")}
           </button>
@@ -180,14 +180,14 @@ export function EquityStep() {
             <button
               type="button"
               onClick={() => setEditingDeposit(null)}
-              className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+              className="btn btn-ghost text-slate-700 hover:bg-slate-100"
             >
               {t("common.cancel")}
             </button>
             <button
               type="button"
               onClick={handleSaveDeposit}
-              className="rounded-md bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+              className="btn btn-primary"
             >
               {t("common.save")}
             </button>

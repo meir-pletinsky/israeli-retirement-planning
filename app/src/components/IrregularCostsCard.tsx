@@ -31,9 +31,9 @@ export function IrregularCostsCard({ expenses }: IrregularCostsCardProps) {
     <section
       id="irregular-costs"
       aria-labelledby="irregular-costs-title"
-      className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="scroll-mt-24 card"
     >
-      <h2 id="irregular-costs-title" className="text-sm font-semibold text-slate-700">
+      <h2 id="irregular-costs-title" className="text-base font-semibold text-slate-900">
         {t("dashboard.irregular.title")}
       </h2>
       <p className="mt-1 text-xs text-slate-500">{t("dashboard.irregular.intro")}</p>

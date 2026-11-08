@@ -9,14 +9,14 @@ const LANGUAGE_LABELS: Record<SupportedLanguage, string> = {
 };
 
 export function LanguageSwitcher() {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   return (
     <select
-      aria-label="Language"
+      aria-label={t("settings.language")}
       value={i18n.language}
       onChange={(e) => void i18n.changeLanguage(e.target.value)}
-      className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-700 shadow-sm focus:border-brand-500 focus:outline-none"
+      className="field-control h-11 shrink-0 px-2.5"
     >
       {SUPPORTED_LANGUAGES.map((lng) => (
         <option key={lng} value={lng}>

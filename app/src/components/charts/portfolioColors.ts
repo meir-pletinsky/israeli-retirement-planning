@@ -6,17 +6,17 @@ import { INCOME_BAND_COLORS } from "./incomeBandColors";
 /**
  * One colour per kind of asset in "What you have". Pension products keep the colour they have in
  * the income charts, and shares keep the colour of the investments band. Each is at least 3:1
- * against white, and none is red, which is reserved for a shortfall.
+ * against white; the shortfall colours remain reserved for chart risk.
  */
 export const PORTFOLIO_KIND_COLORS: Record<PortfolioRowKey, string> = {
   pensionFund: INCOME_BAND_COLORS.pensionFund,
   providentFund: INCOME_BAND_COLORS.providentFund,
   managersInsurance: INCOME_BAND_COLORS.managersInsurance,
   studyFund: INCOME_BAND_COLORS.studyFund,
-  bankDeposits: "#b45309",
+  bankDeposits: "#a8662a",
   privateShares: INCOME_BAND_COLORS.investments,
-  employerShares: "#9333ea",
-  cashAndOther: "#db2777",
+  employerShares: "#b4413c",
+  cashAndOther: "#5f5a52",
 };
 
 const SPENDING_COLOR = "#334155";

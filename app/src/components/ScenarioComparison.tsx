@@ -132,9 +132,9 @@ export function ScenarioComparison({ profile }: ScenarioComparisonProps) {
   return (
     <section
       aria-labelledby="compare-title"
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="card"
     >
-      <h2 id="compare-title" className="text-sm font-semibold text-slate-700">
+      <h2 id="compare-title" className="text-base font-semibold text-slate-900">
         {t("projections.compare.title")}
       </h2>
       <p className="mt-1 text-xs text-slate-500">{t("projections.compare.intro")}</p>
@@ -176,7 +176,7 @@ export function ScenarioComparison({ profile }: ScenarioComparisonProps) {
                 >
                   {outcome ? t("projections.compare.ageColumn", { age: outcome.retirementAge }) : "-"}
                   {age === planAge && outcome && (
-                    <span className="mt-0.5 block w-fit rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-700">
+                    <span className="mt-0.5 block w-fit rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
                       {t("projections.compare.yourPlan")}
                     </span>
                   )}

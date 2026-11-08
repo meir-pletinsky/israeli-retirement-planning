@@ -63,10 +63,10 @@ export function AssumptionsStep() {
                 aria-describedby={`${idPrefix}-${option}-values`}
                 onClick={() => (option === "custom" ? setShowAdvanced(true) : selectPreset(option))}
                 className={clsx(
-                  "min-w-[9rem] max-w-full flex-1 rounded-lg border px-3 py-2 text-start",
+                  "min-w-[9rem] max-w-full flex-1 rounded-xl border bg-white px-4 py-3 text-start transition-colors",
                   selected
-                    ? "border-brand-600 bg-brand-600 text-white"
-                    : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100",
+                    ? "border-brand-600 bg-brand-50 text-brand-900 ring-2 ring-brand-600"
+                    : "border-field text-slate-700 hover:border-slate-400 hover:bg-slate-50",
                 )}
               >
                 <span id={`${idPrefix}-${option}-name`} className="block text-sm font-semibold">
@@ -74,7 +74,7 @@ export function AssumptionsStep() {
                 </span>
                 <span
                   id={`${idPrefix}-${option}-values`}
-                  className={clsx("mt-1 block text-xs", selected ? "text-white/90" : "text-slate-500")}
+                  className={clsx("mt-1 block text-xs", selected ? "text-brand-900/80" : "text-slate-500")}
                 >
                   <span className="block">
                     {t("myData.steps.assumptions.presetReturn", {
@@ -116,10 +116,10 @@ export function AssumptionsStep() {
               aria-pressed={assumptions.planningHorizonAge === age}
               onClick={() => updateProfile({ assumptions: { ...assumptions, planningHorizonAge: age } })}
               className={clsx(
-                "min-w-[5rem] rounded-lg border px-3 py-2 text-sm font-semibold",
+                "min-w-[5rem] rounded-lg border bg-white px-3 py-2 text-sm font-semibold transition-colors",
                 assumptions.planningHorizonAge === age
-                  ? "border-brand-600 bg-brand-600 text-white"
-                  : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100",
+                  ? "border-brand-600 bg-brand-50 text-brand-900 ring-2 ring-brand-600"
+                  : "border-field text-slate-700 hover:border-slate-400 hover:bg-slate-50",
               )}
             >
               {t("myData.steps.assumptions.horizonOption", { age: isolate(String(age)) })}

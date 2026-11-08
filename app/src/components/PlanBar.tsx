@@ -42,13 +42,13 @@ export function PlanBar({ profile, scenario, onScenarioChange, funding, isCouple
       <section
         aria-labelledby="scenario-title"
         data-sticky-bar
-        className="z-30 rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:sticky md:top-0"
+        className="z-30 rounded-[var(--radius-card)] border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur md:sticky md:top-0"
       >
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <h2 id="scenario-title" className="text-sm font-semibold text-slate-700">
+          <h2 id="scenario-title" className="text-base font-semibold text-slate-900">
             {t("projections.scenario")}
           </h2>
-          <div role="group" aria-labelledby="scenario-title" className="flex flex-wrap gap-1 rounded-2xl bg-slate-100 p-1">
+          <div role="group" aria-labelledby="scenario-title" className="inline-flex flex-wrap gap-1 rounded-xl bg-slate-100 p-1 ring-1 ring-slate-400">
             {SCENARIOS.map((s) => {
               const duplicate = s === "early" && earlyAtStandard;
               return (
@@ -59,8 +59,8 @@ export function PlanBar({ profile, scenario, onScenarioChange, funding, isCouple
                   disabled={duplicate}
                   onClick={() => onScenarioChange(s)}
                   className={clsx(
-                    "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
-                    scenario === s ? "bg-white text-brand-700 shadow" : "text-slate-500",
+                    "min-h-10 rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors",
+                    scenario === s ? "bg-white font-semibold text-brand-800 shadow-sm ring-1 ring-slate-400" : "text-slate-600 hover:text-slate-900",
                     duplicate && "cursor-not-allowed opacity-50",
                   )}
                 >
@@ -97,7 +97,7 @@ export function PlanBar({ profile, scenario, onScenarioChange, funding, isCouple
                 <li key={section}>
                   <a
                     href={`#${sectionAnchor(section)}`}
-                    className="block whitespace-nowrap rounded-full bg-slate-100 px-1.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-200 hover:text-brand-700"
+                    className="block whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium text-brand-700 underline decoration-brand-600 underline-offset-4 hover:bg-brand-50"
                   >
                     {t(`projections.sections.${section}.title`)}
                   </a>

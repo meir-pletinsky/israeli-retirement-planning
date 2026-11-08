@@ -22,12 +22,12 @@ export function StatusBanner({ status, message, details = [], children, action }
   return (
     <div
       className={clsx(
-        "flex items-start gap-3 rounded-xl border p-4",
+        "flex items-start gap-3 rounded-xl border border-s-4 px-4 py-4 sm:px-5",
         isChecking
-          ? "border-slate-200 bg-slate-50 text-slate-700"
+          ? "border-slate-200 border-s-slate-400 bg-white text-slate-700"
           : isOnTrack
-            ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-            : "border-amber-200 bg-amber-50 text-amber-800",
+            ? "border-emerald-200 border-s-emerald-600 bg-emerald-50 text-emerald-900"
+            : "border-amber-200 border-s-amber-500 bg-amber-50 text-amber-950",
       )}
     >
       <span
@@ -44,7 +44,7 @@ export function StatusBanner({ status, message, details = [], children, action }
         {isChecking ? "…" : isOnTrack ? "✓" : "!"}
       </span>
       <div className="flex min-w-0 flex-col gap-1">
-        <p className="text-sm font-medium">{message}</p>
+        <p className="text-base font-semibold leading-snug">{message}</p>
         {details.map((detail, index) => (
           <p key={index} className="text-sm">
             {detail}

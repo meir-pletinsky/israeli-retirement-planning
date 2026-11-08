@@ -73,7 +73,7 @@ export function NetWorthChart({
             x={marker.age}
             stroke={CHART_COLORS.marker}
             strokeDasharray="4 4"
-            label={{ value: marker.label, position: "top", fontSize: 11, fontWeight: 600, fill: CHART_COLORS.marker }}
+            label={{ value: marker.label, position: "top", fontSize: 13, fontWeight: 600, fill: CHART_COLORS.marker }}
           />
         ))}
         {shortfallAge != null && (
@@ -81,7 +81,7 @@ export function NetWorthChart({
             x={shortfallAge}
             stroke={CHART_COLORS.shortfall}
             strokeDasharray="4 4"
-            label={{ value: shortfallLabel, position: "insideTopRight", fontSize: 11, fill: CHART_COLORS.shortfall }}
+            label={{ value: shortfallLabel, position: "insideTopRight", fontSize: 13, fill: CHART_COLORS.shortfall }}
           />
         )}
         <Line

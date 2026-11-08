@@ -48,20 +48,20 @@ export function Welcome() {
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
         <header className="mx-auto w-full max-w-md text-center">
           <LogoMark size={80} className="mx-auto mb-6 drop-shadow-sm" />
-          <h1 className="text-2xl font-semibold text-slate-900">{t("welcome.title")}</h1>
-          <p className="mt-3 text-sm text-slate-600">{t("welcome.subtitle")}</p>
+          <h1 className="text-3xl font-semibold tracking-tight text-balance text-slate-900">{t("welcome.title")}</h1>
+          <p className="mt-3 text-base text-pretty text-slate-600">{t("welcome.subtitle")}</p>
           <div className="mt-8 flex flex-col gap-3">
             <button
               type="button"
               onClick={scrollToGetStarted}
-              className="rounded-md bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
+              className="btn btn-primary min-h-12 text-base"
             >
               {t("welcome.getStarted")}
             </button>
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="rounded-md border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+              className="btn btn-secondary min-h-12 text-base"
             >
               {t("welcome.loadSaved")}
             </button>

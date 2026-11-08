@@ -257,7 +257,8 @@ describe("PensionSavingsStep — accounts repeater", () => {
       await seedAccounts(null, []);
       renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
       expect(await screen.findByText("Added manually")).toBeInTheDocument();
-      expect(screen.getByRole("columnheader", { name: "Source" })).toBeInTheDocument();
+      expect(screen.queryByRole("columnheader", { name: "Source" })).not.toBeInTheDocument();
+      expect(screen.getByText("Added manually")).toHaveClass("chip");
     });
 
     it("names the report's person and date for an imported account", async () => {

@@ -119,7 +119,7 @@ export function ReviewStage({ parsed, sample, initialOwner = null, onApply, onSt
       )}
 
       {canChooseOwner && (
-        <fieldset className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <fieldset className="card">
           <legend className="px-1 text-sm font-semibold text-slate-700">
             {t("clearingHouse.review.whoseTitle")}
           </legend>
@@ -329,7 +329,7 @@ function ReviewBody({ owner, result, sample, blocked, onApply, onStartOver }: Re
     <div className="flex flex-col gap-4 pb-28">
       <section
         aria-labelledby="clearing-house-summary-title"
-        className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+        className="card"
       >
         <h3 id="clearing-house-summary-title" className="text-sm font-semibold text-slate-700">
           {t("clearingHouse.review.summary.title")}
@@ -344,7 +344,7 @@ function ReviewBody({ owner, result, sample, blocked, onApply, onStartOver }: Re
         </dl>
       </section>
       {personalRows.length > 0 && (
-        <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <section className="card">
           <h3 className="text-sm font-semibold text-slate-700">
             {t(owner === "self" ? "clearingHouse.review.personalTitleSelf" : "clearingHouse.review.personalTitleSpouse")}
           </h3>
@@ -453,7 +453,7 @@ function ReviewBody({ owner, result, sample, blocked, onApply, onStartOver }: Re
         data-fixed-actions
         role="region"
         aria-label={t("clearingHouse.review.actionBar.label")}
-        className="fixed inset-x-0 bottom-16 z-20 flex flex-col gap-1.5 border-t border-slate-200 bg-white px-4 py-2 shadow-[0_-2px_8px_rgba(15,23,42,0.08)] md:bottom-0 md:start-60 md:px-6 md:py-3"
+        className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-20 flex flex-col gap-1.5 border-t border-slate-200 bg-white px-4 py-2 shadow-[0_-2px_8px_rgba(28,26,23,0.08)] md:bottom-0 md:start-64 md:px-6 md:py-3"
       >
         <p className="text-xs font-medium text-slate-700">
           {t("clearingHouse.review.actionBar.selection", {
@@ -472,7 +472,7 @@ function ReviewBody({ owner, result, sample, blocked, onApply, onStartOver }: Re
             type="button"
             disabled={blocked || counts.values === 0}
             onClick={() => onApply(plan)}
-            className="rounded-md bg-brand-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300 md:py-2"
+            className="btn btn-primary disabled:cursor-not-allowed disabled:bg-slate-300 md:py-2"
           >
             {t(sample ? "clearingHouse.sample.apply" : "clearingHouse.review.apply")}
           </button>

@@ -42,7 +42,7 @@ export function RetirementTimeline({
   return (
     <section
       aria-labelledby="retirement-timeline-title"
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="card"
     >
       <ScenarioTitle id="retirement-timeline-title" tag={scenarioTag}>
         {t("projections.timeline.title")}
@@ -111,7 +111,7 @@ export function RetirementTimeline({
                   {currencySymbol}
                   {formatNumber(segment.monthlyIncome)}
                   {segment.unfunded !== undefined && (
-                    <span className="block text-xs font-semibold text-rose-700">
+                    <span className="block text-xs font-semibold text-red-700">
                       {t("projections.cashFlow.unfunded")} {currencySymbol}
                       {formatNumber(Math.round(segment.unfunded))}
                     </span>

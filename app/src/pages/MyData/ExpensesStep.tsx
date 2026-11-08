@@ -89,14 +89,14 @@ export function ExpensesStep() {
         <div
           role="radiogroup"
           aria-labelledby="expenses-mode-label"
-          className="mt-1 inline-flex rounded-lg border border-slate-300 bg-white p-0.5"
+          className="mt-1 inline-flex flex-wrap rounded-lg border border-field bg-white p-0.5"
         >
           {MODES.map((mode) => (
             <label
               key={mode}
-              className={`cursor-pointer rounded-md px-4 py-1.5 text-sm font-medium has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-500 ${
+              className={`inline-flex min-h-10 cursor-pointer items-center rounded-md px-4 py-1.5 text-sm font-medium has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-brand-600 has-[:focus-visible]:outline-offset-3 ${
                 expenses.mode === mode
-                  ? "bg-brand-600 text-white"
+                  ? "bg-brand-50 font-semibold text-brand-900 ring-1 ring-brand-600"
                   : "text-slate-700 hover:bg-slate-100"
               }`}
             >
@@ -175,7 +175,7 @@ export function ExpensesStep() {
           </section>
 
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold text-slate-700">
+            <h2 className="text-base font-semibold text-slate-900">
               {t(`${EXPENSES}.itemsTitle`)}
             </h2>
             <div className="flex flex-wrap gap-2">
@@ -189,7 +189,7 @@ export function ExpensesStep() {
               <button
                 type="button"
                 onClick={() => setEditingItem(createEmptyExpenseItem())}
-                className="rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
+                className="btn btn-sm btn-primary"
               >
                 {t(`${EXPENSES}.addItem`)}
               </button>
@@ -226,14 +226,14 @@ export function ExpensesStep() {
             <button
               type="button"
               onClick={() => setEditingItem(null)}
-              className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+              className="btn btn-ghost text-slate-700 hover:bg-slate-100"
             >
               {t("common.cancel")}
             </button>
             <button
               type="button"
               onClick={handleSave}
-              className="rounded-md bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+              className="btn btn-primary"
             >
               {t("common.save")}
             </button>

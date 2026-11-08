@@ -148,12 +148,12 @@ export function IncomeBreakdownChart({
                 key={band}
                 id={patternId(band!)}
                 patternUnits="userSpaceOnUse"
-                width={6}
-                height={6}
+                width={8}
+                height={8}
                 patternTransform="rotate(45)"
               >
-                <rect width={6} height={6} fill="#ffffff" />
-                <rect width={3} height={6} fill={INCOME_BAND_COLORS[band!]} />
+                <rect width={8} height={8} fill={INCOME_BAND_COLORS[band!]} fillOpacity={0.55} />
+                <rect width={2.5} height={8} fill={INCOME_BAND_COLORS[band!]} />
               </pattern>
             ))}
             {unfunded.length > 0 && (
@@ -206,7 +206,7 @@ export function IncomeBreakdownChart({
               ifOverflow="extendDomain"
               stroke={CHART_COLORS.planned}
               {...PLANNED_LINE_STYLE}
-              label={{ value: planned.label, position: "insideTopRight", fontSize: 11, fill: CHART_COLORS.planned }}
+              label={{ value: planned.label, position: "insideTopRight", fontSize: 13, fill: CHART_COLORS.planned }}
             />
           )}
         </BarChart>

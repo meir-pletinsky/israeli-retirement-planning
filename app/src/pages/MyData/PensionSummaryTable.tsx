@@ -64,7 +64,8 @@ export function PensionSummaryTable({
             <span className="block font-medium text-slate-900">
               {account.providerName || categoryLabel(account) || t(`${FIELDS}.untitledAccount`)}
             </span>
-            {references && <span className="block text-xs text-slate-400">{references}</span>}
+            {references && <span className="mt-0.5 block text-xs text-slate-500">{references}</span>}
+            <span className="chip mt-1.5 bg-slate-100 text-slate-700 ring-1 ring-slate-200">{accountSourceLabel(account, reports, t)}</span>
           </>
         );
       },
@@ -79,7 +80,12 @@ export function PensionSummaryTable({
       key: "status",
       header: t(`${FIELDS}.fields.accountStatus`),
       cell: (account) =>
-        account.accountStatus ? t(`${FIELDS}.options.accountStatus.${account.accountStatus}`) : EMPTY_CELL,
+        account.accountStatus ? (
+          <span className="inline-flex items-start gap-2 text-slate-800">
+            <span aria-hidden className={`mt-[0.45rem] h-2 w-2 shrink-0 rounded-full ${String(account.accountStatus).startsWith("active") ? "bg-emerald-600" : "bg-slate-400"}`} />
+            {t(`${FIELDS}.options.accountStatus.${account.accountStatus}`)}
+          </span>
+        ) : EMPTY_CELL,
     },
     {
       key: "balance",
@@ -116,13 +122,9 @@ export function PensionSummaryTable({
     {
       key: "annuity",
       header: t(`${FIELDS}.fields.estimatedMonthlyAnnuity`),
+      headerClassName: "min-w-[6.25rem]",
       numeric: true,
       cell: (account) => formatWholeCurrency(account.annuityParameters.estimatedMonthlyAnnuity, currency),
-    },
-    {
-      key: "source",
-      header: t(`${FIELDS}.fields.source`),
-      cell: (account) => accountSourceLabel(account, reports, t),
     },
   ];
 

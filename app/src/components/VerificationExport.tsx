@@ -21,7 +21,7 @@ type Choice = RetirementScenario | "age";
 const CHOICES: Choice[] = ["early", "standard", "delayed", "age"];
 
 const BUTTON =
-  "rounded-md border border-slate-300 px-4 py-2 text-start text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50";
+  "btn btn-secondary justify-start text-start disabled:cursor-not-allowed";
 
 interface Props {
   onNotify: (message: string, tone: "default" | "error") => void;
@@ -71,7 +71,7 @@ export function VerificationExport({ onNotify }: Props) {
   return (
     <section
       aria-labelledby="verification-title"
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="card"
     >
       <h2 id="verification-title" className="mb-1 text-sm font-semibold text-slate-700">
         {t("settings.verification.title")}
@@ -79,7 +79,7 @@ export function VerificationExport({ onNotify }: Props) {
       <p className="mb-3 text-xs text-slate-500">{t("settings.verification.intro")}</p>
 
       <span className="text-sm font-medium text-slate-700">{t("settings.verification.target")}</span>
-      <div className="mt-2 inline-flex flex-wrap rounded-2xl bg-slate-100 p-1">
+      <div className="mt-2 inline-flex flex-wrap gap-1 rounded-xl bg-slate-100 p-1 ring-1 ring-slate-400">
         {CHOICES.map((option) => (
           <button
             key={option}
@@ -87,8 +87,8 @@ export function VerificationExport({ onNotify }: Props) {
             aria-pressed={choice === option}
             onClick={() => setChoice(option)}
             className={clsx(
-              "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
-              choice === option ? "bg-white text-brand-700 shadow" : "text-slate-500",
+              "min-h-10 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              choice === option ? "bg-white font-semibold text-brand-800 shadow-sm ring-1 ring-slate-400" : "text-slate-600",
             )}
           >
             {option === "age"
@@ -112,7 +112,7 @@ export function VerificationExport({ onNotify }: Props) {
             value={ageText}
             aria-invalid={!ageValid}
             onChange={(e) => setAgeText(e.target.value)}
-            className="mt-1 block w-24 rounded-md border border-slate-300 px-2 py-1 text-sm"
+            className="field-control mt-1 block h-11 w-24 px-2"
           />
           <p className="mt-1 text-xs text-slate-500">
             {t("settings.verification.ageHelp", { min: minAge, max: MAX_RETIREMENT_SEARCH_AGE })}

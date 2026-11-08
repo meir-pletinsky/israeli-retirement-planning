@@ -57,7 +57,7 @@ describe("Dashboard", () => {
 
     renderWithProviders(<Dashboard />);
 
-    const netWorthKpi = (await screen.findByText("Net Worth Today")).parentElement as HTMLElement;
+    const netWorthKpi = (await screen.findByText("Net worth today")).parentElement as HTMLElement;
     expect(
       within(netWorthKpi).getByText(`\u20aa${netWorthToday.toLocaleString()}`),
     ).toBeInTheDocument();
@@ -154,7 +154,7 @@ describe("Dashboard", () => {
 
       renderWithProviders(<Dashboard />);
 
-      expect(await screen.findByText("Net Worth Today")).toBeInTheDocument();
+      expect(await screen.findByText("Net worth today")).toBeInTheDocument();
       expect(screen.queryByText("Access to your savings")).not.toBeInTheDocument();
     });
 
@@ -299,7 +299,7 @@ describe("Dashboard", () => {
 
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       expect(screen.queryByRole("heading", { name: "Improve your estimate" })).not.toBeInTheDocument();
     });
 
@@ -547,7 +547,7 @@ describe("Dashboard", () => {
         renderWithProviders(<Dashboard />);
 
         expect(await screen.findByText("Sustainable income after tax")).toBeInTheDocument();
-        expect(screen.getByText("Years to Retirement")).toBeInTheDocument();
+        expect(screen.getByText("Years to retirement")).toBeInTheDocument();
         expect(screen.queryByText(/Your spouse/)).not.toBeInTheDocument();
         expect(screen.queryByText(/Each spouse is taxed/)).not.toBeInTheDocument();
         expect(screen.queryByText(/whole household/)).not.toBeInTheDocument();
@@ -570,7 +570,7 @@ describe("Dashboard", () => {
 
       const netWorthToday = Math.round(aggregateCurrentNetWorth(profile));
       expect(netWorthToday).toBe(100_000);
-      const netWorthKpi = (await screen.findByText("Net Worth Today")).parentElement as HTMLElement;
+      const netWorthKpi = (await screen.findByText("Net worth today")).parentElement as HTMLElement;
       expect(within(netWorthKpi).getByText(`\u20aa${netWorthToday.toLocaleString()}`)).toBeInTheDocument();
     });
   });
@@ -921,7 +921,7 @@ describe("Dashboard", () => {
 
       renderWithProviders(<Dashboard />);
 
-      const kpi = (await screen.findByText("Years to Retirement")).parentElement as HTMLElement;
+      const kpi = (await screen.findByText("Years to retirement")).parentElement as HTMLElement;
       expect(within(kpi).getByText("7")).toBeInTheDocument();
       expect(within(kpi).getByText("Your retirement: age 67, in 7 years")).toBeInTheDocument();
       expect(within(kpi).queryByText(/spouse/i)).not.toBeInTheDocument();
@@ -933,7 +933,7 @@ describe("Dashboard", () => {
 
       renderWithProviders(<Dashboard />);
 
-      const kpi = (await screen.findByText("Years to Retirement")).parentElement as HTMLElement;
+      const kpi = (await screen.findByText("Years to retirement")).parentElement as HTMLElement;
       expect(within(kpi).getByText("Your retirement: age 67 (assumed), in 7 years")).toBeInTheDocument();
       const banner = screen.getByRole("note", { name: "Assumed retirement age" });
       expect(within(banner).getByRole("link", { name: "Set your retirement age" })).toHaveAttribute(
@@ -951,7 +951,7 @@ describe("Dashboard", () => {
 
       renderWithProviders(<Dashboard />);
 
-      const kpi = (await screen.findByText("Years to Retirement")).parentElement as HTMLElement;
+      const kpi = (await screen.findByText("Years to retirement")).parentElement as HTMLElement;
       expect(within(kpi).getByText("Your retirement: age 65, in 5 years")).toBeInTheDocument();
       expect(screen.queryByRole("note", { name: "Assumed retirement age" })).not.toBeInTheDocument();
       expect(screen.queryByText(/assumed/i)).not.toBeInTheDocument();
@@ -981,7 +981,7 @@ describe("Dashboard", () => {
 
       renderWithProviders(<Dashboard />);
 
-      expect(await screen.findByText("Net Worth Today")).toBeInTheDocument();
+      expect(await screen.findByText("Net worth today")).toBeInTheDocument();
       expect(screen.queryByText(/projection covers your whole household/i)).not.toBeInTheDocument();
     });
 
@@ -1253,7 +1253,7 @@ describe("Dashboard", () => {
       await saveProfileToDb(profile);
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       return screen.queryByRole("heading", { name: "Could you retire at\u2026?" })?.closest("section") ?? null;
     }
 
@@ -1351,7 +1351,7 @@ describe("Dashboard", () => {
       await seed(buildTestProfile({ ...base, coverPlan: createCoverPlan("none") }));
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       expect(screen.queryByRole("heading", heading)).not.toBeInTheDocument();
     });
 
@@ -1359,7 +1359,7 @@ describe("Dashboard", () => {
       await seed(buildTestProfile({ age: 50, retirementAge: 55, pensionBalances: [100_000] }));
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       expect(screen.queryByRole("heading", heading)).not.toBeInTheDocument();
     });
 
@@ -1367,7 +1367,7 @@ describe("Dashboard", () => {
       await seed(buildTestProfile({ ...base, retirementAge: 62 }));
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       expect(screen.queryByRole("heading", heading)).not.toBeInTheDocument();
     });
 
@@ -1415,7 +1415,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       const text = summary().textContent!.replace(BIDI_MARKS, "");
       expect(text).toContain("Base");
       expect(text).toContain("Investment return 6% (before inflation), the same for every asset, inflation 2.5%, market volatility 12%. All per year.");
@@ -1432,7 +1432,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       const text = summary().textContent!.replace(BIDI_MARKS, "");
       expect(text).toContain("Custom");
       expect(text).not.toContain("Base");
@@ -1477,12 +1477,12 @@ describe("Dashboard", () => {
       ],
     });
 
-    it("lists what the Net Worth Today figure is made of, adding up to it", async () => {
+    it("lists what the Net worth today figure is made of, adding up to it", async () => {
       await saveProfileToDb(rich);
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       expect(rowAmount("Pension funds")).toBe("\u20aa500,000");
       expect(rowAmount("Study funds")).toBe("\u20aa100,000");
       expect(rowAmount("Bank deposits")).toBe("\u20aa200,000");
@@ -1491,7 +1491,7 @@ describe("Dashboard", () => {
       const total = Math.round(aggregateCurrentNetWorth(rich)).toLocaleString();
       expect(total).toBe("823,600");
       expect(rowAmount("Total")).toBe(`\u20aa${total}`);
-      const kpi = screen.getByText("Net Worth Today").parentElement as HTMLElement;
+      const kpi = screen.getByText("Net worth today").parentElement as HTMLElement;
       expect(within(kpi).getByText(`\u20aa${total}`)).toBeInTheDocument();
     });
 
@@ -1500,7 +1500,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       expect(within(summary()).queryByText("Provident funds")).not.toBeInTheDocument();
       expect(within(summary()).queryByText("Private shares and ESPP")).not.toBeInTheDocument();
     });
@@ -1510,7 +1510,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       const link = (name: string) => within(summary()).getByRole("link", { name });
       expect(link("Pension funds")).toHaveAttribute("href", "/my-data/pension-savings#pension-summary");
       expect(link("Study funds")).toHaveAttribute("href", "/my-data/pension-savings#pension-summary");
@@ -1531,7 +1531,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       const groupRow = (name: string) =>
         within(summary())
           .getAllByRole("rowgroup")
@@ -1564,7 +1564,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       const sharesRow = within(summary()).getByRole("row", { name: /Employer shares/ });
       expect(within(sharesRow).getByText("Priced in US dollars")).toBeInTheDocument();
       const depositsRow = within(summary()).getByRole("row", { name: /Bank deposits/ });
@@ -1579,7 +1579,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       const text = summary().textContent!.replace(BIDI_MARKS, "");
       expect(text).toContain("Every asset above is assumed to grow at the same");
       expect(text).toContain("a year (before inflation), whether it is a deposit, a share or a pension fund.");
@@ -1600,7 +1600,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       expect(within(summary()).queryByText("Priced in US dollars")).not.toBeInTheDocument();
       expect(summary().textContent).not.toContain("is priced in US dollars");
     });
@@ -1610,7 +1610,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       const text = summary().textContent!.replace(BIDI_MARKS, "");
       expect(text).toContain(
         "Not counted above: \u20aa2,400 of employer shares that have not vested yet.",
@@ -1635,7 +1635,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       expect(rowAmount("Employer shares")).toBe("\u20aa300,000");
       expect(summary().textContent!.replace(BIDI_MARKS, "")).toContain(
         "Employer shares are 75% of this total, all in one company.",
@@ -1662,7 +1662,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       const text = summary().textContent!.replace(BIDI_MARKS, "");
       expect(text).toContain("AAPL shares are 23% of this total, all in one company.");
       expect(text).not.toContain("TINY shares are");
@@ -1686,7 +1686,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       const text = summary().textContent!.replace(BIDI_MARKS, "");
       expect(text).toContain("Employer shares are 75% of this total, all in one company.");
       expect(text).not.toContain("ACME shares are");
@@ -1698,7 +1698,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       expect(summary().textContent!.replace(BIDI_MARKS, "")).toContain(
         "Employer shares are <1% of this total, all in one company.",
       );
@@ -1711,7 +1711,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       const text = summary().textContent!;
       expect(text).not.toContain("Not counted above");
       expect(text).not.toContain("Share prices are converted");
@@ -1733,7 +1733,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       expect(within(summary()).getByText("Includes your spouse's accounts.")).toBeInTheDocument();
       expect(rowAmount("Pension funds")).toBe("\u20aa450,000");
     });
@@ -1747,23 +1747,23 @@ describe("Dashboard", () => {
       expect(screen.queryByRole("region", { name: "What you have" })).not.toBeInTheDocument();
     });
 
-    it("shows Net Worth Today once, as the figure the card adds up to, not as a tile", async () => {
+    it("shows Net worth today once, as the figure the card adds up to, not as a tile", async () => {
       await saveProfileToDb(rich);
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      const label = await screen.findByText("Net Worth Today");
-      expect(screen.getAllByText("Net Worth Today")).toHaveLength(1);
+      const label = await screen.findByText("Net worth today");
+      expect(screen.getAllByText("Net worth today")).toHaveLength(1);
       expect(summary()).toContainElement(label);
       expect(within(label.parentElement as HTMLElement).getByText("\u20aa823,600")).toBeInTheDocument();
     });
 
-    it("says that debts are not subtracted from Net Worth Today and where to enter their payments", async () => {
+    it("says that debts are not subtracted from Net worth today and where to enter their payments", async () => {
       await saveProfileToDb(rich);
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      const label = await screen.findByText("Net Worth Today");
+      const label = await screen.findByText("Net worth today");
       const kpi = label.parentElement as HTMLElement;
       expect(within(kpi).getByText(/loans and a mortgage are not subtracted/)).toBeInTheDocument();
       expect(within(kpi).getByRole("link", { name: "Enter expenses" })).toHaveAttribute("href", "/my-data/expenses");
@@ -1774,7 +1774,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       const share = (name: string) =>
         within(within(summary()).getByRole("row", { name: new RegExp(name) }))
           .getAllByRole("cell")[1]
@@ -1791,7 +1791,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       const bar = summary().querySelector(":scope > div[aria-hidden='true']") as HTMLElement;
       const segments = Array.from(bar.children) as HTMLElement[];
       expect(segments.map((segment) => segment.style.flexGrow)).toEqual([
@@ -1835,20 +1835,26 @@ describe("Dashboard", () => {
       expect(before(verdict, income)).toBe(true);
     });
 
-    it("shows four figures, then what you have and what you will live on side by side", async () => {
+    it("shows four figures, then the chart, with assets and budget beside retirement income", async () => {
       await renderLayout();
 
       const tiles = [
         "Sustainable income after tax",
         /^(Monthly surplus|Monthly shortfall)$/,
         /^Simulated spending coverage to age/,
-        "Years to Retirement",
+        "Years to retirement",
       ];
       for (const tile of tiles) expect(screen.getByText(tile)).toBeInTheDocument();
 
       const have = screen.getByRole("region", { name: "What you have" });
       const live = screen.getByRole("region", { name: "What you will live on" });
-      expect(have.parentElement).toBe(live.parentElement?.parentElement);
+      const budget = screen.getByRole("region", { name: "Retirement budget" });
+      const grid = screen.getByText("Sustainable income after tax").parentElement!.parentElement!;
+      const chart = screen.getByRole("heading", { name: "Net worth projection" }).closest(".card");
+      expect(grid.nextElementSibling).toBe(chart);
+      expect(have.parentElement).toBe(budget.parentElement);
+      expect(have.parentElement?.parentElement).toBe(live.parentElement);
+      expect(before(chart as HTMLElement, have)).toBe(true);
     });
 
     it("keeps the cards that matter less in a collapsed block, apart from the main ones", async () => {
@@ -1891,7 +1897,7 @@ describe("Dashboard", () => {
       const income = calculateFundingGap(itemised, "standard").estimatedMonthlyIncome;
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       const gap = (budgetAmount: number) => {
         const diff = Math.round(income - budgetAmount);
         return diff >= 0
@@ -1907,7 +1913,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       const planned = within(screen.getByRole("region", { name: "What you will live on" }));
       expect(planned.getByText("\u20aa7,700")).toBeInTheDocument();
     });
@@ -1917,7 +1923,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       expect(within(budget()).queryByRole("heading", { name: "Where the budget goes" })).not.toBeInTheDocument();
       expect(within(budget()).getAllByRole("table")).toHaveLength(1);
       expect(within(budget()).queryByRole("row", { name: /Housing|Food and household/ })).not.toBeInTheDocument();
@@ -1932,7 +1938,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       expect(within(budget()).getByRole("link", { name: "Edit expenses" })).toHaveAttribute(
         "href",
         "/my-data/expenses",
@@ -1944,7 +1950,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       expect(budget().textContent).toContain("Both budgets are compared with the same estimated net income.");
     });
 
@@ -1955,7 +1961,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       expect(budget().textContent).toContain("cannot tell essential spending from discretionary spending");
       expect(within(budget()).queryByRole("table")).not.toBeInTheDocument();
       expect(within(budget()).getByRole("link", { name: "Itemise my expenses" })).toHaveAttribute(
@@ -1970,7 +1976,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       expect(screen.queryByRole("region", { name: "Retirement budget" })).not.toBeInTheDocument();
     });
   });
@@ -2002,7 +2008,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       expect(
         screen.queryByRole("region", { name: "Irregular costs included in your monthly average" }),
       ).not.toBeInTheDocument();
@@ -2028,7 +2034,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       expect(
         screen.queryByRole("region", { name: "Irregular costs included in your monthly average" }),
       ).not.toBeInTheDocument();
@@ -2043,7 +2049,7 @@ describe("Dashboard", () => {
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
 
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
       expect(
         screen.queryByRole("region", { name: "Irregular costs included in your monthly average" }),
       ).not.toBeInTheDocument();
@@ -2255,7 +2261,7 @@ describe("Dashboard", () => {
       await saveProfileToDb(profile);
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
-      await screen.findByText("Net Worth Today");
+      await screen.findByText("Net worth today");
     }
 
     it("turns the banner amber and says the plan is on track in average markets only", async () => {

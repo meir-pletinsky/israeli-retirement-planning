@@ -102,7 +102,7 @@ export function PathEventsList({ groups, funding, unvestedShares }: PathEventsLi
           <li key={group.age} className="flex items-start gap-2 text-xs text-slate-600">
             <span
               aria-hidden="true"
-              className="mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-brand-50 text-[10px] font-semibold text-brand-700"
+              className="mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-brand-50 text-xs font-semibold text-brand-700"
             >
               {index + 1}
             </span>
@@ -120,7 +120,7 @@ export function PathEventsList({ groups, funding, unvestedShares }: PathEventsLi
         <p className="mt-1.5 flex items-start gap-2 text-xs text-slate-600">
           <span
             aria-hidden="true"
-            className="mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-600"
+            className="mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600"
           >
             i
           </span>
@@ -128,10 +128,10 @@ export function PathEventsList({ groups, funding, unvestedShares }: PathEventsLi
         </p>
       )}
       {funding?.shortfallAge != null && (
-        <p className="mt-1.5 flex items-start gap-2 text-xs font-medium text-rose-700">
+        <p className="mt-1.5 flex items-start gap-2 text-xs font-medium text-red-700">
           <span
             aria-hidden="true"
-            className="mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-rose-50 text-[10px] font-semibold"
+            className="mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-red-50 text-xs font-semibold"
           >
             !
           </span>

@@ -64,7 +64,7 @@ export function SourceCostCard({ rows, isCouple, scenarioTag, hasBankDeposits }:
   return (
     <section
       aria-labelledby="source-cost-title"
-      className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="card"
     >
       <ScenarioTitle id="source-cost-title" tag={scenarioTag}>
         {t("projections.sourceCost.title")}

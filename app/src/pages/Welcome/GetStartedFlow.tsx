@@ -55,7 +55,7 @@ function Marker({ children, tone }: { children: ReactNode; tone: "step" | "goal"
 function OptionalBadge() {
   const { t } = useTranslation();
   return (
-    <span className="inline-block rounded-full bg-slate-100 px-1.5 py-0.5 align-middle text-[10px] font-semibold leading-none text-slate-500">
+    <span className="inline-block rounded-full bg-slate-100 px-1.5 py-0.5 align-middle text-xs font-semibold leading-none text-slate-500">
       {t("welcome.flow.optional")}
     </span>
   );
@@ -69,7 +69,7 @@ export function GetStartedFlow({ id }: { id: string }) {
     <section
       id={id}
       aria-labelledby="welcome-flow-title"
-      className="scroll-mt-6 rounded-xl border border-slate-200 bg-white p-5 text-sm leading-relaxed text-slate-700 shadow-sm sm:p-6"
+      className="card scroll-mt-6 text-sm leading-relaxed text-slate-700"
     >
       <h2 id="welcome-flow-title" tabIndex={-1} className="text-base font-semibold text-slate-900 outline-none">
         {t("welcome.flow.title")}
@@ -99,7 +99,7 @@ export function GetStartedFlow({ id }: { id: string }) {
                   <ImportanceBadge importance={step.importance} />
                 )}
                 {step.fastTrack && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold leading-none text-amber-800">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold leading-none text-amber-800">
                     <span aria-hidden="true" className="[&>svg]:h-3 [&>svg]:w-3">
                       <BoltIcon />
                     </span>
@@ -126,7 +126,7 @@ export function GetStartedFlow({ id }: { id: string }) {
       <button
         type="button"
         onClick={() => navigate("/my-data/personal")}
-        className="mt-6 w-full rounded-md bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 sm:w-auto sm:min-w-56"
+        className="btn btn-primary mt-6 min-h-12 w-full text-base sm:w-auto sm:min-w-56"
       >
         {t("welcome.start")}
       </button>
