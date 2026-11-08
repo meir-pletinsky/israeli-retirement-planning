@@ -223,7 +223,7 @@
       "incomeBasis": "The lowest year of retirement, at your age {{age}}. After tax, in today's money.",
       "incomeReconciliation": "{{gross}} before tax, minus {{tax}} tax",
       "incomeNoTax": "{{gross}} before tax; no tax expected",
-      "netWorth": "Net Worth Today",
+      "netWorth": "Net worth today",
       "monthlySurplus": "Monthly surplus",
       "monthlyShortfall": "Monthly shortfall",
       "surplusOrShortfall": "Monthly surplus or shortfall",
@@ -241,7 +241,7 @@
       "successQualifier": "Based on your inputs and model assumptions; not a guarantee.",
       "successAssumptions": "Assumes {{returnPct}}% return, {{inflationPct}}% inflation and {{volatilityPct}}% volatility a year.",
       "successLearnMore": "How this is calculated",
-      "yearsToRetirement": "Years to Retirement",
+      "yearsToRetirement": "Years to retirement",
       "yearsToHouseholdRetirement": "Years until your household retires",
       "retirementSelf": "Your retirement: age {{age}}, {{away}}",
       "retirementSpouse": "Your spouse's retirement: age {{age}}, {{away}}",
@@ -304,7 +304,7 @@
       "save": "Save {{amount}} a month more",
       "saveNote": "until you retire, at the return you assumed."
     },
-    "chartTitle": "Net Worth Projection",
+    "chartTitle": "Net worth projection",
     "householdChartNote": "The projection covers your whole household. The age axis shows your age.",
     "adjustAssumptions": "Adjust assumptions",
     "coverNotice": {
@@ -1009,7 +1009,7 @@
       "age": { "title": "Retirement age", "question": "When can I retire? These do not follow the scenario above." },
       "insurance": { "title": "Insurance", "question": "What about the cover that ends?" }
     },
-    "netWorthChart": "Net Worth Projection",
+    "netWorthChart": "Net worth projection",
     "incomeChart": "Sustainable income by source",
     "netIncomeChart": "Sustainable income after tax",
     "netIncomeNote": "Each bar is one year's sustainable income before tax, split into what you keep and the income tax paid.",

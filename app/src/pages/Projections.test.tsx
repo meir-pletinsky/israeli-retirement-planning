@@ -88,7 +88,7 @@ describe("Projections", () => {
       await saveProfileToDb(profile);
       await saveOnboardedToDb(true);
       renderWithProviders(<Projections />);
-      await screen.findByRole("heading", { name: "Net Worth Projection" });
+      await screen.findByRole("heading", { name: "Net worth projection" });
     };
 
     it("says the net-worth line draws the planned spending and where it goes unfunded", async () => {
@@ -1438,7 +1438,7 @@ describe("Projections", () => {
       const timeline = within(await screen.findByRole("region", { name: "Retirement timeline" }));
       expect(timeline.getByText("Standard – age 65")).toBeInTheDocument();
       expect(timeline.getByRole("heading", { name: "Retirement timeline" })).toBeInTheDocument();
-      const netWorth = screen.getByRole("heading", { name: "Net Worth Projection" }).parentElement!;
+      const netWorth = screen.getByRole("heading", { name: "Net worth projection" }).parentElement!;
       expect(within(netWorth).getByText("Standard – age 65")).toBeInTheDocument();
 
       await user.click(selector.getByRole("button", { name: "Delayed – age 68" }));
@@ -1931,7 +1931,7 @@ describe("Projections", () => {
       await saveProfileToDb(buildTestProfile({ ...planned, ...overrides }));
       await saveOnboardedToDb(true);
       renderWithProviders(<Projections />);
-      const heading = await screen.findByRole("heading", { name: "Net Worth Projection" });
+      const heading = await screen.findByRole("heading", { name: "Net worth projection" });
       return heading.parentElement!.parentElement!.parentElement!;
     }
 
@@ -2059,7 +2059,7 @@ describe("Projections", () => {
       await saveProfileToDb(buildTestProfile({ ...retiring, retirementMonthlyExpenses: monthlyExpenses }));
       await saveOnboardedToDb(true);
       renderWithProviders(<Projections />);
-      await screen.findByRole("heading", { name: "Net Worth Projection" });
+      await screen.findByRole("heading", { name: "Net worth projection" });
     }
 
     it("shows the cash flow at the planned spending and links to it from the net-worth chart when unfunded", async () => {
@@ -2089,7 +2089,7 @@ describe("Projections", () => {
     it("breaks the net-worth chart into the kinds of savings", async () => {
       await renderPlan(1_000);
 
-      const card = screen.getByRole("heading", { name: "Net Worth Projection" }).parentElement!.parentElement!
+      const card = screen.getByRole("heading", { name: "Net worth projection" }).parentElement!.parentElement!
         .parentElement!;
       expect(within(card).getAllByText("Pension Fund").length).toBeGreaterThan(0);
     });
