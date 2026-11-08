@@ -16,7 +16,7 @@ export function LanguageSwitcher() {
       aria-label={t("settings.language")}
       value={i18n.language}
       onChange={(e) => void i18n.changeLanguage(e.target.value)}
-      className="field-control h-11 px-2.5"
+      className="field-control h-11 shrink-0 px-2.5"
     >
       {SUPPORTED_LANGUAGES.map((lng) => (
         <option key={lng} value={lng}>

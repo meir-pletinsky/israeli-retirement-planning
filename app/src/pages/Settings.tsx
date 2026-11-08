@@ -119,7 +119,7 @@ export function Settings() {
 
   return (
     <div className="flex max-w-lg flex-col gap-6">
-      <h1 className="text-xl font-semibold text-slate-900">
+      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
         {t("settings.title")}
       </h1>
 

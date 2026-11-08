@@ -33,7 +33,7 @@ export function PrivacyBanner({ variant }: { variant: "card" | "strip" }) {
     return (
       <Link
         to="/settings"
-        className="flex items-center justify-center gap-1.5 border-b border-brand-100 bg-brand-50 px-3 py-1.5 text-xs text-brand-800 md:hidden"
+        className="flex items-center justify-center gap-1.5 border-b border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600 md:hidden"
       >
         <LockIcon className="h-3.5 w-3.5" />
         {t("privacy.short")}
@@ -45,9 +45,9 @@ export function PrivacyBanner({ variant }: { variant: "card" | "strip" }) {
     <div
       role="note"
       aria-label={t("privacy.title")}
-      className="rounded-lg border border-brand-100 bg-brand-50 p-3 text-xs leading-relaxed text-brand-900"
+      className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-relaxed text-slate-600"
     >
-      <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-brand-800">
+      <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-slate-900">
         <LockIcon />
         {t("privacy.title")}
       </p>

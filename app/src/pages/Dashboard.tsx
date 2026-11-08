@@ -90,7 +90,7 @@ export function Dashboard() {
   if (!onboarded || !snapshot) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-xl font-semibold text-slate-900">{t("dashboard.title")}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{t("dashboard.title")}</h1>
         <EmptyState
           title={t("dashboard.emptyTitle")}
           body={t("dashboard.emptyBody")}
@@ -140,7 +140,7 @@ export function Dashboard() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-semibold text-slate-900">{t("dashboard.title")}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{t("dashboard.title")}</h1>
 
       <ActiveAssumptions assumptions={profile.assumptions} />
 
