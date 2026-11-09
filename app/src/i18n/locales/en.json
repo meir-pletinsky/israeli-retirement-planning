@@ -76,7 +76,15 @@
     "intro": "Watch a short video walkthrough of the app. It comes in English, Russian and Hebrew.",
     "videoLabel": "Demo video: {{language}}",
     "otherTitle": "Other languages",
-    "note": "The videos are streamed from demos.gimlai.app when you open this page. Nothing from your plan is sent."
+    "note": "The videos are streamed from demos.gimlai.app when you open this page. Nothing from your plan is sent.",
+    "swiftness": {
+      "title": "swiftness.co.il tutorials",
+      "intro": "Step-by-step video tutorials for swiftness.co.il, the Pension Clearing House site where you order the consolidated pension report. The videos are in Hebrew only.",
+      "signUp": "Signing up to the service",
+      "requestReport": "Submitting a report request",
+      "videoLabel": "YouTube tutorial (Hebrew): {{title}}",
+      "note": "These two videos are embedded from YouTube (privacy-enhanced mode) when you open this page, so YouTube may receive your IP address. Nothing from your plan is sent."
+    }
   },
   "welcome": {
     "title": "Your retirement plan, on your device",

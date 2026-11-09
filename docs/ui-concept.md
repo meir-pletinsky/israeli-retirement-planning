@@ -210,9 +210,13 @@ per entry.
 - Last item in the navigation, below Settings. Reachable without onboarding.
 - Three walkthrough videos hosted at `https://demos.gimlai.app/gimlai_{en,ru,he}.mp4`.
   The video for the current language is the large main player; the other two are small
-  players below it. Starting one video pauses the others.
+  players below it. Starting one of these three videos pauses the others.
 - A short note states the videos are streamed from `demos.gimlai.app` and that nothing
   from the plan is sent.
+- A second section, "swiftness.co.il tutorials", embeds two official Pension Clearing House
+  tutorials from YouTube (`youtube-nocookie.com`, lazy-loaded): signing up to the service and
+  submitting a report request. They exist in Hebrew only, in every UI language. A note says
+  YouTube may receive the visitor's IP address and that nothing from the plan is sent.
 - Linked from the Welcome page ("Watch the demo video") and from the Dashboard empty state.
 
 ## Core Components (shared)

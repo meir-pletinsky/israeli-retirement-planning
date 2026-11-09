@@ -55,13 +55,49 @@ describe("Demo page", () => {
 
     const main = await screen.findByRole("region", { name: label });
     expect(videoIn(main)).toHaveAttribute("src", demoVideoUrl(language));
-    const others = screen.getAllByRole("region").find((region) => region !== main)!;
+    const others = screen.getByRole("region", { name: i18n.t("demo.otherTitle") });
     expect(Array.from(others.querySelectorAll("video")).map((video) => video.getAttribute("src"))).toEqual(
       rest.map(demoVideoUrl),
     );
   });
 
-  it("stops the other videos when one starts playing", async () => {
+  it("embeds the two Hebrew swiftness.co.il tutorials from YouTube below the demo videos", async () => {
+    renderWithProviders(<Demo />);
+
+    const section = await screen.findByRole("region", { name: "swiftness.co.il tutorials" });
+    expect(section).toHaveTextContent("The videos are in Hebrew only.");
+    const frames = Array.from(section.querySelectorAll("iframe"));
+    expect(frames.map((frame) => frame.getAttribute("src"))).toEqual([
+      "https://www.youtube-nocookie.com/embed/jmVEs4GDEcM?rel=0",
+      "https://www.youtube-nocookie.com/embed/toAxoB2qgog?rel=0",
+    ]);
+    expect(frames.map((frame) => frame.getAttribute("title"))).toEqual([
+      "YouTube tutorial (Hebrew): Signing up to the service",
+      "YouTube tutorial (Hebrew): Submitting a report request",
+    ]);
+    for (const frame of frames) {
+      expect(frame).toHaveAttribute("loading", "lazy");
+      expect(frame).toHaveAttribute("allowfullscreen");
+    }
+    expect(within(section).getByText("Signing up to the service").tagName).toBe("FIGCAPTION");
+    expect(within(section).getByText("Submitting a report request").tagName).toBe("FIGCAPTION");
+    expect(section).toHaveTextContent("YouTube may receive your IP address. Nothing from your plan is sent.");
+
+    const others = screen.getByRole("region", { name: "Other languages" });
+    expect(others.compareDocumentPosition(section) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("keeps the swiftness.co.il tutorials in every language, and translates their captions", async () => {
+    await i18n.changeLanguage("he");
+    renderWithProviders(<Demo />);
+
+    const section = await screen.findByRole("region", { name: "מדריכי וידאו לאתר swiftness.co.il" });
+    expect(section.querySelectorAll("iframe")).toHaveLength(2);
+    expect(within(section).getByText("הרשמה לשירות")).toBeInTheDocument();
+    expect(within(section).getByText("הגשת בקשה לדוח")).toBeInTheDocument();
+  });
+
+  it("stops the other demo videos when one starts playing", async () => {
     renderWithProviders(<Demo />);
     await screen.findByRole("heading", { level: 1, name: "Demo" });
     const videos = Array.from(document.querySelectorAll("video"));

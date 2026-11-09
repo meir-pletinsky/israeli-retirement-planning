@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES, type SupportedLanguage } from "../i18n";
-import { demoVideoUrl } from "./demoVideos";
+import { SWIFTNESS_TUTORIALS, demoVideoUrl, youtubeEmbedUrl } from "./demoVideos";
 
 function currentLanguage(language: string): SupportedLanguage {
   return SUPPORTED_LANGUAGES.find((supported) => supported === language) ?? "en";
@@ -73,6 +73,35 @@ export function Demo() {
       </section>
 
       <p className="text-xs text-slate-500">{t("demo.note")}</p>
+
+      <section aria-labelledby="demo-swiftness-title" className="flex flex-col gap-3 border-t border-slate-200 pt-6">
+        <div>
+          <h2 id="demo-swiftness-title" className="text-sm font-semibold text-slate-700">
+            {t("demo.swiftness.title")}
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">{t("demo.swiftness.intro")}</p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {SWIFTNESS_TUTORIALS.map(({ key, youtubeId }) => {
+            const title = t(`demo.swiftness.${key}`);
+            return (
+              <figure key={key} className="flex flex-col gap-2">
+                <iframe
+                  src={youtubeEmbedUrl(youtubeId)}
+                  title={t("demo.swiftness.videoLabel", { title })}
+                  loading="lazy"
+                  allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  className="aspect-video w-full rounded-xl border-0 bg-black shadow-sm"
+                />
+                <figcaption className="text-sm font-medium text-slate-700">{title}</figcaption>
+              </figure>
+            );
+          })}
+        </div>
+        <p className="text-xs text-slate-500">{t("demo.swiftness.note")}</p>
+      </section>
     </div>
   );
 }
