@@ -95,12 +95,14 @@ export function Dashboard() {
           title={t("dashboard.emptyTitle")}
           body={t("dashboard.emptyBody")}
           action={
-            <Link
-              to="/my-data/personal"
-              className="btn btn-primary"
-            >
-              {t("dashboard.emptyCta")}
-            </Link>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Link to="/my-data/personal" className="btn btn-primary">
+                {t("dashboard.emptyCta")}
+              </Link>
+              <Link to="/demo" className="btn btn-secondary">
+                {t("dashboard.emptyDemo")}
+              </Link>
+            </div>
           }
         />
       </div>

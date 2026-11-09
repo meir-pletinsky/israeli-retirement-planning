@@ -33,6 +33,7 @@ describe("Dashboard", () => {
       await screen.findByText("Complete your profile to see your personalized retirement projection."),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /start my data/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Watch the demo" })).toHaveAttribute("href", "/demo");
   });
 
   it("renders domain-engine-calculated KPIs once a profile exists", async () => {

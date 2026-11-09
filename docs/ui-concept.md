@@ -59,7 +59,7 @@ an implemented behaviour change.
 
 - **Desktop/tablet**: persistent left sidebar with sections below; content
   area to the right; language switcher beside privacy in the sidebar.
-- **Mobile**: bottom tab bar with the same 4 primary sections; no sidebar.
+- **Mobile**: bottom tab bar with the same 5 primary sections; no sidebar.
 - In RTL (Hebrew), the sidebar moves to the right edge; icons/arrows mirror.
 
 Primary sections:
@@ -68,6 +68,7 @@ Primary sections:
 2. **My Data** (profile & inputs wizard)
 3. **Projections** (detailed charts/scenarios)
 4. **Settings**
+5. **Demo** (walkthrough videos)
 
 ## Screens
 
@@ -203,6 +204,16 @@ per entry.
   current plan first, saves a restore point, and can be undone from Settings), Reset all
   data (confirmation modal, destructive-action styling).
 - About / data sources & assumptions disclosure.
+
+### 6. Demo
+
+- Last item in the navigation, below Settings. Reachable without onboarding.
+- Three walkthrough videos hosted at `https://demos.gimlai.app/gimlai_{en,ru,he}.mp4`.
+  The video for the current language is the large main player; the other two are small
+  players below it. Starting one video pauses the others.
+- A short note states the videos are streamed from `demos.gimlai.app` and that nothing
+  from the plan is sent.
+- Linked from the Welcome page ("Watch the demo video") and from the Dashboard empty state.
 
 ## Core Components (shared)
 

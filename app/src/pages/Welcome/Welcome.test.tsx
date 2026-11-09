@@ -123,6 +123,17 @@ describe("Welcome page — new visitor", () => {
     ).toBeInTheDocument();
   });
 
+  it("links to the demo video, which opens inside the app", async () => {
+    const user = userEvent.setup();
+    await renderWelcome();
+
+    const link = screen.getByRole("link", { name: "Watch the demo video" });
+    expect(link).toHaveAttribute("href", "/demo");
+    await user.click(link);
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Demo" })).toBeInTheDocument();
+  });
+
   it("scrolls to the Get started section from the top button", async () => {
     const user = userEvent.setup();
     const scrollIntoView = vi.fn();

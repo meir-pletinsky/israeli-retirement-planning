@@ -24,7 +24,7 @@ Settings) to preview English, Russian, and Hebrew (RTL).
 ```text
 src/
   app/        # App root, routing, AppShell (nav), profile state
-  pages/      # Welcome, Dashboard, My Data (wizard), Projections, Settings
+  pages/      # Welcome, Dashboard, My Data (wizard), Projections, Settings, Demo
   components/ # Shared UI (KpiCard, charts, form fields, modal, etc.)
   domain/     # Pure calculation engine (no UI deps), unit-tested
   storage/    # Persistence (Dexie-backed profile repository, export/import)

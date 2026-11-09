@@ -26,6 +26,7 @@ function renderShell(route: string) {
         <Route path="/projections" element={<p>Projections page</p>} />
         <Route path="/my-data/personal" element={<p>My data page</p>} />
         <Route path="/settings" element={<p>Settings page</p>} />
+        <Route path="/demo" element={<p>Demo page</p>} />
       </Route>
     </Routes>,
     { route },
@@ -48,7 +49,7 @@ describe("AppShell — home link and build info", () => {
   describe("AppShell — refreshed navigation", () => {
     it("keeps accessible text names while hiding decorative SVG icons", async () => {
       renderShell("/dashboard");
-      for (const name of ["Dashboard", "My Data", "Projections", "Settings"]) {
+      for (const name of ["Dashboard", "My Data", "Projections", "Settings", "Demo"]) {
         const links = await screen.findAllByRole("link", { name, exact: true });
         expect(links).toHaveLength(2);
         for (const link of links) {
@@ -56,6 +57,22 @@ describe("AppShell — home link and build info", () => {
           if (name === "Dashboard") expect(link).toHaveAttribute("aria-current", "page");
           else expect(link).not.toHaveAttribute("aria-current");
         }
+      }
+    });
+
+    it("lists Demo last, after Settings, in the sidebar and the phone bar", async () => {
+      renderShell("/demo");
+      await screen.findByText("Demo page");
+      const navs = Array.from(document.querySelectorAll("nav"));
+      expect(navs).toHaveLength(2);
+      for (const nav of navs) {
+        const hrefs = within(nav)
+          .getAllByRole("link")
+          .map((link) => link.getAttribute("href"));
+        expect(hrefs).toEqual(["/dashboard", "/my-data", "/projections", "/settings", "/demo"]);
+      }
+      for (const link of screen.getAllByRole("link", { name: "Demo", exact: true })) {
+        expect(link).toHaveAttribute("aria-current", "page");
       }
     });
 

@@ -68,13 +68,22 @@
     "dashboard": "\u05dc\u05d5\u05d7 \u05d1\u05e7\u05e8\u05d4",
     "myData": "\u05d4\u05e0\u05ea\u05d5\u05e0\u05d9\u05dd \u05e9\u05dc\u05d9",
     "projections": "\u05ea\u05d7\u05d6\u05d9\u05d5\u05ea",
-    "settings": "\u05d4\u05d2\u05d3\u05e8\u05d5\u05ea"
+    "settings": "\u05d4\u05d2\u05d3\u05e8\u05d5\u05ea",
+    "demo": "הדגמה"
+  },
+  "demo": {
+    "title": "הדגמה",
+    "intro": "צפו בסרטון קצר שמדריך אתכם בשימוש באפליקציה. הסרטון זמין באנגלית, ברוסית ובעברית.",
+    "videoLabel": "סרטון הדגמה: {{language}}",
+    "otherTitle": "שפות נוספות",
+    "note": "הסרטונים נטענים מ-demos.gimlai.app כשפותחים עמוד זה. שום פרט מהתוכנית שלכם לא נשלח."
   },
   "welcome": {
     "title": "\u05ea\u05db\u05e0\u05d5\u05df \u05d4\u05e4\u05e8\u05d9\u05e9\u05d4 \u05e9\u05dc\u05db\u05dd, \u05d1\u05de\u05db\u05e9\u05d9\u05e8 \u05e9\u05dc\u05db\u05dd",
     "subtitle": "העריכו את ההכנסה שלכם בפרישה ואת הגיל שבו אפשר לפרוש, לפי הפנסיה, החיסכון וההשקעות שלכם בישראל.",
     "start": "\u05d4\u05ea\u05d7\u05d9\u05dc\u05d5 \u05d0\u05ea \u05d4\u05ea\u05d5\u05db\u05e0\u05d9\u05ea \u05e9\u05dc\u05d9",
     "getStarted": "איך מתחילים",
+    "watchDemo": "צפו בסרטון ההדגמה",
     "loadSaved": "טעינת קובץ הנתונים ששמרתי",
     "loadSavedHint": "כבר השתמשתם באפליקציה? בחרו את קובץ ה-json ששמרתם קודם באמצעות “ייצוא נתונים” בהגדרות.",
     "about": {
@@ -342,6 +351,7 @@
     "emptyTitle": "\u05d0\u05d9\u05df \u05e2\u05d3\u05d9\u05d9\u05df \u05e0\u05ea\u05d5\u05e0\u05d9\u05dd",
     "emptyBody": "\u05d4\u05e9\u05dc\u05d9\u05de\u05d5 \u05d0\u05ea \u05d4\u05e4\u05e8\u05d5\u05e4\u05d9\u05dc \u05e9\u05dc\u05db\u05dd \u05db\u05d3\u05d9 \u05dc\u05e8\u05d0\u05d5\u05ea \u05ea\u05d7\u05d6\u05d9\u05ea \u05e4\u05e8\u05d9\u05e9\u05d4 \u05d0\u05d9\u05e9\u05d9\u05ea.",
     "emptyCta": "\u05de\u05dc\u05d0\u05d5 \u05d0\u05ea \u05d4\u05e0\u05ea\u05d5\u05e0\u05d9\u05dd \u05e9\u05dc\u05d9",
+    "emptyDemo": "צפו בהדגמה",
     "portfolio": {
       "title": "מה יש לכם",
       "intro": "השורות מסתכמות בשווי הנקי הנוכחי שמוצג למעלה. לחצו על שורה כדי לראות או לשנות את מה שהזנתם.",

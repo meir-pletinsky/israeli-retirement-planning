@@ -68,13 +68,22 @@
     "dashboard": "Dashboard",
     "myData": "My Data",
     "projections": "Projections",
-    "settings": "Settings"
+    "settings": "Settings",
+    "demo": "Demo"
+  },
+  "demo": {
+    "title": "Demo",
+    "intro": "Watch a short video walkthrough of the app. It comes in English, Russian and Hebrew.",
+    "videoLabel": "Demo video: {{language}}",
+    "otherTitle": "Other languages",
+    "note": "The videos are streamed from demos.gimlai.app when you open this page. Nothing from your plan is sent."
   },
   "welcome": {
     "title": "Your retirement plan, on your device",
     "subtitle": "Estimate your retirement income, and when you could retire, from your Israeli pension, savings and investments.",
     "start": "Start my plan",
     "getStarted": "Get started",
+    "watchDemo": "Watch the demo video",
     "loadSaved": "Load my saved data file",
     "loadSavedHint": "Used the app before? Choose the .json file you saved earlier with \u201cExport data\u201d in Settings.",
     "about": {
@@ -340,6 +349,7 @@
     "emptyTitle": "No data yet",
     "emptyBody": "Complete your profile to see your personalized retirement projection.",
     "emptyCta": "Start My Data",
+    "emptyDemo": "Watch the demo",
     "portfolio": {
       "title": "What you have",
       "intro": "The rows add up to the Net Worth Today figure above. Select a row to see or change what you entered.",

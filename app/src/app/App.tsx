@@ -11,6 +11,7 @@ import { MyDataLayout } from "../pages/MyData/MyDataLayout";
 import { PensionSavingsStep } from "../pages/MyData/PensionSavingsStep";
 import { PersonalStep } from "../pages/MyData/PersonalStep";
 import { Dashboard } from "../pages/Dashboard";
+import { Demo } from "../pages/Demo";
 import { Projections } from "../pages/Projections";
 import { Settings } from "../pages/Settings";
 import { Welcome } from "../pages/Welcome/Welcome";
@@ -50,6 +51,7 @@ export function App() {
           <Route path="/projections" element={<Projections />} />
           <Route path="/import/clearing-house" element={<ClearingHouseImportPage />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/demo" element={<Demo />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

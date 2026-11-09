@@ -1,12 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import { SUPPORTED_LANGUAGES, type SupportedLanguage } from "../i18n";
-
-const LANGUAGE_LABELS: Record<SupportedLanguage, string> = {
-  en: "English",
-  ru: "Русский",
-  he: "עברית",
-};
+import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES } from "../i18n";
 
 export function LanguageSwitcher() {
   const { t, i18n } = useTranslation();

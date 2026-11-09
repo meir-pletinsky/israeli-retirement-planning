@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { useProfile } from "../../app/ProfileContext";
 import { LanguageSwitcher } from "../../components/LanguageSwitcher";
@@ -11,6 +11,7 @@ import { AboutBox } from "./AboutBox";
 import { FastTrackCard } from "./FastTrackCard";
 import { GetStartedFlow } from "./GetStartedFlow";
 import { PrivacyBox } from "./PrivacyBox";
+import { PlayIcon } from "./WelcomeCard";
 
 const GET_STARTED_ID = "get-started";
 
@@ -78,6 +79,10 @@ export function Welcome() {
             />
           </div>
           <p className="mt-3 text-xs text-slate-500">{t("welcome.loadSavedHint")}</p>
+          <Link to="/demo" className="btn btn-ghost mt-4">
+            <PlayIcon />
+            {t("welcome.watchDemo")}
+          </Link>
         </header>
 
         <div className="grid gap-4 md:grid-cols-2">

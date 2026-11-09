@@ -76,3 +76,12 @@ export function CheckIcon() {
     </svg>
   );
 }
+
+export function PlayIcon() {
+  return (
+    <svg {...ICON_PROPS}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m10 8.5 5.5 3.5-5.5 3.5Z" />
+    </svg>
+  );
+}
