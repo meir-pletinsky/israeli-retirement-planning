@@ -1,0 +1,539 @@
+﻿1
+00:00:00,000 --> 00:00:04,885
+Meet Daniel and Noa, a couple in their
+forties with two children.
+
+2
+00:00:04,935 --> 00:00:10,502
+They want to know when they can retire,
+and whether their money will last.
+
+3
+00:00:10,552 --> 00:00:14,146
+In this video we plan it together, step by
+step,
+
+4
+00:00:14,196 --> 00:00:17,107
+in the Israeli Retirement Planning app.
+
+5
+00:00:17,168 --> 00:00:20,988
+First, privacy. There is no account and no
+server.
+
+6
+00:00:21,038 --> 00:00:24,935
+Everything you enter stays in this
+browser, and the
+
+7
+00:00:24,985 --> 00:00:28,418
+files you import are read on your own
+device.
+
+8
+00:00:28,468 --> 00:00:30,275
+Let's click Get started.
+
+9
+00:00:30,475 --> 00:00:34,027
+The fastest way to start is the report
+from the
+
+10
+00:00:34,077 --> 00:00:37,475
+Pension Clearing House, known as the
+Mislaka.
+
+11
+00:00:37,525 --> 00:00:42,456
+One file lists every pension fund,
+provident fund and study fund.
+
+12
+00:00:42,506 --> 00:00:45,368
+Daniel begins by importing his report.
+
+13
+00:00:46,070 --> 00:00:49,011
+We choose the ZIP file Daniel received.
+
+14
+00:00:49,061 --> 00:00:53,228
+The app reads it on this device, and
+before anything is
+
+15
+00:00:53,278 --> 00:00:57,446
+saved it shows what it found: the
+provider, the balance
+
+16
+00:00:57,496 --> 00:01:00,820
+and the contribution status of each
+account.
+
+17
+00:01:00,876 --> 00:01:05,446
+We tick that Daniel is married, so the
+plan will cover the
+
+18
+00:01:05,496 --> 00:01:09,269
+whole household, and import the selected
+values.
+
+19
+00:01:09,326 --> 00:01:13,472
+Done. Daniel's accounts are in the plan,
+and his age
+
+20
+00:01:13,522 --> 00:01:16,862
+and salary were filled in from the report.
+
+21
+00:01:17,604 --> 00:01:21,393
+Now Noa. We open the Partner tab and
+import her
+
+22
+00:01:21,443 --> 00:01:24,497
+Clearing House report in the same way.
+
+23
+00:01:24,561 --> 00:01:27,760
+The app can tell that this report fits the
+
+24
+00:01:27,810 --> 00:01:31,551
+partner, so it saves the accounts under
+her name.
+
+25
+00:01:31,601 --> 00:01:36,811
+We import, and her age and salary arrive
+together with the accounts.
+
+26
+00:01:37,904 --> 00:01:41,699
+Both partners' pension and savings
+accounts now
+
+27
+00:01:41,749 --> 00:01:44,725
+sit in one place, ready for the plan.
+
+28
+00:01:45,585 --> 00:01:50,247
+A report can't tell us everything, so we
+add what is missing.
+
+29
+00:01:50,297 --> 00:01:53,954
+Daniel wants to retire at 65, and his tax
+credit
+
+30
+00:01:54,004 --> 00:01:58,048
+points, the Nekudot Zikui from his
+payslip, are 2.25.
+
+31
+00:01:58,099 --> 00:02:02,849
+On the Partner tab, Noa plans to retire at
+63, and her credit
+
+32
+00:02:02,899 --> 00:02:07,492
+points are 4.75, which include the points
+for the children.
+
+33
+00:02:07,546 --> 00:02:12,019
+Now the step shows that the required
+details are complete.
+
+34
+00:02:12,069 --> 00:02:15,372
+Credit points lower the income tax, and
+the
+
+35
+00:02:15,422 --> 00:02:18,725
+retirement age sets when withdrawals
+begin.
+
+36
+00:02:18,775 --> 00:02:24,591
+Next, investments. Over the years the
+couple bought shares through a broker.
+
+37
+00:02:24,641 --> 00:02:28,218
+Typing every purchase takes time, so we
+use the
+
+38
+00:02:28,268 --> 00:02:31,382
+CSV option: Add private trade, then Bulk.
+
+39
+00:02:31,435 --> 00:02:34,875
+Each line holds the purchase date, the
+ticker
+
+40
+00:02:34,925 --> 00:02:37,589
+symbol, the quantity and the price.
+
+41
+00:02:37,639 --> 00:02:43,328
+We paste the lines, and the app previews
+every row before adding anything.
+
+42
+00:02:43,392 --> 00:02:46,955
+Six purchases of Microsoft, Apple,
+Alphabet and
+
+43
+00:02:47,005 --> 00:02:50,031
+Amazon, worth about 88 thousand dollars.
+
+44
+00:02:50,081 --> 00:02:54,182
+The app converts them to shekels at the
+Bank of Israel
+
+45
+00:02:54,232 --> 00:02:57,642
+rate and shows the taxable gain on every
+lot.
+
+46
+00:02:57,694 --> 00:03:02,733
+Now bank savings. We open the deposit form
+and enter a fixed-term
+
+47
+00:03:02,783 --> 00:03:07,587
+deposit: Bank Hapoalim, for an amount of
+150 thousand shekels.
+
+48
+00:03:07,644 --> 00:03:12,837
+Then the start date, March 2026, the
+maturity date, March 2027, the
+
+49
+00:03:12,887 --> 00:03:17,533
+rate type, fixed-term, and the interest,
+4.2 percent a year.
+
+50
+00:03:17,583 --> 00:03:18,394
+We save it.
+
+51
+00:03:21,038 --> 00:03:26,574
+A second deposit, this time at Bank Leumi,
+for 80 thousand shekels.
+
+52
+00:03:28,125 --> 00:03:32,213
+This one runs for three years, from
+November 2025 to
+
+53
+00:03:32,263 --> 00:03:36,589
+November 2028, at 3.9 percent a year,
+again fixed-term.
+
+54
+00:03:41,447 --> 00:03:45,297
+The app works out each deposit's current
+value with
+
+55
+00:03:45,347 --> 00:03:48,815
+interest, about 237 thousand shekels in
+total.
+
+56
+00:03:48,865 --> 00:03:52,945
+Together with the shares, the couple's
+investments and
+
+57
+00:03:52,995 --> 00:03:56,768
+deposits come to more than half a million
+shekels.
+
+58
+00:03:56,820 --> 00:04:01,148
+Now spending. How much will the couple
+need every month?
+
+59
+00:04:01,198 --> 00:04:06,856
+We choose the itemised list, so that every
+expense is counted on its own.
+
+60
+00:04:06,919 --> 00:04:10,528
+Instead of a blank page we open the
+suggestions.
+
+61
+00:04:10,578 --> 00:04:16,551
+They are grouped by category, and under
+each name the app shows how often it is
+
+62
+00:04:16,601 --> 00:04:21,811
+paid: every month, every two months, once
+a year, or every few years.
+
+63
+00:04:21,862 --> 00:04:26,045
+We tick the first items: Arnona, the
+building committee,
+
+64
+00:04:26,095 --> 00:04:29,597
+electricity, groceries, fuel and car
+insurance.
+
+65
+00:04:29,647 --> 00:04:34,737
+For each one we enter what a single
+payment costs, in today's money.
+
+66
+00:04:34,787 --> 00:04:40,255
+Arnona is paid every two months, so we
+enter the amount of one such bill.
+
+67
+00:04:40,310 --> 00:04:44,602
+Then the bigger and rarer items: replacing
+the car, which
+
+68
+00:04:44,652 --> 00:04:48,562
+happens every seven years, private health
+insurance,
+
+69
+00:04:48,612 --> 00:04:52,980
+restaurants, a yearly trip abroad and help
+for the family.
+
+70
+00:04:53,030 --> 00:04:56,560
+One click adds all eleven expenses to the
+list.
+
+71
+00:04:59,507 --> 00:05:02,382
+Anything missing can be added by hand.
+
+72
+00:05:02,432 --> 00:05:05,230
+Here we add household help: a name, a
+
+73
+00:05:05,280 --> 00:05:08,616
+category, the amount, and a necessity
+level.
+
+74
+00:05:08,666 --> 00:05:11,849
+We mark it as discretionary, because it is
+
+75
+00:05:11,899 --> 00:05:14,543
+nice to have rather than essential.
+
+76
+00:05:15,598 --> 00:05:19,295
+The result: planned spending of about 24
+thousand
+
+77
+00:05:19,345 --> 00:05:22,813
+shekels a month, roughly half of it
+essential.
+
+78
+00:05:22,863 --> 00:05:27,249
+Costs that come only now and then, such as
+replacing a car
+
+79
+00:05:27,299 --> 00:05:30,919
+every seven years, are spread across the
+months.
+
+80
+00:05:30,982 --> 00:05:33,777
+Now the moment of truth: Projections.
+
+81
+00:05:33,827 --> 00:05:38,236
+Retiring at 65, with planned spending of
+about 24 thousand
+
+82
+00:05:38,286 --> 00:05:42,080
+shekels a month, the plan reads: funded to
+age 90.
+
+83
+00:05:42,130 --> 00:05:45,232
+The couple's money covers their spending.
+
+84
+00:05:45,295 --> 00:05:50,817
+The chart shows the household's net worth
+year by year, in today's money.
+
+85
+00:05:50,867 --> 00:05:54,481
+The dashed lines mark when each partner
+retires.
+
+86
+00:05:54,531 --> 00:05:57,992
+After that the line dips as they start to
+draw
+
+87
+00:05:58,042 --> 00:06:01,045
+on their savings, and then keeps rising.
+
+88
+00:06:04,185 --> 00:06:08,120
+With one click we can compare retiring
+early, at 60,
+
+89
+00:06:08,170 --> 00:06:11,338
+with retiring at 65, or delaying until 68.
+
+90
+00:06:11,388 --> 00:06:15,553
+The charts and cards on the page follow
+the choice, and
+
+91
+00:06:15,603 --> 00:06:19,078
+we can always return to the standard
+scenario.
+
+92
+00:06:21,266 --> 00:06:25,149
+Under Income and tax, the app shows the
+sustainable
+
+93
+00:06:25,199 --> 00:06:28,774
+monthly income by source, before and after
+tax.
+
+94
+00:06:28,824 --> 00:06:32,245
+Even in the leanest year the income after
+tax
+
+95
+00:06:32,295 --> 00:06:34,945
+is well above the planned spending.
+
+96
+00:06:35,325 --> 00:06:40,169
+Spending shows the retirement budget,
+split into essential and
+
+97
+00:06:40,219 --> 00:06:44,432
+discretionary costs, with the irregular
+ones included.
+
+98
+00:06:44,491 --> 00:06:47,316
+Markets never move in a straight line.
+
+99
+00:06:47,366 --> 00:06:51,098
+The risk analysis replays the plan on two
+thousand
+
+100
+00:06:51,148 --> 00:06:55,032
+random market histories, and the
+historical backtest
+
+101
+00:06:55,082 --> 00:06:58,966
+checks it against 54 real starting years
+since 1928.
+
+102
+00:06:59,016 --> 00:07:02,446
+For this couple the chance that their
+spending
+
+103
+00:07:02,496 --> 00:07:05,170
+lasts to age 90 is about 99 percent.
+
+104
+00:07:05,234 --> 00:07:07,036
+Finally, Retirement age.
+
+105
+00:07:07,086 --> 00:07:10,971
+The app finds the earliest feasible
+retirement age,
+
+106
+00:07:11,021 --> 00:07:14,597
+and compares income after tax at 60, 65
+and 68.
+
+107
+00:07:14,647 --> 00:07:18,841
+This couple is on track, and could even
+retire earlier.
+
+108
+00:07:18,904 --> 00:07:22,277
+Your plan is stored only in this browser,
+so
+
+109
+00:07:22,327 --> 00:07:26,245
+download a backup and keep the file
+somewhere safe.
+
+110
+00:07:26,295 --> 00:07:30,368
+You can load it back from Settings
+whenever you like.
+
+111
+00:07:30,879 --> 00:07:36,072
+That is the whole journey: import your
+reports, add what is missing,
+
+112
+00:07:36,122 --> 00:07:41,393
+enter investments, savings and expenses,
+and see when you can retire.
+
+113
+00:07:41,443 --> 00:07:43,629
+Try it with your own numbers.
