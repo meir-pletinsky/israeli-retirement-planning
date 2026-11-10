@@ -1,0 +1,122 @@
+<!doctype html>
+<!--
+  Source of public/og-image.jpg, the 1200x630 preview card shown when https://gimlai.app is shared
+  (Facebook, WhatsApp, Telegram, ...). Regenerate it after editing this file, from app/:
+
+    npm run og-image
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Preview card</title>
+    <style>
+      @font-face {
+        font-family: "Inter";
+        font-weight: 100 900;
+        src: url("../../public/fonts/inter-latin-wght-normal.woff2") format("woff2");
+        unicode-range: U+0000-00FF, U+2013-2014, U+2018-201D, U+2022, U+2026, U+20AA;
+      }
+      @font-face {
+        font-family: "Inter";
+        font-weight: 100 900;
+        src: url("../../public/fonts/inter-cyrillic-wght-normal.woff2") format("woff2");
+        unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+      }
+      @font-face {
+        font-family: "Noto Sans Hebrew";
+        font-weight: 100 900;
+        src: url("../../public/fonts/noto-sans-hebrew-hebrew-wght-normal.woff2") format("woff2");
+        unicode-range: U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      html,
+      body {
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+      }
+      body {
+        display: flex;
+        align-items: center;
+        gap: 64px;
+        padding: 0 88px;
+        font-family: "Inter", "Noto Sans Hebrew", sans-serif;
+        color: #fff;
+        background:
+          radial-gradient(circle at 18% 20%, rgba(253, 230, 138, 0.16), transparent 42%),
+          linear-gradient(135deg, #0b6e99 0%, #032a40 100%);
+      }
+      .icon {
+        flex: none;
+        width: 300px;
+        height: 300px;
+        filter: drop-shadow(0 18px 36px rgba(0, 0, 0, 0.35));
+      }
+      .text {
+        flex: 1;
+      }
+      h1 {
+        font-size: 80px;
+        font-weight: 800;
+        line-height: 1.04;
+        letter-spacing: -0.02em;
+      }
+      .he {
+        margin-top: 18px;
+        font-size: 40px;
+        font-weight: 600;
+        color: #fde68a;
+        direction: rtl;
+        text-align: left;
+      }
+      .tagline {
+        margin-top: 26px;
+        font-size: 30px;
+        line-height: 1.35;
+        color: rgba(255, 255, 255, 0.88);
+      }
+      .url {
+        margin-top: 34px;
+        display: inline-block;
+        padding: 10px 24px;
+        border-radius: 999px;
+        font-size: 28px;
+        font-weight: 700;
+        color: #032a40;
+        background: linear-gradient(180deg, #fde68a, #f59e0b);
+      }
+    </style>
+  </head>
+  <body>
+    <svg class="icon" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <linearGradient id="sea" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#0b6e99" />
+          <stop offset="1" stop-color="#032a40" />
+        </linearGradient>
+        <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#fde68a" />
+          <stop offset="1" stop-color="#f59e0b" />
+        </linearGradient>
+        <linearGradient id="fruit" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#ff8a98" />
+          <stop offset="1" stop-color="#e11d48" />
+        </linearGradient>
+      </defs>
+      <rect width="64" height="64" rx="14" fill="url(#sea)" stroke="rgba(255,255,255,0.28)" stroke-width="0.6" />
+      <circle cx="32" cy="38" r="18" fill="url(#fruit)" />
+      <path d="M24 26L25 13.500 30 19.500 32 11 34 19.500 39 13.500 40 26z" fill="url(#gold)" stroke="url(#gold)" stroke-width="2" stroke-linejoin="round" />
+      <path d="M20.500 38a12 12 0 0 1 6-10.500" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".5" />
+    </svg>
+    <div class="text">
+      <h1>Israeli Retirement Planning</h1>
+      <p class="he">תכנון פרישה בישראל</p>
+      <p class="tagline">Free and private: estimate your retirement income and readiness, right on your device.</p>
+      <span class="url">gimlai.app</span>
+    </div>
+  </body>
+</html>

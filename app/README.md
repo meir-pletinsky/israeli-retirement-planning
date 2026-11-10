@@ -39,3 +39,6 @@ src/
 - `npm run build` — type-check and produce a production build
 - `npm run lint` — run oxlint
 - `npm test` — run the Vitest test suite
+- `npm run og-image` — re-render the link-preview card `public/og-image.jpg` from
+  `scripts/og-image/og-image.html` (needs Edge or Chrome). The card and the `og:`/`twitter:`
+  tags in `index.html` are what Facebook, WhatsApp and Telegram show when the site is shared.
