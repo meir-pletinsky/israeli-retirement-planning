@@ -19,6 +19,10 @@ npm run dev
 Then open the printed local URL. Use the language selector (top-right / in
 Settings) to preview English, Russian, and Hebrew (RTL).
 
+A link can open the app in a given language with `?lng=en`, `?lng=ru` or `?lng=he` (for example
+`https://gimlai.app/?lng=he`). It applies to that visit only and does not replace the language the
+visitor saved; a language picked in the selector is saved as usual.
+
 ## Structure
 
 ```text
