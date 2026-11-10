@@ -89,7 +89,8 @@ describe("AppShell — home link and build info", () => {
   it("shows which version is deployed and when it was built", async () => {
     renderShell("/dashboard");
 
-    expect(await screen.findByText(/built \d{2}\/\d{2}\/\d{4} \d{2}:\d{2}/)).toBeInTheDocument();
+    // The date and time sit in a left-to-right isolate (U+2066 ... U+2069).
+    expect(await screen.findByText(/built \u2066\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}\u2069/)).toBeInTheDocument();
     expect(screen.getByText(/^Version [0-9a-f]{7}$|^Development build$/)).toBeInTheDocument();
   });
 });

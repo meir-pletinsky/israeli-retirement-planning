@@ -5,6 +5,9 @@ import { formatDate } from "../i18n/formatters";
 
 const REPO_URL = "https://github.com/meir-pletinsky/israeli-retirement-planning";
 
+/** Keeps the date and time together, left to right, inside right-to-left text. */
+const isolate = (text: string) => `\u2066${text}\u2069`;
+
 /** The date written like every other date, then "HH:mm", in the viewer's time zone. */
 function formatBuildTime(iso: string): string {
   const date = new Date(iso);
@@ -34,7 +37,7 @@ export function BuildInfo() {
       ) : (
         t("common.buildVersionUnknown")
       )}
-      {built && <span dir="ltr">{` \u00b7 ${t("common.buildTime", { time: built })}`}</span>}
+      {built && ` \u00b7 ${t("common.buildTime", { time: isolate(built) })}`}
     </p>
   );
 }
