@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import { buildTestProfile } from "../test/domainFixtures";
 import {
+  DEFAULT_INCOME_CAP_PCT,
   DEFAULT_PLANNING_HORIZON_AGE,
   DEFAULT_VOLATILITY_PCT,
   DEFAULT_WITHDRAWAL_STRATEGY,
   EMPTY_BITUACH_LEUMI,
   EMPTY_PROFILE,
   EMPTY_SPOUSE,
+  MAX_INCOME_CAP_PCT,
   PLANNING_HORIZON_AGES,
   WITHDRAWAL_STRATEGIES,
   createCoverPlan,
@@ -61,6 +63,24 @@ describe("normalizeProfile", () => {
     for (const age of PLANNING_HORIZON_AGES) {
       expect(withHorizon({ ...legacyAssumptions, planningHorizonAge: age })).toBe(age);
     }
+  });
+
+  it("allows 5% above spending for a profile saved before the cap was a setting, keeps a saved one and clamps the rest", () => {
+    const { incomeCapPct: _cap, ...legacyAssumptions } = EMPTY_PROFILE.assumptions;
+    const withCap = (incomeCapPct: unknown) =>
+      normalizeProfile({
+        assumptions: { ...legacyAssumptions, incomeCapPct },
+      } as unknown as Parameters<typeof normalizeProfile>[0]).assumptions.incomeCapPct;
+    expect(
+      normalizeProfile({ assumptions: legacyAssumptions } as unknown as Parameters<typeof normalizeProfile>[0])
+        .assumptions.incomeCapPct,
+    ).toBe(DEFAULT_INCOME_CAP_PCT);
+    expect(withCap(12)).toBe(12);
+    expect(withCap(0)).toBe(0);
+    expect(withCap(-4)).toBe(0);
+    expect(withCap(500)).toBe(MAX_INCOME_CAP_PCT);
+    expect(withCap("lots")).toBe(DEFAULT_INCOME_CAP_PCT);
+    expect(withCap(null)).toBe(DEFAULT_INCOME_CAP_PCT);
   });
 
   it("adds an empty spouse to a profile saved before couples were supported", () => {

@@ -21,8 +21,10 @@ import {
   OTHER_INVESTMENTS_SOURCE_ID,
   SECTION_102_SOURCE_ID,
   investmentParts,
+  type DepositTerms,
   type InvestmentPart,
   type RetirementSource,
+  type TaxTreatment,
 } from "./sources";
 import type { RetirementScenario } from "./types";
 
@@ -46,6 +48,25 @@ export type IncomeSourceOrigin =
   | { type: "holding"; company: string; ticker: string }
   | { type: "employerShares"; route: "section102" | "ordinaryIncome" | "nonTrustee" };
 
+/**
+ * What bears on drawing money from a source, as the plan holds it. The tax mix is what the
+ * projection applies; the currency and the deposit terms are shown for reference, because the
+ * projection grows every source at the household's one return.
+ */
+export interface WithdrawalFactors {
+  treatment: TaxTreatment;
+  /** The rate on the realised gain; meaningful for `capitalGains`. */
+  capitalGainsTaxRate: number;
+  /** The part of a withdrawal that is real gain, taxed at `capitalGainsTaxRate`. */
+  gainFraction: number;
+  /** The part of a withdrawal taxed as ordinary income. */
+  ordinaryFraction: number;
+  /** What the source is priced in: the dollar for shares, the shekel for everything else. */
+  currency: "ILS" | "USD";
+  /** The deposit's own terms; null for any other source. */
+  deposit: DepositTerms | null;
+}
+
 export interface IncomeSourceLine {
   /** Stable across years, so a source keeps its identity when the year changes. */
   key: string;
@@ -58,6 +79,8 @@ export interface IncomeSourceLine {
   monthly: number;
   /** What the source holds before this year's withdrawal; null for a payment. */
   balance: number | null;
+  /** What bears on drawing from the source; null for a payment. */
+  factors: WithdrawalFactors | null;
 }
 
 export type IdleReason =
@@ -85,6 +108,8 @@ export interface IncomeYearDetail {
   idle: IdleSource[];
   /** What the chart shows for the year, before tax. */
   total: number;
+  /** The planned spending the year has to fund, with the cost of survivors' cover; null on the sustainable basis. */
+  planned: number | null;
   /** The planned spending nobody pays; null on the sustainable basis. */
   unfunded: number | null;
 }
@@ -94,6 +119,7 @@ interface Part {
   /** The part's share of its source; the parts of a source add up to 1. */
   weight: number;
   suffix: string;
+  deposit: DepositTerms | null;
 }
 
 interface Slot {
@@ -108,6 +134,7 @@ interface YearPick {
   row: DrawdownYear;
   /** The row whose draw shares split the point's withdrawals. */
   shareRow: DrawdownYear;
+  planned: number | null;
 }
 
 interface Candidate {
@@ -118,6 +145,7 @@ interface Candidate {
   mode: IncomeSourceLine["mode"];
   raw: number;
   balance: number | null;
+  factors: WithdrawalFactors | null;
 }
 
 function pooledOrigin(part: InvestmentPart): IncomeSourceOrigin {
@@ -133,6 +161,9 @@ function pooledOrigin(part: InvestmentPart): IncomeSourceOrigin {
   }
 }
 
+const currencyOf = (origin: IncomeSourceOrigin): WithdrawalFactors["currency"] =>
+  origin.type === "holding" || origin.type === "employerShares" ? "USD" : "ILS";
+
 /**
  * The model draws the non-pension investments as one pool, pro rata, and every part of it earns
  * the same return, so each part's share of the pool is its share of the pool's value.
@@ -140,11 +171,12 @@ function pooledOrigin(part: InvestmentPart): IncomeSourceOrigin {
 function poolParts(profile: ProfileData, retirementAge: number): Part[] {
   const parts = investmentParts(profile, retirementAge);
   const total = parts.reduce((sum, part) => sum + part.value, 0);
-  if (total <= 0) return [{ origin: { type: "otherAssets" }, weight: 1, suffix: "" }];
+  if (total <= 0) return [{ origin: { type: "otherAssets" }, weight: 1, suffix: "", deposit: null }];
   return parts.map((part, index) => ({
     origin: pooledOrigin(part),
     weight: part.value / total,
     suffix: `:${index}`,
+    deposit: part.type === "bankDeposit" ? part.terms : null,
   }));
 }
 
@@ -171,7 +203,7 @@ function buildSlots(household: Household): Slot[] {
           productCategory: account?.productCategory ?? null,
         };
       }
-      return { memberIndex, owner, source, parts: [{ origin, weight: 1, suffix: "" }] };
+      return { memberIndex, owner, source, parts: [{ origin, weight: 1, suffix: "", deposit: null }] };
     }),
   );
 }
@@ -195,7 +227,7 @@ const rowsByAge = (rows: DrawdownYear[]) =>
 function yearDetail(
   household: Household,
   slots: Slot[],
-  { point, row, shareRow }: YearPick,
+  { point, row, shareRow, planned }: YearPick,
 ): IncomeYearDetail {
   const payments = new Map<string, Candidate[]>();
   const withdrawals = new Map<string, Candidate[]>();
@@ -208,7 +240,8 @@ function yearDetail(
 
   slots.forEach((slot, index) => {
     const holding = row.holdings[index];
-    const share = shareRow.holdings[index].capitalShare;
+    const shareHolding = shareRow.holdings[index];
+    const share = shareHolding.capitalShare;
     const band = BAND_FOR_KIND[slot.source.kind];
     for (const part of slot.parts) {
       const key = `${slot.owner}:${slot.source.id}${part.suffix}`;
@@ -221,6 +254,7 @@ function yearDetail(
           mode: "payment",
           raw: holding.annuityMonthly * part.weight,
           balance: null,
+          factors: null,
         });
         active.add(index);
       }
@@ -233,6 +267,14 @@ function yearDetail(
           mode: "withdrawal",
           raw: share * part.weight,
           balance: holding.balance * part.weight,
+          factors: {
+            treatment: shareHolding.treatment,
+            capitalGainsTaxRate: shareHolding.capitalGainsTaxRate,
+            gainFraction: shareHolding.gainFraction,
+            ordinaryFraction: shareHolding.ordinaryFraction,
+            currency: currencyOf(part.origin),
+            deposit: part.deposit,
+          },
         });
         active.add(index);
       }
@@ -264,6 +306,7 @@ function yearDetail(
           mode: "payment",
           raw: amount,
           balance: null,
+          factors: null,
         });
       } else if (scheduled > 0 && ownerAge < startAge) {
         idle.push({
@@ -316,6 +359,7 @@ function yearDetail(
       (a, b) => INCOME_BAND_KEYS.indexOf(a.band) - INCOME_BAND_KEYS.indexOf(b.band) || (b.balance ?? 0) - (a.balance ?? 0),
     ),
     total: INCOME_BAND_KEYS.reduce((sum, band) => sum + point[band], 0),
+    planned,
     unfunded: point.unfunded ?? null,
   };
 }
@@ -349,7 +393,7 @@ export function incomeYearDetails(
     const rows = rowsByAge(simulateHouseholdDrawdown(household, plan.monthlySpending));
     picks = plan.years.flatMap((point) => {
       const row = rows.get(point.age);
-      return row ? [{ point, row, shareRow: row }] : [];
+      return row ? [{ point, row, shareRow: row, planned: point.spending + point.cover }] : [];
     });
   } else {
     const run = runIncomeBreakdown(profile, timing);
@@ -357,7 +401,7 @@ export function incomeYearDetails(
     const rows = rowsByAge(run.rows);
     picks = run.points.flatMap((point, index) => {
       const row = rows.get(point.age);
-      return row ? [{ point, row, shareRow: run.shareRows[index] }] : [];
+      return row ? [{ point, row, shareRow: run.shareRows[index], planned: null }] : [];
     });
   }
 

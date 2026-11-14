@@ -1,4 +1,5 @@
 import type {
+  BankDepositRateType,
   PensionAccount,
   ProductCategory,
   ProfileData,
@@ -1068,10 +1069,19 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
   return sources;
 }
 
+/** What a bank deposit pays and how long, as the profile records it; shown beside the deposit, not used by the projection. */
+export interface DepositTerms {
+  rateType: BankDepositRateType | null;
+  annualInterestPct: number | null;
+  cpiLinked: boolean;
+  maturityDate: string | null;
+  autoRenew: boolean;
+}
+
 /** One piece of the non-pension investments source, as the profile lists it. */
 export type InvestmentPart =
   | { type: "otherAssets"; value: number }
-  | { type: "bankDeposit"; bankName: string; value: number }
+  | { type: "bankDeposit"; bankName: string; value: number; terms: DepositTerms }
   | { type: "holding"; company: string; ticker: string; value: number }
   | { type: "employerShares"; value: number };
 
@@ -1093,6 +1103,13 @@ export function investmentParts(profile: ProfileData, retirementAge: number): In
       type: "bankDeposit" as const,
       bankName: deposit.bankName,
       value: bankDepositValueIls(deposit, profile.assumptions.inflationPct, nowMs),
+      terms: {
+        rateType: deposit.rateType,
+        annualInterestPct: deposit.annualInterestRatePercent,
+        cpiLinked: deposit.cpiLinked,
+        maturityDate: deposit.maturityDate,
+        autoRenew: deposit.autoRenew,
+      },
     })),
     { type: "employerShares", value: equity.nonTrustee.value },
     ...equity.rest.map((holding) => ({

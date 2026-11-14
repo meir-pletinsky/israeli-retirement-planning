@@ -21,6 +21,7 @@ import {
   effectivePensionStartAge,
   evaluateWhatIf,
   hasDollarHoldings,
+  incomeSurplus,
   pensionStartOf,
   successPercent,
   whatIfNotes,
@@ -116,6 +117,13 @@ export function WhatIfPanel({ bandLabels }: WhatIfPanelProps) {
     : null;
 
   const basis: Basis = draftOutcome.cashFlow ? chosenBasis : "sustainable";
+  const surplus = useMemo(
+    () =>
+      basis === "planned" && draftOutcome.cashFlow
+        ? incomeSurplus(draftOutcome.cashFlow, draft.assumptions.incomeCapPct)
+        : null,
+    [basis, draftOutcome.cashFlow, draft.assumptions.incomeCapPct],
+  );
   const draftPoints = basis === "planned" && draftOutcome.cashFlow ? draftOutcome.cashFlow.years : draftOutcome.income;
   const planPoints = basis === "planned" ? planOutcome.cashFlow?.years : planOutcome.income;
   const takeaway =
@@ -157,7 +165,7 @@ export function WhatIfPanel({ bandLabels }: WhatIfPanelProps) {
     setApplied(true);
   };
 
-  const slider = (key: Exclude<WhatIfSliderKey, PensionStartKey>) => {
+  const slider = (key: Exclude<WhatIfSliderKey, PensionStartKey>, extraNotes: string[] = []) => {
     const current = values[key];
     const base = baseline[key];
     if (current === null || base === null) return null;
@@ -170,7 +178,7 @@ export function WhatIfPanel({ bandLabels }: WhatIfPanelProps) {
         range={ranges[key]}
         onChange={(next) => update({ [key]: next })}
         format={(amount) => format.value(key, amount)}
-        notes={noteTexts.filter((note) => note.slider === key).map((note) => note.text)}
+        notes={[...noteTexts.filter((note) => note.slider === key).map((note) => note.text), ...extraNotes]}
       />
     );
   };
@@ -222,6 +230,7 @@ export function WhatIfPanel({ bandLabels }: WhatIfPanelProps) {
         <fieldset className="flex flex-col gap-4">
           <legend className="mb-2 text-sm font-semibold text-slate-900">{t("whatIf.group.spending")}</legend>
           {slider("monthlySpending")}
+          {values.monthlySpending > 0 && slider("incomeCapPct", [t("whatIf.note.incomeCap")])}
         </fieldset>
 
         <fieldset className="flex flex-col gap-2">
@@ -299,6 +308,26 @@ export function WhatIfPanel({ bandLabels }: WhatIfPanelProps) {
                 })
               : t("whatIf.chart.noteSustainable")}
           </p>
+          {surplus?.peak && (
+            <div role="note" className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+              <p className="font-medium">
+                {surplus.years.length === 1
+                  ? t("whatIf.surplus.single", {
+                      age: isolate(String(surplus.peak.age)),
+                      cap: isolate(format.rate(surplus.capPct)),
+                      excess: isolate(format.money(surplus.peak.excess)),
+                    })
+                  : t("whatIf.surplus.range", {
+                      from: isolate(String(surplus.years[0].age)),
+                      to: isolate(String(surplus.years[surplus.years.length - 1].age)),
+                      cap: isolate(format.rate(surplus.capPct)),
+                      excess: isolate(format.money(surplus.peak.excess)),
+                      age: isolate(String(surplus.peak.age)),
+                    })}
+              </p>
+              <p className="mt-1 text-xs">{t("whatIf.surplus.why")}</p>
+            </div>
+          )}
           <ChartFrame
             takeaway={takeaway}
             table={<IncomeBreakdownTable points={draftPoints} labels={bandLabels} caption={chartName} />}

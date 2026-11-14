@@ -32,6 +32,7 @@ export function useWhatIfFormat() {
         return String(amount);
       case "investmentReturnPct":
       case "inflationPct":
+      case "incomeCapPct":
         return rate(amount);
       case "monthlySpending":
         return money(amount);

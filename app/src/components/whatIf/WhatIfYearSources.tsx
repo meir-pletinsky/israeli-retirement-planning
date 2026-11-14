@@ -1,17 +1,20 @@
 import clsx from "clsx";
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
   incomeYearDetails,
+  measureSurplus,
   type IdleSource,
   type IncomeBandKey,
   type IncomeBasis,
   type IncomeSourceLine,
   type IncomeSourceOrigin,
   type IncomeYearDetail,
+  type WithdrawalFactors,
 } from "../../domain";
-import type { ProfileData } from "../../types";
+import { formatDate } from "../../i18n/formatters";
+import type { ProfileData, WithdrawalStrategy } from "../../types";
 import { BandSwatch } from "../charts/BandSwatch";
 import { useWhatIfFormat } from "./useWhatIfFormat";
 
@@ -68,6 +71,51 @@ interface RowProps {
   bandLabel: string;
 }
 
+function FactorChip({ children }: { children: ReactNode }) {
+  return <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{children}</span>;
+}
+
+/** The tax, currency and deposit terms that bear on drawing from a source. */
+function FactorChips({ factors }: { factors: WithdrawalFactors }) {
+  const { t } = useTranslation();
+  const { rate } = useWhatIfFormat();
+  const percent = (fraction: number) => isolate(rate(fraction * 100));
+  const key = "whatIf.sources.factor";
+  const { treatment, gainFraction, ordinaryFraction, capitalGainsTaxRate, currency, deposit } = factors;
+
+  const chips: string[] = [];
+  if (treatment === "capitalGains") {
+    if (ordinaryFraction > 0) chips.push(t(`${key}.ordinaryShare`, { share: percent(ordinaryFraction) }));
+    if (gainFraction > 0) {
+      chips.push(t(`${key}.gains`, { rate: percent(capitalGainsTaxRate), share: percent(gainFraction) }));
+    } else if (ordinaryFraction <= 0) {
+      chips.push(t(`${key}.noGain`));
+    }
+  } else {
+    chips.push(t(`${key}.${treatment}`));
+  }
+  chips.push(t(`${key}.currency.${currency}`));
+  if (deposit) {
+    if (deposit.annualInterestPct !== null) {
+      chips.push(t(`${key}.deposit.rate.${deposit.rateType ?? "unknown"}`, { rate: isolate(rate(deposit.annualInterestPct)) }));
+    }
+    if (deposit.cpiLinked) chips.push(t(`${key}.deposit.cpiLinked`));
+    if (deposit.maturityDate) {
+      chips.push(
+        t(`${key}.deposit.${deposit.autoRenew ? "renews" : "matures"}`, { date: isolate(formatDate(deposit.maturityDate)) }),
+      );
+    }
+  }
+
+  return (
+    <span className="mt-1 flex flex-wrap gap-1">
+      {chips.map((chip) => (
+        <FactorChip key={chip}>{chip}</FactorChip>
+      ))}
+    </span>
+  );
+}
+
 function SourceRow({ line, couple, bandLabel }: RowProps) {
   const { t } = useTranslation();
   const { money } = useWhatIfFormat();
@@ -89,6 +137,7 @@ function SourceRow({ line, couple, bandLabel }: RowProps) {
           {name(line.origin)}
         </span>
         {details.length > 0 && <span className="block text-xs text-slate-500">{details.join(" · ")}</span>}
+        {line.factors && <FactorChips factors={line.factors} />}
       </span>
       <span className="shrink-0 text-sm font-medium tabular-nums text-slate-900">{isolate(money(line.monthly))}</span>
     </li>
@@ -128,11 +177,13 @@ function IdleRow({ source, couple, bandLabel }: { source: IdleSource; couple: bo
 
 function Group({
   title,
+  hint,
   lines,
   couple,
   bandLabels,
 }: {
   title: string;
+  hint?: string;
   lines: IncomeSourceLine[];
   couple: boolean;
   bandLabels: Record<IncomeBandKey, string>;
@@ -145,6 +196,7 @@ function Group({
         <span>{title}</span>
         <span className="tabular-nums">{isolate(money(subtotal))}</span>
       </h5>
+      {hint && <p className="pt-1 text-xs text-slate-500">{hint}</p>}
       <ul className="divide-y divide-slate-100">
         {lines.map((line) => (
           <SourceRow key={line.key} line={line} couple={couple} bandLabel={bandLabels[line.band]} />
@@ -154,13 +206,21 @@ function Group({
   );
 }
 
-function YearDetail({ year, bandLabels }: { year: IncomeYearDetail; bandLabels: Record<IncomeBandKey, string> }) {
+interface YearDetailProps {
+  year: IncomeYearDetail;
+  bandLabels: Record<IncomeBandKey, string>;
+  strategy: WithdrawalStrategy;
+  capPct: number;
+}
+
+function YearDetail({ year, bandLabels, strategy, capPct }: YearDetailProps) {
   const { t } = useTranslation();
-  const { money } = useWhatIfFormat();
+  const { money, signedMoney, rate } = useWhatIfFormat();
   const couple = year.spouseAge !== null;
   const payments = year.lines.filter((line) => line.mode === "payment");
   const withdrawals = year.lines.filter((line) => line.mode === "withdrawal");
   const unfunded = year.unfunded !== null && year.unfunded > 0 ? year.unfunded : null;
+  const surplus = year.planned === null ? null : measureSurplus(year.total, year.planned, capPct);
 
   return (
     <div className="flex flex-col gap-4">
@@ -172,7 +232,13 @@ function YearDetail({ year, bandLabels }: { year: IncomeYearDetail; bandLabels: 
             <Group title={t("projections.split.payments")} lines={payments} couple={couple} bandLabels={bandLabels} />
           )}
           {withdrawals.length > 0 && (
-            <Group title={t("projections.split.withdrawals")} lines={withdrawals} couple={couple} bandLabels={bandLabels} />
+            <Group
+              title={t("projections.split.withdrawals")}
+              hint={t("whatIf.sources.strategy", { name: t(`projections.withdrawal.strategy.${strategy}.name`) })}
+              lines={withdrawals}
+              couple={couple}
+              bandLabels={bandLabels}
+            />
           )}
         </>
       )}
@@ -182,6 +248,29 @@ function YearDetail({ year, bandLabels }: { year: IncomeYearDetail; bandLabels: 
           <dt>{t("whatIf.sources.total")}</dt>
           <dd className="tabular-nums">{isolate(money(year.total))}</dd>
         </div>
+        {year.planned !== null && (
+          <div className="flex items-baseline justify-between gap-3 text-slate-600">
+            <dt>{t("whatIf.sources.planned")}</dt>
+            <dd className="tabular-nums">{isolate(money(year.planned))}</dd>
+          </div>
+        )}
+        {surplus && surplus.excess > 0 && (
+          <div
+            className={clsx(
+              "flex items-baseline justify-between gap-3",
+              surplus.overCap ? "font-medium text-amber-800" : "text-slate-600",
+            )}
+          >
+            <dt>
+              {surplus.overCap
+                ? t("whatIf.sources.excessOverCap", { cap: isolate(rate(capPct)) })
+                : t("whatIf.sources.excess")}
+            </dt>
+            <dd className="tabular-nums">
+              {isolate(signedMoney(surplus.excess))} ({isolate(rate(surplus.excessPct))})
+            </dd>
+          </div>
+        )}
         {unfunded !== null && (
           <div className="flex items-baseline justify-between gap-3 text-amber-800">
             <dt>{t("whatIf.sources.unfunded")}</dt>
@@ -301,7 +390,12 @@ export function WhatIfYearSources({ draft, basis, bandLabels }: WhatIfYearSource
                       spouseAge: isolate(String(year.spouseAge)),
                     })}
               </h4>
-              <YearDetail year={year} bandLabels={bandLabels} />
+              <YearDetail
+                year={year}
+                bandLabels={bandLabels}
+                strategy={draft.assumptions.withdrawalStrategy}
+                capPct={draft.assumptions.incomeCapPct}
+              />
             </>
           )}
         </div>

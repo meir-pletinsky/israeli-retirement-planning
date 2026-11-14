@@ -45,6 +45,8 @@ export interface WhatIfValues {
   /** A one-off move in the dollar against the shekel, in percent. Never saved to the plan. */
   dollarChangePct: number;
   planningHorizonAge: PlanningHorizonAge;
+  /** How far a year's income may exceed the planned spending, in percent, before it is flagged. */
+  incomeCapPct: number;
 }
 
 export type WhatIfOverrides = Partial<WhatIfValues>;
@@ -67,6 +69,7 @@ export const PLAN_KEYS = [
   "investmentReturnPct",
   "inflationPct",
   "monthlySpending",
+  "incomeCapPct",
   "planningHorizonAge",
 ] as const satisfies readonly (keyof WhatIfValues)[];
 
@@ -81,6 +84,9 @@ export const isPensionStartKey = (key: WhatIfSliderKey): key is PensionStartKey 
 
 /** The latest start age the pension slider offers. */
 const PENSION_START_MAX_AGE = 70;
+
+/** The highest income cap the slider offers; the setting itself accepts more. */
+const INCOME_CAP_SLIDER_MAX = 25;
 
 /** The earliest age an annuity can start for someone who retires at `retirementAge`. */
 export const earliestPensionStartAge = (retirementAge: number) =>
@@ -108,6 +114,7 @@ export function baselineWhatIf(profile: ProfileData): WhatIfValues {
     sharesChangePct: 0,
     dollarChangePct: 0,
     planningHorizonAge: profile.assumptions.planningHorizonAge,
+    incomeCapPct: profile.assumptions.incomeCapPct,
   };
 }
 
@@ -170,6 +177,7 @@ export function whatIfRanges(
         : { min: 0, max: 30_000, step: 500 },
     sharesChangePct: { min: -50, max: 50, step: 5 },
     dollarChangePct: { min: -30, max: 30, step: 5 },
+    incomeCapPct: { min: 0, max: Math.max(INCOME_CAP_SLIDER_MAX, base.incomeCapPct), step: 1 },
   };
 }
 
@@ -278,6 +286,7 @@ export function applyWhatIf(profile: ProfileData, values: WhatIfValues): Profile
       investmentReturnPct: values.investmentReturnPct,
       inflationPct: values.inflationPct,
       planningHorizonAge: values.planningHorizonAge,
+      incomeCapPct: values.incomeCapPct,
     },
     expenses: withSpending(profile.expenses, values.monthlySpending),
     equity: {
@@ -350,7 +359,8 @@ export function whatIfMargin(profile: ProfileData): number {
   return Math.round(spending > 0 ? net - spending : net);
 }
 
-export type SensitivityKey = WhatIfSliderKey;
+/** The sliders whose result the sensitivity view can compare; the income cap flags years but moves no income. */
+export type SensitivityKey = Exclude<WhatIfSliderKey, "incomeCapPct">;
 
 export interface SensitivitySide {
   /** The value tested. */
@@ -369,7 +379,7 @@ export interface SensitivityRow {
 }
 
 /** The distance each parameter is moved either way. */
-export const SENSITIVITY_STEPS: Record<WhatIfSliderKey, number> = {
+export const SENSITIVITY_STEPS: Record<SensitivityKey, number> = {
   retirementAge: 2,
   spouseRetirementAge: 2,
   pensionStartAge: 2,

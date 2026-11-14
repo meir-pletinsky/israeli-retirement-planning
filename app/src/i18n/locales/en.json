@@ -965,6 +965,8 @@
         "horizon": "Plan to age",
         "horizonOption": "Age {{age}}",
         "horizonNote": "How long the plan assumes you live. A later age spreads your savings over more years, so the monthly income they can sustain is lower. Bituach Leumi and pension annuities are paid for life and carry on after it. For a couple, the plan runs until the younger of you reaches this age. The Projections page shows what each age changes.",
+        "incomeCap": "Income allowed above planned spending",
+        "incomeCapHelp": "The Projections page flags years in which your income goes more than this percentage above your planned spending. Withdrawals from savings are never larger than the gap your spending leaves.",
         "investmentReturn": "Investment return per year (before inflation)",
         "inflation": "Inflation per year",
         "volatility": "Market volatility per year",
@@ -1438,7 +1440,8 @@
       "monthlySpending": "Monthly spending in retirement",
       "sharesChangePct": "Share prices, one-off move",
       "dollarChangePct": "Dollar against the shekel, one-off move",
-      "planningHorizonAge": "Plan until age"
+      "planningHorizonAge": "Plan until age",
+      "incomeCapPct": "Income may exceed spending by"
     },
     "slider": {
       "backToPlan": "Back to {{value}}",
@@ -1449,7 +1452,8 @@
       "stateLater": "The Bituach Leumi pension starts only at age {{age}}.",
       "spouseLocked": "Your spouse's pension funds do not pay out before age {{age}}, so until then only other savings can cover your spending.",
       "noSpending": "No retirement spending is saved in your plan. Move the slider to test an amount.",
-      "pensionDelayed": "Annuities start at age {{age}}. Until then the balance keeps growing, but conversion factors are kept as entered and a monthly estimate you typed is used unchanged. Real factors usually fall with a later start, so waiting may pay more than shown."
+      "pensionDelayed": "Annuities start at age {{age}}. Until then the balance keeps growing, but conversion factors are kept as entered and a monthly estimate you typed is used unchanged. Real factors usually fall with a later start, so waiting may pay more than shown.",
+      "incomeCap": "Withdrawals from savings are already limited to what your spending needs. This limit flags the years in which pension payments and Bituach Leumi alone pay more than that."
     },
     "reset": "Reset to my plan",
     "apply": "Apply to my plan",
@@ -1475,6 +1479,11 @@
       "notePlanned": "Where the money comes from each year to pay your {{amount}} a month, before tax. The part nobody pays is shown as unfunded.",
       "noteSustainable": "What your savings can sustain each year to the end of the plan, before tax.",
       "baseline": "Your saved plan"
+    },
+    "surplus": {
+      "single": "At age {{age}} your income is more than {{cap}} above your spending, by {{excess}} a month.",
+      "range": "Between ages {{from}} and {{to}} your income goes more than {{cap}} above your spending, by up to {{excess}} a month at age {{age}}.",
+      "why": "Withdrawals from savings are already limited to the gap your spending leaves, so the excess comes from pension payments and Bituach Leumi. Those cannot be reduced. Moving a pension's start age changes which years it falls in."
     },
     "sources": {
       "toggle": "Where this year's income comes from",
@@ -1506,6 +1515,32 @@
       },
       "balance": "From a balance of {{amount}}",
       "total": "Total, before tax",
+      "planned": "Planned spending",
+      "excess": "Above planned spending",
+      "excessOverCap": "Above planned spending, over your {{cap}} limit",
+      "strategy": "Drawing order: {{name}}",
+      "factor": {
+        "exempt": "Tax-free",
+        "pension": "Taxed as pension income",
+        "ordinaryIncome": "Taxed as salary income",
+        "gains": "Gains tax {{rate}} on {{share}} of it",
+        "ordinaryShare": "{{share}} taxed as salary income",
+        "noGain": "No taxable gain",
+        "currency": {
+          "USD": "Priced in dollars",
+          "ILS": "In shekels"
+        },
+        "deposit": {
+          "rate": {
+            "fixed": "Fixed rate {{rate}}",
+            "variable": "Variable rate {{rate}}",
+            "unknown": "Rate {{rate}}"
+          },
+          "cpiLinked": "CPI-linked",
+          "matures": "Matures {{date}}",
+          "renews": "Renews {{date}}"
+        }
+      },
       "unfunded": "Not paid by any source",
       "idle": {
         "title": "Not paying this year",
@@ -1514,7 +1549,7 @@
         "startsLater": "Starts paying at age {{age}}",
         "notDrawn": "Not drawn on this year"
       },
-      "note": "Withdrawals are modelled amounts, not instructions to sell. Investments are drawn as one pool, so the split between cash, deposits and holdings follows their value.",
+      "note": "Withdrawals are modelled amounts, not instructions to sell. Investments are drawn as one pool, so the split between cash, deposits and holdings follows their value. The tax shown is what the plan applies. Interest, currency and indexation are shown for reference: the plan grows every source at the same yearly return.",
       "empty": "No income to show for this year."
     },
     "sensitivity": {

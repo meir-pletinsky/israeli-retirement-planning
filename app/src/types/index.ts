@@ -37,10 +37,16 @@ export interface Assumptions {
   withdrawalStrategy: WithdrawalStrategy;
   /** The age every result runs to; for a couple, the age the younger spouse reaches. */
   planningHorizonAge: PlanningHorizonAge;
+  /** How far a year's income may rise above the planned spending, in percent, before the plan flags it. */
+  incomeCapPct: number;
 }
 
 /** A typical mix of Israeli pension funds and global shares. */
 export const DEFAULT_VOLATILITY_PCT = 12;
+
+export const DEFAULT_INCOME_CAP_PCT = 5;
+
+export const MAX_INCOME_CAP_PCT = 100;
 
 /** The highest volatility the Monte Carlo accepts; beyond this, yearly returns stop being credible. */
 export const MAX_VOLATILITY_PCT = 50;
@@ -734,6 +740,7 @@ export const EMPTY_PROFILE: ProfileData = {
     volatilityPct: DEFAULT_VOLATILITY_PCT,
     withdrawalStrategy: DEFAULT_WITHDRAWAL_STRATEGY,
     planningHorizonAge: DEFAULT_PLANNING_HORIZON_AGE,
+    incomeCapPct: DEFAULT_INCOME_CAP_PCT,
   },
   comparisonAges: null,
 };
@@ -813,8 +820,8 @@ function normalizeExpenses(value: unknown): ExpensesData {
 }
 
 /**
- * Older profiles have no volatility, withdrawal order or planning horizon, and a hand-edited one
- * may hold text or an unknown value; all of those get the default.
+ * Older profiles have no volatility, withdrawal order, planning horizon or income cap, and a
+ * hand-edited one may hold text or an unknown value; all of those get the default.
  */
 function normalizeAssumptions(value: Partial<Assumptions> | undefined): Assumptions {
   const merged = { ...EMPTY_PROFILE.assumptions, ...value };
@@ -823,6 +830,10 @@ function normalizeAssumptions(value: Partial<Assumptions> | undefined): Assumpti
     volatilityPct: finiteOrNull(merged.volatilityPct) ?? DEFAULT_VOLATILITY_PCT,
     withdrawalStrategy: oneOf(WITHDRAWAL_STRATEGIES, merged.withdrawalStrategy, DEFAULT_WITHDRAWAL_STRATEGY),
     planningHorizonAge: oneOfNumbers(PLANNING_HORIZON_AGES, merged.planningHorizonAge, DEFAULT_PLANNING_HORIZON_AGE),
+    incomeCapPct: Math.min(
+      Math.max(finiteOrNull(merged.incomeCapPct) ?? DEFAULT_INCOME_CAP_PCT, 0),
+      MAX_INCOME_CAP_PCT,
+    ),
   };
 }
 

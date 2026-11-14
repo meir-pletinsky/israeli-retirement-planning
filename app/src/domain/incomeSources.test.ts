@@ -5,7 +5,7 @@ import { buildHousehold, resolveRetirementTiming } from "./household";
 import { INCOME_BAND_KEYS, recurringAmount, type IncomeBreakdownPoint } from "./incomeBreakdown";
 import { incomeYearDetails, type IncomeBasis, type IncomeYearDetail } from "./incomeSources";
 import { OTHER_INVESTMENTS_SOURCE_ID, investmentParts } from "./sources";
-import { evaluateWhatIf } from "./whatIf";
+import { evaluateWhatIf, applyWhatIf, baselineWhatIf } from "./whatIf";
 
 const ANNUITY = {
   hasGuaranteedFactor: true,
@@ -132,7 +132,98 @@ describe("incomeYearDetails", () => {
     const noSpending = buildTestProfile({ age: 55, retirementAge: 60, pensionBalances: [1_500_000] });
     expect(incomeYearDetails(noSpending, "planned")).toEqual(incomeYearDetails(noSpending, "sustainable"));
   });
+
+  it("carries the planned spending on the planned basis only", () => {
+    const years = evaluateWhatIf(couple).cashFlow!.years;
+    const planned = incomeYearDetails(couple, "planned");
+    expect(planned.map((detail) => detail.planned)).toEqual(years.map((year) => year.spending + year.cover));
+    expect(incomeYearDetails(couple, "sustainable").every((detail) => detail.planned === null)).toBe(true);
+  });
+
+  it("lists what bears on a withdrawal, and nothing on a payment", () => {
+    const profile = {
+      ...couple,
+      bankDeposits: [
+        {
+          ...couple.bankDeposits[0],
+          rateType: "variable" as const,
+          annualInterestRatePercent: 4,
+          cpiLinked: true,
+          maturityDate: "2030-01-01",
+          autoRenew: true,
+        },
+      ],
+    };
+    const lines = incomeYearDetails(profile, "planned").flatMap((detail) => detail.lines);
+    expect(lines.filter(({ mode }) => mode === "payment").every(({ factors }) => factors === null)).toBe(true);
+    const withdrawals = lines.filter(({ mode }) => mode === "withdrawal");
+    expect(withdrawals.length).toBeGreaterThan(0);
+    expect(withdrawals.every(({ factors }) => factors !== null)).toBe(true);
+
+    const originOf = (type: string) => withdrawals.find(({ origin }) => origin.type === type);
+    expect(originOf("bankDeposit")?.factors).toMatchObject({
+      currency: "ILS",
+      deposit: {
+        rateType: "variable",
+        annualInterestPct: 4,
+        cpiLinked: true,
+        maturityDate: "2030-01-01",
+        autoRenew: true,
+      },
+    });
+    expect(originOf("holding")?.factors).toMatchObject({ currency: "USD", deposit: null });
+    expect(originOf("otherAssets")?.factors).toMatchObject({ currency: "ILS", deposit: null });
+    expect(originOf("account")?.factors?.treatment).toBeDefined();
+  });
 });
+
+describe("incomeYearDetails with a later pension start", () => {
+  const ANNUITY_3K = { ...ANNUITY, estimatedMonthlyAnnuity: 3_000 };
+  const saved = buildTestProfile({
+    age: 55,
+    retirementAge: 60,
+    pensionBalances: [1_500_000, 1_000_000],
+    pensionAccountOverrides: [
+      { providerName: "Migdal", productCategory: "comprehensivePension", annuityParameters: ANNUITY },
+      { owner: "spouse", providerName: "Clal", productCategory: "comprehensivePension", annuityParameters: ANNUITY_3K },
+    ],
+    otherAssets: 2_000_000,
+    retirementMonthlyExpenses: 14_000,
+    maritalStatus: "married",
+    spouse: { age: 55, retirementAge: 60 },
+  });
+
+  const bridgeAt = (profile: typeof saved, age: number) => {
+    const detail = incomeYearDetails(profile, "planned").find((year) => year.age === age)!;
+    const drawn = detail.lines
+      .filter(({ mode }) => mode === "withdrawal")
+      .reduce((sum, line) => sum + line.monthly, 0);
+    const annuityOf = (owner: "self" | "spouse") =>
+      detail.lines.find(({ owner: lineOwner, mode, origin }) => lineOwner === owner && mode === "payment" && origin.type === "account")
+        ?.monthly ?? 0;
+    return { drawn, self: annuityOf("self"), spouse: annuityOf("spouse") };
+  };
+
+  it("draws more from savings in the years before the primary user's pension starts", () => {
+    const early = bridgeAt(saved, 62);
+    const late = bridgeAt(applyWhatIf(saved, { ...baselineWhatIf(saved), pensionStartAge: 66 }), 62);
+    expect(early.self).toBe(5_000);
+    expect(late.self).toBe(0);
+    expect(late.drawn - early.drawn).toBeGreaterThanOrEqual(4_990);
+    const after = bridgeAt(applyWhatIf(saved, { ...baselineWhatIf(saved), pensionStartAge: 66 }), 66);
+    expect(after.self).toBeGreaterThan(0);
+  });
+
+  it("does the same when only the partner's pension starts later", () => {
+    const early = bridgeAt(saved, 62);
+    const late = bridgeAt(applyWhatIf(saved, { ...baselineWhatIf(saved), spousePensionStartAge: 66 }), 62);
+    expect(early.spouse).toBe(3_000);
+    expect(late.spouse).toBe(0);
+    expect(late.self).toBe(early.self);
+    expect(late.drawn - early.drawn).toBeGreaterThanOrEqual(2_990);
+  });
+});
+
 
 describe("investmentParts", () => {
   it("adds up to the investments source balance", () => {

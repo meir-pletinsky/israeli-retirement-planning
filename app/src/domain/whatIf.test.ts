@@ -132,6 +132,14 @@ describe("applyWhatIf", () => {
     expect(derived.equity.usdToIlsRate).toBeCloseTo(3.96);
   });
 
+  it("changes how far income may exceed spending without moving any income", () => {
+    const base = baselineWhatIf(couple);
+    expect(base.incomeCapPct).toBe(5);
+    const derived = applyWhatIf(couple, { ...base, incomeCapPct: 12 });
+    expect(derived.assumptions.incomeCapPct).toBe(12);
+    expect(evaluateWhatIf(derived).netMonthlyIncome).toBe(evaluateWhatIf(couple).netMonthlyIncome);
+  });
+
   it("saves a pension start later than the earliest age, and null when it follows retirement", () => {
     const base = baselineWhatIf(annuitant);
     expect(base.pensionStartAge).toBeNull();
@@ -170,6 +178,12 @@ describe("whatIfRanges", () => {
     expect(whatIfRanges(odd).investmentReturnPct.min).toBe(0.3);
     expect(whatIfRanges(odd).inflationPct.max).toBe(7.9);
     expect(whatIfRanges(odd).retirementAge.min).toBe(50);
+  });
+
+  it("offers the income allowance from 0 to at least 25%, and wider when the saved one is larger", () => {
+    expect(whatIfRanges(couple).incomeCapPct).toEqual({ min: 0, max: 25, step: 1 });
+    const wide = { ...couple, assumptions: { ...couple.assumptions, incomeCapPct: 40 } };
+    expect(whatIfRanges(wide).incomeCapPct.max).toBe(40);
   });
 
   it("never lets the retirement age fall below today's age or the app's floor", () => {
@@ -243,6 +257,10 @@ describe("evaluateWhatIf", () => {
 describe("whatIfSensitivity", () => {
   const values = baselineWhatIf(couple);
   const rows = whatIfSensitivity(couple, values);
+
+  it("does not test the income allowance, which moves no income", () => {
+    expect(rows.map((row) => row.key)).not.toContain("incomeCapPct");
+  });
 
   it("covers the couple's own parameters, largest swing first", () => {
     expect(rows.map((row) => row.key)).toEqual(

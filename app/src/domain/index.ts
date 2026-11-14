@@ -22,6 +22,7 @@ export * from "./household";
 export * from "./incomeBreakdown";
 export * from "./incomeComposition";
 export * from "./incomeSources";
+export * from "./incomeSurplus";
 export * from "./inputGuidance";
 export * from "./leavingEarly";
 export * from "./liquidityLadder";

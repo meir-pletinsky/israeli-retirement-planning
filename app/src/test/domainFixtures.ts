@@ -278,6 +278,7 @@ export function buildTestProfile(overrides: {
       volatilityPct: volatilityPct ?? EMPTY_PROFILE.assumptions.volatilityPct,
       withdrawalStrategy: withdrawalStrategy ?? EMPTY_PROFILE.assumptions.withdrawalStrategy,
       planningHorizonAge: planningHorizonAge ?? EMPTY_PROFILE.assumptions.planningHorizonAge,
+      incomeCapPct: EMPTY_PROFILE.assumptions.incomeCapPct,
     },
     comparisonAges: comparisonAges ?? null,
     bankDeposits: bankDeposits.map(

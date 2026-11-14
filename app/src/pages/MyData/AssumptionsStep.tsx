@@ -8,6 +8,7 @@ import { matchingPreset, realAnnualReturnRate } from "../../domain/profileBasics
 import {
   ASSUMPTION_PRESET_KEYS,
   ASSUMPTION_PRESETS,
+  MAX_INCOME_CAP_PCT,
   MAX_VOLATILITY_PCT,
   PLANNING_HORIZON_AGES,
   type AssumptionPreset,
@@ -128,6 +129,20 @@ export function AssumptionsStep() {
         </div>
         <p className="mt-2 text-xs text-slate-500">{t("myData.steps.assumptions.horizonNote")}</p>
       </div>
+
+      <NumberField
+        label={t("myData.steps.assumptions.incomeCap")}
+        helperText={t("myData.steps.assumptions.incomeCapHelp")}
+        value={assumptions.incomeCapPct}
+        min={0}
+        max={MAX_INCOME_CAP_PCT}
+        onChange={(v) =>
+          updateProfile({
+            assumptions: { ...assumptions, incomeCapPct: Math.min(Math.max(v ?? 0, 0), MAX_INCOME_CAP_PCT) },
+          })
+        }
+        suffix="%"
+      />
 
       <button
         type="button"

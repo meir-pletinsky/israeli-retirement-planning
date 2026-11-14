@@ -62,11 +62,67 @@ async function renderPensionPanel() {
   return screen.findByLabelText("Your pension payments start at age");
 }
 
+async function renderSurplusPanel(monthlySpending: number) {
+  await saveProfileToDb(
+    buildTestProfile({
+      age: 50,
+      retirementAge: 62,
+      pensionBalances: [800_000],
+      pensionAccountOverrides: [
+        {
+          productCategory: "comprehensivePension",
+          annuityParameters: {
+            hasGuaranteedFactor: true,
+            conversionFactor: null,
+            estimatedMonthlyAnnuity: 5_000,
+            annuityTaxType: null,
+            guaranteedPaymentMonths: null,
+          },
+        },
+      ],
+      otherAssets: 300_000,
+      retirementMonthlyExpenses: monthlySpending,
+      investmentReturnPct: 4,
+      inflationPct: 2,
+    }),
+  );
+  await saveOnboardedToDb(true);
+  renderWithProviders(<WhatIfPanel bandLabels={bandLabels} />);
+  return screen.findByLabelText("Income may exceed spending by");
+}
+
 beforeEach(async () => {
   await clearAllData();
 });
 
 describe("WhatIfPanel", () => {
+  it("warns when pension payments alone pay more than the spending allows, until the allowance is raised", async () => {
+    const cap = await renderSurplusPanel(4_500);
+
+    expect(cap).toHaveValue("5");
+    expect(await screen.findByText(/your income (is|goes) more than/)).toBeInTheDocument();
+    expect(screen.getByText(/cannot be reduced/)).toBeInTheDocument();
+
+    fireEvent.change(cap, { target: { value: "25" } });
+    await waitFor(() => expect(screen.queryByText(/your income (is|goes) more than/)).not.toBeInTheDocument());
+  });
+
+  it("leaves the cap out when no spending is planned", async () => {
+    await renderPanel();
+
+    expect(screen.queryByLabelText("Income may exceed spending by")).not.toBeInTheDocument();
+  });
+
+  it("shows what bears on a withdrawal in the year's sources", async () => {
+    const user = userEvent.setup();
+    await renderSurplusPanel(8_000);
+    await user.click(screen.getByRole("button", { name: "Where this year's income comes from" }));
+
+    expect((await screen.findAllByText("Planned spending")).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Drawing order:/)).toBeInTheDocument();
+    expect((await screen.findAllByText("In shekels")).length).toBeGreaterThan(0);
+  });
+
   it("starts on the saved plan with nothing to apply", async () => {
     const slider = await renderPanel();
 
