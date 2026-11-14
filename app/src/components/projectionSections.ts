@@ -1,5 +1,6 @@
 /** The groups the Projections page is divided into, in page order. Each is a section-index link. */
 export const PROJECTION_SECTIONS = [
+  "whatIf",
   "overview",
   "income",
   "savings",

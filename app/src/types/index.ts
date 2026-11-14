@@ -65,6 +65,8 @@ export interface PersonalData {
   age: number | null;
   gender: Gender | null;
   retirementAge: number | null;
+  /** Age from which pension-fund and insurance annuities start to be paid; null = as early as they may. */
+  pensionStartAge: number | null;
   maritalStatus: MaritalStatus | null;
   /** Total personal tax credit points (Nekudot Zikui); null = the default for the user's gender. */
   creditPoints: number | null;
@@ -668,6 +670,8 @@ export interface SpouseData {
   age: number | null;
   gender: Gender | null;
   retirementAge: number | null;
+  /** The spouse's pension start age; null = as early as their annuities may start. */
+  pensionStartAge: number | null;
   /** Gross monthly salary in today's money; basis for the spouse's own account contributions. */
   monthlyGrossSalary: number | null;
   /** The spouse's own tax credit points; null = the default for their gender. */
@@ -681,6 +685,7 @@ export const EMPTY_SPOUSE: SpouseData = {
   age: null,
   gender: null,
   retirementAge: null,
+  pensionStartAge: null,
   monthlyGrossSalary: null,
   creditPoints: null,
   bituachLeumi: { ...EMPTY_BITUACH_LEUMI },
@@ -706,6 +711,7 @@ export const EMPTY_PROFILE: ProfileData = {
     age: null,
     gender: null,
     retirementAge: null,
+    pensionStartAge: null,
     maritalStatus: null,
     creditPoints: null,
     monthlyGrossSalary: null,
@@ -841,11 +847,13 @@ export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined
     personal: {
       ...EMPTY_PROFILE.personal,
       ...parsed?.personal,
+      pensionStartAge: finiteOrNull(parsed?.personal?.pensionStartAge),
       coverPlan: normalizeCoverPlan(parsed?.personal?.coverPlan),
     },
     spouse: {
       ...EMPTY_SPOUSE,
       ...parsed?.spouse,
+      pensionStartAge: finiteOrNull(parsed?.spouse?.pensionStartAge),
       bituachLeumi: { ...EMPTY_BITUACH_LEUMI, ...parsed?.spouse?.bituachLeumi },
       coverPlan: normalizeCoverPlan(parsed?.spouse?.coverPlan),
     },

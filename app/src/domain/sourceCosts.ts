@@ -134,6 +134,7 @@ function buildRow(
         mix.map(({ weight, holding: h }) => ({ weight, value: h.capitalGainsTaxRate })),
       ),
       annuityMonthly: 0,
+      balance: mix.reduce((sum, { holding: h }) => sum + h.balance, 0),
       capitalShare: 0,
       gainFraction: weightedAverage(
         mix.map(({ weight, holding: h }) => ({ weight, value: h.gainFraction })),

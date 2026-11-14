@@ -6,7 +6,7 @@ import type {
   TaxTrack,
 } from "../types";
 import { ACCESS_RULES } from "./accessRules";
-import { aggregateBankDepositsBalance } from "./bankDeposits";
+import { aggregateBankDepositsBalance, bankDepositValueIls } from "./bankDeposits";
 import { DEFAULT_CURRENT_AGE } from "./constants";
 import {
   contributionSalaryBase,
@@ -488,6 +488,14 @@ interface AccountTraceRefs {
   field: (name: string) => string;
 }
 
+/** Whether an account would pay a lifelong annuity that the owner can start later than the earliest age. */
+export function startsAnnuityByChoice(account: PensionAccount): boolean {
+  if (account.productCategory === null || lacksAnnuityInputs(account)) return false;
+  const gemelAnnuity = takesGemelAnnuity(account);
+  if (!canAnnuitize(sourceKindForCategory(account.productCategory), gemelAnnuity)) return false;
+  return account.accountStatus !== "payingAnnuity" || gemelAnnuity;
+}
+
 function buildAnnuity(
   account: PensionAccount,
   kind: SourceKind,
@@ -495,6 +503,7 @@ function buildAnnuity(
   retirementAge: number,
   valueAtRetirement: number,
   rate: number,
+  chosenStartAge: number | null,
   refs: AccountTraceRefs | null,
 ): SourceAnnuity | null {
   const gemelAnnuity = takesGemelAnnuity(account);
@@ -514,41 +523,56 @@ function buildAnnuity(
   // regardless of the product's earliest-access age. An investment provident
   // fund never starts before 60: that is when the money can move to a paying fund.
   const paying = account.accountStatus === "payingAnnuity" && !gemelAnnuity;
-  const startAge = gemelAnnuity
+  const earliestStartAge = gemelAnnuity
     ? Math.max(retirementAge, ACCESS_RULES.investmentGemelAnnuityAge)
     : paying
       ? retirementAge
       : Math.max(retirementAge, unlockAge);
-  const startAgeId = recordStep("annuityStartAge", (): TraceStepBody =>
-    gemelAnnuity
-      ? {
-          title: "Age the annuity starts",
-          formula:
-            "investment provident fund taken as an annuity: the later of the retirement age and the earliest age it can move to a paying fund",
-          expr: "max(retirementAge, investmentGemelAnnuityAge)",
-          inputs: {
-            retirementAge: input(retirementAge, fromStep(refs?.retirementAge ?? "")),
-            investmentGemelAnnuityAge: input(
-              ACCESS_RULES.investmentGemelAnnuityAge,
-              fromConst("ACCESS_RULES.investmentGemelAnnuityAge"),
-            ),
-            lifeAnnuityFrom60: input(true, refs?.field("lifeAnnuityFrom60") ?? ""),
-          },
-          output: startAge,
-        }
-      : {
-          title: "Age the annuity starts",
-          formula: paying
-            ? "an account already paying an annuity pays from the retirement age"
-            : "the later of the retirement age and the earliest access age",
-          expr: paying ? "retirementAge" : "max(retirementAge, unlockAge)",
-          inputs: {
-            retirementAge: input(retirementAge, fromStep(refs?.retirementAge ?? "")),
-            ...(paying ? {} : { unlockAge: input(unlockAge, fromStep(refs?.unlockAge ?? "")) }),
-          },
-          output: startAge,
+  // The owner may start later, never earlier; an account that already pays has started.
+  const chosen = paying ? null : chosenStartAge;
+  const startAge = Math.max(earliestStartAge, chosen ?? 0);
+  const startAgeId = recordStep("annuityStartAge", (): TraceStepBody => {
+    const chosenInput = (expr: string) =>
+      chosen === null
+        ? {}
+        : {
+            expr: `max(${expr}, pensionStartAge)`,
+            inputs: { pensionStartAge: input(chosen, fromProfile("personal.pensionStartAge")) },
+          };
+    const chosenFormula = chosen === null ? "" : ", or the pension start age the user chose if that is later";
+    if (gemelAnnuity) {
+      const pick = chosenInput("retirementAge, investmentGemelAnnuityAge");
+      return {
+        title: "Age the annuity starts",
+        formula: `investment provident fund taken as an annuity: the later of the retirement age and the earliest age it can move to a paying fund${chosenFormula}`,
+        expr: pick.expr ?? "max(retirementAge, investmentGemelAnnuityAge)",
+        inputs: {
+          retirementAge: input(retirementAge, fromStep(refs?.retirementAge ?? "")),
+          investmentGemelAnnuityAge: input(
+            ACCESS_RULES.investmentGemelAnnuityAge,
+            fromConst("ACCESS_RULES.investmentGemelAnnuityAge"),
+          ),
+          lifeAnnuityFrom60: input(true, refs?.field("lifeAnnuityFrom60") ?? ""),
+          ...pick.inputs,
         },
-  );
+        output: startAge,
+      };
+    }
+    const pick = chosenInput("retirementAge, unlockAge");
+    return {
+      title: "Age the annuity starts",
+      formula: paying
+        ? "an account already paying an annuity pays from the retirement age"
+        : `the later of the retirement age and the earliest access age${chosenFormula}`,
+      expr: paying ? "retirementAge" : (pick.expr ?? "max(retirementAge, unlockAge)"),
+      inputs: {
+        retirementAge: input(retirementAge, fromStep(refs?.retirementAge ?? "")),
+        ...(paying ? {} : { unlockAge: input(unlockAge, fromStep(refs?.unlockAge ?? "")) }),
+        ...pick.inputs,
+      },
+      output: startAge,
+    };
+  });
   const annuityNote = gemelAnnuity ? GEMEL_ANNUITY_NOTE : undefined;
 
   if (estimatedMonthlyAnnuity !== null && estimatedMonthlyAnnuity > 0) {
@@ -904,7 +928,16 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
         monthlyContribution,
         unlockAge,
         valueAtRetirement,
-        annuity: buildAnnuity(account, kind, unlockAge, retirementAge, valueAtRetirement, rate, refs),
+        annuity: buildAnnuity(
+          account,
+          kind,
+          unlockAge,
+          retirementAge,
+          valueAtRetirement,
+          rate,
+          profile.personal.pensionStartAge,
+          refs,
+        ),
         taxTreatment: taxTreatmentForCategory(account.productCategory),
         costBasis: balance,
         ordinaryLayer: 0,
@@ -1033,6 +1066,43 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
   }));
 
   return sources;
+}
+
+/** One piece of the non-pension investments source, as the profile lists it. */
+export type InvestmentPart =
+  | { type: "otherAssets"; value: number }
+  | { type: "bankDeposit"; bankName: string; value: number }
+  | { type: "holding"; company: string; ticker: string; value: number }
+  | { type: "employerShares"; value: number };
+
+/**
+ * What the non-pension investments source (`OTHER_INVESTMENTS_SOURCE_ID`) is made of for a person
+ * retiring at `retirementAge`: the pieces `buildSources` adds up, so their values sum to its
+ * balance. Employer shares taxed another way have their own sources and are not listed here;
+ * Section 3(i) shares are one piece.
+ */
+export function investmentParts(profile: ProfileData, retirementAge: number): InvestmentPart[] {
+  const years = Math.max(retirementAge - resolveCurrentAge(profile), 0);
+  const fxRate = usdToIlsRate(profile);
+  const nowMs = engineNowMs();
+  const equity = splitEquityByTaxRoute(profile, years);
+
+  const parts: InvestmentPart[] = [
+    { type: "otherAssets", value: profile.pensionSavings.otherAssets ?? 0 },
+    ...profile.bankDeposits.map((deposit) => ({
+      type: "bankDeposit" as const,
+      bankName: deposit.bankName,
+      value: bankDepositValueIls(deposit, profile.assumptions.inflationPct, nowMs),
+    })),
+    { type: "employerShares", value: equity.nonTrustee.value },
+    ...equity.rest.map((holding) => ({
+      type: "holding" as const,
+      company: holding.companyName,
+      ticker: holding.tickerSymbol,
+      value: holdingValueIls(holding, fxRate),
+    })),
+  ];
+  return parts.filter((part) => part.value > 0);
 }
 
 /** Records how the non-pension investments bucket's balance, cost basis and tax rate are made up. Returns the balance step's id. */

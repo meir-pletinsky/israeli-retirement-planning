@@ -119,6 +119,7 @@ export function spouseProfileView(profile: ProfileData): ProfileData {
       age: spouse.age,
       gender: spouse.gender,
       retirementAge: spouse.retirementAge,
+      pensionStartAge: spouse.pensionStartAge,
       monthlyGrossSalary: spouse.monthlyGrossSalary,
       creditPoints: spouse.creditPoints,
       coverPlan: spouse.coverPlan,

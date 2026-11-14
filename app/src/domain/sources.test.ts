@@ -245,6 +245,55 @@ describe("buildSources", () => {
       expect(source.annuity).toEqual({ monthly: 4200, startAge: 55, origin: "override" });
     });
 
+    describe("a chosen pension start age", () => {
+      const factor200 = {
+        hasGuaranteedFactor: true,
+        conversionFactor: 200,
+        estimatedMonthlyAnnuity: null,
+        annuityTaxType: null,
+        guaranteedPaymentMonths: null,
+      };
+      const withStart = (
+        chosen: number | null,
+        overrides: Partial<PensionAccount> = { annuityParameters: factor200 },
+        investmentReturnPct = 4,
+      ) => {
+        const profile = buildTestProfile({
+          age: 55,
+          retirementAge: 55,
+          pensionBalances: [1_000_000],
+          pensionAccountOverrides: [{ productCategory: "managersInsurance", ...overrides }],
+          investmentReturnPct,
+          inflationPct: 0,
+        });
+        return buildSources({ ...profile, personal: { ...profile.personal, pensionStartAge: chosen } }, 55)[0];
+      };
+
+      it("delays the annuity and lets the balance keep growing until then", () => {
+        const early = withStart(null, undefined, 5);
+        const later = withStart(65, undefined, 5);
+        expect(early.annuity?.startAge).toBe(60);
+        expect(later.annuity?.startAge).toBe(65);
+        expect(later.annuity!.monthly / early.annuity!.monthly).toBeCloseTo(1.05 ** 5, 6);
+      });
+
+      it("never starts before the account unlocks or the person retires", () => {
+        expect(withStart(57).annuity?.startAge).toBe(60);
+        expect(withStart(60).annuity).toEqual(withStart(null).annuity);
+      });
+
+      it("uses a typed estimate as it is, at the chosen age", () => {
+        const source = withStart(65, { annuityParameters: { ...factor200, estimatedMonthlyAnnuity: 4200 } });
+        expect(source.annuity).toEqual({ monthly: 4200, startAge: 65, origin: "override" });
+      });
+
+      it("leaves an account that already pays unchanged", () => {
+        const paying = { accountStatus: "payingAnnuity" as const, annuityParameters: factor200 };
+        expect(withStart(65, paying).annuity).toEqual(withStart(null, paying).annuity);
+        expect(withStart(65, paying).annuity?.startAge).toBe(55);
+      });
+    });
+
     it("never annuitizes a study fund", () => {
       const source = managersInsurance({
         productCategory: "studyFund",

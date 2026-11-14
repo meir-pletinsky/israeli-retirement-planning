@@ -269,6 +269,7 @@ const SPOUSE_VIEW_PERSONAL_FIELDS = new Set([
   "age",
   "gender",
   "retirementAge",
+  "pensionStartAge",
   "monthlyGrossSalary",
   "creditPoints",
   "coverPlan",

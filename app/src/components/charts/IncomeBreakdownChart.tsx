@@ -1,8 +1,9 @@
 import { useId } from "react";
 import {
   Bar,
-  BarChart,
   CartesianGrid,
+  ComposedChart,
+  Line,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -48,6 +49,8 @@ interface IncomeBreakdownChartProps {
   planned?: { monthly: number; label: string };
   /** Names the part of the spending nobody pays; stacked on top when any point has `unfunded`. */
   unfundedLabel?: string;
+  /** A faint line at another set of totals, such as the saved plan behind a what-if draft. */
+  baseline?: { data: IncomeBreakdownPoint[]; label: string };
 }
 
 interface Series {
@@ -59,6 +62,19 @@ interface Series {
 
 const withdrawalKey = (band: IncomeBandKey) => `${band}Withdrawn`;
 const UNFUNDED_KEY = "unfunded";
+const BASELINE_KEY = "baselineTotal";
+
+const totalOf = (point: IncomeBreakdownPoint) => INCOME_BAND_KEYS.reduce((sum, band) => sum + point[band], 0);
+
+/** Legend mark of the baseline line. */
+function BaselineSwatch() {
+  return (
+    <svg aria-hidden="true" width={18} height={10} className="shrink-0">
+      <line x1={0} y1={5} x2={18} y2={5} stroke={CHART_COLORS.total} strokeWidth={2} strokeOpacity={0.55} />
+      <circle cx={9} cy={5} r={2.5} fill={CHART_COLORS.total} fillOpacity={0.55} />
+    </svg>
+  );
+}
 
 /** Legend square of the unfunded part: crosshatched in the shortfall red, unlike the withdrawals' single hatch. */
 function UnfundedSwatch() {
@@ -91,6 +107,7 @@ export function IncomeBreakdownChart({
   texts,
   planned,
   unfundedLabel,
+  baseline,
 }: IncomeBreakdownChartProps) {
   const chartTexts = useChartTexts();
   const patternPrefix = useId().replace(/:/g, "");
@@ -119,13 +136,21 @@ export function IncomeBreakdownChart({
   // and what nobody pays on top.
   const series = [...payments, ...withdrawals, ...unfunded];
 
-  const rows = data.map((point) => {
-    const row: Record<string, number> = { age: point.age };
+  // With a baseline the axis covers the ages of both, so the line is not cut off where the bars stop.
+  const pointByAge = new Map(data.map((point) => [point.age, point]));
+  const baselineByAge = new Map(baseline?.data.map((point) => [point.age, totalOf(point)]));
+  const ages = baseline
+    ? [...new Set([...pointByAge.keys(), ...baselineByAge.keys()])].sort((a, b) => a - b)
+    : data.map((point) => point.age);
+  const rows = ages.map((age) => {
+    const point = pointByAge.get(age);
+    const row: Record<string, number | undefined> = { age };
     for (const band of INCOME_BAND_KEYS) {
-      row[band] = recurringAmount(point, band);
-      row[withdrawalKey(band)] = point.withdrawn[band];
+      row[band] = point ? recurringAmount(point, band) : 0;
+      row[withdrawalKey(band)] = point?.withdrawn[band] ?? 0;
     }
-    row[UNFUNDED_KEY] = point.unfunded ?? 0;
+    row[UNFUNDED_KEY] = point?.unfunded ?? 0;
+    if (baseline) row[BASELINE_KEY] = baselineByAge.get(age);
     return row;
   });
 
@@ -141,7 +166,7 @@ export function IncomeBreakdownChart({
   return (
     <div>
       <ResponsiveContainer width="100%" height={280}>
-        <BarChart data={rows} margin={{ top: 8, right: 8, left: 8, bottom: 0 }} {...chartA11y(name, description)}>
+        <ComposedChart data={rows} margin={{ top: 8, right: 8, left: 8, bottom: 0 }} {...chartA11y(name, description)}>
           <defs>
             {withdrawals.map(({ band }) => (
               <pattern
@@ -174,6 +199,7 @@ export function IncomeBreakdownChart({
                 money={money}
                 totalLabel={texts.total}
                 ageHeading={chartTexts.ageHeading}
+                baselineLabel={baseline?.label}
               />
             )}
           />
@@ -200,6 +226,19 @@ export function IncomeBreakdownChart({
               radius={index === series.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
             />
           ))}
+          {baseline && (
+            <Line
+              dataKey={BASELINE_KEY}
+              name={baseline.label}
+              type="linear"
+              stroke={CHART_COLORS.total}
+              strokeOpacity={0.55}
+              strokeWidth={2}
+              dot={{ r: 2.5, fill: CHART_COLORS.total, fillOpacity: 0.55, strokeWidth: 0 }}
+              activeDot={false}
+              isAnimationActive={false}
+            />
+          )}
           {planned && (
             <ReferenceLine
               y={planned.monthly}
@@ -209,7 +248,7 @@ export function IncomeBreakdownChart({
               label={{ value: planned.label, position: "insideTopRight", fontSize: 13, fill: CHART_COLORS.planned }}
             />
           )}
-        </BarChart>
+        </ComposedChart>
       </ResponsiveContainer>
       <div className="mt-2 flex flex-col gap-2 text-xs text-slate-700">
         {legendGroups.map((group) => (
@@ -225,8 +264,14 @@ export function IncomeBreakdownChart({
             </ul>
           </div>
         ))}
-        {(unfunded.length > 0 || planned) && (
+        {(unfunded.length > 0 || planned || baseline) && (
           <ul className="flex flex-wrap gap-x-4 gap-y-1">
+            {baseline && (
+              <li className="flex items-center gap-1.5">
+                <BaselineSwatch />
+                <span>{baseline.label}</span>
+              </li>
+            )}
             {planned && (
               <li className="flex items-center gap-1.5">
                 <svg aria-hidden="true" width={18} height={10} className="shrink-0">
@@ -261,10 +306,20 @@ interface IncomeTooltipProps extends TooltipContentProps {
   money: (value: number) => string;
   totalLabel: string;
   ageHeading: (age: unknown) => string;
+  baselineLabel?: string;
 }
 
 /** Lists only the sources that pay at this age, so unused categories do not pad the tooltip. */
-function IncomeTooltip({ active, payload, label, series, money, totalLabel, ageHeading }: IncomeTooltipProps) {
+function IncomeTooltip({
+  active,
+  payload,
+  label,
+  series,
+  money,
+  totalLabel,
+  ageHeading,
+  baselineLabel,
+}: IncomeTooltipProps) {
   if (!active || !payload?.length) return null;
   const entries = series
     .map((entry) => ({
@@ -275,6 +330,7 @@ function IncomeTooltip({ active, payload, label, series, money, totalLabel, ageH
   const income = entries.filter(({ entry }) => entry.kind !== "unfunded");
   const unfunded = entries.find(({ entry }) => entry.kind === "unfunded");
   const total = income.reduce((sum, { value }) => sum + value, 0);
+  const baselineValue = payload.find((item) => item.dataKey === BASELINE_KEY)?.value;
   return (
     <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs shadow-sm">
       <p className="mb-1 font-medium text-slate-800">{ageHeading(label)}</p>
@@ -291,6 +347,13 @@ function IncomeTooltip({ active, payload, label, series, money, totalLabel, ageH
         <span>{totalLabel}</span>
         <span className="ms-auto ps-3 tabular-nums">{money(total)}</span>
       </p>
+      {baselineLabel && baselineValue != null && (
+        <p className="mt-1 flex items-center gap-1.5 text-slate-600">
+          <BaselineSwatch />
+          <span>{baselineLabel}</span>
+          <span className="ms-auto ps-3 tabular-nums">{money(Number(baselineValue))}</span>
+        </p>
+      )}
       {unfunded && (
         <p className="mt-1 flex items-center gap-1.5 font-medium" style={{ color: CHART_COLORS.shortfall }}>
           <SeriesSwatch entry={unfunded.entry} />

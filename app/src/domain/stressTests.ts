@@ -71,7 +71,7 @@ export function isEmployerStock(holding: StockHolding): boolean {
  * its gain in dollars, so that gain falls by the same dollars per share and the tax follows;
  * lots and employer grants work the gain out from the price, so they need no change.
  */
-function withPriceDrop(holding: StockHolding, dropPct: number): StockHolding {
+export function withPriceDrop(holding: StockHolding, dropPct: number): StockHolding {
   const price = holding.currentMarketPriceUSD;
   if (typeof price !== "number" || price <= 0) return holding;
   const lostPerShare = price * (dropPct / 100);

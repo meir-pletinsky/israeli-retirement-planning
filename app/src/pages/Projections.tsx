@@ -37,6 +37,7 @@ import { SourceCostCard } from "../components/SourceCostCard";
 import { StressTestCard } from "../components/StressTestCard";
 import { UnvestedSharesCard } from "../components/UnvestedSharesCard";
 import { useRetirementFeasibility } from "../components/useRetirementFeasibility";
+import { WhatIfPanel } from "../components/whatIf/WhatIfPanel";
 import { WithdrawalStrategyCard } from "../components/WithdrawalStrategyCard";
 import {
   MAX_RETIREMENT_SEARCH_AGE,
@@ -155,6 +156,7 @@ export function Projections() {
   };
 
   const showSection: Record<ProjectionSection, boolean> = {
+    whatIf: true,
     overview: true,
     income: true,
     savings: ladder.rungs.length > 0 || leavingEarly !== null,
@@ -183,6 +185,10 @@ export function Projections() {
         isCouple={isCouple}
         sections={sections}
       />
+
+      <ProjectionSectionGroup section="whatIf">
+        <WhatIfPanel bandLabels={bandLabels} />
+      </ProjectionSectionGroup>
 
       <ProjectionSectionGroup section="overview">
         <div className="card">

@@ -1,6 +1,11 @@
 import type { ProfileData } from "../types";
-import { simulateHouseholdDrawdown } from "./drawdown";
-import { buildHousehold, resolveRetirementTiming, type RetirementTiming } from "./household";
+import { simulateHouseholdDrawdown, type DrawdownYear } from "./drawdown";
+import {
+  buildHousehold,
+  resolveRetirementTiming,
+  type Household,
+  type RetirementTiming,
+} from "./household";
 import { estimateHouseholdRetirementIncome } from "./retirementIncome";
 import { SOURCE_KINDS, type SourceKind } from "./sources";
 import type { RetirementScenario } from "./types";
@@ -81,19 +86,36 @@ export function estimateIncomeBreakdownForTiming(
   profile: ProfileData,
   timing: RetirementTiming,
 ): IncomeBreakdownPoint[] {
+  return runIncomeBreakdown(profile, timing).points;
+}
+
+/** The sustainable income by age together with the simulation it was cut from, so a year can be traced to its sources. */
+export interface IncomeBreakdownRun {
+  household: Household;
+  /** The year-by-year simulation at the sustainable income. */
+  rows: DrawdownYear[];
+  points: IncomeBreakdownPoint[];
+  /** For each point, the row whose holdings split its withdrawals: its own, or the last one before it that had capital. */
+  shareRows: DrawdownYear[];
+}
+
+export function runIncomeBreakdown(profile: ProfileData, timing: RetirementTiming): IncomeBreakdownRun {
   const household = buildHousehold(profile, timing);
   const { monthlyIncomeTodayMoney } = estimateHouseholdRetirementIncome(household);
   const rows = simulateHouseholdDrawdown(household, monthlyIncomeTodayMoney);
 
   const points: IncomeBreakdownPoint[] = [];
+  const shareRows: DrawdownYear[] = [];
   // When all unlocked capital has been used up (the last year of a fully
   // amortized plan) keep showing the previous mix rather than an empty bar.
-  let lastShares = rows[0].capitalShare;
+  let lastRow = rows[0];
   for (let index = Math.ceil(household.retirementYears); index < rows.length; index += 1) {
     const row = rows[index];
     const hasCapital = SOURCE_KINDS.some((kind) => row.capitalShare[kind] > 0);
-    const shares = hasCapital ? row.capitalShare : lastShares;
-    lastShares = shares;
+    const shareRow = hasCapital ? row : lastRow;
+    const shares = shareRow.capitalShare;
+    lastRow = shareRow;
+    shareRows.push(shareRow);
 
     const point: IncomeBreakdownPoint = {
       age: row.age,
@@ -135,7 +157,7 @@ export function estimateIncomeBreakdownForTiming(
     }
     points.push(point);
   }
-  return points;
+  return { household, rows, points, shareRows };
 }
 
 /** `estimateIncomeBreakdownForTiming` at the retirement ages implied by `scenario`. */

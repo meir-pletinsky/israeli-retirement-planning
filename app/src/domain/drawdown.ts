@@ -46,6 +46,8 @@ export interface DrawdownHolding {
   capitalGainsTaxRate: number;
   /** Fixed monthly annuity the source pays at this age, in today's money; 0 when none. */
   annuityMonthly: number;
+  /** What the source holds before this year's draw, in today's money; 0 once its annuity has started. */
+  balance: number;
   /**
    * This source's share of the year's draw from savings. Pro rata (and in any year with no draw)
    * it is its share of the spendable capital before the withdrawal; under an ordered strategy, in
@@ -60,6 +62,23 @@ export interface DrawdownHolding {
    * `ordinaryIncome` source.
    */
   ordinaryFraction: number;
+}
+
+/** What a member's Bituach Leumi pays each month `years` from now: their pension and the spouse supplement, in today's money. */
+export function bituachLeumiPaymentsAt(
+  member: HouseholdMember,
+  years: number,
+): { pension: number; supplement: number } {
+  const age = member.currentAge + years;
+  const { claimAge, monthlyPension, spouseSupplement } = member.bituachLeumi;
+  const supplementPaid =
+    spouseSupplement !== null &&
+    age >= spouseSupplement.startAge &&
+    (spouseSupplement.endAge === null || age < spouseSupplement.endAge);
+  return {
+    pension: age >= claimAge ? monthlyPension : 0,
+    supplement: supplementPaid ? spouseSupplement.monthly : 0,
+  };
 }
 
 /** A source whose balance turned into a monthly annuity in a year. */
@@ -448,18 +467,9 @@ function simulate(
 
     const streams = { ...emptyByKind(), bituachLeumi: 0 };
     for (const member of members) {
-      const age = member.currentAge + years;
-      const { claimAge, monthlyPension, spouseSupplement } = member.bituachLeumi;
-      if (age >= claimAge) {
-        streams.bituachLeumi += monthlyPension;
-      }
-      if (
-        spouseSupplement &&
-        age >= spouseSupplement.startAge &&
-        (spouseSupplement.endAge === null || age < spouseSupplement.endAge)
-      ) {
-        streams.bituachLeumi += spouseSupplement.monthly;
-      }
+      const { pension, supplement } = bituachLeumiPaymentsAt(member, years);
+      streams.bituachLeumi += pension;
+      streams.bituachLeumi += supplement;
     }
     for (const { member, source } of state) {
       if (source.annuity && member.currentAge + years >= source.annuity.startAge) {
@@ -515,6 +525,7 @@ function simulate(
             capitalGainsTaxRate: entry.source.capitalGainsTaxRate,
             annuityMonthly:
               annuity && entry.member.currentAge + years >= annuity.startAge ? annuity.monthly : 0,
+            balance: entry.balance,
             capitalShare: unlockedSet.has(entry) ? shareOfDraw(entry) : 0,
             gainFraction,
             ordinaryFraction,

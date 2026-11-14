@@ -1019,6 +1019,7 @@
     "sections": {
       "nav": "Sections on this page",
       "backToTop": "Back to top",
+      "whatIf": { "title": "What if?", "question": "How would a change to my plan affect my monthly income?" },
       "overview": { "title": "Overview", "question": "What happens over the years?" },
       "income": { "title": "Income and tax", "question": "What do I receive, from where, and after tax?" },
       "savings": { "title": "Savings", "question": "What do I have, when can I use it, and what about my shares?" },
@@ -1418,6 +1419,121 @@
       "exposureLabel": "Your dollar holdings.",
       "exposureNote": "Neither test treats them differently from your shekel savings.",
       "exposureLink": "See what a fall would do"
+    }
+  },
+  "whatIf": {
+    "intro": "Move a slider to try a change. Your saved plan stays as it is until you press Apply. The what-if always uses your plan's own retirement ages, not the Early or Delayed scenarios.",
+    "group": {
+      "ages": "Ages",
+      "markets": "Markets",
+      "spending": "Your spending"
+    },
+    "param": {
+      "retirementAge": "You stop working at age",
+      "spouseRetirementAge": "Your spouse stops working at age",
+      "pensionStartAge": "Your pension payments start at age",
+      "spousePensionStartAge": "Your spouse's pension payments start at age",
+      "investmentReturnPct": "Yearly return on savings",
+      "inflationPct": "Yearly inflation",
+      "monthlySpending": "Monthly spending in retirement",
+      "sharesChangePct": "Share prices, one-off move",
+      "dollarChangePct": "Dollar against the shekel, one-off move",
+      "planningHorizonAge": "Plan until age"
+    },
+    "slider": {
+      "backToPlan": "Back to {{value}}",
+      "yourPlan": "Your plan"
+    },
+    "note": {
+      "pensionLocked": "Pension funds do not pay out before age {{age}}, so until then only your other savings can cover your spending.",
+      "stateLater": "The Bituach Leumi pension starts only at age {{age}}.",
+      "spouseLocked": "Your spouse's pension funds do not pay out before age {{age}}, so until then only other savings can cover your spending.",
+      "noSpending": "No retirement spending is saved in your plan. Move the slider to test an amount.",
+      "pensionDelayed": "Annuities start at age {{age}}. Until then the balance keeps growing, but conversion factors are kept as entered and a monthly estimate you typed is used unchanged. Real factors usually fall with a later start, so waiting may pay more than shown."
+    },
+    "reset": "Reset to my plan",
+    "apply": "Apply to my plan",
+    "applyHint": "Applying saves the ages, return, inflation, spending and plan age. Share price and dollar moves are never saved.",
+    "applied": "Saved to your plan.",
+    "draftNotice": "This is a draft and nothing is saved. The faint line on the chart is your saved plan.",
+    "planNotice": "This is your saved plan. Move a slider to see what a change would do.",
+    "stat": {
+      "vsPlan": "{{change}} vs. plan",
+      "netIncome": "Lowest monthly income after tax",
+      "gap": "Income minus spending, a month",
+      "savingsLast": "Savings cover your spending",
+      "lastsTo": "To age {{age}}",
+      "runsOutAt": "Only to age {{age}}",
+      "savings": "Savings when drawing starts, in today's money",
+      "chance": "Chance the plan holds",
+      "calculating": "Calculating…",
+      "yearsUnit": "yr",
+      "pointsUnit": "pts"
+    },
+    "chart": {
+      "title": "Monthly income by year",
+      "notePlanned": "Where the money comes from each year to pay your {{amount}} a month, before tax. The part nobody pays is shown as unfunded.",
+      "noteSustainable": "What your savings can sustain each year to the end of the plan, before tax.",
+      "baseline": "Your saved plan"
+    },
+    "sources": {
+      "toggle": "Where this year's income comes from",
+      "intro": "Pick a year to see which fund, policy or saving each part of that month's income comes from. Amounts are per month, before tax, in today's money.",
+      "year": "Year",
+      "yearOption": "Age {{age}}",
+      "yearOptionCouple": "You {{age}} · your spouse {{spouseAge}}",
+      "previous": "Previous year",
+      "next": "Next year",
+      "heading": "Monthly income at age {{age}}",
+      "headingCouple": "Monthly income: you at {{age}}, your spouse at {{spouseAge}}",
+      "owner": {
+        "self": "You",
+        "spouse": "Your spouse"
+      },
+      "origin": {
+        "bituachLeumi": "Bituach Leumi old-age pension",
+        "spouseSupplement": "Bituach Leumi spouse supplement",
+        "otherAssets": "Cash and other assets",
+        "bankDeposit": "Bank deposit, {{bank}}",
+        "bankDepositUnnamed": "Bank deposit",
+        "holding": "{{company}} ({{ticker}})",
+        "holdingUnnamed": "Stock holding",
+        "employerShares": {
+          "section102": "Employer shares, Section 102",
+          "ordinaryIncome": "Employer shares, ordinary income",
+          "nonTrustee": "Employer shares, Section 3(i)"
+        }
+      },
+      "balance": "From a balance of {{amount}}",
+      "total": "Total, before tax",
+      "unfunded": "Not paid by any source",
+      "idle": {
+        "title": "Not paying this year",
+        "balance": "Holds {{amount}}",
+        "locked": "Cannot pay out before age {{age}}",
+        "startsLater": "Starts paying at age {{age}}",
+        "notDrawn": "Not drawn on this year"
+      },
+      "note": "Withdrawals are modelled amounts, not instructions to sell. Investments are drawn as one pool, so the split between cash, deposits and holdings follows their value.",
+      "empty": "No income to show for this year."
+    },
+    "sensitivity": {
+      "title": "What the plan depends on most",
+      "introGap": "Each assumption moved on its own from where the sliders are now, and what that does to the monthly gap between your income and your spending.",
+      "introNet": "Each assumption moved on its own from where the sliders are now, and what that does to your lowest monthly income after tax.",
+      "worse": "Worse",
+      "better": "Better",
+      "note": "Longer bars matter more. A move is left out when the slider cannot go that far."
+    },
+    "grid": {
+      "title": "Retirement age against another assumption",
+      "introGap": "Each cell is a full run of your plan: the monthly gap between your income and your spending. Green covers your spending, amber falls short. Select a cell to move the sliders there.",
+      "introNet": "Each cell is a full run of your plan: your lowest monthly income after tax. Select a cell to move the sliders there.",
+      "columnGroup": "Compare retirement age against",
+      "tableLabel": "Monthly result by retirement age and {{column}}",
+      "rowHeader": "Retire at age",
+      "cellLabel": "Retire at age {{age}}, {{column}} {{value}}: {{margin}} a month",
+      "note": "Ages and values outside the slider ranges are left out."
     }
   },
   "cover": {
