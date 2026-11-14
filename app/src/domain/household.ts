@@ -1,4 +1,4 @@
-import type { Gender, ProfileData, WithdrawalStrategy } from "../types";
+import type { Gender, ProfileData, WithdrawalMix, WithdrawalStrategy } from "../types";
 import { EMPTY_PROFILE, EMPTY_SPOUSE } from "../types";
 import { COVER_RULES, ACCESS_RULES } from "./accessRules";
 import { estimateBituachLeumiPension } from "./bituachLeumi";
@@ -84,6 +84,8 @@ export interface Household {
   planningHorizonAge: number;
   /** The order in which the drawdown takes spending money from the unlocked sources. */
   withdrawalStrategy: WithdrawalStrategy;
+  /** The split the "custom" strategy follows. */
+  withdrawalMix: WithdrawalMix;
   /**
    * The primary user's age when household drawing starts: their own
    * retirement age for a single person, the later spouse's retirement moment
@@ -290,6 +292,7 @@ export function buildHousehold(
     horizonYears: yearsToAge(members, profile.assumptions.planningHorizonAge),
     planningHorizonAge: profile.assumptions.planningHorizonAge,
     withdrawalStrategy: profile.assumptions.withdrawalStrategy,
+    withdrawalMix: profile.assumptions.withdrawalMix,
     // Exact for the common case that the primary user retires last (or alone).
     drawdownStartAge:
       primaryRetirementYears === retirementYears
@@ -317,6 +320,39 @@ function yearsToAge(members: Household["members"], age: number): number {
  */
 export function withPlanningHorizon(household: Household, age: number): Household {
   return { ...household, planningHorizonAge: age, horizonYears: yearsToAge(household.members, age) };
+}
+
+/**
+ * Growth of a pot earning `realReturn` a year (the household's rate by default) from its owner's
+ * retirement until the household retires: an earlier retiree's pot keeps growing until then.
+ */
+export function catchUpGrowthOf(
+  household: Household,
+  member: HouseholdMember,
+  realReturn: number = household.rate,
+): number {
+  const ownYears = Math.max(member.retirementAge - member.currentAge, 0);
+  return Math.pow(1 + realReturn, household.retirementYears - ownYears);
+}
+
+/**
+ * The single return the income solver spends the capital at: each drawn-on source's return,
+ * weighted by its value at retirement (annuity sources are not drawn on). Exactly the household's
+ * rate when every source earns it, so a plan without per-source returns is unchanged.
+ */
+export function householdDrawingRate(household: Household): number {
+  let total = 0;
+  let weighted = 0;
+  let differs = false;
+  for (const member of household.members) {
+    for (const source of member.sources) {
+      if (source.annuity || source.valueAtRetirement <= 0) continue;
+      total += source.valueAtRetirement;
+      weighted += source.valueAtRetirement * source.realReturn;
+      differs ||= source.realReturn !== household.rate;
+    }
+  }
+  return differs && total > 0 ? weighted / total : household.rate;
 }
 
 /** Records the household-level timing figures. A no-op unless tracing. */

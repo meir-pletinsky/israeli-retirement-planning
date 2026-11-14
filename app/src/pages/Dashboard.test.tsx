@@ -1419,7 +1419,7 @@ describe("Dashboard", () => {
       await screen.findByText("Net worth today");
       const text = summary().textContent!.replace(BIDI_MARKS, "");
       expect(text).toContain("Base");
-      expect(text).toContain("Investment return 6% (before inflation), the same for every asset, inflation 2.5%, market volatility 12%. All per year.");
+      expect(text).toContain("Investment return 6% (before inflation), the same for every asset except bank deposits with a rate of their own, inflation 2.5%, market volatility 12%. All per year.");
       expect(within(summary()).getByRole("link", { name: "Change assumptions" })).toHaveAttribute(
         "href",
         "/my-data/assumptions",
@@ -1575,7 +1575,7 @@ describe("Dashboard", () => {
       );
     });
 
-    it("says every asset is assumed to grow at the same return, and links to where to change it", async () => {
+    it("says every asset is assumed to grow at the same return, except deposits with a rate, and links to where to change it", async () => {
       await saveProfileToDb(rich);
       await saveOnboardedToDb(true);
       renderWithProviders(<Dashboard />);
@@ -1583,7 +1583,8 @@ describe("Dashboard", () => {
       await screen.findByText("Net worth today");
       const text = summary().textContent!.replace(BIDI_MARKS, "");
       expect(text).toContain("Every asset above is assumed to grow at the same");
-      expect(text).toContain("a year (before inflation), whether it is a deposit, a share or a pension fund.");
+      expect(text).toContain("a year (before inflation), whether it is a share or a pension fund.");
+      expect(text).toContain("A bank deposit grows at its own rate when you have entered one.");
       const links = within(summary()).getAllByRole("link", { name: "Change assumptions" });
       expect(links.some((link) => link.getAttribute("href") === "/my-data/assumptions")).toBe(true);
     });

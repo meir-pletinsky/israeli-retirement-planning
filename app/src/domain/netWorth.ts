@@ -1,5 +1,6 @@
 import type { ProfileData } from "../types";
 import { futureValueOfMonthlyContributions, totalMonthlyContribution } from "./contributions";
+import { aggregateBankDepositsBalance, aggregateBankDepositsRealReturn } from "./bankDeposits";
 import { simulateDrawdownForScenario, simulateHouseholdDrawdown } from "./drawdown";
 import { desiredRetirementMonthly } from "./expenses";
 import { buildHousehold, resolveRetirementTiming, selfProfileView } from "./household";
@@ -38,10 +39,16 @@ export function projectBalanceAtAge(profile: ProfileData, targetAge: number): nu
   const own = selfProfileView(profile);
   const years = Math.max(targetAge - resolveCurrentAge(own), 0);
   const rate = realAnnualReturnRate(own.assumptions);
+  const nowMs = engineNowMs();
+  const { inflationPct } = own.assumptions;
+  const deposits = aggregateBankDepositsBalance(own.bankDeposits, inflationPct, nowMs);
+  const depositsRate = aggregateBankDepositsRealReturn(own.bankDeposits, inflationPct, rate, nowMs);
   const startingBalance =
     aggregatePensionBalance(own) +
-    aggregateOtherBalance(own, momentAfterYears(engineNowMs(), years));
-  const grownBalance = startingBalance * Math.pow(1 + rate, years);
+    aggregateOtherBalance(own, momentAfterYears(nowMs, years)) -
+    deposits;
+  const grownBalance =
+    startingBalance * Math.pow(1 + rate, years) + deposits * Math.pow(1 + depositsRate, years);
   return (
     grownBalance + futureValueOfMonthlyContributions(totalMonthlyContribution(own), rate, years)
   );

@@ -36,6 +36,44 @@ export function bankDepositValueIls(
   return amount * Math.pow(annualGrowth, years);
 }
 
+/**
+ * The yearly return of a deposit above inflation, which is what the plan grows it at from today
+ * onwards; null when the profile records no rate for it. A CPI-linked deposit pays its quoted
+ * rate on top of the index, so the quoted rate is the real return. Any other deposit pays its
+ * quoted rate in nominal terms, so inflation is taken off it. The deposit is assumed to roll
+ * over at the same rate after maturity.
+ */
+export function bankDepositRealReturn(deposit: BankDeposit, inflationPct: number): number | null {
+  const ratePct = deposit.annualInterestRatePercent;
+  if (ratePct === null || ratePct === undefined || !Number.isFinite(ratePct)) return null;
+  return deposit.cpiLinked ? ratePct / 100 : (1 + ratePct / 100) / (1 + inflationPct / 100) - 1;
+}
+
+/**
+ * The real return the plan grows all the bank deposits at: each deposit's own real return,
+ * weighted by its current value. A deposit with no recorded rate earns `fallbackRate`, the
+ * plan's real return, so entering no rates changes nothing.
+ */
+export function aggregateBankDepositsRealReturn(
+  deposits: readonly BankDeposit[],
+  inflationPct: number,
+  fallbackRate: number,
+  nowMs: number,
+): number {
+  let total = 0;
+  let weighted = 0;
+  let anyOwnRate = false;
+  for (const deposit of deposits) {
+    const value = bankDepositValueIls(deposit, inflationPct, nowMs);
+    if (value <= 0) continue;
+    const own = bankDepositRealReturn(deposit, inflationPct);
+    anyOwnRate ||= own !== null;
+    total += value;
+    weighted += value * (own ?? fallbackRate);
+  }
+  return anyOwnRate && total > 0 ? weighted / total : fallbackRate;
+}
+
 /** Sum of all bank deposits' current value, in NIS. */
 export function aggregateBankDepositsBalance(
   deposits: readonly BankDeposit[],

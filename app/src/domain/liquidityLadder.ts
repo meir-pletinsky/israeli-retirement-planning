@@ -1,6 +1,7 @@
 import type { ProfileData } from "../types";
 import {
   buildHousehold,
+  catchUpGrowthOf,
   resolveRetirementTiming,
   yearsUntilAge,
   type Household,
@@ -55,12 +56,6 @@ export interface LiquidityLadder {
   retirementYear: number;
   rungs: LadderRung[];
   lateVesting: LateVestingShares | null;
-}
-
-/** Same growth the income estimate gives an earlier retiree's pot until the household retires. */
-function catchUpGrowth(household: Household, member: HouseholdMember): number {
-  const ownYears = Math.max(member.retirementAge - member.currentAge, 0);
-  return Math.pow(1 + household.rate, household.retirementYears - ownYears);
 }
 
 /** Month after household retirement at which `age` of `member` falls, never before retirement. */
@@ -126,7 +121,6 @@ export function buildLiquidityLadder(
     monthAfterRetirement(household, member, age);
 
   for (const member of household.members) {
-    const growth = catchUpGrowth(household, member);
     const { monthlyPension, claimAge, spouseSupplement } = member.bituachLeumi;
 
     if (monthlyPension > 0) {
@@ -162,7 +156,7 @@ export function buildLiquidityLadder(
         }
         continue;
       }
-      const amount = source.valueAtRetirement * growth;
+      const amount = source.valueAtRetirement * catchUpGrowthOf(household, member, source.realReturn);
       const month = monthAfterRetirement(household, member, source.unlockAge);
       if (Math.round(amount) > 0 && month < horizonMonths) {
         add(month, { kind: source.kind, member: member.role, amount, type: "capital" });

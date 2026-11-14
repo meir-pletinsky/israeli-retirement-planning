@@ -1057,6 +1057,7 @@ describe("Projections", () => {
         expect.stringMatching(/^Evenly/),
         expect.stringMatching(/^Taxable money first/),
         expect.stringMatching(/^Lowest tax first/),
+        expect.stringMatching(/^Your mix/),
       ]);
       for (const label of [
         "Total tax",
@@ -1094,11 +1095,12 @@ describe("Projections", () => {
       const taxRow = within(card).getByRole("rowheader", { name: "Total tax" }).closest("tr") as HTMLElement;
       const cells = within(taxRow).getAllByRole("cell");
 
-      expect(cells).toHaveLength(3);
+      expect(cells).toHaveLength(4);
       // Only the orders that are not in use show a change, as a signed amount.
       expect(cells[0].textContent?.replace(BIDI_MARKS, "")).toMatch(/^₪[\d,]+$/);
       expect(cells[1].textContent?.replace(BIDI_MARKS, "")).toMatch(/^₪[\d,]+[+−]₪[\d,]+$/);
       expect(cells[2].textContent?.replace(BIDI_MARKS, "")).toMatch(/^₪[\d,]+[+−]₪[\d,]+$/);
+      expect(cells[3].textContent?.replace(BIDI_MARKS, "")).toMatch(/^₪[\d,]+[+−]₪[\d,]+$/);
     });
 
     it("says the choice does not matter when every order gives the same tax", async () => {
@@ -2333,7 +2335,7 @@ describe("Projections", () => {
     const summary = await screen.findByRole("note", { name: "Assumptions in use" });
     const text = summary.textContent!.replace(/[\u2066\u2069]/g, "");
     expect(text).toContain("Optimistic");
-    expect(text).toContain("Investment return 8% (before inflation), the same for every asset, inflation 1.5%, market volatility 12%. All per year.");
+    expect(text).toContain("Investment return 8% (before inflation), the same for every asset except bank deposits with a rate of their own, inflation 1.5%, market volatility 12%. All per year.");
     expect(within(summary).getByRole("link", { name: "Change assumptions" })).toHaveAttribute(
       "href",
       "/my-data/assumptions",

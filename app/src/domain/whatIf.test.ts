@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { buildTestProfile } from "../test/domainFixtures";
-import type { ProfileData } from "../types";
+import { DEFAULT_WITHDRAWAL_MIX, WITHDRAWAL_MIX_KEYS } from "../types";
+import type { ProfileData, WithdrawalMix } from "../types";
 import { calculateFundingGap } from "./fundingGap";
 import { buildHousehold } from "./household";
 import {
@@ -11,8 +12,11 @@ import {
   buildAgeGrid,
   canChoosePensionStart,
   evaluateWhatIf,
+  rebalanceWithdrawalMix,
+  sameWhatIfValue,
   whatIfMargin,
   whatIfNotes,
+  whatIfPlanPatch,
   whatIfRanges,
   whatIfSensitivity,
   whatIfValues,
@@ -164,6 +168,59 @@ describe("applyWhatIf", () => {
     expect(early.startAge).toBe(62);
     expect(late.startAge).toBe(67);
     expect(late.monthly).toBeGreaterThan(early.monthly);
+  });
+
+  it("carries the withdrawal order and mix into the household and the saved plan", () => {
+    const base = baselineWhatIf(couple);
+    expect(base.withdrawalStrategy).toBe("proRata");
+    expect(base.withdrawalMix).toEqual(DEFAULT_WITHDRAWAL_MIX);
+    const values = { ...base, withdrawalStrategy: "custom" as const, withdrawalMix: { studyFund: 50, shares: 30, deposits: 20 } };
+    const derived = applyWhatIf(couple, values);
+    expect(derived.assumptions).toMatchObject({ withdrawalStrategy: "custom", withdrawalMix: values.withdrawalMix });
+    expect(buildHousehold(derived, { selfAge: 62, spouseAge: 60 }).withdrawalMix).toEqual(values.withdrawalMix);
+    expect(whatIfPlanPatch(couple, values).assumptions).toMatchObject({ withdrawalStrategy: "custom" });
+  });
+
+  it("treats a mix with the same parts as unchanged", () => {
+    const base = baselineWhatIf(single);
+    expect(applyWhatIf(single, { ...base, withdrawalMix: { ...base.withdrawalMix } })).toBe(single);
+    expect(sameWhatIfValue("withdrawalMix", base, { ...base, withdrawalMix: { studyFund: 40, shares: 30, deposits: 30 } })).toBe(false);
+    expect(sameWhatIfValue("withdrawalStrategy", base, { ...base, withdrawalStrategy: "custom" })).toBe(false);
+  });
+});
+
+describe("rebalanceWithdrawalMix", () => {
+  const sum = (mix: WithdrawalMix) => mix.studyFund + mix.shares + mix.deposits;
+
+  it("keeps the three parts adding up to 100 and the moved one where it was put", () => {
+    for (const key of WITHDRAWAL_MIX_KEYS) {
+      for (const percent of [0, 1, 33, 50, 77, 100]) {
+        const next = rebalanceWithdrawalMix({ studyFund: 20, shares: 50, deposits: 30 }, key, percent);
+        expect(sum(next)).toBe(100);
+        expect(next[key]).toBe(percent);
+      }
+    }
+  });
+
+  it("shares what is left between the other two in proportion to what they had", () => {
+    expect(rebalanceWithdrawalMix({ studyFund: 20, shares: 60, deposits: 20 }, "studyFund", 40)).toEqual({
+      studyFund: 40,
+      shares: 45,
+      deposits: 15,
+    });
+  });
+
+  it("splits what is left equally when the other two had nothing", () => {
+    expect(rebalanceWithdrawalMix({ studyFund: 100, shares: 0, deposits: 0 }, "studyFund", 60)).toEqual({
+      studyFund: 60,
+      shares: 20,
+      deposits: 20,
+    });
+  });
+
+  it("keeps a value outside 0 to 100 inside it", () => {
+    expect(rebalanceWithdrawalMix(DEFAULT_WITHDRAWAL_MIX, "shares", 140).shares).toBe(100);
+    expect(rebalanceWithdrawalMix(DEFAULT_WITHDRAWAL_MIX, "shares", -5).shares).toBe(0);
   });
 });
 

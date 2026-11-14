@@ -123,6 +123,32 @@ describe("WhatIfPanel", () => {
     expect((await screen.findAllByText("In shekels")).length).toBeGreaterThan(0);
   });
 
+  it("splits the withdrawals between the study fund, shares and deposits and saves the mix", async () => {
+    const user = userEvent.setup();
+    await renderSurplusPanel(8_000);
+    expect(screen.queryByLabelText("Study fund")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: "Your mix" }));
+    const studyFund = screen.getByLabelText("Study fund");
+    fireEvent.change(studyFund, { target: { value: "60" } });
+
+    expect(studyFund).toHaveValue("60");
+    expect(screen.getByLabelText("Shares")).toHaveValue("20");
+    expect(screen.getByLabelText("Bank deposits")).toHaveValue("20");
+    expect(screen.getByRole("img", { name: "Study fund 60%, Shares 20%, Bank deposits 20%" })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Bank deposits"), { target: { value: "100" } });
+    expect(studyFund).toHaveValue("0");
+    expect(screen.getByLabelText("Shares")).toHaveValue("0");
+
+    await user.click(screen.getByRole("button", { name: "Apply to my plan" }));
+    await waitFor(async () => {
+      const saved = (await loadProfileFromDb())?.assumptions;
+      expect(saved?.withdrawalStrategy).toBe("custom");
+      expect(saved?.withdrawalMix).toEqual({ studyFund: 0, shares: 0, deposits: 100 });
+    });
+  });
+
   it("starts on the saved plan with nothing to apply", async () => {
     const slider = await renderPanel();
 

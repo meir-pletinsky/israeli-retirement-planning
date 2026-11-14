@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import type { BankDeposit } from "../types";
-import { aggregateBankDepositsBalance, bankDepositValueIls } from "./bankDeposits";
+import {
+  aggregateBankDepositsBalance,
+  aggregateBankDepositsRealReturn,
+  bankDepositRealReturn,
+  bankDepositValueIls,
+} from "./bankDeposits";
 
 const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
 const START = Date.parse("2025-06-15");
@@ -116,5 +121,48 @@ describe("aggregateBankDepositsBalance", () => {
 
   it("is zero for an empty list", () => {
     expect(aggregateBankDepositsBalance([], 2, NOW)).toBe(0);
+  });
+});
+
+describe("bankDepositRealReturn", () => {
+  it("is the quoted rate for a CPI-linked deposit, whatever inflation is", () => {
+    expect(bankDepositRealReturn(depositOf({ cpiLinked: true }), 2)).toBeCloseTo(0.04, 10);
+    expect(bankDepositRealReturn(depositOf({ cpiLinked: true }), 6)).toBeCloseTo(0.04, 10);
+  });
+
+  it("is the nominal rate less inflation for a deposit that is not CPI-linked", () => {
+    expect(bankDepositRealReturn(depositOf(), 2)).toBeCloseTo(1.04 / 1.02 - 1, 10);
+    expect(bankDepositRealReturn(depositOf(), 6)).toBeLessThan(0);
+  });
+
+  it("is null when no rate was recorded", () => {
+    expect(bankDepositRealReturn(depositOf({ annualInterestRatePercent: null }), 2)).toBeNull();
+    expect(bankDepositRealReturn(depositOf({ annualInterestRatePercent: Number.NaN }), 2)).toBeNull();
+  });
+});
+
+describe("aggregateBankDepositsRealReturn", () => {
+  const FALLBACK = 0.03;
+
+  it("weights each deposit's real return by its current value", () => {
+    const deposits = [
+      depositOf({ id: "a", amount: 30_000, cpiLinked: true, annualInterestRatePercent: 2, startDate: "2026-06-15" }),
+      depositOf({ id: "b", amount: 10_000, cpiLinked: true, annualInterestRatePercent: 6, startDate: "2026-06-15" }),
+    ];
+    expect(aggregateBankDepositsRealReturn(deposits, 2, FALLBACK, NOW)).toBeCloseTo(0.03, 10);
+  });
+
+  it("gives a deposit with no rate the fallback return", () => {
+    const deposits = [
+      depositOf({ id: "a", amount: 10_000, cpiLinked: true, annualInterestRatePercent: 5, startDate: "2026-06-15" }),
+      depositOf({ id: "b", amount: 10_000, annualInterestRatePercent: null, startDate: "2026-06-15" }),
+    ];
+    expect(aggregateBankDepositsRealReturn(deposits, 2, FALLBACK, NOW)).toBeCloseTo((0.05 + FALLBACK) / 2, 10);
+  });
+
+  it("is exactly the fallback when no deposit has a rate, or there are none", () => {
+    const noRate = [depositOf({ annualInterestRatePercent: null })];
+    expect(aggregateBankDepositsRealReturn(noRate, 2, FALLBACK, NOW)).toBe(FALLBACK);
+    expect(aggregateBankDepositsRealReturn([], 2, FALLBACK, NOW)).toBe(FALLBACK);
   });
 });

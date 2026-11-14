@@ -1,4 +1,4 @@
-import { WITHDRAWAL_STRATEGIES, type ProfileData, type WithdrawalStrategy } from "../types";
+import { WITHDRAWAL_STRATEGIES, type ProfileData, type WithdrawalMix, type WithdrawalStrategy } from "../types";
 import { desiredRetirementMonthly } from "./expenses";
 import { buildHousehold, resolveRetirementTiming } from "./household";
 import { estimateNetIncomeForHousehold, type NetIncomeYear } from "./netIncome";
@@ -28,6 +28,8 @@ export interface WithdrawalStrategyResult {
 export interface WithdrawalStrategyComparison {
   /** The order the plan uses now (from the assumptions). */
   current: WithdrawalStrategy;
+  /** The split a "custom" order draws by (from the assumptions). */
+  mix: WithdrawalMix;
   /** The desired monthly spending in retirement, or null when none is entered. */
   desiredMonthly: number | null;
   /** The annual taxable income above which the surtax applies. */
@@ -82,9 +84,10 @@ function summarise(
 /**
  * Runs the plan once per withdrawal order and reports what each does to the tax.
  *
- * The gross amount drawn is the same in every order: all the capital earns the same return, so the
- * unlocked total does not depend on which source is used first. Only the tax each year differs,
- * and so the net income. The comparison therefore shows tax and net income, not net worth.
+ * The gross amount drawn each year is the same in every order while the money lasts. Only the
+ * tax each year differs, and so the net income. The comparison therefore shows tax and net
+ * income, not net worth; bank deposits that earn a different return from the other savings can
+ * leave slightly different balances behind in each order.
  *
  * No order is the best for everyone. Using the taxable money first leaves the tax-free study fund
  * for last but can push one year's taxable income up; the lowest net income, the average and the
@@ -111,6 +114,7 @@ export function compareWithdrawalStrategies(
   );
   return {
     current: household.withdrawalStrategy,
+    mix: household.withdrawalMix,
     desiredMonthly,
     surtaxThresholdAnnual: TAX_RATES.surtaxAnnualThreshold,
     results,

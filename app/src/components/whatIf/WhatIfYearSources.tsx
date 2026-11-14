@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import {
   incomeYearDetails,
   measureSurplus,
+  withdrawalSplit,
   type IdleSource,
   type IncomeBandKey,
   type IncomeBasis,
@@ -14,7 +15,13 @@ import {
   type WithdrawalFactors,
 } from "../../domain";
 import { formatDate } from "../../i18n/formatters";
-import type { ProfileData, WithdrawalStrategy } from "../../types";
+import {
+  WITHDRAWAL_MIX_KEYS,
+  type ProfileData,
+  type WithdrawalMix,
+  type WithdrawalMixKey,
+  type WithdrawalStrategy,
+} from "../../types";
 import { BandSwatch } from "../charts/BandSwatch";
 import { useWhatIfFormat } from "./useWhatIfFormat";
 
@@ -100,6 +107,11 @@ function FactorChips({ factors }: { factors: WithdrawalFactors }) {
       chips.push(t(`${key}.deposit.rate.${deposit.rateType ?? "unknown"}`, { rate: isolate(rate(deposit.annualInterestPct)) }));
     }
     if (deposit.cpiLinked) chips.push(t(`${key}.deposit.cpiLinked`));
+    chips.push(
+      deposit.realReturn === null
+        ? t(`${key}.deposit.noRate`)
+        : t(`${key}.deposit.realReturn`, { rate: isolate(rate(deposit.realReturn * 100)) }),
+    );
     if (deposit.maturityDate) {
       chips.push(
         t(`${key}.deposit.${deposit.autoRenew ? "renews" : "matures"}`, { date: isolate(formatDate(deposit.maturityDate)) }),
@@ -210,10 +222,11 @@ interface YearDetailProps {
   year: IncomeYearDetail;
   bandLabels: Record<IncomeBandKey, string>;
   strategy: WithdrawalStrategy;
+  mix: WithdrawalMix;
   capPct: number;
 }
 
-function YearDetail({ year, bandLabels, strategy, capPct }: YearDetailProps) {
+function YearDetail({ year, bandLabels, strategy, mix, capPct }: YearDetailProps) {
   const { t } = useTranslation();
   const { money, signedMoney, rate } = useWhatIfFormat();
   const couple = year.spouseAge !== null;
@@ -221,6 +234,22 @@ function YearDetail({ year, bandLabels, strategy, capPct }: YearDetailProps) {
   const withdrawals = year.lines.filter((line) => line.mode === "withdrawal");
   const unfunded = year.unfunded !== null && year.unfunded > 0 ? year.unfunded : null;
   const surplus = year.planned === null ? null : measureSurplus(year.total, year.planned, capPct);
+
+  const percents = (parts: Partial<Record<WithdrawalMixKey | "other", number>>) =>
+    [...WITHDRAWAL_MIX_KEYS, "other" as const]
+      .filter((kind) => kind !== "other" || (parts.other ?? 0) > 0)
+      .map((kind) => `${t(`whatIf.mix.${kind}`)} ${isolate(`${parts[kind] ?? 0}%`)}`)
+      .join(" · ");
+  const split = strategy === "custom" ? withdrawalSplit(withdrawals) : null;
+  const shifted =
+    split !== null && (split.other > 0 || WITHDRAWAL_MIX_KEYS.some((kind) => Math.abs(split[kind] - mix[kind]) > 1));
+  const strategyHint =
+    strategy === "custom"
+      ? [
+          t("whatIf.sources.strategyCustom", { mix: percents(mix) }),
+          ...(shifted && split ? [t("whatIf.sources.mixShifted", { split: percents(split) })] : []),
+        ].join(" ")
+      : t("whatIf.sources.strategy", { name: t(`projections.withdrawal.strategy.${strategy}.name`) });
 
   return (
     <div className="flex flex-col gap-4">
@@ -234,7 +263,7 @@ function YearDetail({ year, bandLabels, strategy, capPct }: YearDetailProps) {
           {withdrawals.length > 0 && (
             <Group
               title={t("projections.split.withdrawals")}
-              hint={t("whatIf.sources.strategy", { name: t(`projections.withdrawal.strategy.${strategy}.name`) })}
+              hint={strategyHint}
               lines={withdrawals}
               couple={couple}
               bandLabels={bandLabels}
@@ -394,6 +423,7 @@ export function WhatIfYearSources({ draft, basis, bandLabels }: WhatIfYearSource
                 year={year}
                 bandLabels={bandLabels}
                 strategy={draft.assumptions.withdrawalStrategy}
+                mix={draft.assumptions.withdrawalMix}
                 capPct={draft.assumptions.incomeCapPct}
               />
             </>

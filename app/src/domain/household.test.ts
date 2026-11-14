@@ -10,6 +10,7 @@ import {
   retirementTimingShiftedTo,
   spouseAgeAt,
   withPlanningHorizon,
+  householdDrawingRate,
 } from "./household";
 import { estimateIncomeBreakdownForTiming } from "./incomeBreakdown";
 import {
@@ -270,6 +271,36 @@ describe("household retirement income", () => {
     });
     const result = estimateRetirementIncomeForTiming(profile, { selfAge: 60, spouseAge: 70 });
     expect(result.netWorthAtRetirement).toBe(Math.round(100_000 * Math.pow(1.04, 10)));
+  });
+
+  describe("bank deposits with their own rate", () => {
+    const common = { age: 60, retirementAge: 67, ...ZERO_REAL, pensionBalances: [100_000] };
+    const timingOf = (profile: ReturnType<typeof buildTestProfile>) =>
+      resolveRetirementTiming(profile, "standard");
+    const noRate = buildTestProfile({ ...common, bankDeposits: [{ amount: 100_000 }] });
+    const withRate = buildTestProfile({
+      ...common,
+      bankDeposits: [{ amount: 100_000, annualInterestRatePercent: 3, cpiLinked: true }],
+    });
+
+    it("draws at exactly the plan's return when no deposit has a rate", () => {
+      const household = buildHousehold(noRate, timingOf(noRate));
+      expect(householdDrawingRate(household)).toBe(household.rate);
+    });
+
+    it("draws at the average of the sources' returns, weighted by their value at retirement", () => {
+      const household = buildHousehold(withRate, timingOf(withRate));
+      const deposits = 100_000 * Math.pow(1.03, 7);
+      expect(householdDrawingRate(household)).toBeCloseTo((deposits * 0.03) / (100_000 + deposits), 10);
+    });
+
+    it("projects the deposits at their own return and so affords more than the same plan without a rate", () => {
+      const result = estimateRetirementIncomeForTiming(withRate, timingOf(withRate));
+      const control = estimateRetirementIncomeForTiming(noRate, timingOf(noRate));
+      expect(result.netWorthAtRetirement).toBe(Math.round(100_000 + 100_000 * Math.pow(1.03, 7)));
+      expect(control.netWorthAtRetirement).toBe(200_000);
+      expect(result.monthlyIncomeTodayMoney).toBeGreaterThan(control.monthlyIncomeTodayMoney);
+    });
   });
 });
 

@@ -421,4 +421,26 @@ describe("projectBalanceAtAge", () => {
     // 100,000 + 1,850 * 12 * 10 years.
     expect(projectBalanceAtAge(profile, 50)).toBeCloseTo(322_000, 4);
   });
+
+  it("grows bank deposits at their own real return and the rest at the plan's", () => {
+    const profile = buildTestProfile({
+      age: 60,
+      investmentReturnPct: 4,
+      inflationPct: 4,
+      pensionBalances: [100_000],
+      bankDeposits: [{ amount: 50_000, annualInterestRatePercent: 3, cpiLinked: true }],
+    });
+    expect(projectBalanceAtAge(profile, 70)).toBeCloseTo(100_000 + 50_000 * Math.pow(1.03, 10), 4);
+  });
+
+  it("grows a deposit with no rate at the plan's return", () => {
+    const profile = buildTestProfile({
+      age: 60,
+      investmentReturnPct: 6,
+      inflationPct: 2.5,
+      pensionBalances: [500_000],
+      bankDeposits: [{ amount: 100_000 }],
+    });
+    expect(projectBalanceAtAge(profile, 67)).toBeCloseTo(600_000 * Math.pow(1.06 / 1.025, 7), 4);
+  });
 });

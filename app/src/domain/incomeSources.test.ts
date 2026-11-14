@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { buildTestProfile } from "../test/domainFixtures";
 import { buildHousehold, resolveRetirementTiming } from "./household";
 import { INCOME_BAND_KEYS, recurringAmount, type IncomeBreakdownPoint } from "./incomeBreakdown";
-import { incomeYearDetails, type IncomeBasis, type IncomeYearDetail } from "./incomeSources";
-import { OTHER_INVESTMENTS_SOURCE_ID, investmentParts } from "./sources";
+import { incomeYearDetails, withdrawalMixKindOf, withdrawalSplit, type IncomeBasis, type IncomeYearDetail } from "./incomeSources";
+import { BANK_DEPOSITS_SOURCE_ID, OTHER_INVESTMENTS_SOURCE_ID, investmentParts } from "./sources";
 import { evaluateWhatIf, applyWhatIf, baselineWhatIf } from "./whatIf";
 
 const ANNUITY = {
@@ -166,6 +166,7 @@ describe("incomeYearDetails", () => {
       deposit: {
         rateType: "variable",
         annualInterestPct: 4,
+        realReturn: 0.04,
         cpiLinked: true,
         maturityDate: "2030-01-01",
         autoRenew: true,
@@ -174,6 +175,44 @@ describe("incomeYearDetails", () => {
     expect(originOf("holding")?.factors).toMatchObject({ currency: "USD", deposit: null });
     expect(originOf("otherAssets")?.factors).toMatchObject({ currency: "ILS", deposit: null });
     expect(originOf("account")?.factors?.treatment).toBeDefined();
+  });
+
+  it("gives a deposit's real return, and none when no rate was entered", () => {
+    const depositFactors = (rate: number | null) => {
+      const profile = {
+        ...couple,
+        bankDeposits: [{ ...couple.bankDeposits[0], annualInterestRatePercent: rate, cpiLinked: false }],
+      };
+      return incomeYearDetails(profile, "planned")
+        .flatMap((detail) => detail.lines)
+        .find(({ mode, origin }) => mode === "withdrawal" && origin.type === "bankDeposit")?.factors?.deposit;
+    };
+    const inflation = couple.assumptions.inflationPct;
+    expect(depositFactors(5)?.realReturn).toBeCloseTo(1.05 / (1 + inflation / 100) - 1, 10);
+    expect(depositFactors(null)?.realReturn).toBeNull();
+  });
+
+  it("shares a deposit source out by what each deposit is worth at retirement at its own rate", () => {
+    const base = couple.bankDeposits[0];
+    const profile = {
+      ...couple,
+      bankDeposits: [
+        { ...base, id: "a", bankName: "A", amount: 100_000, startDate: null, annualInterestRatePercent: 6, cpiLinked: true },
+        { ...base, id: "b", bankName: "B", amount: 100_000, startDate: null, annualInterestRatePercent: null },
+      ],
+    };
+    const household = buildHousehold(profile, resolveRetirementTiming(profile, "standard"));
+    const [self] = household.members;
+    const years = Math.max(self.retirementAge - self.currentAge, 0);
+    const first = incomeYearDetails(profile, "planned").find((detail) =>
+      detail.lines.some(({ mode, origin }) => mode === "withdrawal" && origin.type === "bankDeposit"),
+    )!;
+    const balanceOf = (bank: string) =>
+      first.lines.find(
+        ({ mode, origin }) => mode === "withdrawal" && origin.type === "bankDeposit" && origin.bankName === bank,
+      )!.balance!;
+    const expected = Math.pow(1.06, years) / Math.pow(household.rate + 1, years);
+    expect(balanceOf("A") / balanceOf("B")).toBeCloseTo(expected, 6);
   });
 });
 
@@ -225,13 +264,78 @@ describe("incomeYearDetails with a later pension start", () => {
 });
 
 
+describe("withdrawalSplit with a custom mix", () => {
+  const saved = buildTestProfile({
+    age: 60,
+    retirementAge: 60,
+    pensionBalances: [800_000, 600_000],
+    pensionAccountOverrides: [{ productCategory: "studyFund" }, { productCategory: "providentFund" }],
+    otherAssets: 800_000,
+    bankDeposits: [{ amount: 800_000, bankName: "Leumi" }],
+    retirementMonthlyExpenses: 6_000,
+    investmentReturnPct: 4,
+    inflationPct: 2,
+  });
+
+  const splitAt = (mix: { studyFund: number; shares: number; deposits: number }, age: number) => {
+    const plan = applyWhatIf(saved, { ...baselineWhatIf(saved), withdrawalStrategy: "custom", withdrawalMix: mix });
+    return withdrawalSplit(incomeYearDetails(plan, "planned").find((detail) => detail.age === age)!.lines);
+  };
+
+  it("sends the whole withdrawal to the one kind that gets everything", () => {
+    expect(splitAt({ studyFund: 100, shares: 0, deposits: 0 }, 62)).toEqual({ studyFund: 100, shares: 0, deposits: 0, other: 0 });
+    expect(splitAt({ studyFund: 0, shares: 100, deposits: 0 }, 62)).toEqual({ studyFund: 0, shares: 100, deposits: 0, other: 0 });
+    expect(splitAt({ studyFund: 0, shares: 0, deposits: 100 }, 62)).toEqual({ studyFund: 0, shares: 0, deposits: 100, other: 0 });
+  });
+
+  it("splits a withdrawal in proportion to the mix, adding up to 100", () => {
+    const split = splitAt({ studyFund: 50, shares: 30, deposits: 20 }, 62)!;
+    expect(split.studyFund + split.shares + split.deposits + split.other).toBe(100);
+    expect(split.other).toBe(0);
+    expect(split.studyFund).toBeGreaterThan(split.shares);
+    expect(split.shares).toBeGreaterThan(split.deposits);
+  });
+
+  it("is null when nothing is withdrawn", () => {
+    expect(withdrawalSplit([])).toBeNull();
+  });
+
+  it("names the kind of each source and leaves pension money out of the mix", () => {
+    const [first] = incomeYearDetails(saved, "planned");
+    const kinds = first.lines.map(({ origin }) => withdrawalMixKindOf(origin));
+    expect(kinds).toEqual(expect.arrayContaining(["studyFund", "shares", "deposits"]));
+    expect(
+      first.lines.filter(({ origin }) => origin.type === "account" && origin.productCategory !== "studyFund").map(({ origin }) => withdrawalMixKindOf(origin)),
+    ).toEqual(expect.arrayContaining([null]));
+  });
+
+  it("gives a year's deposits their own line, apart from the other investments", () => {
+    const plan = applyWhatIf(saved, {
+      ...baselineWhatIf(saved),
+      withdrawalStrategy: "custom",
+      withdrawalMix: { studyFund: 0, shares: 50, deposits: 50 },
+    });
+    const lines = incomeYearDetails(plan, "planned")[1].lines;
+    const deposits = lines.find(({ origin }) => origin.type === "bankDeposit");
+    const shares = lines.find(({ origin }) => origin.type === "otherAssets");
+    expect(deposits?.monthly).toBeGreaterThan(0);
+    expect(shares?.monthly).toBeGreaterThan(0);
+  });
+});
+
 describe("investmentParts", () => {
-  it("adds up to the investments source balance", () => {
+  it("adds up to the balances of the investments and bank deposits sources", () => {
     const household = buildHousehold(couple, resolveRetirementTiming(couple, "standard"));
     const [self] = household.members;
     const pool = self.sources.find(({ id }) => id === OTHER_INVESTMENTS_SOURCE_ID);
+    const deposits = self.sources.find(({ id }) => id === BANK_DEPOSITS_SOURCE_ID);
     const parts = investmentParts(self.profile, self.retirementAge);
+    const sum = (list: typeof parts) => list.reduce((total, part) => total + part.value, 0);
     expect(parts.length).toBeGreaterThanOrEqual(4);
-    expect(parts.reduce((sum, part) => sum + part.value, 0)).toBeCloseTo(pool?.balance ?? NaN, 6);
+    expect(sum(parts.filter((part) => part.type !== "bankDeposit"))).toBeCloseTo(pool?.balance ?? NaN, 6);
+    expect(sum(parts.filter((part) => part.type === "bankDeposit"))).toBeCloseTo(
+      deposits?.balance ?? NaN,
+      6,
+    );
   });
 });

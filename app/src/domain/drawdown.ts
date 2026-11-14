@@ -9,6 +9,7 @@ import {
 } from "./household";
 import { futureValueOfMonthlyContributions } from "./contributions";
 import {
+  BANK_DEPOSITS_SOURCE_ID,
   SOURCE_KINDS,
   sourceTraceScope,
   type RetirementSource,
@@ -26,7 +27,13 @@ import {
   withScope,
   type TraceScalar,
 } from "./trace";
-import type { ProfileData, WithdrawalStrategy } from "../types";
+import {
+  WITHDRAWAL_MIX_KEYS,
+  type ProfileData,
+  type WithdrawalMix,
+  type WithdrawalMixKey,
+  type WithdrawalStrategy,
+} from "../types";
 import type { RetirementScenario } from "./types";
 
 /** Where a fixed monthly payment comes from: an account's annuity (by kind) or the state pension. */
@@ -132,14 +139,17 @@ export interface DrawdownYear {
 /** Ways to run the simulation other than the household's own constant return. */
 export interface DrawdownOptions {
   /**
-   * The real return of each year from now (index 0 is the first year). A year beyond the end of
-   * the list uses the household's rate. Contributions earn that year's return too.
+   * The real return of each year from now (index 0 is the first year), earned by every source,
+   * bank deposits included. A year beyond the end of the list uses each source's own return.
+   * Contributions earn that year's return too.
    */
   yearlyRates?: readonly number[];
   /** Leaves out the shares and holdings the tax layer reads; balances, conversions, streams, `unmet`, `spendable` and `drawn` are still filled. Always draws pro rata, which changes who is drawn on but not how much. */
   lean?: boolean;
   /** Draws in this order instead of the household's own `withdrawalStrategy`; ignored when `lean`. */
   withdrawalStrategy?: WithdrawalStrategy;
+  /** The split a "custom" draw follows, instead of the household's own `withdrawalMix`. */
+  withdrawalMix?: WithdrawalMix;
 }
 
 /**
@@ -227,20 +237,75 @@ function withdrawalTiers(unlocked: SourceState[], strategy: WithdrawalStrategy):
   return tiers;
 }
 
+/** Which of the three kinds of a custom split a source belongs to; null for pension-like money, which a custom split does not name. */
+function mixKeyOf({ source }: SourceState): WithdrawalMixKey | null {
+  if (source.kind === "studyFund") return "studyFund";
+  if (source.kind !== "otherInvestments") return null;
+  return source.id === BANK_DEPOSITS_SOURCE_ID ? "deposits" : "shares";
+}
+
+/**
+ * A draw that follows the user's split: each kind is asked for its percent of what is still to be
+ * drawn, a kind that cannot cover its ask gives all it has, and the shortfall is asked of the
+ * other kinds by their percents. Inside a kind the draw is pro rata by balance. If every named
+ * kind is empty and money is still owed, the rest comes pro rata from what remains unlocked
+ * (kinds set to 0 and pension-like money), so the draw is never smaller than under pro rata.
+ */
+function allocateCustomDraw(unlocked: SourceState[], draw: number, mix: WithdrawalMix): number[] {
+  const keys = unlocked.map(mixKeyOf);
+  const kindBalance = (key: WithdrawalMixKey): number =>
+    unlocked.reduce((sum, entry, index) => (keys[index] === key ? sum + Math.max(entry.balance, 0) : sum), 0);
+  const kindTaken: Record<WithdrawalMixKey, number> = { studyFund: 0, shares: 0, deposits: 0 };
+  const open = new Set(WITHDRAWAL_MIX_KEYS.filter((key) => mix[key] > 0 && kindBalance(key) > 0));
+  let remaining = draw;
+  while (remaining > 0 && open.size > 0) {
+    const weight = [...open].reduce((sum, key) => sum + mix[key], 0);
+    const capped = [...open].filter((key) => (remaining * mix[key]) / weight >= kindBalance(key));
+    if (capped.length === 0) {
+      for (const key of open) kindTaken[key] = (remaining * mix[key]) / weight;
+      remaining = 0;
+      break;
+    }
+    for (const key of capped) {
+      kindTaken[key] = kindBalance(key);
+      remaining -= kindBalance(key);
+      open.delete(key);
+    }
+  }
+  const taken = unlocked.map((entry, index) => {
+    const key = keys[index];
+    const total = key ? kindBalance(key) : 0;
+    return key && total > 0 && entry.balance > 0 ? (kindTaken[key] * entry.balance) / total : 0;
+  });
+  if (remaining > 0) {
+    const left = unlocked.map((entry, index) => Math.max(entry.balance - taken[index], 0));
+    const leftTotal = left.reduce((sum, value) => sum + value, 0);
+    if (leftTotal > 0) {
+      left.forEach((value, index) => {
+        taken[index] += Math.min((remaining * value) / leftTotal, value);
+      });
+    }
+  }
+  return taken;
+}
+
 /**
  * How much of `draw` comes out of each unlocked source, in the order of `unlocked`. Pro rata takes
  * the same share of every balance; an ordered strategy empties each group before starting on the
- * next, and shares the draw pro rata inside the group it ends in.
+ * next, and shares the draw pro rata inside the group it ends in; a custom one follows the split
+ * set by the user (see `allocateCustomDraw`).
  */
 function allocateDraw(
   unlocked: SourceState[],
   unlockedTotal: number,
   draw: number,
   strategy: WithdrawalStrategy,
+  mix: WithdrawalMix,
 ): number[] {
   if (strategy === "proRata") {
     return unlocked.map((entry) => (entry.balance > 0 ? (draw * entry.balance) / unlockedTotal : 0));
   }
+  if (strategy === "custom") return allocateCustomDraw(unlocked, draw, mix);
   const taken = new Map<SourceState, number>();
   let remaining = draw;
   for (const tier of withdrawalTiers(unlocked, strategy)) {
@@ -259,16 +324,17 @@ function allocateDraw(
 /**
  * Year-by-year simulation of every source of a household, entirely in
  * today's money:
- * - Every balance grows at the real return; until its owner's retirement age,
- *   ongoing deposits are added each year.
+ * - Every balance grows at its source's real return: the plan's, except for the bank
+ *   deposits, which earn their own (see `RetirementSource.realReturn`). Until its
+ *   owner's retirement age, ongoing deposits are added each year.
  * - From the moment the later spouse retires, `monthlySpending` is withdrawn
  *   each year, less the fixed streams (Bituach Leumi, the spouse supplement
  *   and account annuities) once they start. It is taken from the capital that
  *   is unlocked at that point, in the order of the household's withdrawal
  *   strategy: pro rata by default, or one group of sources after another (see
  *   `withdrawalRank`). The order changes who pays the tax, not how much is
- *   drawn: every source earns the same return, so the unlocked total is the
- *   same either way. Locked capital cannot fund spending, so a shortfall is not
+ *   drawn each year; sources with different returns can still leave different
+ *   balances behind. Locked capital cannot fund spending, so a shortfall is not
  *   covered from it.
  * - An account that pays an annuity leaves the spendable pool; its capital
  *   stops counting toward net worth once the annuity starts.
@@ -303,7 +369,7 @@ function recordDrawdownStart(
       formula: "the withdrawal strategy chosen in the assumptions; pro rata when none is chosen",
       inputs: { strategy: input(strategy, fromProfile("assumptions.withdrawalStrategy")) },
       output: strategy,
-      note: "The strategy changes which source pays each year's draw, and so the tax; the gross amount drawn is the same as pro rata.",
+      note: "The strategy changes which source pays each year's draw, and so the tax. Each year the same gross amount is drawn as with pro rata, while the money lasts; sources that earn different returns can still leave different balances behind.",
     }));
   }
   recordStep("annualSpending", () => ({
@@ -328,14 +394,15 @@ function recordDrawdownStart(
       retirementYears: input(retirementYears, fromLatestStep("retirementYears", retirementYears)),
     },
     output: horizonYears + 1,
-    note: "realRate drives every balance; retirementYears is when withdrawals start (year index >= retirementYears).",
+    note: "realRate is the plan's return; each source grows at its own realReturn (the sources table), which differs only for the bank deposits. retirementYears is when withdrawals start (year index >= retirementYears).",
   }));
 
   for (const entry of state) {
     withScope(entry.member.role, () =>
       withScope(sourceTraceScope(entry.source), () =>
         recordStep("annualContribution", () => {
-          const monthlyRate = Math.pow(1 + rate, 1 / 12) - 1;
+          const sourceRate = entry.source.realReturn;
+          const monthlyRate = Math.pow(1 + sourceRate, 1 / 12) - 1;
           const common = {
             title: "Deposits added in each year before the owner retires (today's money)",
             inputs: {
@@ -343,7 +410,12 @@ function recordDrawdownStart(
                 entry.source.monthlyContribution,
                 fromDerived("the source's monthlyContribution in the sources table"),
               ),
-              rate: input(rate, fromLatestStep("realRate", rate)),
+              rate: input(
+                sourceRate,
+                sourceRate === rate
+                  ? fromLatestStep("realRate", rate)
+                  : fromDerived("the source's realReturn in the sources table"),
+              ),
               monthlyRate: input(monthlyRate, fromDerived("(1 + rate)^(1/12) - 1")),
             },
             output: entry.annualContribution,
@@ -384,6 +456,7 @@ function recordDrawdownStart(
       "ownerRetirementAge",
       "annuityStartAge",
       "annuityMonthly",
+      "realReturn",
     ],
     rows: state.map(({ member, source, basis, ordinaryLayer, annualContribution }) => [
       `${member.role}: ${sourceTraceScope(source)}`,
@@ -399,6 +472,7 @@ function recordDrawdownStart(
       member.retirementAge,
       source.annuity?.startAge ?? null,
       source.annuity?.monthly ?? null,
+      source.realReturn,
     ]),
     note: "costBasis and ordinaryLayer are capped as the simulation caps them: costBasis at the balance, ordinaryLayer at balance minus costBasis.",
   }));
@@ -409,9 +483,10 @@ function simulate(
   monthlySpending: number,
   options: DrawdownOptions,
 ): DrawdownYear[] {
-  const { rate, members, retirementYears, horizonYears } = household;
+  const { members, retirementYears, horizonYears } = household;
   const { yearlyRates, lean = false } = options;
   const strategy = lean ? "proRata" : (options.withdrawalStrategy ?? household.withdrawalStrategy);
+  const mix = options.withdrawalMix ?? household.withdrawalMix;
   const annualSpending = monthlySpending * 12;
   const primary = members[0];
 
@@ -423,7 +498,7 @@ function simulate(
       balance: source.balance,
       basis: Math.min(source.costBasis, source.balance),
       ordinaryLayer: Math.min(source.ordinaryLayer, Math.max(source.balance - source.costBasis, 0)),
-      annualContribution: futureValueOfMonthlyContributions(source.monthlyContribution, rate, 1),
+      annualContribution: futureValueOfMonthlyContributions(source.monthlyContribution, source.realReturn, 1),
       converted: false,
     })),
   );
@@ -438,13 +513,14 @@ function simulate(
   for (let years = 0; years <= horizonYears; years += 1) {
     const conversions: DrawdownConversion[] = [];
     if (years > 0) {
-      const yearRate = yearlyRates?.[years - 1] ?? rate;
+      const shockedRate = yearlyRates?.[years - 1];
       for (const entry of state) {
         const age = entry.member.currentAge + years;
+        const yearRate = shockedRate ?? entry.source.realReturn;
         entry.balance *= 1 + yearRate;
         if (age <= entry.member.retirementAge) {
           entry.balance +=
-            yearRate === rate
+            shockedRate === undefined
               ? entry.annualContribution
               : futureValueOfMonthlyContributions(entry.source.monthlyContribution, yearRate, 1);
           entry.basis += entry.source.monthlyContribution * 12;
@@ -495,7 +571,7 @@ function simulate(
       drawn = draw;
       unmet = needed - draw;
       if (unlockedTotal > 0) {
-        takenBy = allocateDraw(unlocked, unlockedTotal, draw, strategy);
+        takenBy = allocateDraw(unlocked, unlockedTotal, draw, strategy, mix);
       }
     }
 
@@ -620,7 +696,9 @@ function simulate(
         ],
         rows: traceDraws,
         note:
-          strategy === "taxableFirst"
+          strategy === "custom"
+            ? `Your mix: study fund ${mix.studyFund}%, shares ${mix.shares}%, bank deposits ${mix.deposits}% of each year's draw. A kind that has run out (or is still locked) gives what it has and the rest is asked of the other kinds by their percents; inside a kind the draw is shared in proportion to balances. If every named kind is empty, the rest comes pro rata from the other unlocked money.`
+            : strategy === "taxableFirst"
             ? "Taxable first: the non-pension investments (employer shares included) are used up first, then the investment provident fund, then pension-like money, and the tax-free study fund last. Sources in the same group share the draw in proportion to their balances."
             : "Lowest tax first: the study fund first, then capital-gains money by the tax on its gain (gain share × tax rate), then pension-like money, and money taxed as ordinary income last. Sources in the same group share the draw in proportion to their balances. The order only ranks the sources; the tax itself comes from the tax step.",
       }));

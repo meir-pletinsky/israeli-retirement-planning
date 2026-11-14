@@ -1,4 +1,4 @@
-import type { ProductCategory, ProfileData } from "../types";
+import { WITHDRAWAL_MIX_KEYS, type ProductCategory, type ProfileData, type WithdrawalMixKey } from "../types";
 import { projectCashFlow } from "./cashFlow";
 import { bituachLeumiPaymentsAt, simulateHouseholdDrawdown, type DrawdownYear } from "./drawdown";
 import {
@@ -17,6 +17,7 @@ import {
 } from "./incomeBreakdown";
 import { roundToSum } from "./rounding";
 import {
+  BANK_DEPOSITS_SOURCE_ID,
   ORDINARY_STOCK_SOURCE_ID,
   OTHER_INVESTMENTS_SOURCE_ID,
   SECTION_102_SOURCE_ID,
@@ -50,8 +51,8 @@ export type IncomeSourceOrigin =
 
 /**
  * What bears on drawing money from a source, as the plan holds it. The tax mix is what the
- * projection applies; the currency and the deposit terms are shown for reference, because the
- * projection grows every source at the household's one return.
+ * projection applies, and so is a deposit's real return, which it grows the deposits at; the
+ * currency and the other deposit terms are shown for reference.
  */
 export interface WithdrawalFactors {
   treatment: TaxTreatment;
@@ -114,6 +115,41 @@ export interface IncomeYearDetail {
   unfunded: number | null;
 }
 
+/** Which kind of a custom withdrawal split a source belongs to; null for pension-like money, which the split does not name. */
+export function withdrawalMixKindOf(origin: IncomeSourceOrigin): WithdrawalMixKey | null {
+  switch (origin.type) {
+    case "account":
+      return origin.productCategory === "studyFund" ? "studyFund" : null;
+    case "bankDeposit":
+      return "deposits";
+    case "otherAssets":
+    case "holding":
+    case "employerShares":
+      return "shares";
+    default:
+      return null;
+  }
+}
+
+/** Where a year's withdrawals came from, in whole percent adding up to 100; `other` is money the split does not name. */
+export type WithdrawalSplit = Record<WithdrawalMixKey | "other", number>;
+
+/** The split of a year's withdrawals by kind; null when nothing is withdrawn. */
+export function withdrawalSplit(lines: readonly IncomeSourceLine[]): WithdrawalSplit | null {
+  const kinds = [...WITHDRAWAL_MIX_KEYS, "other"] as const;
+  const sums: WithdrawalSplit = { studyFund: 0, shares: 0, deposits: 0, other: 0 };
+  for (const line of lines) {
+    if (line.mode === "withdrawal") sums[withdrawalMixKindOf(line.origin) ?? "other"] += line.monthly;
+  }
+  const total = kinds.reduce((sum, kind) => sum + sums[kind], 0);
+  if (total <= 0) return null;
+  const parts = roundToSum(
+    kinds.map((kind) => (sums[kind] * 100) / total),
+    100,
+  );
+  return Object.fromEntries(kinds.map((kind, index) => [kind, parts[index]])) as WithdrawalSplit;
+}
+
 interface Part {
   origin: IncomeSourceOrigin;
   /** The part's share of its source; the parts of a source add up to 1. */
@@ -166,15 +202,34 @@ const currencyOf = (origin: IncomeSourceOrigin): WithdrawalFactors["currency"] =
 
 /**
  * The model draws the non-pension investments as one pool, pro rata, and every part of it earns
- * the same return, so each part's share of the pool is its share of the pool's value.
+ * the same return, so each part's share of the pool is its share of the pool's value. The bank
+ * deposits are a source of their own that grows at the blend of their own rates; its parts are
+ * shared out by what each deposit is worth at retirement at its own rate (a deposit with no
+ * rate grows at `planRate`), so they add up to the source's balance when the drawing starts.
  */
-function poolParts(profile: ProfileData, retirementAge: number): Part[] {
-  const parts = investmentParts(profile, retirementAge);
-  const total = parts.reduce((sum, part) => sum + part.value, 0);
+function investmentSlotParts(
+  profile: ProfileData,
+  retirementAge: number,
+  deposits: boolean,
+  yearsToRetirement: number,
+  planRate: number,
+): Part[] {
+  const parts = investmentParts(profile, retirementAge)
+    .map((part, index) => ({ part, index }))
+    .filter(({ part }) => (part.type === "bankDeposit") === deposits)
+    .map(({ part, index }) => ({
+      part,
+      index,
+      size:
+        part.type === "bankDeposit"
+          ? part.value * Math.pow(1 + (part.terms.realReturn ?? planRate), yearsToRetirement)
+          : part.value,
+    }));
+  const total = parts.reduce((sum, { size }) => sum + size, 0);
   if (total <= 0) return [{ origin: { type: "otherAssets" }, weight: 1, suffix: "", deposit: null }];
-  return parts.map((part, index) => ({
+  return parts.map(({ part, index, size }) => ({
     origin: pooledOrigin(part),
-    weight: part.value / total,
+    weight: size / total,
     suffix: `:${index}`,
     deposit: part.type === "bankDeposit" ? part.terms : null,
   }));
@@ -184,8 +239,15 @@ function buildSlots(household: Household): Slot[] {
   return household.members.flatMap((member, memberIndex) =>
     member.sources.map((source): Slot => {
       const owner = member.role;
-      if (source.id === OTHER_INVESTMENTS_SOURCE_ID) {
-        return { memberIndex, owner, source, parts: poolParts(member.profile, member.retirementAge) };
+      if (source.id === OTHER_INVESTMENTS_SOURCE_ID || source.id === BANK_DEPOSITS_SOURCE_ID) {
+        const parts = investmentSlotParts(
+          member.profile,
+          member.retirementAge,
+          source.id === BANK_DEPOSITS_SOURCE_ID,
+          Math.max(member.retirementAge - member.currentAge, 0),
+          household.rate,
+        );
+        return { memberIndex, owner, source, parts };
       }
       let origin: IncomeSourceOrigin;
       if (source.id === SECTION_102_SOURCE_ID) {
@@ -372,8 +434,9 @@ function yearDetail(
  * - Payments are the annuities that have started and Bituach Leumi (with the spouse supplement),
  *   each as the plan models it.
  * - Withdrawals split a band by each source's share of the year's draw. The model draws the
- *   non-pension investments as one pool, so its parts (cash and other assets, each deposit, each
- *   holding, Section 3(i) shares) share the pool's draw in proportion to their value.
+ *   non-pension investments as one pool, so its parts (cash and other assets, each holding,
+ *   Section 3(i) shares) share the pool's draw in proportion to their value; the bank deposits
+ *   are a source of their own, and each deposit shares its draw in proportion to its value.
  * - A source that holds money but pays nothing is listed as idle with the reason.
  *
  * The planned basis falls back to the sustainable one when no spending is entered.

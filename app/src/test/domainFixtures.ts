@@ -13,6 +13,7 @@ import type {
   SpouseData,
   TaxExemptionBasket,
   TaxTrack,
+  WithdrawalMix,
   WithdrawalStrategy,
 } from "../types";
 import {
@@ -51,6 +52,8 @@ export function buildTestProfile(overrides: {
   volatilityPct?: number;
   /** The order the plan draws on unlocked savings; defaults to pro rata. */
   withdrawalStrategy?: WithdrawalStrategy;
+  /** The split the "custom" strategy follows; defaults to the app's default. */
+  withdrawalMix?: WithdrawalMix;
   /** The age the plan runs to; defaults to the app's default. */
   planningHorizonAge?: PlanningHorizonAge;
   pensionAccountOverrides?: Partial<PensionAccount>[];
@@ -114,6 +117,7 @@ export function buildTestProfile(overrides: {
     inflationPct,
     volatilityPct,
     withdrawalStrategy,
+    withdrawalMix,
     planningHorizonAge,
     pensionBalances = [],
     pensionAccountOverrides = [],
@@ -277,6 +281,7 @@ export function buildTestProfile(overrides: {
       inflationPct: inflationPct ?? EMPTY_PROFILE.assumptions.inflationPct,
       volatilityPct: volatilityPct ?? EMPTY_PROFILE.assumptions.volatilityPct,
       withdrawalStrategy: withdrawalStrategy ?? EMPTY_PROFILE.assumptions.withdrawalStrategy,
+      withdrawalMix: withdrawalMix ?? EMPTY_PROFILE.assumptions.withdrawalMix,
       planningHorizonAge: planningHorizonAge ?? EMPTY_PROFILE.assumptions.planningHorizonAge,
       incomeCapPct: EMPTY_PROFILE.assumptions.incomeCapPct,
     },

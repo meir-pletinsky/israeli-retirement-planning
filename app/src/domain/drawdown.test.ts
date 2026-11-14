@@ -76,6 +76,41 @@ describe("simulateDrawdown spendable capital and draw", () => {
   });
 });
 
+describe("simulateDrawdown bank deposit returns", () => {
+  const base = {
+    age: 60,
+    retirementAge: 60,
+    investmentReturnPct: 4,
+    inflationPct: 4,
+    pensionBalances: [100_000],
+  };
+  const yearOfGrowth = (profile: ReturnType<typeof buildTestProfile>) => {
+    const rows = simulateDrawdown(profile, 60, 0);
+    return rows[2].spendable - rows[1].spendable;
+  };
+
+  it("grows a deposit at its own real return while the other savings grow at the plan's", () => {
+    const withRate = buildTestProfile({
+      ...base,
+      bankDeposits: [{ amount: 100_000, annualInterestRatePercent: 3, cpiLinked: true }],
+    });
+    expect(yearOfGrowth(withRate)).toBeCloseTo(100_000 * 1.03 * 0.03, 4);
+  });
+
+  it("leaves a deposit with no rate growing at the plan's return", () => {
+    const noRate = buildTestProfile({ ...base, bankDeposits: [{ amount: 100_000 }] });
+    expect(yearOfGrowth(noRate)).toBeCloseTo(0, 6);
+  });
+
+  it("lets a non-CPI deposit lose value when its rate is below inflation", () => {
+    const below = buildTestProfile({
+      ...base,
+      bankDeposits: [{ amount: 100_000, annualInterestRatePercent: 2 }],
+    });
+    expect(yearOfGrowth(below)).toBeLessThan(0);
+  });
+});
+
 describe("simulateDrawdown holdings", () => {
   const investmentFund = [{ productCategory: "investmentProvidentFund" as const }];
 

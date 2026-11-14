@@ -23,6 +23,7 @@ import {
   hasDollarHoldings,
   incomeSurplus,
   pensionStartOf,
+  sameWhatIfValue,
   successPercent,
   whatIfNotes,
   whatIfPlanPatch,
@@ -30,7 +31,7 @@ import {
   whatIfSensitivity,
   whatIfValues,
 } from "../../domain";
-import { PLANNING_HORIZON_AGES } from "../../types";
+import { PLANNING_HORIZON_AGES, WITHDRAWAL_STRATEGIES } from "../../types";
 import { ChartFrame } from "../charts/ChartFrame";
 import { IncomeBreakdownTable } from "../charts/ChartTables";
 import { useChartTakeaways } from "../charts/chartTakeaways";
@@ -40,6 +41,7 @@ import { WhatIfSensitivity } from "./WhatIfSensitivity";
 import { WhatIfSlider } from "./WhatIfSlider";
 import { WhatIfSummary } from "./WhatIfSummary";
 import { WhatIfYearSources } from "./WhatIfYearSources";
+import { WithdrawalMixControl } from "./WithdrawalMixControl";
 import { useWhatIfFormat } from "./useWhatIfFormat";
 
 const BASES = ["planned", "sustainable"] as const;
@@ -133,7 +135,7 @@ export function WhatIfPanel({ bandLabels }: WhatIfPanelProps) {
   const chartName = t("whatIf.chart.title");
 
   const hasOverrides = Object.keys(overrides).length > 0;
-  const planChanged = PLAN_KEYS.some((key) => values[key] !== baseline[key]);
+  const planChanged = PLAN_KEYS.some((key) => !sameWhatIfValue(key, values, baseline));
   const noteTexts = whatIfNotes(profile, values).map((note) => ({
     slider: note.slider,
     text: t(`whatIf.note.${note.key}`, { age: isolate(String(note.age ?? "")) }),
@@ -144,7 +146,7 @@ export function WhatIfPanel({ bandLabels }: WhatIfPanelProps) {
     setOverrides((current) => {
       const next: WhatIfOverrides = { ...current, ...patch };
       for (const key of Object.keys(patch) as (keyof WhatIfValues)[]) {
-        if (next[key] === baseline[key]) delete next[key];
+        if (sameWhatIfValue(key, { ...baseline, ...next }, baseline)) delete next[key];
       }
       return next;
     });
@@ -231,6 +233,46 @@ export function WhatIfPanel({ bandLabels }: WhatIfPanelProps) {
           <legend className="mb-2 text-sm font-semibold text-slate-900">{t("whatIf.group.spending")}</legend>
           {slider("monthlySpending")}
           {values.monthlySpending > 0 && slider("incomeCapPct", [t("whatIf.note.incomeCap")])}
+        </fieldset>
+
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-1 text-sm font-semibold text-slate-900">{t("whatIf.group.withdrawals")}</legend>
+          <p className="text-xs text-slate-500">{t("whatIf.withdrawals.intro")}</p>
+          {WITHDRAWAL_STRATEGIES.map((strategy) => (
+            <label key={strategy} className="flex cursor-pointer items-center gap-2 text-sm text-slate-800">
+              <input
+                type="radio"
+                name="whatif-withdrawal-strategy"
+                checked={values.withdrawalStrategy === strategy}
+                onChange={() => update({ withdrawalStrategy: strategy })}
+                className="accent-brand-600"
+              />
+              <span className={clsx(values.withdrawalStrategy === strategy && "font-semibold")}>
+                {t(`projections.withdrawal.strategy.${strategy}.name`)}
+              </span>
+            </label>
+          ))}
+          <p className="text-xs text-slate-600">
+            {t(`projections.withdrawal.strategy.${values.withdrawalStrategy}.description`)}
+          </p>
+          {values.withdrawalStrategy !== baseline.withdrawalStrategy && (
+            <button
+              type="button"
+              onClick={() => update({ withdrawalStrategy: baseline.withdrawalStrategy })}
+              className="self-start text-xs font-medium text-brand-700 hover:underline"
+            >
+              {t("whatIf.slider.backToPlan", {
+                value: t(`projections.withdrawal.strategy.${baseline.withdrawalStrategy}.name`),
+              })}
+            </button>
+          )}
+          {values.withdrawalStrategy === "custom" && (
+            <WithdrawalMixControl
+              mix={values.withdrawalMix}
+              baseline={baseline.withdrawalMix}
+              onChange={(withdrawalMix) => update({ withdrawalMix })}
+            />
+          )}
         </fieldset>
 
         <fieldset className="flex flex-col gap-2">

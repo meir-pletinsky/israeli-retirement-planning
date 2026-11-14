@@ -7,17 +7,46 @@ export type AssumptionPreset = "conservative" | "base" | "optimistic";
 /**
  * Which savings are drawn first once spending starts (see `domain/drawdown.ts`):
  * every unlocked source at the same share, taxable investments before pension
- * money and the tax-free study fund last, or the cheapest-taxed money first.
+ * money and the tax-free study fund last, the cheapest-taxed money first, or the user's own
+ * split between study funds, shares and bank deposits (`WithdrawalMix`).
  */
-export type WithdrawalStrategy = "proRata" | "taxableFirst" | "lowestTaxFirst";
+export type WithdrawalStrategy = "proRata" | "taxableFirst" | "lowestTaxFirst" | "custom";
 
 export const WITHDRAWAL_STRATEGIES: readonly WithdrawalStrategy[] = [
   "proRata",
   "taxableFirst",
   "lowestTaxFirst",
+  "custom",
 ];
 
 export const DEFAULT_WITHDRAWAL_STRATEGY: WithdrawalStrategy = "proRata";
+
+/** The three kinds of savings a custom withdrawal split is set over. */
+export type WithdrawalMixKey = "studyFund" | "shares" | "deposits";
+
+export const WITHDRAWAL_MIX_KEYS: readonly WithdrawalMixKey[] = ["studyFund", "shares", "deposits"];
+
+/** What share of each year's withdrawals comes from each kind, in whole percent adding up to 100. */
+export type WithdrawalMix = Record<WithdrawalMixKey, number>;
+
+export const DEFAULT_WITHDRAWAL_MIX: WithdrawalMix = { studyFund: 34, shares: 33, deposits: 33 };
+
+/**
+ * Reads a possibly hand-edited mix: whole percents of 0 to 100 that add up to 100. Anything else
+ * (missing, text, not summing to 100) gives the default.
+ */
+export function normalizeWithdrawalMix(value: unknown): WithdrawalMix {
+  if (typeof value !== "object" || value === null) return { ...DEFAULT_WITHDRAWAL_MIX };
+  const saved = value as Partial<Record<WithdrawalMixKey, unknown>>;
+  const parts = WITHDRAWAL_MIX_KEYS.map((key) => saved[key]);
+  const valid = parts.every(
+    (part) => typeof part === "number" && Number.isInteger(part) && part >= 0 && part <= 100,
+  );
+  if (!valid || (parts as number[]).reduce((sum, part) => sum + part, 0) !== 100) {
+    return { ...DEFAULT_WITHDRAWAL_MIX };
+  }
+  return { studyFund: parts[0] as number, shares: parts[1] as number, deposits: parts[2] as number };
+}
 
 /** The age the plan looks to: savings are sized, drawn and tested to last until a person reaches it. */
 export const PLANNING_HORIZON_AGES = [90, 95, 100] as const;
@@ -35,6 +64,8 @@ export interface Assumptions {
   volatilityPct: number;
   /** The order the plan draws on unlocked savings; changes who pays how much tax, not how much is drawn. */
   withdrawalStrategy: WithdrawalStrategy;
+  /** The split of withdrawals between study funds, shares and bank deposits; used by the "custom" strategy only. */
+  withdrawalMix: WithdrawalMix;
   /** The age every result runs to; for a couple, the age the younger spouse reaches. */
   planningHorizonAge: PlanningHorizonAge;
   /** How far a year's income may rise above the planned spending, in percent, before the plan flags it. */
@@ -739,6 +770,7 @@ export const EMPTY_PROFILE: ProfileData = {
     ...ASSUMPTION_PRESETS.base,
     volatilityPct: DEFAULT_VOLATILITY_PCT,
     withdrawalStrategy: DEFAULT_WITHDRAWAL_STRATEGY,
+    withdrawalMix: { ...DEFAULT_WITHDRAWAL_MIX },
     planningHorizonAge: DEFAULT_PLANNING_HORIZON_AGE,
     incomeCapPct: DEFAULT_INCOME_CAP_PCT,
   },
@@ -820,7 +852,7 @@ function normalizeExpenses(value: unknown): ExpensesData {
 }
 
 /**
- * Older profiles have no volatility, withdrawal order, planning horizon or income cap, and a
+ * Older profiles have no volatility, withdrawal order or mix, planning horizon or income cap, and a
  * hand-edited one may hold text or an unknown value; all of those get the default.
  */
 function normalizeAssumptions(value: Partial<Assumptions> | undefined): Assumptions {
@@ -829,6 +861,7 @@ function normalizeAssumptions(value: Partial<Assumptions> | undefined): Assumpti
     ...merged,
     volatilityPct: finiteOrNull(merged.volatilityPct) ?? DEFAULT_VOLATILITY_PCT,
     withdrawalStrategy: oneOf(WITHDRAWAL_STRATEGIES, merged.withdrawalStrategy, DEFAULT_WITHDRAWAL_STRATEGY),
+    withdrawalMix: normalizeWithdrawalMix(merged.withdrawalMix),
     planningHorizonAge: oneOfNumbers(PLANNING_HORIZON_AGES, merged.planningHorizonAge, DEFAULT_PLANNING_HORIZON_AGE),
     incomeCapPct: Math.min(
       Math.max(finiteOrNull(merged.incomeCapPct) ?? DEFAULT_INCOME_CAP_PCT, 0),

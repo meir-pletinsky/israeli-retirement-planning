@@ -4,6 +4,8 @@ import type { PensionAccount, TaxTrack } from "../types";
 import { buildTestProfile } from "../test/domainFixtures";
 import { selfProfileView, spouseProfileView } from "./household";
 import {
+  BANK_DEPOSITS_SOURCE_ID,
+  OTHER_INVESTMENTS_SOURCE_ID,
   accountUnlockAge,
   buildSources,
   countUncategorizedAccounts,
@@ -134,7 +136,7 @@ describe("buildSources", () => {
     expect(total).toBeCloseTo(projectBalanceAtAge(profile, 62), 6);
   });
 
-  it("counts bank deposits in the other-investments bucket and in the projected balance", () => {
+  it("keeps bank deposits in a source of their own that still counts in the projected balance", () => {
     const profile = buildTestProfile({
       age: 40,
       otherAssets: 30_000,
@@ -142,12 +144,57 @@ describe("buildSources", () => {
       investmentReturnPct: 6,
       inflationPct: 2.5,
     });
-    const [bucket] = buildSources(profile, 60);
-    expect(bucket.kind).toBe("otherInvestments");
-    expect(bucket.balance).toBeCloseTo(150_000, 6);
-    expect(bucket.costBasis).toBeCloseTo(150_000, 6);
-    const total = buildSources(profile, 60).reduce((sum, s) => sum + s.valueAtRetirement, 0);
+    const sources = buildSources(profile, 60);
+    const bucket = sources.find(({ id }) => id === OTHER_INVESTMENTS_SOURCE_ID);
+    const deposits = sources.find(({ id }) => id === BANK_DEPOSITS_SOURCE_ID);
+    expect(bucket?.balance).toBeCloseTo(30_000, 6);
+    expect(bucket?.costBasis).toBeCloseTo(30_000, 6);
+    expect(deposits?.kind).toBe("otherInvestments");
+    expect(deposits?.taxTreatment).toBe("capitalGains");
+    expect(deposits?.balance).toBeCloseTo(120_000, 6);
+    expect(deposits?.costBasis).toBeCloseTo(120_000, 6);
+    const total = sources.reduce((sum, s) => sum + s.valueAtRetirement, 0);
     expect(total).toBeCloseTo(projectBalanceAtAge(profile, 60), 6);
+  });
+
+  it("grows the bank deposits at their own real return, and the rest at the plan's", () => {
+    const profile = buildTestProfile({
+      age: 40,
+      otherAssets: 30_000,
+      bankDeposits: [
+        { amount: 100_000, annualInterestRatePercent: 4, cpiLinked: true },
+        { amount: 100_000, annualInterestRatePercent: 5 },
+      ],
+      investmentReturnPct: 6,
+      inflationPct: 2.5,
+    });
+    const sources = buildSources(profile, 60);
+    const bucket = sources.find(({ id }) => id === OTHER_INVESTMENTS_SOURCE_ID)!;
+    const deposits = sources.find(({ id }) => id === BANK_DEPOSITS_SOURCE_ID)!;
+    const planRate = 1.06 / 1.025 - 1;
+    const depositRate = (0.04 + (1.05 / 1.025 - 1)) / 2;
+    expect(bucket.realReturn).toBeCloseTo(planRate, 12);
+    expect(deposits.realReturn).toBeCloseTo(depositRate, 12);
+    expect(deposits.valueAtRetirement).toBeCloseTo(200_000 * Math.pow(1 + depositRate, 20), 4);
+    expect(bucket.valueAtRetirement).toBeCloseTo(30_000 * Math.pow(1 + planRate, 20), 4);
+    const total = sources.reduce((sum, s) => sum + s.valueAtRetirement, 0);
+    expect(total).toBeCloseTo(projectBalanceAtAge(profile, 60), 6);
+  });
+
+  it("grows bank deposits with no rate entered at the plan's return, like every other source", () => {
+    const profile = buildTestProfile({
+      age: 40,
+      bankDeposits: [{ amount: 100_000 }],
+      investmentReturnPct: 6,
+      inflationPct: 2.5,
+    });
+    const deposits = buildSources(profile, 60).find(({ id }) => id === BANK_DEPOSITS_SOURCE_ID)!;
+    expect(deposits.realReturn).toBe(1.06 / 1.025 - 1);
+  });
+
+  it("adds no bank deposits source when there are no deposits", () => {
+    const profile = buildTestProfile({ age: 40, otherAssets: 30_000 });
+    expect(buildSources(profile, 60).some(({ id }) => id === BANK_DEPOSITS_SOURCE_ID)).toBe(false);
   });
 
   it("keeps the primary user's bank deposits out of the spouse's view", () => {

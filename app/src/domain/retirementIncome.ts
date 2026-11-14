@@ -1,7 +1,9 @@
 import type { ProfileData } from "../types";
 import {
   buildHousehold,
+  catchUpGrowthOf,
   coverCostYears,
+  householdDrawingRate,
   primaryAgeAtMemberAge,
   resolveRetirementTiming,
   retirementTimingAtAge,
@@ -92,10 +94,11 @@ export function estimateHouseholdRetirementIncome(
 function estimateIncome(household: Household): RetirementIncomeEstimate {
   const { members, rate: annualRate, retirementYears, horizonYears } = household;
   const primary = members[0];
+    const drawingRate = householdDrawingRate(household);
 
   const monthsInRetirement = Math.round((horizonYears - retirementYears) * 12);
   const horizonMonths = Math.max(monthsInRetirement, 0);
-  const monthlyRate = Math.pow(1 + annualRate, 1 / 12) - 1;
+    const monthlyRate = Math.pow(1 + drawingRate, 1 / 12) - 1;
   const monthsAfterRetirement = (yearsFromNow: number) =>
     Math.min(Math.max(Math.round((yearsFromNow - retirementYears) * 12), 0), horizonMonths);
 
@@ -117,11 +120,27 @@ function estimateIncome(household: Household): RetirementIncomeEstimate {
     inputs: { monthsInRetirement: input(monthsInRetirement, fromStep(monthsInRetirementId)) },
     output: horizonMonths,
   }));
+  const drawingRateId =
+    drawingRate === annualRate
+      ? null
+      : recordStep("drawingRate", () => ({
+          title: "Real return the capital is spent at",
+          formula:
+            "the return of each source that is drawn on (not an annuity), weighted by its value at its owner's retirement",
+          inputs: { planRate: input(annualRate, fromLatestStep("realRate")) },
+          output: drawingRate,
+          note: "Some sources earn their own return (the bank deposits). The solver spends all the capital at this one blended return; the drawdown simulation grows each source at its own.",
+        }));
   const monthlyRateId = recordStep("monthlyRate", () => ({
     title: "Equivalent monthly real rate",
     formula: "(1 + real rate) ^ (1/12) - 1",
     expr: "(1 + annualRate) ^ (1 / 12) - 1",
-    inputs: { annualRate: input(annualRate, fromLatestStep("realRate")) },
+    inputs: {
+      annualRate: input(
+        drawingRate,
+        drawingRateId === null ? fromLatestStep("realRate") : fromStep(drawingRateId),
+      ),
+    },
     output: monthlyRate,
   }));
 
@@ -258,7 +277,11 @@ function estimateIncome(household: Household): RetirementIncomeEstimate {
 
       for (const source of member.sources) {
         const sourceScope = sourceTraceScope(source);
-        const value = source.valueAtRetirement * catchUpGrowth;
+        const sourceCatchUp =
+          source.realReturn === annualRate
+            ? catchUpGrowth
+            : catchUpGrowthOf(household, member, source.realReturn);
+        const value = source.valueAtRetirement * sourceCatchUp;
         netWorthAtRetirement += value;
         withScope(sourceScope, () => {
           recordStep("valueAtHouseholdRetirement", () => ({
@@ -270,7 +293,12 @@ function estimateIncome(household: Household): RetirementIncomeEstimate {
                 source.valueAtRetirement,
                 fromLatestStep(`${member.role}/${sourceScope}/valueAtRetirement`),
               ),
-              catchUpGrowth: input(catchUpGrowth, fromStep(catchUpId)),
+              catchUpGrowth: input(
+                sourceCatchUp,
+                source.realReturn === annualRate
+                  ? fromStep(catchUpId)
+                  : fromDerived("(1 + the source's realReturn) ^ (retirementYears - ownRetirementYears)"),
+              ),
             },
             output: value,
           }));

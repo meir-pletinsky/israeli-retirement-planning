@@ -174,8 +174,8 @@ function buildRow(
  *
  * A group is one kind of money of one person. The tax mix of a group is that of its accounts that
  * can be drawn in that year, weighted by their value. Annuities are fixed payments rather than
- * savings, so they are not listed. Every source earns the same return in the plan, so the table
- * shows tax only; what a source gives up besides tax (a tax-free shelter, a lower rate on gains)
+ * savings, so they are not listed. The table shows tax only, whatever each source earns; what a
+ * source gives up besides tax (a tax-free shelter, a lower rate on gains)
  * is described in words by the card. Nothing here changes a number in the plan.
  */
 export function buildSourceCostTable(

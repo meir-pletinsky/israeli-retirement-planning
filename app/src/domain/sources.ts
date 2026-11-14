@@ -7,7 +7,12 @@ import type {
   TaxTrack,
 } from "../types";
 import { ACCESS_RULES } from "./accessRules";
-import { aggregateBankDepositsBalance, bankDepositValueIls } from "./bankDeposits";
+import {
+  aggregateBankDepositsBalance,
+  aggregateBankDepositsRealReturn,
+  bankDepositRealReturn,
+  bankDepositValueIls,
+} from "./bankDeposits";
 import { DEFAULT_CURRENT_AGE } from "./constants";
 import {
   contributionSalaryBase,
@@ -107,10 +112,16 @@ export interface RetirementSource {
   ordinaryLayer: number;
   /** Tax rate on a realised gain (`capitalGains` sources only). */
   capitalGainsTaxRate: number;
+  /**
+   * The yearly return above inflation the source grows at, in today's money. The plan's real
+   * return for every source except the bank deposits, which earn their own rates.
+   */
+  realReturn: number;
 }
 
 /** Ids of the sources made of investments rather than of a pension account. */
 export const OTHER_INVESTMENTS_SOURCE_ID = "other-investments";
+export const BANK_DEPOSITS_SOURCE_ID = "bank-deposits";
 export const SECTION_102_SOURCE_ID = "employer-stock-section-102";
 export const ORDINARY_STOCK_SOURCE_ID = "employer-stock-ordinary-income";
 
@@ -162,7 +173,7 @@ function fxRateOrigin(profile: ProfileData): string {
     : "entered by the user, profile.equity.usdToIlsRate";
 }
 
-/** Today's balance of all bank deposits in ILS; they count in the non-pension investments bucket like other cash. */
+/** Today's balance of all bank deposits in ILS; they are a source of their own, taxed like other cash. */
 function bankDepositsValue(profile: ProfileData): number {
   return aggregateBankDepositsBalance(
     profile.bankDeposits,
@@ -202,7 +213,7 @@ function otherInvestmentsTaxProfile(
 ): { costBasis: number; rate: number; value: number; gains: number; weightedRate: number } {
   const defaultRate = TAX_RATES.capitalGainsRate;
   const fxRate = usdToIlsRate(profile);
-  const otherAssets = (profile.pensionSavings.otherAssets ?? 0) + bankDepositsValue(profile);
+  const otherAssets = profile.pensionSavings.otherAssets ?? 0;
   let value = otherAssets + nonTrustee.value;
   let gains = nonTrustee.value - nonTrustee.grantValue;
   let weightedRate = (otherAssets + nonTrustee.value) * defaultRate;
@@ -943,6 +954,7 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
         costBasis: balance,
         ordinaryLayer: 0,
         capitalGainsTaxRate: TAX_RATES.capitalGainsRate,
+        realReturn: rate,
       };
     }),
   );
@@ -951,7 +963,6 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
   const fxRate = usdToIlsRate(profile);
   const otherBalance =
     (profile.pensionSavings.otherAssets ?? 0) +
-    bankDepositsValue(profile) +
     equity.nonTrustee.value +
     equity.rest.reduce((sum, holding) => sum + holdingValueIls(holding, fxRate), 0);
   const otherTax = otherInvestmentsTaxProfile(profile, equity.rest, equity.nonTrustee);
@@ -963,16 +974,19 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
     balance: number,
     tax: Pick<RetirementSource, "taxTreatment" | "costBasis" | "ordinaryLayer" | "capitalGainsTaxRate">,
     balanceFrom: string,
+    own?: { realReturn: number; growth: number; growthFrom: string },
   ): RetirementSource =>
     withScope(id, () => {
-      const valueAtRetirement = balance * growth;
+      const realReturn = own?.realReturn ?? rate;
+      const growthOfSource = own?.growth ?? growth;
+      const valueAtRetirement = balance * growthOfSource;
       recordStep("valueAtRetirement", () => ({
         title: "Value at retirement (today's money)",
         formula: "balance × growth (no deposits are made into these)",
         expr: "balance * growth",
         inputs: {
           balance: input(balance, balanceFrom),
-          growth: input(growth, fromStep(ids?.growth ?? "")),
+          growth: input(growthOfSource, own?.growthFrom ?? fromStep(ids?.growth ?? "")),
         },
         output: valueAtRetirement,
       }));
@@ -985,6 +999,7 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
         valueAtRetirement,
         annuity: null,
         ...tax,
+        realReturn,
       };
     });
   sources.push(
@@ -1000,6 +1015,74 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
       fromStep(otherBalanceId),
     ),
   );
+  const depositsBalance = bankDepositsValue(profile);
+  if (depositsBalance > 0) {
+    const depositsRealReturn = aggregateBankDepositsRealReturn(
+      profile.bankDeposits,
+      profile.assumptions.inflationPct,
+      rate,
+      engineNowMs(),
+    );
+    const depositsGrowth = Math.pow(1 + depositsRealReturn, years);
+    const depositsGrowthId = withScope(BANK_DEPOSITS_SOURCE_ID, () => {
+      if (!ids) return "";
+      const returnId = recordStep("realReturn", () => ({
+        title: "Real return the bank deposits grow at",
+        formula:
+          "each deposit's rate above inflation, weighted by its current value: a CPI-linked deposit earns its quoted rate; any other earns (1 + quoted rate) / (1 + inflation) - 1; a deposit with no rate earns the plan's real return",
+        inputs: {
+          planRate: input(rate, fromStep(ids.rate)),
+          inflationPct: input(profile.assumptions.inflationPct, fromProfile("assumptions.inflationPct")),
+        },
+        output: depositsRealReturn,
+        note: "A deposit is assumed to roll over at its rate when it matures. Each deposit's own rate, CPI link and value are in profile.bankDeposits.",
+      }));
+      return recordStep("growth", () => ({
+        title: "Growth of the bank deposits until retirement",
+        formula: "(1 + real return) ^ years until retirement",
+        expr: "(1 + realReturn) ^ years",
+        inputs: {
+          realReturn: input(depositsRealReturn, fromStep(returnId)),
+          years: input(years, fromStep(ids.years)),
+        },
+        output: depositsGrowth,
+      }));
+    });
+    const depositsBalanceId = withScope(BANK_DEPOSITS_SOURCE_ID, () =>
+      ids
+        ? recordStep("balance", () => ({
+            title: "Balance of the bank deposits",
+            formula: "sum of each deposit's amount compounded since its start date",
+            expr: "bankDepositsValue",
+            inputs: {
+              bankDepositsValue: input(
+                depositsBalance,
+                fromDerived("profile.bankDeposits: amount compounded since the start date (see bankDepositValueIls)"),
+              ),
+            },
+            output: depositsBalance,
+          }))
+        : "",
+    );
+    sources.push(
+      investment(
+        BANK_DEPOSITS_SOURCE_ID,
+        depositsBalance,
+        {
+          taxTreatment: "capitalGains",
+          costBasis: depositsBalance,
+          ordinaryLayer: 0,
+          capitalGainsTaxRate: TAX_RATES.capitalGainsRate,
+        },
+        fromStep(depositsBalanceId),
+        {
+          realReturn: depositsRealReturn,
+          growth: depositsGrowth,
+          growthFrom: fromStep(depositsGrowthId),
+        },
+      ),
+    );
+  }
   if (equity.capitalRoute.value > 0) {
     sources.push(
       investment(
@@ -1047,6 +1130,7 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
       "costBasis",
       "ordinaryLayer",
       "capitalGainsTaxRate",
+      "realReturn",
     ],
     rows: sources.map((source) => [
       source.id,
@@ -1062,20 +1146,23 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
       source.costBasis,
       source.ordinaryLayer,
       source.capitalGainsTaxRate,
+      source.realReturn,
     ]),
-    note: "All money amounts are in today's money (real terms). These are the inputs of the retirement-income solver, the drawdown simulation and the tax step.",
+    note: "All money amounts are in today's money (real terms). realReturn is the yearly return above inflation the source grows at: the plan's for every source but the bank deposits. These are the inputs of the retirement-income solver, the drawdown simulation and the tax step.",
   }));
 
   return sources;
 }
 
-/** What a bank deposit pays and how long, as the profile records it; shown beside the deposit, not used by the projection. */
+/** What a bank deposit pays and how long, as the profile records it. */
 export interface DepositTerms {
   rateType: BankDepositRateType | null;
   annualInterestPct: number | null;
   cpiLinked: boolean;
   maturityDate: string | null;
   autoRenew: boolean;
+  /** The yearly return above inflation this deposit earns in the plan; null when no rate is recorded, so the plan's return applies. */
+  realReturn: number | null;
 }
 
 /** One piece of the non-pension investments source, as the profile lists it. */
@@ -1086,10 +1173,11 @@ export type InvestmentPart =
   | { type: "employerShares"; value: number };
 
 /**
- * What the non-pension investments source (`OTHER_INVESTMENTS_SOURCE_ID`) is made of for a person
- * retiring at `retirementAge`: the pieces `buildSources` adds up, so their values sum to its
- * balance. Employer shares taxed another way have their own sources and are not listed here;
- * Section 3(i) shares are one piece.
+ * What the non-pension investments source (`OTHER_INVESTMENTS_SOURCE_ID`) and the bank deposits
+ * source (`BANK_DEPOSITS_SOURCE_ID`) are made of for a person retiring at `retirementAge`: the
+ * pieces `buildSources` adds up, so the bank deposits sum to the second source's balance and the
+ * rest to the first's. Employer shares taxed another way have their own sources and are not
+ * listed here; Section 3(i) shares are one piece.
  */
 export function investmentParts(profile: ProfileData, retirementAge: number): InvestmentPart[] {
   const years = Math.max(retirementAge - resolveCurrentAge(profile), 0);
@@ -1109,6 +1197,7 @@ export function investmentParts(profile: ProfileData, retirementAge: number): In
         cpiLinked: deposit.cpiLinked,
         maturityDate: deposit.maturityDate,
         autoRenew: deposit.autoRenew,
+        realReturn: bankDepositRealReturn(deposit, profile.assumptions.inflationPct),
       },
     })),
     { type: "employerShares", value: equity.nonTrustee.value },
@@ -1189,14 +1278,10 @@ function recordOtherInvestmentsSteps(
   const balanceId = recordStep("balance", () => ({
     title: "Balance of the non-pension investments bucket",
     formula:
-      "other assets + bank deposits + Section 3(i) employer shares + every holding that is not employer-granted",
-    expr: "otherAssets + bankDepositsValue + nonTrusteeValue + otherHoldingsValue",
+      "other assets + Section 3(i) employer shares + every holding that is not employer-granted",
+    expr: "otherAssets + nonTrusteeValue + otherHoldingsValue",
     inputs: {
       otherAssets: input(profile.pensionSavings.otherAssets, fromProfile("pensionSavings.otherAssets")),
-      bankDepositsValue: input(
-        bankDepositsValue(profile),
-        fromDerived("profile.bankDeposits: amount compounded since the start date (see bankDepositValueIls)"),
-      ),
       nonTrusteeValue: input(
         equity.nonTrustee.value,
         fromDerived("employerLots table: lots on the nonTrustee route"),

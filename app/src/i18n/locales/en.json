@@ -374,7 +374,7 @@
       "opensAt": "opens at age {{age}}",
       "dollarPriced": "Priced in US dollars",
       "dollarShare": "{{amount}} ({{percent}} of the total) is priced in US dollars, so its value in shekels moves with the exchange rate.",
-      "returnNote": "Every asset above is assumed to grow at the same {{returnPct}} a year (before inflation), whether it is a deposit, a share or a pension fund.",
+      "returnNote": "Every asset above is assumed to grow at the same {{returnPct}} a year (before inflation), whether it is a share or a pension fund. A bank deposit grows at its own rate when you have entered one.",
       "rows": {
         "pensionFund": "Pension funds",
         "providentFund": "Provident funds",
@@ -997,7 +997,7 @@
   },
   "assumptionsSummary": {
     "label": "Assumptions in use",
-    "values": "Investment return {{returnPct}} (before inflation), the same for every asset, inflation {{inflation}}, market volatility {{volatility}}. All per year.",
+    "values": "Investment return {{returnPct}} (before inflation), the same for every asset except bank deposits with a rate of their own, inflation {{inflation}}, market volatility {{volatility}}. All per year.",
     "calculatedOn": "Calculated as of {{date}}.",
     "horizon": "Plan runs to age {{age}}.",
     "change": "Change assumptions"
@@ -1195,7 +1195,7 @@
       },
       "howTitle": "How this works",
       "howMarginal": "Each figure is the extra tax if you raise your net spending by {{step}} a month and take all of it from that source, in the first year that source can be used, on top of what your plan already draws.",
-      "howSame": "Every source is assumed to earn the same return, so the table compares tax only, not how much each source would have grown.",
+      "howSame": "The table compares tax only, not how much each source would grow, which depends on the return it earns.",
       "howGroups": "Money of the same kind is combined and weighted by its value when you retire. Annuities and Bituach Leumi are payments, not savings, so they are not listed.",
       "howFee": "The management fee is shown only if you entered one, and it is not part of the tax.",
       "howReadOnly": "This only shows your plan. It changes none of its numbers. It is an estimate, not tax advice."
@@ -1312,6 +1312,10 @@
         "lowestTaxFirst": {
           "name": "Lowest tax first",
           "description": "The tax-free study fund first, then money taxed only on its gain, then pension money. Money taxed as ordinary income is last."
+        },
+        "custom": {
+          "name": "Your mix",
+          "description": "Your own split of each year's withdrawals between the study fund, shares and bank deposits, set under What if. A source that has run out or is still locked passes its share to the others."
         }
       },
       "metricColumn": "Over your retirement",
@@ -1335,7 +1339,7 @@
       "tradeoff": "No order wins on every line: the one with the lowest total tax can leave you with less in your leanest year. Look at all of the lines before you choose.",
       "usedEverywhere": "The order you choose is used for the whole plan: the Dashboard, the income chart and the timeline.",
       "howTitle": "How this works",
-      "howSameGross": "Every order draws the same amount from the same savings, and all of your savings earn the same return, so what is left at each age is the same. Only the tax, and so the income you keep, changes.",
+      "howSameGross": "Every order draws the same amount from the same savings each year, so the tax, and so the income you keep, is what changes. If your bank deposits earn a different return from your other savings, the order also changes how much each grows, and so what is left at each age.",
       "howLocked": "Money that is still locked is not drawn on until it opens. The order applies to all of your unlocked savings together; each spouse is taxed on their own part.",
       "howRisk": "The risk analysis and the historical test do not depend on the order.",
       "howEstimate": "Tax is estimated with today's rules. This is not tax advice, and no order is a recommendation."
@@ -1428,7 +1432,8 @@
     "group": {
       "ages": "Ages",
       "markets": "Markets",
-      "spending": "Your spending"
+      "spending": "Your spending",
+      "withdrawals": "Where the money comes from"
     },
     "param": {
       "retirementAge": "You stop working at age",
@@ -1447,6 +1452,16 @@
       "backToPlan": "Back to {{value}}",
       "yourPlan": "Your plan"
     },
+    "withdrawals": {
+      "intro": "When pensions and Bituach Leumi do not cover your spending, your savings pay the rest. Choose how they are drawn."
+    },
+    "mix": {
+      "studyFund": "Study fund",
+      "shares": "Shares",
+      "deposits": "Bank deposits",
+      "other": "Other savings",
+      "hint": "The three always add up to {{total}}. When a source has run out or is still locked, its share goes to the others."
+    },
     "note": {
       "pensionLocked": "Pension funds do not pay out before age {{age}}, so until then only your other savings can cover your spending.",
       "stateLater": "The Bituach Leumi pension starts only at age {{age}}.",
@@ -1457,7 +1472,7 @@
     },
     "reset": "Reset to my plan",
     "apply": "Apply to my plan",
-    "applyHint": "Applying saves the ages, return, inflation, spending and plan age. Share price and dollar moves are never saved.",
+    "applyHint": "Applying saves the ages, return, inflation, spending, drawing order and plan age. Share price and dollar moves are never saved.",
     "applied": "Saved to your plan.",
     "draftNotice": "This is a draft and nothing is saved. The faint line on the chart is your saved plan.",
     "planNotice": "This is your saved plan. Move a slider to see what a change would do.",
@@ -1519,6 +1534,8 @@
       "excess": "Above planned spending",
       "excessOverCap": "Above planned spending, over your {{cap}} limit",
       "strategy": "Drawing order: {{name}}",
+      "strategyCustom": "Drawing order: your mix, {{mix}}.",
+      "mixShifted": "This year it came out as {{split}}, because a source is used up or not yet unlocked.",
       "factor": {
         "exempt": "Tax-free",
         "pension": "Taxed as pension income",
@@ -1537,6 +1554,8 @@
             "unknown": "Rate {{rate}}"
           },
           "cpiLinked": "CPI-linked",
+          "realReturn": "Real return {{rate}} a year",
+          "noRate": "No rate entered: plan return",
           "matures": "Matures {{date}}",
           "renews": "Renews {{date}}"
         }
@@ -1549,7 +1568,7 @@
         "startsLater": "Starts paying at age {{age}}",
         "notDrawn": "Not drawn on this year"
       },
-      "note": "Withdrawals are modelled amounts, not instructions to sell. Investments are drawn as one pool, so the split between cash, deposits and holdings follows their value. The tax shown is what the plan applies. Interest, currency and indexation are shown for reference: the plan grows every source at the same yearly return.",
+      "note": "Withdrawals are modelled amounts, not instructions to sell. Shares and other investments are drawn as one pool, so the split between cash and holdings follows their value; bank deposits are drawn as a source of their own. The tax shown is what the plan applies. Bank deposits grow at the average of their own rates after inflation (a deposit with no rate, at the plan's return) and everything else at the plan's return; the currency is shown for reference.",
       "empty": "No income to show for this year."
     },
     "sensitivity": {

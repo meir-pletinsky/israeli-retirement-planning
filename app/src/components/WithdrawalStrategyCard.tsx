@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import type { WithdrawalStrategyComparison, WithdrawalStrategyResult } from "../domain";
 import { formatNumber } from "../i18n/formatters";
-import type { WithdrawalStrategy } from "../types";
+import { WITHDRAWAL_MIX_KEYS, type WithdrawalStrategy } from "../types";
 import { ScenarioTitle } from "./ScenarioTag";
 import { useFormatAge } from "./useFormatAge";
 
@@ -31,11 +31,13 @@ export function WithdrawalStrategyCard({
   const signed = (amount: number) =>
     Math.abs(amount) < 0.5 ? null : isolate(`${amount < 0 ? "\u2212" : "+"}${currencySymbol}${formatNumber(Math.abs(Math.round(amount)))}`);
 
-  const { results, current, desiredMonthly, surtaxThresholdAnnual, identical } = comparison;
+  const { results, current, mix, desiredMonthly, surtaxThresholdAnnual, identical } = comparison;
   const inUse = results.find((result) => result.strategy === current);
   if (!inUse || results.every((result) => result.years.length === 0)) {
     return null;
   }
+
+  const mixText = WITHDRAWAL_MIX_KEYS.map((key) => `${t(`whatIf.mix.${key}`)} ${isolate(`${mix[key]}%`)}`).join(" · ");
 
   const name = (strategy: WithdrawalStrategy) => t(`projections.withdrawal.strategy.${strategy}.name`);
   const perMonth = (amount: number) => t("projections.withdrawal.perMonth", { amount: money(amount) });
@@ -158,6 +160,9 @@ export function WithdrawalStrategyCard({
                       )}
                     >
                       <span className="block font-semibold text-slate-800">{name(result.strategy)}</span>
+                      {result.strategy === "custom" && (
+                        <span className="block text-xs font-normal text-slate-500">{mixText}</span>
+                      )}
                     </th>
                   ))}
                 </tr>

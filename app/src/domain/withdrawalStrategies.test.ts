@@ -106,6 +106,74 @@ describe("withdrawal order in the drawdown", () => {
   });
 });
 
+describe("custom withdrawal mix", () => {
+  // Sources: pension, study fund, other investments (shares and cash), then the bank deposits.
+  const mixed = {
+    age: 60,
+    retirementAge: 60,
+    ...zeroReal,
+    pensionBalances: [100_000, 100_000],
+    pensionAccountOverrides: [{}, { productCategory: "studyFund" as const }],
+    otherAssets: 100_000,
+    bankDeposits: [{ amount: 100_000 }],
+  };
+  const [MIX_PENSION, MIX_STUDY, MIX_OTHER, MIX_DEPOSITS] = [0, 1, 2, 3];
+  const customShares = (
+    mix: { studyFund: number; shares: number; deposits: number },
+    year: number,
+    spending = 2_000,
+  ) =>
+    simulateDrawdown(
+      buildTestProfile({ ...mixed, withdrawalStrategy: "custom", withdrawalMix: mix }),
+      60,
+      spending,
+    )[year].holdings.map((holding) => holding.capitalShare);
+
+  it("takes each kind's percent of the draw and leaves pension-like money alone", () => {
+    const share = customShares({ studyFund: 50, shares: 30, deposits: 20 }, 1);
+    expect(share[MIX_STUDY]).toBeCloseTo(0.5, 9);
+    expect(share[MIX_OTHER]).toBeCloseTo(0.3, 9);
+    expect(share[MIX_DEPOSITS]).toBeCloseTo(0.2, 9);
+    expect(share[MIX_PENSION]).toBe(0);
+  });
+
+  it("moves the share of a kind that has run out to the others by their percents", () => {
+    // Zero real growth: 14,400 a year (60% of 24,000) empties the 100,000 deposits during year 7.
+    const lastYear = customShares({ studyFund: 40, shares: 0, deposits: 60 }, 7);
+    expect(lastYear[MIX_DEPOSITS]).toBeGreaterThan(0);
+    expect(lastYear[MIX_DEPOSITS]).toBeLessThan(0.6);
+    expect(lastYear[MIX_STUDY] + lastYear[MIX_DEPOSITS]).toBeCloseTo(1, 9);
+    const after = customShares({ studyFund: 40, shares: 0, deposits: 60 }, 8);
+    expect(after[MIX_DEPOSITS]).toBe(0);
+    expect(after[MIX_STUDY]).toBeCloseTo(1, 9);
+  });
+
+  it("falls back to the rest of the unlocked money when every named kind is empty", () => {
+    const share = customShares({ studyFund: 100, shares: 0, deposits: 0 }, 6, 3_000);
+    expect(share[MIX_STUDY]).toBe(0);
+    expect(share[MIX_PENSION] + share[MIX_OTHER] + share[MIX_DEPOSITS]).toBeCloseTo(1, 9);
+  });
+
+  it("draws the same gross amount and leaves the same capital as pro rata", () => {
+    const rows = (strategy: "proRata" | "custom") =>
+      simulateDrawdown(
+        buildTestProfile({
+          ...mixed,
+          withdrawalStrategy: strategy,
+          withdrawalMix: { studyFund: 70, shares: 20, deposits: 10 },
+        }),
+        60,
+        3_000,
+      );
+    const base = rows("proRata");
+    rows("custom").forEach((row, index) => {
+      expect(row.drawn).toBeCloseTo(base[index].drawn, 6);
+      expect(row.unmet).toBeCloseTo(base[index].unmet, 6);
+      expect(row.netWorth).toBeCloseTo(base[index].netWorth, 6);
+    });
+  });
+});
+
 describe("compareWithdrawalStrategies", () => {
   const profile = buildTestProfile({
     age: 60,

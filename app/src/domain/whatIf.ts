@@ -1,4 +1,12 @@
-import type { ExpensesData, PlanningHorizonAge, ProfileData } from "../types";
+import {
+  WITHDRAWAL_MIX_KEYS,
+  type ExpensesData,
+  type PlanningHorizonAge,
+  type ProfileData,
+  type WithdrawalMix,
+  type WithdrawalMixKey,
+  type WithdrawalStrategy,
+} from "../types";
 import { ACCESS_RULES } from "./accessRules";
 import { estimateBituachLeumiPension } from "./bituachLeumi";
 import { projectCashFlow, type CashFlowPlan } from "./cashFlow";
@@ -19,6 +27,7 @@ import {
   usdToIlsRate,
 } from "./profileBasics";
 import { estimateHouseholdRetirementIncome } from "./retirementIncome";
+import { roundToSum } from "./rounding";
 import { startsAnnuityByChoice } from "./sources";
 import { withPriceDrop } from "./stressTests";
 
@@ -47,12 +56,19 @@ export interface WhatIfValues {
   planningHorizonAge: PlanningHorizonAge;
   /** How far a year's income may exceed the planned spending, in percent, before it is flagged. */
   incomeCapPct: number;
+  /** The order the savings are drawn in when the pension does not cover the spending. */
+  withdrawalStrategy: WithdrawalStrategy;
+  /** How a draw is split between study funds, shares and bank deposits under the "custom" strategy. */
+  withdrawalMix: WithdrawalMix;
 }
 
 export type WhatIfOverrides = Partial<WhatIfValues>;
 
 /** The values that move along a slider. */
-export type WhatIfSliderKey = Exclude<keyof WhatIfValues, "planningHorizonAge">;
+export type WhatIfSliderKey = Exclude<
+  keyof WhatIfValues,
+  "planningHorizonAge" | "withdrawalStrategy" | "withdrawalMix"
+>;
 
 export interface WhatIfRange {
   min: number;
@@ -71,7 +87,36 @@ export const PLAN_KEYS = [
   "monthlySpending",
   "incomeCapPct",
   "planningHorizonAge",
+  "withdrawalStrategy",
+  "withdrawalMix",
 ] as const satisfies readonly (keyof WhatIfValues)[];
+
+/** Whether `key` holds the same value in both sets; the mix is compared by its parts, not by identity. */
+export function sameWhatIfValue(key: keyof WhatIfValues, a: WhatIfValues, b: WhatIfValues): boolean {
+  return key === "withdrawalMix"
+    ? WITHDRAWAL_MIX_KEYS.every((mixKey) => a.withdrawalMix[mixKey] === b.withdrawalMix[mixKey])
+    : a[key] === b[key];
+}
+
+/**
+ * `mix` with `key` set to `percent`. The other two kinds share what is left in proportion to what
+ * they held (equally when both held nothing), so the three always add up to 100 whole percent.
+ */
+export function rebalanceWithdrawalMix(mix: WithdrawalMix, key: WithdrawalMixKey, percent: number): WithdrawalMix {
+  const own = Math.min(Math.max(Math.round(percent), 0), 100);
+  const others = WITHDRAWAL_MIX_KEYS.filter((other) => other !== key);
+  const rest = 100 - own;
+  const held = others.reduce((sum, other) => sum + mix[other], 0);
+  const parts = roundToSum(
+    others.map((other) => (held > 0 ? (rest * mix[other]) / held : rest / others.length)),
+    rest,
+  );
+  const next: WithdrawalMix = { ...mix, [key]: own };
+  others.forEach((other, index) => {
+    next[other] = parts[index];
+  });
+  return next;
+}
 
 export type PensionStartKey = "pensionStartAge" | "spousePensionStartAge";
 
@@ -115,6 +160,8 @@ export function baselineWhatIf(profile: ProfileData): WhatIfValues {
     dollarChangePct: 0,
     planningHorizonAge: profile.assumptions.planningHorizonAge,
     incomeCapPct: profile.assumptions.incomeCapPct,
+    withdrawalStrategy: profile.assumptions.withdrawalStrategy,
+    withdrawalMix: profile.assumptions.withdrawalMix,
   };
 }
 
@@ -254,7 +301,7 @@ function withSpending(expenses: ExpensesData, target: number): ExpensesData {
  */
 export function applyWhatIf(profile: ProfileData, values: WhatIfValues): ProfileData {
   const base = baselineWhatIf(profile);
-  const same = (Object.keys(base) as (keyof WhatIfValues)[]).every((key) => base[key] === values[key]);
+  const same = (Object.keys(base) as (keyof WhatIfValues)[]).every((key) => sameWhatIfValue(key, base, values));
   if (same) return profile;
 
   const couple = isHouseholdActive(profile);
@@ -287,6 +334,8 @@ export function applyWhatIf(profile: ProfileData, values: WhatIfValues): Profile
       inflationPct: values.inflationPct,
       planningHorizonAge: values.planningHorizonAge,
       incomeCapPct: values.incomeCapPct,
+      withdrawalStrategy: values.withdrawalStrategy,
+      withdrawalMix: values.withdrawalMix,
     },
     expenses: withSpending(profile.expenses, values.monthlySpending),
     equity: {

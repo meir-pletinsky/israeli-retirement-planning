@@ -5,6 +5,7 @@ import {
   DEFAULT_INCOME_CAP_PCT,
   DEFAULT_PLANNING_HORIZON_AGE,
   DEFAULT_VOLATILITY_PCT,
+  DEFAULT_WITHDRAWAL_MIX,
   DEFAULT_WITHDRAWAL_STRATEGY,
   EMPTY_BITUACH_LEUMI,
   EMPTY_PROFILE,
@@ -49,6 +50,22 @@ describe("normalizeProfile", () => {
     for (const strategy of WITHDRAWAL_STRATEGIES) {
       expect(withStrategy({ ...legacyAssumptions, withdrawalStrategy: strategy })).toBe(strategy);
     }
+  });
+
+  it("keeps a saved withdrawal mix only when it is whole percents adding up to 100", () => {
+    const { withdrawalMix: _mix, ...legacyAssumptions } = EMPTY_PROFILE.assumptions;
+    const withMix = (withdrawalMix: unknown) =>
+      normalizeProfile({
+        assumptions: { ...legacyAssumptions, withdrawalMix },
+      } as unknown as Parameters<typeof normalizeProfile>[0]).assumptions.withdrawalMix;
+    expect(withMix(undefined)).toEqual(DEFAULT_WITHDRAWAL_MIX);
+    expect(withMix({ studyFund: 50, shares: 30, deposits: 20 })).toEqual({ studyFund: 50, shares: 30, deposits: 20 });
+    expect(withMix({ studyFund: 100, shares: 0, deposits: 0 })).toEqual({ studyFund: 100, shares: 0, deposits: 0 });
+    expect(withMix({ studyFund: 50, shares: 30, deposits: 30 })).toEqual(DEFAULT_WITHDRAWAL_MIX);
+    expect(withMix({ studyFund: 50.5, shares: 29.5, deposits: 20 })).toEqual(DEFAULT_WITHDRAWAL_MIX);
+    expect(withMix({ studyFund: -10, shares: 60, deposits: 50 })).toEqual(DEFAULT_WITHDRAWAL_MIX);
+    expect(withMix({ studyFund: "50", shares: 30, deposits: 20 })).toEqual(DEFAULT_WITHDRAWAL_MIX);
+    expect(withMix(null)).toEqual(DEFAULT_WITHDRAWAL_MIX);
   });
 
   it("plans to age 90 for a profile saved before the horizon was a setting, and for a value it does not offer", () => {
