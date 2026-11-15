@@ -16,6 +16,7 @@ import { hasProfileData, type ProfileData } from "../types";
 import { useBackupStatus } from "../app/backupStatus";
 import { useProfile } from "../app/ProfileContext";
 import { useExportBackup } from "../app/useExportBackup";
+import { useWhatIfDraft } from "../app/whatIfDraft";
 import { useLatestUsdIlsRate } from "../app/useLatestUsdIlsRate";
 import { usePersistenceStatus } from "../app/usePersistenceStatus";
 import { ConfirmModal } from "../components/ConfirmModal";
@@ -38,6 +39,7 @@ export function Settings() {
     cpiLookupEnabled,
     setCpiLookupEnabled,
   } = useProfile();
+  const { restoreDraft } = useWhatIfDraft();
   const { rate: latestRate, settled: rateSettled } = useLatestUsdIlsRate(fxLookupEnabled);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingImport, setPendingImport] = useState<(ProfileFile & { fileName: string }) | null>(null);
@@ -73,7 +75,7 @@ export function Settings() {
       if (hasProfileData(profile)) {
         setPendingImport({ ...read, fileName: file.name });
       } else {
-        await applyImport(read.profile);
+        await applyImport(read.profile, read.whatIfDraft);
       }
     } catch {
       setToastTone("error");
@@ -81,13 +83,14 @@ export function Settings() {
     }
   }
 
-  async function applyImport(imported: ProfileData) {
+  async function applyImport(imported: ProfileData, savedDraft: unknown) {
     const replacing = hasProfileData(profile);
     if (replacing) {
       await saveBeforeImportRestorePoint(profile);
       setRestorePoint(await loadBeforeImportRestorePoint() ?? null);
     }
     updateProfile(imported);
+    restoreDraft(savedDraft, imported);
     completeOnboarding();
     setToastTone("default");
     setToast(t(replacing ? "settings.importSuccessWithRestore" : "settings.importSuccess"));
@@ -98,7 +101,7 @@ export function Settings() {
     setPendingImport(null);
     if (!pending) return;
     try {
-      await applyImport(pending.profile);
+      await applyImport(pending.profile, pending.whatIfDraft);
     } catch {
       setToastTone("error");
       setToast(t("settings.importError"));
@@ -110,6 +113,7 @@ export function Settings() {
     setRestoreConfirmOpen(false);
     if (!point) return;
     updateProfile(point.data);
+    restoreDraft(null, point.data);
     completeOnboarding();
     await clearBeforeImportRestorePoint();
     setRestorePoint(null);

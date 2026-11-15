@@ -1,9 +1,16 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import type { IncomeBandKey } from "../../domain";
-import { clearAllData, loadProfileFromDb, saveOnboardedToDb, saveProfileToDb } from "../../storage/db";
+import {
+  clearAllData,
+  loadProfileFromDb,
+  loadWhatIfDraftFromDb,
+  saveOnboardedToDb,
+  saveProfileToDb,
+  saveWhatIfDraftToDb,
+} from "../../storage/db";
 import { buildTestProfile } from "../../test/domainFixtures";
 import { renderWithProviders } from "../../test/renderWithProviders";
 import { WhatIfPanel } from "./WhatIfPanel";
@@ -165,7 +172,7 @@ describe("WhatIfPanel", () => {
     fireEvent.change(slider, { target: { value: "64" } });
 
     expect(slider).toHaveValue("64");
-    expect(await screen.findByText(/This is a draft and nothing is saved/)).toBeInTheDocument();
+    expect(await screen.findByText(/This is a draft and your plan is unchanged/)).toBeInTheDocument();
     expect((await loadProfileFromDb())?.personal.retirementAge).toBe(60);
 
     await user.click(screen.getByRole("button", { name: "Apply to my plan" }));
@@ -185,6 +192,33 @@ describe("WhatIfPanel", () => {
     expect(slider).toHaveValue("60");
     expect(await screen.findByText(/This is your saved plan/)).toBeInTheDocument();
     expect((await loadProfileFromDb())?.personal.retirementAge).toBe(60);
+  });
+
+  it("keeps the draft apart from the plan and brings it back when the tab is opened again", async () => {
+    const user = userEvent.setup();
+    const slider = await renderPanel();
+
+    fireEvent.change(slider, { target: { value: "64" } });
+    await waitFor(async () =>
+      expect(await loadWhatIfDraftFromDb()).toMatchObject({ overrides: { retirementAge: 64 } }),
+    );
+    expect((await loadProfileFromDb())?.personal.retirementAge).toBe(60);
+
+    cleanup();
+    renderWithProviders(<WhatIfPanel bandLabels={bandLabels} />);
+    expect(await screen.findByLabelText("You stop working at age")).toHaveValue("64");
+    expect(screen.getByText(/This is a draft/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Reset to my plan" }));
+    await waitFor(async () => expect(await loadWhatIfDraftFromDb()).toBeNull());
+  });
+
+  it("brings the draft's view choices back too, and pulls a value the plan no longer allows into range", async () => {
+    await saveWhatIfDraftToDb({ overrides: { retirementAge: 200 }, basis: "sustainable", column: "monthlySpending" });
+    await renderSurplusPanel(8_000);
+
+    expect(await screen.findByLabelText("You stop working at age")).toHaveValue("72");
+    expect(screen.getByRole("button", { name: "Sustainable income" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("offers a pension start age only when an annuity can be delayed", async () => {

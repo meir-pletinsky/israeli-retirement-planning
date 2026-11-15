@@ -1479,7 +1479,7 @@
     "apply": "Apply to my plan",
     "applyHint": "Applying saves the ages, return, inflation, spending, drawing order and plan age. Share price and dollar moves are never saved.",
     "applied": "Saved to your plan.",
-    "draftNotice": "This is a draft and nothing is saved. The faint line on the chart is your saved plan.",
+    "draftNotice": "This is a draft and your plan is unchanged. The draft is kept on this device and in your backup file. The faint line on the chart is your saved plan.",
     "planNotice": "This is your saved plan. Move a slider to see what a change would do.",
     "stat": {
       "vsPlan": "{{change}} vs. plan",

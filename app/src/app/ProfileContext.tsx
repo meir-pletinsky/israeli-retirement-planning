@@ -9,7 +9,14 @@ import {
   type ReactNode,
 } from "react";
 
-import { pinEngineClock, pinEngineClockToNow } from "../domain";
+import {
+  EMPTY_WHAT_IF_DRAFT,
+  isEmptyWhatIfDraft,
+  pinEngineClock,
+  pinEngineClockToNow,
+  readWhatIfDraft,
+  type WhatIfDraft,
+} from "../domain";
 import {
   clearAllData,
   loadBackupSnoozedUntilFromDb,
@@ -18,6 +25,7 @@ import {
   loadLastExportedAtFromDb,
   loadOnboardedFromDb,
   loadProfileFromDb,
+  loadWhatIfDraftFromDb,
   migrateLegacyLocalStorageIfNeeded,
   saveBackupSnoozedUntilToDb,
   saveCpiLookupEnabledToDb,
@@ -25,6 +33,7 @@ import {
   saveLastExportedAtToDb,
   saveOnboardedToDb,
   saveProfileToDb,
+  saveWhatIfDraftToDb,
 } from "../storage/db";
 import { snoozeUntil } from "../storage/backupReminder";
 import { requestPersistentStorageOnce } from "../storage/persistentStorage";
@@ -39,6 +48,7 @@ import {
 import { BackupStatusContext, type BackupStatus } from "./backupStatus";
 import { ChosenScenarioContext } from "./chosenScenario";
 import { SaveStatusContext, type SaveStatus } from "./saveStatus";
+import { WhatIfDraftContext } from "./whatIfDraft";
 
 interface ProfileContextValue {
   profile: ProfileData;
@@ -87,6 +97,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   const [lastExportedAt, setLastExportedAt] = useState<string | null>(null);
   const [snoozedUntil, setSnoozedUntil] = useState<string | null>(null);
   const [chosenScenario, setChosenScenario] = useState<RetirementScenario>("standard");
+  const [whatIfDraft, setWhatIfDraft] = useState<WhatIfDraft>(EMPTY_WHAT_IF_DRAFT);
   const saveCountRef = useRef(0);
   const hasLoadedRef = useRef(false);
   const requestedPersistenceRef = useRef(false);
@@ -106,6 +117,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         storedCpiLookup,
         storedLastExportedAt,
         storedSnoozedUntil,
+        storedWhatIfDraft,
       ] = await Promise.all([
         loadProfileFromDb(),
         loadOnboardedFromDb(),
@@ -113,9 +125,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         loadCpiLookupEnabledFromDb(),
         loadLastExportedAtFromDb(),
         loadBackupSnoozedUntilFromDb(),
+        loadWhatIfDraftFromDb(),
       ]);
       if (cancelled) return;
-      if (storedProfile) setProfile(normalizeProfile(storedProfile));
+      const loadedProfile = storedProfile ? normalizeProfile(storedProfile) : EMPTY_PROFILE;
+      setProfile(loadedProfile);
+      setWhatIfDraft(readWhatIfDraft(storedWhatIfDraft, loadedProfile));
       setOnboarded(storedOnboarded);
       setFxLookupEnabled(storedFxLookup);
       setCpiLookupEnabled(storedCpiLookup);
@@ -148,6 +163,18 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     if (!hasLoadedRef.current) return;
     void saveOnboardedToDb(onboarded);
   }, [onboarded]);
+
+  // The draft is checked again whenever the plan changes, so one that no longer fits is never kept or exported.
+  const [draftCheckedFor, setDraftCheckedFor] = useState(profile);
+  if (draftCheckedFor !== profile) {
+    setDraftCheckedFor(profile);
+    setWhatIfDraft((current) => readWhatIfDraft(current, profile));
+  }
+
+  useEffect(() => {
+    if (!hasLoadedRef.current) return;
+    void saveWhatIfDraftToDb(isEmptyWhatIfDraft(whatIfDraft) ? null : whatIfDraft);
+  }, [whatIfDraft]);
 
   useEffect(() => {
     if (!hasLoadedRef.current) return;
@@ -239,6 +266,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         setLastExportedAt(null);
         setSnoozedUntil(null);
         setChosenScenario("standard");
+        setWhatIfDraft(EMPTY_WHAT_IF_DRAFT);
         requestedPersistenceRef.current = false;
       },
       fxLookupEnabled,
@@ -255,13 +283,24 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     [chosenScenario],
   );
 
+  const draftState = useMemo(
+    () => ({
+      draft: whatIfDraft,
+      setDraft: setWhatIfDraft,
+      restoreDraft: (saved: unknown, forProfile: ProfileData) => setWhatIfDraft(readWhatIfDraft(saved, forProfile)),
+    }),
+    [whatIfDraft],
+  );
+
   if (!isReady) return null;
 
   return (
     <ProfileContext.Provider value={value}>
       <SaveStatusContext.Provider value={saveStatus}>
         <BackupStatusContext.Provider value={backupStatus}>
-          <ChosenScenarioContext.Provider value={scenarioChoice}>{children}</ChosenScenarioContext.Provider>
+          <ChosenScenarioContext.Provider value={scenarioChoice}>
+            <WhatIfDraftContext.Provider value={draftState}>{children}</WhatIfDraftContext.Provider>
+          </ChosenScenarioContext.Provider>
         </BackupStatusContext.Provider>
       </SaveStatusContext.Provider>
     </ProfileContext.Provider>

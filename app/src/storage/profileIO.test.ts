@@ -134,9 +134,46 @@ describe("readProfileFile", () => {
     await expect(readProfileFile(makeJsonFile("not json"))).rejects.toThrow();
     await expect(readProfileFile(makeJsonFile(JSON.stringify({ foo: 1 })))).rejects.toThrow();
   });
+
+  it("returns the What if draft apart from the plan, or null when the file has none", async () => {
+    const draft = { overrides: { retirementAge: 62 }, basis: "planned", column: "investmentReturnPct" };
+
+    const withDraft = await readProfileFile(makeJsonFile(JSON.stringify({ ...EMPTY_PROFILE, whatIfDraft: draft })));
+    const without = await readProfileFile(makeJsonFile(JSON.stringify(EMPTY_PROFILE)));
+
+    expect(withDraft.whatIfDraft).toEqual(draft);
+    expect(withDraft.profile).not.toHaveProperty("whatIfDraft");
+    expect(without.whatIfDraft).toBeNull();
+  });
 });
 
 describe("exportProfileToFile", () => {
+  async function exportedJson(...args: Parameters<typeof exportProfileToFile>) {
+    let blob: Blob | undefined;
+    vi.stubGlobal("URL", {
+      ...URL,
+      createObjectURL: (made: Blob) => {
+        blob = made;
+        return "blob:mock-url";
+      },
+      revokeObjectURL: vi.fn(),
+    });
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    exportProfileToFile(...args);
+
+    clickSpy.mockRestore();
+    vi.unstubAllGlobals();
+    return JSON.parse(await (blob as Blob).text()) as Record<string, unknown>;
+  }
+
+  it("writes the What if draft under its own key only when there is one", async () => {
+    const draft = { overrides: { retirementAge: 62 }, basis: "planned", column: "investmentReturnPct" };
+
+    expect((await exportedJson(EMPTY_PROFILE, draft)).whatIfDraft).toEqual(draft);
+    expect(await exportedJson(EMPTY_PROFILE)).not.toHaveProperty("whatIfDraft");
+  });
+
   it("triggers a download via an anchor click", () => {
     const createObjectURL = vi.fn(() => "blob:mock-url");
     const revokeObjectURL = vi.fn();

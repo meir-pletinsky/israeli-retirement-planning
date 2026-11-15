@@ -54,5 +54,6 @@ export * from "./types";
 export * from "./verificationPack";
 export * from "./vesting";
 export * from "./whatIf";
+export * from "./whatIfDraft";
 export * from "./withdrawalStrategies";
 export type { RedactionKey } from "./verificationRedaction";

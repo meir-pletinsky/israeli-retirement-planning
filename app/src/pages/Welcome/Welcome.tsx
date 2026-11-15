@@ -3,10 +3,11 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 
 import { useProfile } from "../../app/ProfileContext";
+import { useWhatIfDraft } from "../../app/whatIfDraft";
 import { LanguageSwitcher } from "../../components/LanguageSwitcher";
 import { LogoMark } from "../../components/LogoMark";
 import { Toast } from "../../components/Toast";
-import { importProfileFromFile } from "../../storage/profileIO";
+import { readProfileFile } from "../../storage/profileIO";
 import { AboutBox } from "./AboutBox";
 import { FastTrackCard } from "./FastTrackCard";
 import { GetStartedFlow } from "./GetStartedFlow";
@@ -19,14 +20,16 @@ export function Welcome() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { updateProfile, completeOnboarding } = useProfile();
+  const { restoreDraft } = useWhatIfDraft();
   const [toast, setToast] = useState<string | null>(null);
   const [toastTone, setToastTone] = useState<"default" | "error">("default");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function handleImportFile(file: File) {
     try {
-      const imported = await importProfileFromFile(file);
-      updateProfile(imported);
+      const read = await readProfileFile(file);
+      updateProfile(read.profile);
+      restoreDraft(read.whatIfDraft, read.profile);
       completeOnboarding();
       navigate("/dashboard");
     } catch {

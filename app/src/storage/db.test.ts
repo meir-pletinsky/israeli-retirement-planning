@@ -10,12 +10,14 @@ import {
   loadFxLookupEnabledFromDb,
   loadLastExportedAtFromDb,
   loadOnboardedFromDb,
+  loadWhatIfDraftFromDb,
   saveBackupSnoozedUntilToDb,
   saveBeforeImportRestorePoint,
   saveCpiLookupEnabledToDb,
   saveFxLookupEnabledToDb,
   saveLastExportedAtToDb,
   saveOnboardedToDb,
+  saveWhatIfDraftToDb,
 } from "./db";
 
 beforeEach(async () => {
@@ -57,6 +59,35 @@ describe("before-import restore point", () => {
     await clearAllData();
 
     expect(await loadBeforeImportRestorePoint()).toBeUndefined();
+  });
+});
+
+describe("What if draft", () => {
+  it("is absent until saved, and a saved one comes back as written", async () => {
+    expect(await loadWhatIfDraftFromDb()).toBeNull();
+
+    const draft = { overrides: { retirementAge: 62 }, basis: "sustainable", column: "monthlySpending" };
+    await saveWhatIfDraftToDb(draft);
+
+    expect(await loadWhatIfDraftFromDb()).toEqual(draft);
+  });
+
+  it("is deleted by saving nothing, and together with all other data", async () => {
+    await saveWhatIfDraftToDb({ overrides: { retirementAge: 62 } });
+    await saveWhatIfDraftToDb(null);
+    expect(await loadWhatIfDraftFromDb()).toBeNull();
+
+    await saveWhatIfDraftToDb({ overrides: { retirementAge: 62 } });
+    await clearAllData();
+    expect(await loadWhatIfDraftFromDb()).toBeNull();
+  });
+
+  it("leaves the settings stored beside it untouched", async () => {
+    await saveOnboardedToDb(true);
+    await saveWhatIfDraftToDb({ overrides: { retirementAge: 62 } });
+    await saveWhatIfDraftToDb(null);
+
+    expect(await loadOnboardedFromDb()).toBe(true);
   });
 });
 

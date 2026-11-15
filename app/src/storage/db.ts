@@ -57,6 +57,7 @@ const CPI_LOOKUP_OFF_KEY = "cpiLookupOff";
 const LAST_EXPORTED_AT_KEY = "lastExportedAt";
 const BACKUP_SNOOZED_UNTIL_KEY = "backupSnoozedUntil";
 const PERSISTENCE_ASKED_KEY = "persistenceAsked";
+const WHAT_IF_DRAFT_KEY = "whatIfDraft";
 
 export async function loadProfileFromDb(): Promise<ProfileData | undefined> {
   const record = await db.profile.get(PROFILE_ID);
@@ -126,6 +127,26 @@ export async function loadPersistenceAskedFromDb(): Promise<boolean> {
 
 export async function savePersistenceAskedToDb(): Promise<void> {
   await db.meta.put({ key: PERSISTENCE_ASKED_KEY, value: true });
+}
+
+/**
+ * The What if tab's draft, kept apart from the plan as JSON text. It is returned unchecked
+ * because it is read against the plan by the caller; null when none is stored.
+ */
+export async function loadWhatIfDraftFromDb(): Promise<unknown> {
+  const record = await db.meta.get(WHAT_IF_DRAFT_KEY);
+  if (typeof record?.value !== "string") return null;
+  try {
+    return JSON.parse(record.value);
+  } catch {
+    return null;
+  }
+}
+
+/** Stores the draft, or removes it when `draft` is null. */
+export async function saveWhatIfDraftToDb(draft: object | null): Promise<void> {
+  if (draft === null) await db.meta.delete(WHAT_IF_DRAFT_KEY);
+  else await db.meta.put({ key: WHAT_IF_DRAFT_KEY, value: JSON.stringify(draft) });
 }
 
 /** Sets the current plan aside so an import can be undone; only the latest one is kept. */

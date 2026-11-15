@@ -10,11 +10,13 @@ import {
   loadFxLookupEnabledFromDb,
   loadLastExportedAtFromDb,
   loadProfileFromDb,
+  loadWhatIfDraftFromDb,
   saveBeforeImportRestorePoint,
   saveCpiLookupEnabledToDb,
   saveFxLookupEnabledToDb,
   saveLastExportedAtToDb,
   saveProfileToDb,
+  saveWhatIfDraftToDb,
 } from "../storage/db";
 import { buildTestProfile } from "../test/domainFixtures";
 import { renderWithProviders } from "../test/renderWithProviders";
@@ -279,6 +281,48 @@ describe("Settings — import protects the current plan", () => {
     expect((await loadBeforeImportRestorePoint())?.data.personal.age).toBe(52);
   });
 
+  it("brings the file's What if draft along, and drops the draft of the plan it replaces", async () => {
+    await saveProfileToDb(savedPlan);
+    await saveWhatIfDraftToDb({ overrides: { inflationPct: 4 }, basis: "planned", column: "investmentReturnPct" });
+    const user = userEvent.setup();
+    renderWithProviders(<Settings />, { route: "/settings" });
+    await screen.findByRole("heading", { name: "Settings" });
+    const draft = { overrides: { retirementAge: 62 }, basis: "sustainable", column: "monthlySpending" };
+
+    await chooseFile(user, jsonFile({ ...fileProfile, whatIfDraft: draft }));
+    await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Replace my plan" }));
+
+    await waitFor(async () => expect(await loadWhatIfDraftFromDb()).toEqual(draft));
+  });
+
+  it("clears the draft when the file carries none", async () => {
+    await saveProfileToDb(savedPlan);
+    await saveWhatIfDraftToDb({ overrides: { inflationPct: 4 }, basis: "planned", column: "investmentReturnPct" });
+    const user = userEvent.setup();
+    renderWithProviders(<Settings />, { route: "/settings" });
+    await screen.findByRole("heading", { name: "Settings" });
+
+    await chooseFile(user, jsonFile(fileProfile));
+    await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Replace my plan" }));
+
+    await waitFor(async () => expect(await savedAge()).toBe(38));
+    await waitFor(async () => expect(await loadWhatIfDraftFromDb()).toBeNull());
+  });
+
+  it("clears the draft when the previous plan is restored, as the restore point holds none", async () => {
+    await saveProfileToDb(fileProfile);
+    await saveBeforeImportRestorePoint(savedPlan);
+    await saveWhatIfDraftToDb({ overrides: { retirementAge: 62 }, basis: "planned", column: "investmentReturnPct" });
+    const user = userEvent.setup();
+    renderWithProviders(<Settings />, { route: "/settings" });
+
+    await user.click(await screen.findByRole("button", { name: "Restore the plan from before the last import" }));
+    await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Restore" }));
+
+    await waitFor(async () => expect(await savedAge()).toBe(52));
+    await waitFor(async () => expect(await loadWhatIfDraftFromDb()).toBeNull());
+  });
+
   it("rejects a file that is not an export without touching the plan", async () => {
     await saveProfileToDb(savedPlan);
     const user = userEvent.setup();
@@ -350,6 +394,19 @@ describe("Settings — keeping the plan safe", () => {
     expect(downloads.count()).toBe(1);
     expect(await screen.findByText(/^Last exported: \d{2}\/\d{2}\/\d{4}$/, plain)).toBeInTheDocument();
     expect(await loadLastExportedAtFromDb()).not.toBeNull();
+  });
+
+  it("puts the What if draft in the backup file", async () => {
+    await saveProfileToDb(buildTestProfile({ age: 40, retirementAge: 65 }));
+    const draft = { overrides: { retirementAge: 62 }, basis: "sustainable", column: "monthlySpending" };
+    await saveWhatIfDraftToDb(draft);
+    const user = userEvent.setup();
+    renderWithProviders(<Settings />, { route: "/settings" });
+
+    await user.click(await screen.findByRole("button", { name: "Export data" }));
+
+    const blob = vi.mocked(URL.createObjectURL).mock.lastCall?.[0] as Blob;
+    expect((JSON.parse(await blob.text()) as { whatIfDraft: unknown }).whatIfDraft).toEqual(draft);
   });
 
   it("shows the date of an earlier export", async () => {

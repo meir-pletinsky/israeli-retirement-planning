@@ -1,14 +1,17 @@
 import clsx from "clsx";
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState, type SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useProfile } from "../../app/ProfileContext";
 import { useHeavyResult } from "../../app/useHeavyResult";
+import { useWhatIfDraft } from "../../app/whatIfDraft";
 import {
   PLAN_KEYS,
+  WHAT_IF_BASES,
   type AgeGridColumn,
   type IncomeBandKey,
   type PensionStartKey,
+  type WhatIfBasis,
   type WhatIfOverrides,
   type WhatIfSliderKey,
   type WhatIfValues,
@@ -44,9 +47,6 @@ import { WhatIfYearSources } from "./WhatIfYearSources";
 import { WithdrawalMixControl } from "./WithdrawalMixControl";
 import { useWhatIfFormat } from "./useWhatIfFormat";
 
-const BASES = ["planned", "sustainable"] as const;
-type Basis = (typeof BASES)[number];
-
 const RISK_DELAY_MS = 400;
 const isolate = (text: string) => `\u2066${text}\u2069`;
 
@@ -71,13 +71,19 @@ interface WhatIfPanelProps {
 export function WhatIfPanel({ bandLabels }: WhatIfPanelProps) {
   const { t } = useTranslation();
   const { profile, updateProfile } = useProfile();
+  const { draft: savedDraft, setDraft } = useWhatIfDraft();
   const format = useWhatIfFormat();
   const takeaways = useChartTakeaways();
   const currencySymbol = t("common.currencySymbol");
 
-  const [overrides, setOverrides] = useState<WhatIfOverrides>({});
-  const [chosenBasis, setBasis] = useState<Basis>("planned");
-  const [chosenColumn, setColumn] = useState<AgeGridColumn>("investmentReturnPct");
+  const { overrides, basis: chosenBasis, column: chosenColumn } = savedDraft;
+  const setOverrides = (next: SetStateAction<WhatIfOverrides>) =>
+    setDraft((current) => ({
+      ...current,
+      overrides: typeof next === "function" ? next(current.overrides) : next,
+    }));
+  const setBasis = (basis: WhatIfBasis) => setDraft((current) => ({ ...current, basis }));
+  const setColumn = (column: AgeGridColumn) => setDraft((current) => ({ ...current, column }));
   const [applied, setApplied] = useState(false);
 
   const baseline = useMemo(() => baselineWhatIf(profile), [profile]);
@@ -118,7 +124,7 @@ export function WhatIfPanel({ bandLabels }: WhatIfPanelProps) {
       }
     : null;
 
-  const basis: Basis = draftOutcome.cashFlow ? chosenBasis : "sustainable";
+  const basis: WhatIfBasis = draftOutcome.cashFlow ? chosenBasis : "sustainable";
   const surplus = useMemo(
     () =>
       basis === "planned" && draftOutcome.cashFlow
@@ -327,7 +333,7 @@ export function WhatIfPanel({ bandLabels }: WhatIfPanelProps) {
               aria-label={t("projections.timeline.basisGroup")}
               className="mt-3 inline-flex flex-wrap gap-1 rounded-2xl bg-slate-100 p-1"
             >
-              {BASES.map((option) => (
+              {WHAT_IF_BASES.map((option) => (
                 <button
                   key={option}
                   type="button"
