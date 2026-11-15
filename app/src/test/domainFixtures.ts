@@ -195,6 +195,7 @@ export function buildTestProfile(overrides: {
           feeFromDepositPercent: null,
           profitSharingFeePercent: null,
           hasStateYieldGuarantee: false,
+          reportedYtdReturnPercent: null,
         },
         ...pensionAccountOverrides[index],
       })),

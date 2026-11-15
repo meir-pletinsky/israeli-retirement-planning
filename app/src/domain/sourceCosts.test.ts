@@ -170,6 +170,7 @@ describe("buildSourceCostTable", () => {
         feeFromDepositPercent: null,
         profitSharingFeePercent: null,
         hasStateYieldGuarantee: false,
+        reportedYtdReturnPercent: null,
       },
     });
     const rows = table({

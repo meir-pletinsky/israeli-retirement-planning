@@ -21,31 +21,39 @@ export const WITHDRAWAL_STRATEGIES: readonly WithdrawalStrategy[] = [
 
 export const DEFAULT_WITHDRAWAL_STRATEGY: WithdrawalStrategy = "proRata";
 
-/** The three kinds of savings a custom withdrawal split is set over. */
-export type WithdrawalMixKey = "studyFund" | "shares" | "deposits";
+/**
+ * The kinds of savings a custom withdrawal split is set over. `esop` is employer stock held through
+ * a trustee (Section 102 and ordinary income); `shares` is every other share holding and the cash
+ * and other assets kept with them.
+ */
+export type WithdrawalMixKey = "studyFund" | "esop" | "shares" | "deposits";
 
-export const WITHDRAWAL_MIX_KEYS: readonly WithdrawalMixKey[] = ["studyFund", "shares", "deposits"];
+export const WITHDRAWAL_MIX_KEYS: readonly WithdrawalMixKey[] = ["studyFund", "esop", "shares", "deposits"];
 
 /** What share of each year's withdrawals comes from each kind, in whole percent adding up to 100. */
 export type WithdrawalMix = Record<WithdrawalMixKey, number>;
 
-export const DEFAULT_WITHDRAWAL_MIX: WithdrawalMix = { studyFund: 34, shares: 33, deposits: 33 };
+export const DEFAULT_WITHDRAWAL_MIX: WithdrawalMix = { studyFund: 34, esop: 0, shares: 33, deposits: 33 };
 
 /**
- * Reads a possibly hand-edited mix: whole percents of 0 to 100 that add up to 100. Anything else
- * (missing, text, not summing to 100) gives the default.
+ * Reads a possibly hand-edited mix: whole percents of 0 to 100 that add up to 100, or null when it
+ * is anything else. A mix saved before the ESOP kind existed has no `esop` and keeps it at 0.
  */
-export function normalizeWithdrawalMix(value: unknown): WithdrawalMix {
-  if (typeof value !== "object" || value === null) return { ...DEFAULT_WITHDRAWAL_MIX };
+export function readWithdrawalMix(value: unknown): WithdrawalMix | null {
+  if (typeof value !== "object" || value === null) return null;
   const saved = value as Partial<Record<WithdrawalMixKey, unknown>>;
-  const parts = WITHDRAWAL_MIX_KEYS.map((key) => saved[key]);
+  const read = (key: WithdrawalMixKey) => (key === "esop" && saved.esop === undefined ? 0 : saved[key]);
+  const parts = WITHDRAWAL_MIX_KEYS.map(read);
   const valid = parts.every(
     (part) => typeof part === "number" && Number.isInteger(part) && part >= 0 && part <= 100,
   );
-  if (!valid || (parts as number[]).reduce((sum, part) => sum + part, 0) !== 100) {
-    return { ...DEFAULT_WITHDRAWAL_MIX };
-  }
-  return { studyFund: parts[0] as number, shares: parts[1] as number, deposits: parts[2] as number };
+  if (!valid || (parts as number[]).reduce((sum, part) => sum + part, 0) !== 100) return null;
+  return Object.fromEntries(WITHDRAWAL_MIX_KEYS.map((key, index) => [key, parts[index]])) as WithdrawalMix;
+}
+
+/** `readWithdrawalMix`, with the default for anything that does not read. */
+export function normalizeWithdrawalMix(value: unknown): WithdrawalMix {
+  return readWithdrawalMix(value) ?? { ...DEFAULT_WITHDRAWAL_MIX };
 }
 
 /** The age the plan looks to: savings are sized, drawn and tested to last until a person reaches it. */
@@ -253,6 +261,11 @@ export interface InvestmentAndFees {
   feeFromDepositPercent: number | null;
   profitSharingFeePercent: number | null;
   hasStateYieldGuarantee: boolean;
+  /**
+   * The net return the clearing house reported for the calendar year so far, in percent. It is
+   * year-to-date, not annual, and the projection never uses it: it is shown as a reference only.
+   */
+  reportedYtdReturnPercent: number | null;
 }
 
 /** Ongoing deposit rates into an account, each as a percent of gross monthly salary. */
@@ -350,6 +363,7 @@ export function createEmptyPensionAccount(): PensionAccount {
       feeFromDepositPercent: null,
       profitSharingFeePercent: null,
       hasStateYieldGuarantee: false,
+      reportedYtdReturnPercent: null,
     },
   };
 }
@@ -929,6 +943,10 @@ export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined
         reportId: typeof account.reportId === "string" ? account.reportId : null,
         lifeAnnuityFrom60: account.lifeAnnuityFrom60 === true,
         insuranceCoverages: normalizeInsuranceCoverages(account.insuranceCoverages),
+        investmentAndFees: {
+          ...account.investmentAndFees,
+          reportedYtdReturnPercent: finiteOrNull(account.investmentAndFees?.reportedYtdReturnPercent),
+        },
         contributions: {
           ...EMPTY_ACCOUNT_CONTRIBUTIONS,
           ...account.contributions,

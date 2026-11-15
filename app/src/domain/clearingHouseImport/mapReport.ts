@@ -218,6 +218,7 @@ function mapPolicy(policy: XmlNode, context: PolicyContext, key: string, now: Da
   if (isActive) mapContributions(policy, usableSalary, fields, warnings);
   mapFees(policy, fields, warnings);
   mapTrack(policy, fields, warnings);
+  mapReturn(policy, fields);
   mapCoverages(policy, fields);
 
   const valuationDate =
@@ -439,6 +440,13 @@ function mapFees(policy: XmlNode, fields: ImportedFields, warnings: ImportWarnin
   }
 
   if (differs) warnings.push({ code: "feeRowsDiffer" });
+}
+
+/** The net return so far this calendar year. A reference only: it is not an annual figure. */
+function mapReturn(policy: XmlNode, fields: ImportedFields): void {
+  const reported = numberAt(policy, "Tsua", "SHEUR-TSUA-NETO");
+  if (reported === null || reported < -100 || reported > 100) return;
+  put(fields, "reportedYtdReturnPercent", round2(reported), "official", "SHEUR-TSUA-NETO");
 }
 
 function mapTrack(policy: XmlNode, fields: ImportedFields, warnings: ImportWarning[]): void {

@@ -10,6 +10,8 @@ import {
 import { futureValueOfMonthlyContributions } from "./contributions";
 import {
   BANK_DEPOSITS_SOURCE_ID,
+  ORDINARY_STOCK_SOURCE_ID,
+  SECTION_102_SOURCE_ID,
   SOURCE_KINDS,
   sourceTraceScope,
   type RetirementSource,
@@ -237,11 +239,16 @@ function withdrawalTiers(unlocked: SourceState[], strategy: WithdrawalStrategy):
   return tiers;
 }
 
-/** Which of the three kinds of a custom split a source belongs to; null for pension-like money, which a custom split does not name. */
-function mixKeyOf({ source }: SourceState): WithdrawalMixKey | null {
+/** Which kind of a custom split a source belongs to; null for pension-like money, which a custom split does not name. */
+export function mixKeyOfSource(source: RetirementSource): WithdrawalMixKey | null {
   if (source.kind === "studyFund") return "studyFund";
   if (source.kind !== "otherInvestments") return null;
+  if (source.id === SECTION_102_SOURCE_ID || source.id === ORDINARY_STOCK_SOURCE_ID) return "esop";
   return source.id === BANK_DEPOSITS_SOURCE_ID ? "deposits" : "shares";
+}
+
+function mixKeyOf({ source }: SourceState): WithdrawalMixKey | null {
+  return mixKeyOfSource(source);
 }
 
 /**
@@ -255,7 +262,7 @@ function allocateCustomDraw(unlocked: SourceState[], draw: number, mix: Withdraw
   const keys = unlocked.map(mixKeyOf);
   const kindBalance = (key: WithdrawalMixKey): number =>
     unlocked.reduce((sum, entry, index) => (keys[index] === key ? sum + Math.max(entry.balance, 0) : sum), 0);
-  const kindTaken: Record<WithdrawalMixKey, number> = { studyFund: 0, shares: 0, deposits: 0 };
+  const kindTaken = Object.fromEntries(WITHDRAWAL_MIX_KEYS.map((key) => [key, 0])) as Record<WithdrawalMixKey, number>;
   const open = new Set(WITHDRAWAL_MIX_KEYS.filter((key) => mix[key] > 0 && kindBalance(key) > 0));
   let remaining = draw;
   while (remaining > 0 && open.size > 0) {
@@ -697,7 +704,7 @@ function simulate(
         rows: traceDraws,
         note:
           strategy === "custom"
-            ? `Your mix: study fund ${mix.studyFund}%, shares ${mix.shares}%, bank deposits ${mix.deposits}% of each year's draw. A kind that has run out (or is still locked) gives what it has and the rest is asked of the other kinds by their percents; inside a kind the draw is shared in proportion to balances. If every named kind is empty, the rest comes pro rata from the other unlocked money.`
+            ? `Your mix: study fund ${mix.studyFund}%, ESOP ${mix.esop}%, other shares ${mix.shares}%, bank deposits ${mix.deposits}% of each year's draw. A kind that has run out (or is still locked) gives what it has and the rest is asked of the other kinds by their percents; inside a kind the draw is shared in proportion to balances. If every named kind is empty, the rest comes pro rata from the other unlocked money.`
             : strategy === "taxableFirst"
             ? "Taxable first: the non-pension investments (employer shares included) are used up first, then the investment provident fund, then pension-like money, and the tax-free study fund last. Sources in the same group share the draw in proportion to their balances."
             : "Lowest tax first: the study fund first, then capital-gains money by the tax on its gain (gain share × tax rate), then pension-like money, and money taxed as ordinary income last. Sources in the same group share the draw in proportion to their balances. The order only ranks the sources; the tax itself comes from the tax step.",

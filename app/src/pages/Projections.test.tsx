@@ -1258,6 +1258,7 @@ describe("Projections", () => {
           feeFromDepositPercent: null,
           profitSharingFeePercent: null,
           hasStateYieldGuarantee: false,
+          reportedYtdReturnPercent: null,
         },
       });
       const card = await renderCard(

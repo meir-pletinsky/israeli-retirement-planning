@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildTestProfile } from "../test/domainFixtures";
+import type { WithdrawalMix } from "../types";
 import { buildHousehold, resolveRetirementTiming } from "./household";
 import { INCOME_BAND_KEYS, recurringAmount, type IncomeBreakdownPoint } from "./incomeBreakdown";
 import { incomeYearDetails, withdrawalMixKindOf, withdrawalSplit, type IncomeBasis, type IncomeYearDetail } from "./incomeSources";
@@ -105,9 +106,37 @@ describe("incomeYearDetails", () => {
     const first = incomeYearDetails(couple, "sustainable")[0];
     const pool = first.lines.filter(({ band }) => band === "investments");
     const origins = pool.map(({ origin }) => origin.type);
-    expect(origins).toEqual(expect.arrayContaining(["otherAssets", "bankDeposit", "holding"]));
+    expect(origins).toEqual(expect.arrayContaining(["otherAssets", "bankDeposit", "otherShares"]));
+    expect(origins.filter((type) => type === "otherShares")).toHaveLength(1);
     expect(pool.find(({ origin }) => origin.type === "bankDeposit")?.origin).toMatchObject({ bankName: "Leumi" });
     expect(pool.every(({ mode, balance }) => mode === "withdrawal" && balance !== null && balance > 0)).toBe(true);
+  });
+
+  it("gives employer stock options one line and every other share holding another", () => {
+    const profile = {
+      ...couple,
+      equity: {
+        ...couple.equity,
+        holdings: buildTestProfile({
+          equity: [
+            { quantity: 500, priceUSD: 100, ticker: "ACME", employerGrant: { grantPriceUSD: 20 } },
+            { quantity: 300, priceUSD: 100, ticker: "ACME2", employerGrant: { taxTrack: "section102OrdinaryIncomeTrustee" } },
+            { quantity: 200, priceUSD: 50, ticker: "BETA", unrealizedCapitalGainUSD: 2_000 },
+            { quantity: 100, priceUSD: 50, ticker: "GAMMA", unrealizedCapitalGainUSD: 1_000 },
+          ],
+          usdToIlsRate: { rate: 3.6 },
+        }).equity.holdings,
+      },
+    };
+    const lines = incomeYearDetails(profile, "sustainable")[0].lines.filter(({ band }) => band === "investments");
+    const esop = lines.filter(({ origin }) => origin.type === "esop");
+    const others = lines.filter(({ origin }) => origin.type === "otherShares");
+    expect(esop).toHaveLength(1);
+    expect(others).toHaveLength(1);
+    expect(esop[0].monthly).toBeGreaterThan(0);
+    expect(others[0].monthly).toBeGreaterThan(0);
+    expect(esop[0].profit).toBeGreaterThan(0);
+    expect(others[0].profit).toBeGreaterThan(0);
   });
 
   it("lists a source that is locked or starts later as idle, with the owner's age", () => {
@@ -172,9 +201,51 @@ describe("incomeYearDetails", () => {
         autoRenew: true,
       },
     });
-    expect(originOf("holding")?.factors).toMatchObject({ currency: "USD", deposit: null });
+    expect(originOf("otherShares")?.factors).toMatchObject({ currency: "USD", deposit: null });
     expect(originOf("otherAssets")?.factors).toMatchObject({ currency: "ILS", deposit: null });
     expect(originOf("account")?.factors?.treatment).toBeDefined();
+  });
+
+  it("estimates the year's profit on a withdrawal from the balance and the real return, and none on a payment", () => {
+    const profile = {
+      ...couple,
+      bankDeposits: [
+        { ...couple.bankDeposits[0], rateType: "fixed" as const, annualInterestRatePercent: 5, cpiLinked: false },
+      ],
+    };
+    const lines = incomeYearDetails(profile, "planned").flatMap((detail) => detail.lines);
+    expect(lines.filter(({ mode }) => mode === "payment").every(({ profit }) => profit === null)).toBe(true);
+    const withdrawals = lines.filter(({ mode }) => mode === "withdrawal");
+    expect(withdrawals.every(({ profit, balance }) => profit !== null && balance !== null)).toBe(true);
+
+    const deposit = withdrawals.find(({ origin }) => origin.type === "bankDeposit")!;
+    expect(deposit.profit).toBeCloseTo(deposit.balance! * (1.05 / 1.025 - 1), 1);
+    const assets = withdrawals.find(({ origin }) => origin.type === "otherAssets")!;
+    expect(assets.profit).toBeCloseTo(assets.balance! * (1.06 / 1.025 - 1), 1);
+  });
+
+  it("carries the reported year-to-date return of a fund as a reference", () => {
+    const base = buildTestProfile({
+      age: 55,
+      retirementAge: 60,
+      pensionBalances: [800_000],
+      pensionAccountOverrides: [{ productCategory: "studyFund" }],
+      retirementMonthlyExpenses: 6_000,
+    });
+    const profile = {
+      ...base,
+      pensionSavings: {
+        ...base.pensionSavings,
+        accounts: base.pensionSavings.accounts.map((account) => ({
+          ...account,
+          investmentAndFees: { ...account.investmentAndFees, reportedYtdReturnPercent: 7.5 },
+        })),
+      },
+    };
+    const fund = incomeYearDetails(profile, "planned")
+      .flatMap((detail) => detail.lines)
+      .find(({ origin }) => origin.type === "account");
+    expect(fund?.origin).toMatchObject({ reportedReturnPct: 7.5 });
   });
 
   it("gives a deposit's real return, and none when no rate was entered", () => {
@@ -277,19 +348,45 @@ describe("withdrawalSplit with a custom mix", () => {
     inflationPct: 2,
   });
 
-  const splitAt = (mix: { studyFund: number; shares: number; deposits: number }, age: number) => {
-    const plan = applyWhatIf(saved, { ...baselineWhatIf(saved), withdrawalStrategy: "custom", withdrawalMix: mix });
+  const splitAt = (mix: WithdrawalMix, age: number, profile = saved) => {
+    const plan = applyWhatIf(profile, { ...baselineWhatIf(profile), withdrawalStrategy: "custom", withdrawalMix: mix });
     return withdrawalSplit(incomeYearDetails(plan, "planned").find((detail) => detail.age === age)!.lines);
   };
 
   it("sends the whole withdrawal to the one kind that gets everything", () => {
-    expect(splitAt({ studyFund: 100, shares: 0, deposits: 0 }, 62)).toEqual({ studyFund: 100, shares: 0, deposits: 0, other: 0 });
-    expect(splitAt({ studyFund: 0, shares: 100, deposits: 0 }, 62)).toEqual({ studyFund: 0, shares: 100, deposits: 0, other: 0 });
-    expect(splitAt({ studyFund: 0, shares: 0, deposits: 100 }, 62)).toEqual({ studyFund: 0, shares: 0, deposits: 100, other: 0 });
+    expect(splitAt({ studyFund: 100, esop: 0, shares: 0, deposits: 0 }, 62)).toEqual({ studyFund: 100, esop: 0, shares: 0, deposits: 0, other: 0 });
+    expect(splitAt({ studyFund: 0, esop: 0, shares: 100, deposits: 0 }, 62)).toEqual({ studyFund: 0, esop: 0, shares: 100, deposits: 0, other: 0 });
+    expect(splitAt({ studyFund: 0, esop: 0, shares: 0, deposits: 100 }, 62)).toEqual({ studyFund: 0, esop: 0, shares: 0, deposits: 100, other: 0 });
+  });
+
+  it("draws employer stock options on their own share of the mix", () => {
+    const withEsop = buildTestProfile({
+      age: 60,
+      retirementAge: 60,
+      pensionBalances: [800_000],
+      pensionAccountOverrides: [{ productCategory: "studyFund" }],
+      otherAssets: 800_000,
+      equity: [{ quantity: 8_000, priceUSD: 100, employerGrant: {} }],
+      usdToIlsRate: { rate: 3.6 },
+      retirementMonthlyExpenses: 6_000,
+      investmentReturnPct: 4,
+      inflationPct: 2,
+    });
+    expect(splitAt({ studyFund: 0, esop: 100, shares: 0, deposits: 0 }, 62, withEsop)).toEqual({
+      studyFund: 0,
+      esop: 100,
+      shares: 0,
+      deposits: 0,
+      other: 0,
+    });
+    const half = splitAt({ studyFund: 0, esop: 50, shares: 50, deposits: 0 }, 62, withEsop)!;
+    expect(half.esop).toBeGreaterThan(0);
+    expect(half.shares).toBeGreaterThan(0);
+    expect(half.esop + half.shares).toBe(100);
   });
 
   it("splits a withdrawal in proportion to the mix, adding up to 100", () => {
-    const split = splitAt({ studyFund: 50, shares: 30, deposits: 20 }, 62)!;
+    const split = splitAt({ studyFund: 50, esop: 0, shares: 30, deposits: 20 }, 62)!;
     expect(split.studyFund + split.shares + split.deposits + split.other).toBe(100);
     expect(split.other).toBe(0);
     expect(split.studyFund).toBeGreaterThan(split.shares);
@@ -313,7 +410,7 @@ describe("withdrawalSplit with a custom mix", () => {
     const plan = applyWhatIf(saved, {
       ...baselineWhatIf(saved),
       withdrawalStrategy: "custom",
-      withdrawalMix: { studyFund: 0, shares: 50, deposits: 50 },
+      withdrawalMix: { studyFund: 0, esop: 0, shares: 50, deposits: 50 },
     });
     const lines = incomeYearDetails(plan, "planned")[1].lines;
     const deposits = lines.find(({ origin }) => origin.type === "bankDeposit");

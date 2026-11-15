@@ -392,6 +392,22 @@ describe("fees", () => {
   });
 });
 
+describe("reported return", () => {
+  it("reads the year-to-date return as an official reference value", () => {
+    const candidate = candidateOf(policy({ ytdReturn: 4.256 }));
+    expect(candidate.fields.reportedYtdReturnPercent).toMatchObject({ value: 4.26, confidence: "official" });
+  });
+
+  it("keeps a negative return", () => {
+    expect(candidateOf(policy({ ytdReturn: -3.1 })).fields.reportedYtdReturnPercent?.value).toBe(-3.1);
+  });
+
+  it("omits a return that is missing or implausible", () => {
+    expect(candidateOf(policy()).fields.reportedYtdReturnPercent).toBeUndefined();
+    expect(candidateOf(policy({ ytdReturn: 250 })).fields.reportedYtdReturnPercent).toBeUndefined();
+  });
+});
+
 describe("investment track", () => {
   it("chooses the largest accumulation track", () => {
     const candidate = candidateOf(

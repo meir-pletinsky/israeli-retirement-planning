@@ -61,6 +61,15 @@ describe("readWhatIfDraft", () => {
     });
   });
 
+  it("reads a saved mix without an ESOP share as holding no ESOP", () => {
+    const read = readWhatIfDraft(
+      { ...EMPTY_WHAT_IF_DRAFT, overrides: { withdrawalMix: { studyFund: 50, shares: 30, deposits: 20 } } },
+      single,
+    );
+
+    expect(read.overrides.withdrawalMix).toEqual({ studyFund: 50, esop: 0, shares: 30, deposits: 20 });
+  });
+
   it("drops values that now equal the plan", () => {
     const read = readWhatIfDraft(
       { ...EMPTY_WHAT_IF_DRAFT, overrides: { investmentReturnPct: 6, retirementAge: 66 } },

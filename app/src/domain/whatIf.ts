@@ -13,6 +13,7 @@ import { projectCashFlow, type CashFlowPlan } from "./cashFlow";
 import { COMPARISON_MAX_AGE, COMPARISON_MIN_AGE } from "./scenarioComparison";
 import { desiredRetirementMonthly, expenseTotals } from "./expenses";
 import { estimateIncomeBreakdown, type IncomeBreakdownPoint } from "./incomeBreakdown";
+import { mixKeyOfSource } from "./drawdown";
 import { buildHousehold, resolveRetirementTiming } from "./household";
 import { estimateNetIncome } from "./netIncome";
 import { projectSpendingFunding } from "./netWorth";
@@ -58,7 +59,7 @@ export interface WhatIfValues {
   incomeCapPct: number;
   /** The order the savings are drawn in when the pension does not cover the spending. */
   withdrawalStrategy: WithdrawalStrategy;
-  /** How a draw is split between study funds, shares and bank deposits under the "custom" strategy. */
+  /** How a draw is split between study funds, ESOP, other shares and bank deposits under the "custom" strategy. */
   withdrawalMix: WithdrawalMix;
 }
 
@@ -99,23 +100,61 @@ export function sameWhatIfValue(key: keyof WhatIfValues, a: WhatIfValues, b: Wha
 }
 
 /**
- * `mix` with `key` set to `percent`. The other two kinds share what is left in proportion to what
- * they held (equally when both held nothing), so the three always add up to 100 whole percent.
+ * `mix` with `key` set to `percent`. The other `kinds` share what is left in proportion to what
+ * they held (equally when they held nothing), so the split always adds up to 100 whole percent.
+ * A kind outside `kinds` is not on offer and goes to 0.
  */
-export function rebalanceWithdrawalMix(mix: WithdrawalMix, key: WithdrawalMixKey, percent: number): WithdrawalMix {
-  const own = Math.min(Math.max(Math.round(percent), 0), 100);
-  const others = WITHDRAWAL_MIX_KEYS.filter((other) => other !== key);
+export function rebalanceWithdrawalMix(
+  mix: WithdrawalMix,
+  key: WithdrawalMixKey,
+  percent: number,
+  kinds: readonly WithdrawalMixKey[] = WITHDRAWAL_MIX_KEYS,
+): WithdrawalMix {
+  const others = kinds.filter((other) => other !== key);
+  const own = others.length === 0 ? 100 : Math.min(Math.max(Math.round(percent), 0), 100);
   const rest = 100 - own;
   const held = others.reduce((sum, other) => sum + mix[other], 0);
   const parts = roundToSum(
     others.map((other) => (held > 0 ? (rest * mix[other]) / held : rest / others.length)),
     rest,
   );
-  const next: WithdrawalMix = { ...mix, [key]: own };
+  const next = Object.fromEntries(WITHDRAWAL_MIX_KEYS.map((kind) => [kind, 0])) as WithdrawalMix;
+  next[key] = own;
   others.forEach((other, index) => {
     next[other] = parts[index];
   });
   return next;
+}
+
+/**
+ * `mix` as it plays out for a plan that holds only `kinds`: the others are 0 and the held kinds
+ * share the 100 in proportion to what they were given (equally when they were given nothing).
+ */
+export function effectiveWithdrawalMix(mix: WithdrawalMix, kinds: readonly WithdrawalMixKey[]): WithdrawalMix {
+  if (kinds.length === 0) return { ...mix };
+  const held = kinds.reduce((sum, kind) => sum + mix[kind], 0);
+  const parts = roundToSum(
+    kinds.map((kind) => (held > 0 ? (100 * mix[kind]) / held : 100 / kinds.length)),
+    100,
+  );
+  const next = Object.fromEntries(WITHDRAWAL_MIX_KEYS.map((kind) => [kind, 0])) as WithdrawalMix;
+  kinds.forEach((kind, index) => {
+    next[kind] = parts[index];
+  });
+  return next;
+}
+
+/** The kinds of savings the plan holds, so a custom split offers only what can be drawn. */
+export function availableWithdrawalKinds(profile: ProfileData): WithdrawalMixKey[] {
+  const household = buildHousehold(profile, resolveRetirementTiming(profile, "standard"));
+  const held = new Set<WithdrawalMixKey>();
+  for (const { sources } of household.members) {
+    for (const source of sources) {
+      const kind = mixKeyOfSource(source);
+      if (kind && (source.balance > 0 || source.valueAtRetirement > 0)) held.add(kind);
+    }
+  }
+  return WITHDRAWAL_MIX_KEYS.filter((kind) => held.has(kind));
 }
 
 export type PensionStartKey = "pensionStartAge" | "spousePensionStartAge";

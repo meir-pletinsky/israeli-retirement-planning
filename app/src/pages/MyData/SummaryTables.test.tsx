@@ -53,6 +53,7 @@ describe("My Data summary tables — Pension & Savings", () => {
               feeFromDepositPercent: null,
               profitSharingFeePercent: null,
               hasStateYieldGuarantee: false,
+              reportedYtdReturnPercent: null,
             },
             annuityParameters: {
               hasGuaranteedFactor: false,

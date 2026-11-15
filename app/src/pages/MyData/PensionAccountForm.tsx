@@ -472,6 +472,22 @@ export function PensionAccountForm({
           min={0}
           max={20}
         />
+        <NumberField
+          label={f("reportedYtdReturnPercent")}
+          importance="reference"
+          value={investmentAndFees.reportedYtdReturnPercent}
+          onChange={(v) =>
+            onChange({
+              investmentAndFees: {
+                ...investmentAndFees,
+                reportedYtdReturnPercent: v,
+              },
+            })
+          }
+          suffix="%"
+          min={-100}
+          max={100}
+        />
         <CheckboxField
           label={f("hasStateYieldGuarantee")}
           importance="reference"

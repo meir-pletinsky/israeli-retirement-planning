@@ -1,9 +1,8 @@
 import {
   PLANNING_HORIZON_AGES,
-  WITHDRAWAL_MIX_KEYS,
   WITHDRAWAL_STRATEGIES,
   hasProfileData,
-  normalizeWithdrawalMix,
+  readWithdrawalMix,
   type PlanningHorizonAge,
   type ProfileData,
   type WithdrawalStrategy,
@@ -136,12 +135,8 @@ function buildDraft(saved: Record<string, unknown>, profile: ProfileData): WhatI
   if (WITHDRAWAL_STRATEGIES.includes(strategy as WithdrawalStrategy)) {
     picked.withdrawalStrategy = strategy as WithdrawalStrategy;
   }
-  const savedMix = stored.withdrawalMix;
-  if (isRecord(savedMix)) {
-    // normalizeWithdrawalMix answers an invalid mix with the default, which would not match what was saved.
-    const mix = normalizeWithdrawalMix(savedMix);
-    if (WITHDRAWAL_MIX_KEYS.every((key) => savedMix[key] === mix[key])) picked.withdrawalMix = mix;
-  }
+  const mix = readWithdrawalMix(stored.withdrawalMix);
+  if (mix) picked.withdrawalMix = mix;
 
   const overrides: WhatIfOverrides = {};
   for (const key of OVERRIDE_KEYS) {

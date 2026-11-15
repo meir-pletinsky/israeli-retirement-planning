@@ -41,13 +41,17 @@ export type IncomeSourceOrigin =
       policyNumber: string;
       fundId: string;
       productCategory: ProductCategory | null;
+      /** The return the clearing house reported for the year so far, in percent; null when none was imported. */
+      reportedReturnPct: number | null;
     }
   | { type: "bituachLeumi" }
   | { type: "spouseSupplement" }
   | { type: "otherAssets" }
   | { type: "bankDeposit"; bankName: string }
-  | { type: "holding"; company: string; ticker: string }
-  | { type: "employerShares"; route: "section102" | "ordinaryIncome" | "nonTrustee" };
+  /** Employer stock held through a trustee: Section 102 (capital or ordinary income track), as one line. */
+  | { type: "esop" }
+  /** Every other share holding (ESPP, private stock, Section 3(i) and personal holdings), as one line. */
+  | { type: "otherShares" };
 
 /**
  * What bears on drawing money from a source, as the plan holds it. The tax mix is what the
@@ -82,6 +86,12 @@ export interface IncomeSourceLine {
   balance: number | null;
   /** What bears on drawing from the source; null for a payment. */
   factors: WithdrawalFactors | null;
+  /**
+   * What the source earns over a year at the return the plan grows it at, from its balance before
+   * this year's withdrawal, in today's money (above inflation). An estimate; for a deposit it is
+   * the interest. Null for a payment.
+   */
+  profit: number | null;
 }
 
 export type IdleReason =
@@ -122,9 +132,10 @@ export function withdrawalMixKindOf(origin: IncomeSourceOrigin): WithdrawalMixKe
       return origin.productCategory === "studyFund" ? "studyFund" : null;
     case "bankDeposit":
       return "deposits";
+    case "esop":
+      return "esop";
     case "otherAssets":
-    case "holding":
-    case "employerShares":
+    case "otherShares":
       return "shares";
     default:
       return null;
@@ -137,7 +148,7 @@ export type WithdrawalSplit = Record<WithdrawalMixKey | "other", number>;
 /** The split of a year's withdrawals by kind; null when nothing is withdrawn. */
 export function withdrawalSplit(lines: readonly IncomeSourceLine[]): WithdrawalSplit | null {
   const kinds = [...WITHDRAWAL_MIX_KEYS, "other"] as const;
-  const sums: WithdrawalSplit = { studyFund: 0, shares: 0, deposits: 0, other: 0 };
+  const sums = Object.fromEntries(kinds.map((kind) => [kind, 0])) as WithdrawalSplit;
   for (const line of lines) {
     if (line.mode === "withdrawal") sums[withdrawalMixKindOf(line.origin) ?? "other"] += line.monthly;
   }
@@ -155,6 +166,8 @@ interface Part {
   /** The part's share of its source; the parts of a source add up to 1. */
   weight: number;
   suffix: string;
+  /** Names the line apart from its source, so parts of different sources that share it are one line. */
+  shared?: string;
   deposit: DepositTerms | null;
 }
 
@@ -182,6 +195,40 @@ interface Candidate {
   raw: number;
   balance: number | null;
   factors: WithdrawalFactors | null;
+  profit: number | null;
+}
+
+const partKey = (slot: Slot, part: Part) => `${slot.owner}:${part.shared ?? `${slot.source.id}${part.suffix}`}`;
+
+const addNullable = (a: number | null, b: number | null) => (a === null || b === null ? null : a + b);
+
+/** The factors of two draws put into one line: each is weighted by the amount drawn (the tax rate, by the gain). */
+function blendFactors(a: WithdrawalFactors, aRaw: number, b: WithdrawalFactors, bRaw: number): WithdrawalFactors {
+  const average = (x: number, y: number, xWeight: number, yWeight: number) =>
+    xWeight + yWeight > 0 ? (x * xWeight + y * yWeight) / (xWeight + yWeight) : x;
+  const aGain = aRaw * a.gainFraction;
+  const bGain = bRaw * b.gainFraction;
+  return {
+    treatment: a.treatment === "ordinaryIncome" && b.treatment === "ordinaryIncome" ? "ordinaryIncome" : "capitalGains",
+    capitalGainsTaxRate:
+      aGain + bGain > 0
+        ? average(a.capitalGainsTaxRate, b.capitalGainsTaxRate, aGain, bGain)
+        : average(a.capitalGainsTaxRate, b.capitalGainsTaxRate, aRaw, bRaw),
+    gainFraction: average(a.gainFraction, b.gainFraction, aRaw, bRaw),
+    ordinaryFraction: average(a.ordinaryFraction, b.ordinaryFraction, aRaw, bRaw),
+    currency: a.currency,
+    deposit: a.deposit,
+  };
+}
+
+function mergeCandidates(a: Candidate, b: Candidate): Candidate {
+  return {
+    ...a,
+    raw: a.raw + b.raw,
+    balance: addNullable(a.balance, b.balance),
+    profit: addNullable(a.profit, b.profit),
+    factors: a.factors && b.factors ? blendFactors(a.factors, a.raw, b.factors, b.raw) : a.factors,
+  };
 }
 
 function pooledOrigin(part: InvestmentPart): IncomeSourceOrigin {
@@ -191,20 +238,20 @@ function pooledOrigin(part: InvestmentPart): IncomeSourceOrigin {
     case "bankDeposit":
       return { type: "bankDeposit", bankName: part.bankName };
     case "holding":
-      return { type: "holding", company: part.company, ticker: part.ticker };
     case "employerShares":
-      return { type: "employerShares", route: "nonTrustee" };
+      return { type: "otherShares" };
   }
 }
 
 const currencyOf = (origin: IncomeSourceOrigin): WithdrawalFactors["currency"] =>
-  origin.type === "holding" || origin.type === "employerShares" ? "USD" : "ILS";
+  origin.type === "esop" || origin.type === "otherShares" ? "USD" : "ILS";
 
 /**
  * The model draws the non-pension investments as one pool, pro rata, and every part of it earns
- * the same return, so each part's share of the pool is its share of the pool's value. The bank
- * deposits are a source of their own that grows at the blend of their own rates; its parts are
- * shared out by what each deposit is worth at retirement at its own rate (a deposit with no
+ * the same return, so each part's share of the pool is its share of the pool's value. The share
+ * holdings (and Section 3(i) shares) are one part, since the pool does not tell them apart. The
+ * bank deposits are a source of their own that grows at the blend of their own rates; its parts
+ * are shared out by what each deposit is worth at retirement at its own rate (a deposit with no
  * rate grows at `planRate`), so they add up to the source's balance when the drawing starts.
  */
 function investmentSlotParts(
@@ -227,12 +274,23 @@ function investmentSlotParts(
     }));
   const total = parts.reduce((sum, { size }) => sum + size, 0);
   if (total <= 0) return [{ origin: { type: "otherAssets" }, weight: 1, suffix: "", deposit: null }];
-  return parts.map(({ part, index, size }) => ({
-    origin: pooledOrigin(part),
-    weight: size / total,
-    suffix: `:${index}`,
-    deposit: part.type === "bankDeposit" ? part.terms : null,
-  }));
+
+  const merged = new Map<string, Part>();
+  for (const { part, index, size } of parts) {
+    const origin = pooledOrigin(part);
+    const suffix = origin.type === "otherShares" ? ":shares" : `:${index}`;
+    const known = merged.get(suffix);
+    if (known) known.weight += size / total;
+    else {
+      merged.set(suffix, {
+        origin,
+        weight: size / total,
+        suffix,
+        deposit: part.type === "bankDeposit" ? part.terms : null,
+      });
+    }
+  }
+  return [...merged.values()];
 }
 
 function buildSlots(household: Household): Slot[] {
@@ -249,22 +307,24 @@ function buildSlots(household: Household): Slot[] {
         );
         return { memberIndex, owner, source, parts };
       }
-      let origin: IncomeSourceOrigin;
-      if (source.id === SECTION_102_SOURCE_ID) {
-        origin = { type: "employerShares", route: "section102" };
-      } else if (source.id === ORDINARY_STOCK_SOURCE_ID) {
-        origin = { type: "employerShares", route: "ordinaryIncome" };
-      } else {
-        const account = member.profile.pensionSavings.accounts.find(({ id }) => id === source.id);
-        origin = {
-          type: "account",
-          accountId: source.id,
-          providerName: account?.providerName ?? "",
-          policyNumber: account?.policyNumber ?? "",
-          fundId: account?.fundId ?? "",
-          productCategory: account?.productCategory ?? null,
+      if (source.id === SECTION_102_SOURCE_ID || source.id === ORDINARY_STOCK_SOURCE_ID) {
+        return {
+          memberIndex,
+          owner,
+          source,
+          parts: [{ origin: { type: "esop" }, weight: 1, suffix: "", shared: "esop", deposit: null }],
         };
       }
+      const account = member.profile.pensionSavings.accounts.find(({ id }) => id === source.id);
+      const origin: IncomeSourceOrigin = {
+        type: "account",
+        accountId: source.id,
+        providerName: account?.providerName ?? "",
+        policyNumber: account?.policyNumber ?? "",
+        fundId: account?.fundId ?? "",
+        productCategory: account?.productCategory ?? null,
+        reportedReturnPct: account?.investmentAndFees.reportedYtdReturnPercent ?? null,
+      };
       return { memberIndex, owner, source, parts: [{ origin, weight: 1, suffix: "", deposit: null }] };
     }),
   );
@@ -295,10 +355,16 @@ function yearDetail(
   const withdrawals = new Map<string, Candidate[]>();
   const add = (groups: Map<string, Candidate[]>, candidate: Candidate) => {
     const group = groups.get(candidate.band);
-    if (group) group.push(candidate);
-    else groups.set(candidate.band, [candidate]);
+    if (!group) {
+      groups.set(candidate.band, [candidate]);
+      return;
+    }
+    const sameLine = group.findIndex(({ key }) => key === candidate.key);
+    if (sameLine >= 0) group[sameLine] = mergeCandidates(group[sameLine], candidate);
+    else group.push(candidate);
   };
   const active = new Set<number>();
+  const lineKeys = new Set<string>();
 
   slots.forEach((slot, index) => {
     const holding = row.holdings[index];
@@ -306,7 +372,7 @@ function yearDetail(
     const share = shareHolding.capitalShare;
     const band = BAND_FOR_KIND[slot.source.kind];
     for (const part of slot.parts) {
-      const key = `${slot.owner}:${slot.source.id}${part.suffix}`;
+      const key = partKey(slot, part);
       if (holding.annuityMonthly > 0) {
         add(payments, {
           key: `${key}:payment`,
@@ -317,10 +383,13 @@ function yearDetail(
           raw: holding.annuityMonthly * part.weight,
           balance: null,
           factors: null,
+          profit: null,
         });
+        lineKeys.add(key);
         active.add(index);
       }
       if (share > 0) {
+        const balance = holding.balance * part.weight;
         add(withdrawals, {
           key: `${key}:withdrawal`,
           band,
@@ -328,7 +397,8 @@ function yearDetail(
           origin: part.origin,
           mode: "withdrawal",
           raw: share * part.weight,
-          balance: holding.balance * part.weight,
+          balance,
+          profit: balance * (part.deposit ? (part.deposit.realReturn ?? household.rate) : slot.source.realReturn),
           factors: {
             treatment: shareHolding.treatment,
             capitalGainsTaxRate: shareHolding.capitalGainsTaxRate,
@@ -338,6 +408,7 @@ function yearDetail(
             deposit: part.deposit,
           },
         });
+        lineKeys.add(key);
         active.add(index);
       }
     }
@@ -369,6 +440,7 @@ function yearDetail(
           raw: amount,
           balance: null,
           factors: null,
+          profit: null,
         });
       } else if (scheduled > 0 && ownerAge < startAge) {
         idle.push({
@@ -391,8 +463,15 @@ function yearDetail(
       if (annuity && ownerAge < annuity.startAge) reason = { type: "startsLater", age: annuity.startAge };
       else if (!annuity && ownerAge < unlockAge) reason = { type: "locked", age: unlockAge };
       for (const part of slot.parts) {
+        const key = partKey(slot, part);
+        if (lineKeys.has(key)) continue;
+        const known = idle.find((entry) => entry.key === key);
+        if (known) {
+          known.balance = (known.balance ?? 0) + balance * part.weight;
+          continue;
+        }
         idle.push({
-          key: `${slot.owner}:${slot.source.id}${part.suffix}`,
+          key,
           band: BAND_FOR_KIND[slot.source.kind],
           owner: slot.owner,
           origin: part.origin,
@@ -434,9 +513,10 @@ function yearDetail(
  * - Payments are the annuities that have started and Bituach Leumi (with the spouse supplement),
  *   each as the plan models it.
  * - Withdrawals split a band by each source's share of the year's draw. The model draws the
- *   non-pension investments as one pool, so its parts (cash and other assets, each holding,
- *   Section 3(i) shares) share the pool's draw in proportion to their value; the bank deposits
- *   are a source of their own, and each deposit shares its draw in proportion to its value.
+ *   non-pension investments as one pool, so its parts (cash and other assets, and the share
+ *   holdings together) share the pool's draw in proportion to their value; the employer stock
+ *   held through a trustee is one line however many sources it spans; the bank deposits are a
+ *   source of their own, and each deposit shares its draw in proportion to its value.
  * - A source that holds money but pays nothing is listed as idle with the reason.
  *
  * The planned basis falls back to the sustainable one when no spending is entered.

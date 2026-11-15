@@ -43,6 +43,7 @@ export interface ImportedFieldValues {
   investmentTrackName: string;
   feeFromAccumulationPercent: number;
   feeFromDepositPercent: number;
+  reportedYtdReturnPercent: number;
   hasGuaranteedFactor: boolean;
   conversionFactor: number;
   estimatedMonthlyAnnuity: number;
@@ -72,6 +73,7 @@ export const ACCOUNT_FIELD_KEYS: readonly AccountFieldKey[] = [
   "investmentTrackName",
   "feeFromAccumulationPercent",
   "feeFromDepositPercent",
+  "reportedYtdReturnPercent",
   "hasGuaranteedFactor",
   "conversionFactor",
   "estimatedMonthlyAnnuity",

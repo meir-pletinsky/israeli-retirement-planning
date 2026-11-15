@@ -17,6 +17,7 @@ import {
   type WhatIfValues,
   ageGridColumns,
   applyWhatIf,
+  availableWithdrawalKinds,
   baselineWhatIf,
   buildAgeGrid,
   canChoosePensionStart,
@@ -87,6 +88,7 @@ export function WhatIfPanel({ bandLabels }: WhatIfPanelProps) {
   const [applied, setApplied] = useState(false);
 
   const baseline = useMemo(() => baselineWhatIf(profile), [profile]);
+  const availableKinds = useMemo(() => availableWithdrawalKinds(profile), [profile]);
   const values = useMemo(() => whatIfValues(profile, overrides), [profile, overrides]);
   const ranges = useMemo(() => whatIfRanges(profile, values), [profile, values]);
   const pensionChoice = useMemo(
@@ -276,6 +278,7 @@ export function WhatIfPanel({ bandLabels }: WhatIfPanelProps) {
             <WithdrawalMixControl
               mix={values.withdrawalMix}
               baseline={baseline.withdrawalMix}
+              available={availableKinds}
               onChange={(withdrawalMix) => update({ withdrawalMix })}
             />
           )}

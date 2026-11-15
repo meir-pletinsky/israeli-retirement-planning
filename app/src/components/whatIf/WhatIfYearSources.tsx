@@ -3,6 +3,8 @@ import { useId, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
+  availableWithdrawalKinds,
+  effectiveWithdrawalMix,
   incomeYearDetails,
   measureSurplus,
   withdrawalSplit,
@@ -49,13 +51,10 @@ function useOriginText() {
         return origin.bankName
           ? t("whatIf.sources.origin.bankDeposit", { bank: origin.bankName })
           : t("whatIf.sources.origin.bankDepositUnnamed");
-      case "holding":
-        if (origin.company && origin.ticker) {
-          return t("whatIf.sources.origin.holding", { company: origin.company, ticker: origin.ticker });
-        }
-        return origin.company || origin.ticker || t("whatIf.sources.origin.holdingUnnamed");
-      case "employerShares":
-        return t(`whatIf.sources.origin.employerShares.${origin.route}`);
+      case "esop":
+        return t("whatIf.sources.origin.esop");
+      case "otherShares":
+        return t("whatIf.sources.origin.otherShares");
     }
   };
 
@@ -130,12 +129,17 @@ function FactorChips({ factors }: { factors: WithdrawalFactors }) {
 
 function SourceRow({ line, couple, bandLabel }: RowProps) {
   const { t } = useTranslation();
-  const { money } = useWhatIfFormat();
+  const { money, signedMoney, rate } = useWhatIfFormat();
   const { name, references } = useOriginText();
+  const profitKey = line.origin.type === "bankDeposit" ? "yearInterest" : "yearProfit";
   const details = [
     ...references(line.origin),
     ...(couple ? [t(`whatIf.sources.owner.${line.owner}`)] : []),
     ...(line.balance === null ? [] : [t("whatIf.sources.balance", { amount: isolate(money(line.balance)) })]),
+    ...(line.profit === null ? [] : [t(`whatIf.sources.${profitKey}`, { amount: isolate(signedMoney(line.profit)) })]),
+    ...(line.origin.type === "account" && line.origin.reportedReturnPct !== null
+      ? [t("whatIf.sources.reportedReturn", { rate: isolate(rate(line.origin.reportedReturnPct)) })]
+      : []),
   ];
 
   return (
@@ -237,8 +241,8 @@ function YearDetail({ year, bandLabels, strategy, mix, capPct }: YearDetailProps
 
   const percents = (parts: Partial<Record<WithdrawalMixKey | "other", number>>) =>
     [...WITHDRAWAL_MIX_KEYS, "other" as const]
-      .filter((kind) => kind !== "other" || (parts.other ?? 0) > 0)
-      .map((kind) => `${t(`whatIf.mix.${kind}`)} ${isolate(`${parts[kind] ?? 0}%`)}`)
+      .filter((kind) => (parts[kind] ?? 0) > 0)
+      .map((kind) => `${t(`whatIf.mix.${kind}`)} ${isolate(`${parts[kind]}%`)}`)
       .join(" · ");
   const split = strategy === "custom" ? withdrawalSplit(withdrawals) : null;
   const shifted =
@@ -343,6 +347,10 @@ export function WhatIfYearSources({ draft, basis, bandLabels }: WhatIfYearSource
   const [chosenAge, setChosenAge] = useState<number | null>(null);
 
   const years = useMemo(() => (open ? incomeYearDetails(draft, basis) : []), [open, draft, basis]);
+  const mix = useMemo(
+    () => (open ? effectiveWithdrawalMix(draft.assumptions.withdrawalMix, availableWithdrawalKinds(draft)) : null),
+    [open, draft],
+  );
   const index = Math.max(
     0,
     years.findIndex((year) => year.age === chosenAge),
@@ -369,7 +377,7 @@ export function WhatIfYearSources({ draft, basis, bandLabels }: WhatIfYearSource
         <div id={`${id}-panel`} className="mt-3 flex flex-col gap-4">
           <p className="text-xs text-slate-500">{t("whatIf.sources.intro")}</p>
 
-          {year && (
+          {year && mix && (
             <>
               <div className="flex flex-wrap items-end gap-2">
                 <div className="min-w-0 flex-1 sm:max-w-xs">
@@ -423,7 +431,7 @@ export function WhatIfYearSources({ draft, basis, bandLabels }: WhatIfYearSource
                 year={year}
                 bandLabels={bandLabels}
                 strategy={draft.assumptions.withdrawalStrategy}
-                mix={draft.assumptions.withdrawalMix}
+                mix={mix}
                 capPct={draft.assumptions.incomeCapPct}
               />
             </>

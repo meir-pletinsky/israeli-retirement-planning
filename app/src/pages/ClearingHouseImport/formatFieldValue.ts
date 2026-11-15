@@ -21,6 +21,7 @@ const PERCENT_KEYS: ReadonlySet<AccountFieldKey> = new Set([
   "survivorSpousePercent",
   "feeFromAccumulationPercent",
   "feeFromDepositPercent",
+  "reportedYtdReturnPercent",
 ]);
 
 const OPTION_KEYS: ReadonlySet<AccountFieldKey> = new Set([

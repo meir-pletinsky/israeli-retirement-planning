@@ -59,13 +59,31 @@ describe("normalizeProfile", () => {
         assumptions: { ...legacyAssumptions, withdrawalMix },
       } as unknown as Parameters<typeof normalizeProfile>[0]).assumptions.withdrawalMix;
     expect(withMix(undefined)).toEqual(DEFAULT_WITHDRAWAL_MIX);
-    expect(withMix({ studyFund: 50, shares: 30, deposits: 20 })).toEqual({ studyFund: 50, shares: 30, deposits: 20 });
-    expect(withMix({ studyFund: 100, shares: 0, deposits: 0 })).toEqual({ studyFund: 100, shares: 0, deposits: 0 });
-    expect(withMix({ studyFund: 50, shares: 30, deposits: 30 })).toEqual(DEFAULT_WITHDRAWAL_MIX);
-    expect(withMix({ studyFund: 50.5, shares: 29.5, deposits: 20 })).toEqual(DEFAULT_WITHDRAWAL_MIX);
-    expect(withMix({ studyFund: -10, shares: 60, deposits: 50 })).toEqual(DEFAULT_WITHDRAWAL_MIX);
-    expect(withMix({ studyFund: "50", shares: 30, deposits: 20 })).toEqual(DEFAULT_WITHDRAWAL_MIX);
+    expect(withMix({ studyFund: 50, esop: 10, shares: 20, deposits: 20 })).toEqual({
+      studyFund: 50,
+      esop: 10,
+      shares: 20,
+      deposits: 20,
+    });
+    expect(withMix({ studyFund: 100, esop: 0, shares: 0, deposits: 0 })).toEqual({
+      studyFund: 100,
+      esop: 0,
+      shares: 0,
+      deposits: 0,
+    });
+    expect(withMix({ studyFund: 50, esop: 0, shares: 30, deposits: 30 })).toEqual(DEFAULT_WITHDRAWAL_MIX);
+    expect(withMix({ studyFund: 50.5, esop: 0, shares: 29.5, deposits: 20 })).toEqual(DEFAULT_WITHDRAWAL_MIX);
+    expect(withMix({ studyFund: -10, esop: 0, shares: 60, deposits: 50 })).toEqual(DEFAULT_WITHDRAWAL_MIX);
+    expect(withMix({ studyFund: "50", esop: 0, shares: 30, deposits: 20 })).toEqual(DEFAULT_WITHDRAWAL_MIX);
     expect(withMix(null)).toEqual(DEFAULT_WITHDRAWAL_MIX);
+  });
+
+  it("reads a withdrawal mix saved before ESOP had its own share as holding no ESOP", () => {
+    const { withdrawalMix: _mix, ...legacyAssumptions } = EMPTY_PROFILE.assumptions;
+    const result = normalizeProfile({
+      assumptions: { ...legacyAssumptions, withdrawalMix: { studyFund: 50, shares: 30, deposits: 20 } },
+    } as unknown as Parameters<typeof normalizeProfile>[0]);
+    expect(result.assumptions.withdrawalMix).toEqual({ studyFund: 50, esop: 0, shares: 30, deposits: 20 });
   });
 
   it("plans to age 90 for a profile saved before the horizon was a setting, and for a value it does not offer", () => {
@@ -129,6 +147,26 @@ describe("normalizeProfile", () => {
       spouse: { age: 52, creditPoints: 2.5 },
     } as Parameters<typeof normalizeProfile>[0]);
     expect(result.spouse.creditPoints).toBe(2.5);
+  });
+
+  it("adds no reported return to accounts saved before it existed, keeps a saved one and drops a bad one", () => {
+    const profile = buildTestProfile({ pensionBalances: [1, 2, 3] });
+    const accounts = profile.pensionSavings.accounts.map((account, index) => {
+      const { reportedYtdReturnPercent: _reported, ...investmentAndFees } = account.investmentAndFees;
+      return {
+        ...account,
+        investmentAndFees: index === 1 ? { ...investmentAndFees, reportedYtdReturnPercent: 4.2 } : index === 2 ? { ...investmentAndFees, reportedYtdReturnPercent: "high" } : investmentAndFees,
+      };
+    });
+    const result = normalizeProfile({
+      ...profile,
+      pensionSavings: { ...profile.pensionSavings, accounts },
+    } as unknown as Parameters<typeof normalizeProfile>[0]);
+    expect(result.pensionSavings.accounts.map((account) => account.investmentAndFees.reportedYtdReturnPercent)).toEqual([
+      null,
+      4.2,
+      null,
+    ]);
   });
 
   it("owns accounts without an owner by the primary user and keeps spouse ownership", () => {

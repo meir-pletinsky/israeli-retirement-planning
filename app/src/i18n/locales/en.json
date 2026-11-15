@@ -616,6 +616,7 @@
           "feeFromAccumulationPercent": "Fee from accumulation",
           "feeFromDepositPercent": "Fee from deposit",
           "profitSharingFeePercent": "Profit-sharing fee",
+          "reportedYtdReturnPercent": "Reported return so far this year",
           "hasStateYieldGuarantee": "Has state yield guarantee"
         },
         "options": {
@@ -1318,7 +1319,7 @@
         },
         "custom": {
           "name": "Your mix",
-          "description": "Your own split of each year's withdrawals between the study fund, shares and bank deposits, set under What if. A source that has run out or is still locked passes its share to the others."
+          "description": "Your own split of each year's withdrawals between the kinds of savings you hold (study fund, employer stock options, other shares and bank deposits), set under What if. A source that has run out or is still locked passes its share to the others."
         }
       },
       "metricColumn": "Over your retirement",
@@ -1462,10 +1463,11 @@
     },
     "mix": {
       "studyFund": "Study fund",
-      "shares": "Shares",
+      "esop": "ESOP (employer shares)",
+      "shares": "ESPP, private & other shares",
       "deposits": "Bank deposits",
       "other": "Other savings",
-      "hint": "The three always add up to {{total}}. When a source has run out or is still locked, its share goes to the others."
+      "hint": "The parts always add up to {{total}}. When a source has run out or is still locked, its share goes to the others."
     },
     "note": {
       "pensionLocked": "Pension funds do not pay out before age {{age}}, so until then only your other savings can cover your spending.",
@@ -1525,15 +1527,13 @@
         "otherAssets": "Cash and other assets",
         "bankDeposit": "Bank deposit, {{bank}}",
         "bankDepositUnnamed": "Bank deposit",
-        "holding": "{{company}} ({{ticker}})",
-        "holdingUnnamed": "Stock holding",
-        "employerShares": {
-          "section102": "Employer shares, Section 102",
-          "ordinaryIncome": "Employer shares, ordinary income",
-          "nonTrustee": "Employer shares, Section 3(i)"
-        }
+        "esop": "ESOP (employer shares)",
+        "otherShares": "ESPP, private & other shares"
       },
       "balance": "From a balance of {{amount}}",
+      "yearProfit": "Est. profit this year {{amount}} above inflation",
+      "yearInterest": "Est. interest this year {{amount}} above inflation",
+      "reportedReturn": "Reported return so far this year {{rate}}",
       "total": "Total, before tax",
       "planned": "Planned spending",
       "excess": "Above planned spending",
@@ -1573,7 +1573,7 @@
         "startsLater": "Starts paying at age {{age}}",
         "notDrawn": "Not drawn on this year"
       },
-      "note": "Withdrawals are modelled amounts, not instructions to sell. Shares and other investments are drawn as one pool, so the split between cash and holdings follows their value; bank deposits are drawn as a source of their own. The tax shown is what the plan applies. Bank deposits grow at the average of their own rates after inflation (a deposit with no rate, at the plan's return) and everything else at the plan's return; the currency is shown for reference.",
+      "note": "Withdrawals are modelled amounts, not instructions to sell. Shares and other investments are drawn as one pool, so the split between cash and holdings follows their value. Employer shares held through a trustee (ESOP) are one line, and all other shares are another. Bank deposits are drawn as a source of their own. The tax shown is what the plan applies. The profit is an estimate: the balance times the plan's return above inflation, in today's money. The reported return, where the Clearing House gave one, only shows the year so far and is not used in the plan. Bank deposits grow at the average of their own rates after inflation (a deposit with no rate, at the plan's return) and everything else at the plan's return; the currency is shown for reference.",
       "empty": "No income to show for this year."
     },
     "sensitivity": {

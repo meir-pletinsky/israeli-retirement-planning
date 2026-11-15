@@ -57,6 +57,8 @@ export function readField(account: PensionAccount, key: AccountFieldKey): FieldV
       return account.investmentAndFees.feeFromAccumulationPercent;
     case "feeFromDepositPercent":
       return account.investmentAndFees.feeFromDepositPercent;
+    case "reportedYtdReturnPercent":
+      return account.investmentAndFees.reportedYtdReturnPercent;
     case "hasGuaranteedFactor":
       // The unticked box is the form's default, so it counts as empty.
       return account.annuityParameters.hasGuaranteedFactor ? true : null;
@@ -127,6 +129,11 @@ export function writeField<K extends AccountFieldKey>(
       return {
         ...account,
         investmentAndFees: { ...account.investmentAndFees, feeFromDepositPercent: v as number },
+      };
+    case "reportedYtdReturnPercent":
+      return {
+        ...account,
+        investmentAndFees: { ...account.investmentAndFees, reportedYtdReturnPercent: v as number },
       };
     case "hasGuaranteedFactor":
       return { ...account, annuityParameters: { ...account.annuityParameters, hasGuaranteedFactor: v as boolean } };

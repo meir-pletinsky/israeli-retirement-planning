@@ -37,7 +37,9 @@ export function WithdrawalStrategyCard({
     return null;
   }
 
-  const mixText = WITHDRAWAL_MIX_KEYS.map((key) => `${t(`whatIf.mix.${key}`)} ${isolate(`${mix[key]}%`)}`).join(" · ");
+  const mixText = WITHDRAWAL_MIX_KEYS.filter((key) => mix[key] > 0)
+    .map((key) => `${t(`whatIf.mix.${key}`)} ${isolate(`${mix[key]}%`)}`)
+    .join(" · ");
 
   const name = (strategy: WithdrawalStrategy) => t(`projections.withdrawal.strategy.${strategy}.name`);
   const perMonth = (amount: number) => t("projections.withdrawal.perMonth", { amount: money(amount) });

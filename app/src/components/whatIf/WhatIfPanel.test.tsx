@@ -69,6 +69,39 @@ async function renderPensionPanel() {
   return screen.findByLabelText("Your pension payments start at age");
 }
 
+async function renderMixPanel(held: { esop: boolean; studyFund: boolean }) {
+  await saveProfileToDb(
+    buildTestProfile({
+      age: 50,
+      retirementAge: 62,
+      pensionBalances: held.studyFund ? [800_000, 300_000] : [800_000],
+      pensionAccountOverrides: [
+        {
+          productCategory: "comprehensivePension",
+          annuityParameters: {
+            hasGuaranteedFactor: true,
+            conversionFactor: null,
+            estimatedMonthlyAnnuity: 5_000,
+            annuityTaxType: null,
+            guaranteedPaymentMonths: null,
+          },
+        },
+        ...(held.studyFund ? [{ productCategory: "studyFund" as const }] : []),
+      ],
+      otherAssets: 300_000,
+      bankDeposits: [{ amount: 200_000, bankName: "Leumi" }],
+      equity: held.esop ? [{ quantity: 1_000, priceUSD: 100, employerGrant: {} }] : [],
+      usdToIlsRate: { rate: 3.6 },
+      retirementMonthlyExpenses: 8_000,
+      investmentReturnPct: 4,
+      inflationPct: 2,
+    }),
+  );
+  await saveOnboardedToDb(true);
+  renderWithProviders(<WhatIfPanel bandLabels={bandLabels} />);
+  return screen.findByLabelText("Income may exceed spending by");
+}
+
 async function renderSurplusPanel(monthlySpending: number) {
   await saveProfileToDb(
     buildTestProfile({
@@ -130,9 +163,9 @@ describe("WhatIfPanel", () => {
     expect((await screen.findAllByText("In shekels")).length).toBeGreaterThan(0);
   });
 
-  it("splits the withdrawals between the study fund, shares and deposits and saves the mix", async () => {
+  it("splits the withdrawals between the kinds the plan holds and saves the mix", async () => {
     const user = userEvent.setup();
-    await renderSurplusPanel(8_000);
+    await renderMixPanel({ esop: true, studyFund: true });
     expect(screen.queryByLabelText("Study fund")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("radio", { name: "Your mix" }));
@@ -140,20 +173,45 @@ describe("WhatIfPanel", () => {
     fireEvent.change(studyFund, { target: { value: "60" } });
 
     expect(studyFund).toHaveValue("60");
-    expect(screen.getByLabelText("Shares")).toHaveValue("20");
+    expect(screen.getByLabelText("ESOP (employer shares)")).toHaveValue("0");
+    expect(screen.getByLabelText("ESPP, private & other shares")).toHaveValue("20");
     expect(screen.getByLabelText("Bank deposits")).toHaveValue("20");
-    expect(screen.getByRole("img", { name: "Study fund 60%, Shares 20%, Bank deposits 20%" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", {
+        name: "Study fund 60%, ESOP (employer shares) 0%, ESPP, private & other shares 20%, Bank deposits 20%",
+      }),
+    ).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Bank deposits"), { target: { value: "100" } });
     expect(studyFund).toHaveValue("0");
-    expect(screen.getByLabelText("Shares")).toHaveValue("0");
+    expect(screen.getByLabelText("ESPP, private & other shares")).toHaveValue("0");
 
     await user.click(screen.getByRole("button", { name: "Apply to my plan" }));
     await waitFor(async () => {
       const saved = (await loadProfileFromDb())?.assumptions;
       expect(saved?.withdrawalStrategy).toBe("custom");
-      expect(saved?.withdrawalMix).toEqual({ studyFund: 0, shares: 0, deposits: 100 });
+      expect(saved?.withdrawalMix).toEqual({ studyFund: 0, esop: 0, shares: 0, deposits: 100 });
     });
+  });
+
+  it("offers a slider only for the kinds of savings the plan holds", async () => {
+    const user = userEvent.setup();
+    await renderMixPanel({ esop: false, studyFund: false });
+    await user.click(screen.getByRole("radio", { name: "Your mix" }));
+
+    expect(screen.getByLabelText("ESPP, private & other shares")).toBeInTheDocument();
+    expect(screen.getByLabelText("Bank deposits")).toBeInTheDocument();
+    expect(screen.queryByLabelText("ESOP (employer shares)")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Study fund")).not.toBeInTheDocument();
+  });
+
+  it("leaves the mix out when the plan holds only one kind of savings", async () => {
+    const user = userEvent.setup();
+    await renderSurplusPanel(8_000);
+    await user.click(screen.getByRole("radio", { name: "Your mix" }));
+
+    expect(screen.queryByLabelText("ESPP, private & other shares")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Bank deposits")).not.toBeInTheDocument();
   });
 
   it("starts on the saved plan with nothing to apply", async () => {

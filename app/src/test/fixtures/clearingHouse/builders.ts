@@ -77,6 +77,8 @@ export interface PolicyOptions {
   monthlyAccumulationFee?: number | null;
   actualDepositFee?: number | null;
   riskCost?: number | null;
+  /** `Tsua/SHEUR-TSUA-NETO`: the net return so far this calendar year, in percent. */
+  ytdReturn?: number | null;
   tracks?: TrackRow[];
   coverages?: CoverageSpec[];
   projections?: ProjectionSpec[];
@@ -102,6 +104,7 @@ export function policy(options: PolicyOptions = {}): XmlNode {
     monthlyAccumulationFee,
     actualDepositFee,
     riskCost,
+    ytdReturn,
     tracks = [],
     coverages = [],
     projections = [],
@@ -174,6 +177,7 @@ export function policy(options: PolicyOptions = {}): XmlNode {
         ),
       ),
     ),
+    ytdReturn !== undefined && ytdReturn !== null && el("Tsua", leaf("SHEUR-TSUA-NETO", ytdReturn)),
     ...projections.map((projection) =>
       el(
         "YitraLefiGilPrisha",

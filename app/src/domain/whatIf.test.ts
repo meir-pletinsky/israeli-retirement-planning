@@ -8,9 +8,11 @@ import { buildHousehold } from "./household";
 import {
   ageGridColumns,
   applyWhatIf,
+  availableWithdrawalKinds,
   baselineWhatIf,
   buildAgeGrid,
   canChoosePensionStart,
+  effectiveWithdrawalMix,
   evaluateWhatIf,
   rebalanceWithdrawalMix,
   sameWhatIfValue,
@@ -190,37 +192,84 @@ describe("applyWhatIf", () => {
 });
 
 describe("rebalanceWithdrawalMix", () => {
-  const sum = (mix: WithdrawalMix) => mix.studyFund + mix.shares + mix.deposits;
+  const sum = (mix: WithdrawalMix) => WITHDRAWAL_MIX_KEYS.reduce((total, key) => total + mix[key], 0);
 
-  it("keeps the three parts adding up to 100 and the moved one where it was put", () => {
+  it("keeps the parts adding up to 100 and the moved one where it was put", () => {
     for (const key of WITHDRAWAL_MIX_KEYS) {
       for (const percent of [0, 1, 33, 50, 77, 100]) {
-        const next = rebalanceWithdrawalMix({ studyFund: 20, shares: 50, deposits: 30 }, key, percent);
+        const next = rebalanceWithdrawalMix({ studyFund: 20, esop: 10, shares: 40, deposits: 30 }, key, percent);
         expect(sum(next)).toBe(100);
         expect(next[key]).toBe(percent);
       }
     }
   });
 
-  it("shares what is left between the other two in proportion to what they had", () => {
-    expect(rebalanceWithdrawalMix({ studyFund: 20, shares: 60, deposits: 20 }, "studyFund", 40)).toEqual({
-      studyFund: 40,
-      shares: 45,
-      deposits: 15,
-    });
+  it("shares what is left between the others in proportion to what they had", () => {
+    expect(
+      rebalanceWithdrawalMix({ studyFund: 20, esop: 0, shares: 60, deposits: 20 }, "studyFund", 40),
+    ).toEqual({ studyFund: 40, esop: 0, shares: 45, deposits: 15 });
   });
 
-  it("splits what is left equally when the other two had nothing", () => {
-    expect(rebalanceWithdrawalMix({ studyFund: 100, shares: 0, deposits: 0 }, "studyFund", 60)).toEqual({
-      studyFund: 60,
-      shares: 20,
-      deposits: 20,
-    });
+  it("splits what is left equally when the others had nothing", () => {
+    expect(
+      rebalanceWithdrawalMix({ studyFund: 100, esop: 0, shares: 0, deposits: 0 }, "studyFund", 60),
+    ).toEqual({ studyFund: 60, esop: 14, shares: 13, deposits: 13 });
   });
 
   it("keeps a value outside 0 to 100 inside it", () => {
     expect(rebalanceWithdrawalMix(DEFAULT_WITHDRAWAL_MIX, "shares", 140).shares).toBe(100);
     expect(rebalanceWithdrawalMix(DEFAULT_WITHDRAWAL_MIX, "shares", -5).shares).toBe(0);
+  });
+
+  it("moves only the kinds on offer and zeroes the rest", () => {
+    const kinds = ["studyFund", "deposits"] as const;
+    const next = rebalanceWithdrawalMix({ studyFund: 34, esop: 0, shares: 33, deposits: 33 }, "studyFund", 70, kinds);
+    expect(next).toEqual({ studyFund: 70, esop: 0, shares: 0, deposits: 30 });
+    expect(rebalanceWithdrawalMix(next, "deposits", 10, kinds)).toEqual({ studyFund: 90, esop: 0, shares: 0, deposits: 10 });
+  });
+});
+
+describe("effectiveWithdrawalMix", () => {
+  it("zeroes the kinds the plan lacks and shares the 100 among the rest by their weights", () => {
+    expect(
+      effectiveWithdrawalMix({ studyFund: 34, esop: 0, shares: 33, deposits: 33 }, ["studyFund", "deposits"]),
+    ).toEqual({ studyFund: 51, esop: 0, shares: 0, deposits: 49 });
+  });
+
+  it("splits equally among held kinds that were given nothing", () => {
+    expect(
+      effectiveWithdrawalMix({ studyFund: 34, esop: 0, shares: 33, deposits: 33 }, ["esop"]),
+    ).toEqual({ studyFund: 0, esop: 100, shares: 0, deposits: 0 });
+    expect(
+      effectiveWithdrawalMix({ studyFund: 100, esop: 0, shares: 0, deposits: 0 }, ["esop", "shares"]),
+    ).toEqual({ studyFund: 0, esop: 50, shares: 50, deposits: 0 });
+  });
+});
+
+describe("availableWithdrawalKinds", () => {
+  it("lists the kinds of savings the plan holds, in the mix's order", () => {
+    const everything = buildTestProfile({
+      age: 55,
+      retirementAge: 60,
+      pensionBalances: [500_000, 400_000],
+      pensionAccountOverrides: [{ productCategory: "studyFund" }, { productCategory: "comprehensivePension" }],
+      otherAssets: 100_000,
+      bankDeposits: [{ amount: 100_000 }],
+      equity: [{ quantity: 1_000, priceUSD: 100, employerGrant: {} }],
+      usdToIlsRate: { rate: 3.6 },
+    });
+    expect(availableWithdrawalKinds(everything)).toEqual(["studyFund", "esop", "shares", "deposits"]);
+  });
+
+  it("leaves out what the plan does not have", () => {
+    const lean = buildTestProfile({
+      age: 55,
+      retirementAge: 60,
+      pensionBalances: [500_000],
+      pensionAccountOverrides: [{ productCategory: "studyFund" }],
+      bankDeposits: [{ amount: 100_000 }],
+    });
+    expect(availableWithdrawalKinds(lean)).toEqual(["studyFund", "deposits"]);
   });
 });
 
