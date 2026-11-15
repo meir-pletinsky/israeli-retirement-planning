@@ -11,7 +11,7 @@ import { hasProfileData } from "../types";
 import { Toast } from "./Toast";
 
 /** The pages that show results; the prompt stays out of the way of data entry and Settings. */
-const PROMPT_PATHS = ["/dashboard", "/projections"];
+const PROMPT_PATHS = ["/dashboard", "/projections", "/projections/what-if"];
 
 const isolate = (text: string) => `\u2066${text}\u2069`;
 

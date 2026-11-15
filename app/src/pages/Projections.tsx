@@ -5,8 +5,6 @@ import { useTranslation } from "react-i18next";
 import { useChosenScenario } from "../app/chosenScenario";
 import { useProfile } from "../app/ProfileContext";
 import { useHeavyResult } from "../app/useHeavyResult";
-import { ActiveAssumptions } from "../components/ActiveAssumptions";
-import { AssumedRetirementAgeBanner } from "../components/AssumedRetirementAgeBanner";
 import { BalanceTable, PathEventsList } from "../components/BalancePathNotes";
 import { BudgetCard } from "../components/BudgetCard";
 import { CashFlowCard } from "../components/CashFlowCard";
@@ -26,6 +24,7 @@ import { LiquidityLadderCard } from "../components/LiquidityLadderCard";
 import { LongevityCard } from "../components/LongevityCard";
 import { PlanBar } from "../components/PlanBar";
 import { ProjectionSectionGroup } from "../components/ProjectionSectionGroup";
+import { ProjectionsHeader } from "../components/ProjectionsHeader";
 import { PROJECTION_SECTIONS, type ProjectionSection } from "../components/projectionSections";
 import { RetirementTimeline } from "../components/RetirementTimeline";
 import { RiskAnalysisCard } from "../components/RiskAnalysisCard";
@@ -36,12 +35,11 @@ import { IncomeBasisNote, NetWorthBasisNote } from "../components/SpendingBasisN
 import { SourceCostCard } from "../components/SourceCostCard";
 import { StressTestCard } from "../components/StressTestCard";
 import { UnvestedSharesCard } from "../components/UnvestedSharesCard";
+import { useBandLabels } from "../components/useBandLabels";
 import { useRetirementFeasibility } from "../components/useRetirementFeasibility";
-import { WhatIfPanel } from "../components/whatIf/WhatIfPanel";
 import { WithdrawalStrategyCard } from "../components/WithdrawalStrategyCard";
 import {
   MAX_RETIREMENT_SEARCH_AGE,
-  type IncomeBandKey,
   type SourceKind,
   buildLeavingEarlyCost,
   buildLiquidityLadder,
@@ -82,6 +80,7 @@ export function Projections() {
   const [chosenTimelineBasis, setTimelineBasis] = useState<TimelineBasis>("sustainable");
   const currencySymbol = t("common.currencySymbol");
   const takeaways = useChartTakeaways();
+  const bandLabels = useBandLabels();
   const earlyAtStandard =
     resolveRetirementAge(profile, "early") === resolveRetirementAge(profile, "standard");
   // An Early that matches Standard is switched off; a choice made before the ages met is dropped.
@@ -139,14 +138,6 @@ export function Projections() {
     netIncomeYears,
     funding.monthlySpending > 0 ? funding.monthlySpending : undefined,
   );
-  const bandLabels: Record<IncomeBandKey, string> = {
-    pensionFund: t("projections.sourcePension"),
-    providentFund: t("projections.sourceProvidentFund"),
-    managersInsurance: t("projections.sourceManagersInsurance"),
-    studyFund: t("projections.sourceStudyFund"),
-    investments: t("projections.sourceInvestments"),
-    bituachLeumi: t("projections.sourceBituachLeumi"),
-  };
   const kindLabels: Record<SourceKind, string> = {
     pensionFund: bandLabels.pensionFund,
     providentFund: bandLabels.providentFund,
@@ -156,7 +147,6 @@ export function Projections() {
   };
 
   const showSection: Record<ProjectionSection, boolean> = {
-    whatIf: true,
     overview: true,
     income: true,
     savings: ladder.rungs.length > 0 || leavingEarly !== null,
@@ -169,13 +159,7 @@ export function Projections() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-        {t("projections.title")}
-      </h1>
-
-      <AssumedRetirementAgeBanner />
-
-      <ActiveAssumptions assumptions={profile.assumptions} />
+      <ProjectionsHeader />
 
       <PlanBar
         profile={profile}
@@ -185,10 +169,6 @@ export function Projections() {
         isCouple={isCouple}
         sections={sections}
       />
-
-      <ProjectionSectionGroup section="whatIf">
-        <WhatIfPanel bandLabels={bandLabels} />
-      </ProjectionSectionGroup>
 
       <ProjectionSectionGroup section="overview">
         <div className="card">

@@ -15,6 +15,7 @@ import { Demo } from "../pages/Demo";
 import { Projections } from "../pages/Projections";
 import { Settings } from "../pages/Settings";
 import { Welcome } from "../pages/Welcome/Welcome";
+import { WhatIf } from "../pages/WhatIf";
 import { AppShell } from "./AppShell";
 import { useProfile } from "./ProfileContext";
 import { RouteScrollManager } from "./RouteScrollManager";
@@ -49,6 +50,7 @@ export function App() {
             <Route path="assumptions" element={<AssumptionsStep />} />
           </Route>
           <Route path="/projections" element={<Projections />} />
+          <Route path="/projections/what-if" element={<WhatIf />} />
           <Route path="/import/clearing-house" element={<ClearingHouseImportPage />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/demo" element={<Demo />} />

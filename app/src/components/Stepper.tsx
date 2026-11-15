@@ -18,9 +18,11 @@ interface StepperProps {
   steps: StepperStep[];
   currentKey: string;
   onStepClick?: (key: string) => void;
+  /** Wraps the labels to fit the width instead of scrolling sideways; for a few short steps. */
+  fit?: boolean;
 }
 
-export function Stepper({ steps, currentKey, onStepClick }: StepperProps) {
+export function Stepper({ steps, currentKey, onStepClick, fit = false }: StepperProps) {
   const currentStep = useRef<HTMLButtonElement>(null);
   const phone = useMediaQuery("(width < 40rem)");
 
@@ -30,7 +32,7 @@ export function Stepper({ steps, currentKey, onStepClick }: StepperProps) {
 
   return (
     <div className="-mx-4 overflow-x-auto px-4 py-1 md:mx-0 md:px-0">
-      <ol className="flex min-w-max items-stretch rounded-[var(--radius-card)] border border-slate-200 bg-white p-1.5 shadow-sm md:min-w-0">
+      <ol className={clsx("flex items-stretch rounded-[var(--radius-card)] border border-slate-200 bg-white p-1.5 shadow-sm", !fit && "min-w-max md:min-w-0")}>
         {steps.map((step, index) => {
           const isActive = step.key === currentKey;
           const isDone = step.done === true;
@@ -66,10 +68,10 @@ export function Stepper({ steps, currentKey, onStepClick }: StepperProps) {
                   ) : step.needsAttention ? "!" : index + 1}
                 </span>
                 <span className="flex min-w-0 flex-col leading-tight">
-                  <span className={clsx("whitespace-nowrap text-sm md:whitespace-normal", isActive ? "font-semibold text-brand-900" : "font-medium text-slate-800")}>{step.label}</span>
+                  <span className={clsx("text-sm", !fit && "whitespace-nowrap md:whitespace-normal", isActive ? "font-semibold text-brand-900" : "font-medium text-slate-800")}>{step.label}</span>
                   {" "}
                   {step.status && (
-                    <span className={clsx("mt-0.5 whitespace-nowrap text-xs md:whitespace-normal", step.needsAttention ? "text-amber-800" : "text-slate-500")}>{step.status}</span>
+                    <span className={clsx("mt-0.5 text-xs", !fit && "whitespace-nowrap md:whitespace-normal", step.needsAttention ? "text-amber-800" : "text-slate-500")}>{step.status}</span>
                   )}
                 </span>
               </button>

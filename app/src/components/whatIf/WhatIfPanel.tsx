@@ -210,7 +210,7 @@ export function WhatIfPanel({ bandLabels }: WhatIfPanelProps) {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
-      <div className="card flex flex-col gap-5 lg:sticky lg:top-44 lg:max-h-[calc(100vh-12rem)] lg:overflow-y-auto">
+      <div className="card flex flex-col gap-5 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
         <p className="text-xs text-slate-500">{t("whatIf.intro")}</p>
 
         <fieldset className="flex flex-col gap-4">

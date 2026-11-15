@@ -1018,10 +1018,13 @@
       "fundedTo": "Funded to age {{age}}",
       "runsOutAt": "Savings run out at age {{age}}"
     },
+    "tabs": {
+      "plan": { "label": "My plan", "status": "Projected for each scenario" },
+      "whatIf": { "label": "What if?", "status": "Try changes without saving" }
+    },
     "sections": {
       "nav": "Sections on this page",
       "backToTop": "Back to top",
-      "whatIf": { "title": "What if?", "question": "How would a change to my plan affect my monthly income?" },
       "overview": { "title": "Overview", "question": "What happens over the years?" },
       "income": { "title": "Income and tax", "question": "What do I receive, from where, and after tax?" },
       "savings": { "title": "Savings", "question": "What do I have, when can I use it, and what about my shares?" },
@@ -1428,6 +1431,8 @@
     }
   },
   "whatIf": {
+    "title": "What if?",
+    "question": "How would a change to my plan affect my monthly income?",
     "intro": "Move a slider to try a change. Your saved plan stays as it is until you press Apply. The what-if always uses your plan's own retirement ages, not the Early or Delayed scenarios.",
     "group": {
       "ages": "Ages",

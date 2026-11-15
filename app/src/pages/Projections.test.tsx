@@ -1626,7 +1626,6 @@ describe("Projections", () => {
 
       const links = index().getAllByRole("link");
       expect(links.map((link) => link.textContent)).toEqual([
-        "What if?",
         "Overview",
         "Income and tax",
         "Savings",
