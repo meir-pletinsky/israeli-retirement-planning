@@ -616,13 +616,20 @@ describe("buildSources", () => {
     const capitalRoute: TaxTrack = "section102CapitalGainsTrustee";
     const sourcesFor = (
       employerGrant: NonNullable<Parameters<typeof buildTestProfile>[0]["equity"]>[number]["employerGrant"],
-      extra: { otherAssets?: number; age?: number } = {},
+      extra: { otherAssets?: number; age?: number; rateAtGrant?: number } = {},
     ) =>
       buildSources(
         buildTestProfile({
           age: extra.age ?? 50,
           otherAssets: extra.otherAssets,
-          equity: [{ quantity: 100, priceUSD: 50, employerGrant }],
+          equity: [
+            {
+              quantity: 100,
+              priceUSD: 50,
+              employerGrant,
+              entry: extra.rateAtGrant ? { usdToIlsRate: extra.rateAtGrant } : undefined,
+            },
+          ],
           ...zeroReal,
         }),
         60,
@@ -659,6 +666,38 @@ describe("buildSources", () => {
       const shares = sourcesFor({ taxTrack: capitalRoute })[1];
       expect(shares.ordinaryLayer).toBe(0);
       expect(shares.costBasis).toBe(0);
+    });
+
+    describe("dollar rate at the grant", () => {
+      it("prices the ordinary layer at the rate of the grant day and keeps the rise of the rate out of tax", () => {
+        const shares = sourcesFor({ taxTrack: capitalRoute, grantPriceUSD: 20 }, { rateAtGrant: 3 })[1];
+        expect(shares.balance).toBeCloseTo(18_500, 6);
+        // 100 shares * $20 * 3.0 was the pay at the grant; the rise to 3.7 on the same $2,000 is exempt.
+        expect(shares.ordinaryLayer).toBeCloseTo(6_000, 6);
+        expect(shares.costBasis).toBeCloseTo(1_400, 6);
+      });
+
+      it("raises the ordinary layer and has no exempt part when the rate has fallen since the grant", () => {
+        const shares = sourcesFor({ taxTrack: capitalRoute, grantPriceUSD: 20 }, { rateAtGrant: 4 })[1];
+        expect(shares.ordinaryLayer).toBeCloseTo(8_000, 6);
+        expect(shares.costBasis).toBe(0);
+      });
+
+      it("never lets the ordinary layer and the exempt part exceed the value", () => {
+        const shares = sourcesFor({ taxTrack: capitalRoute, grantPriceUSD: 80 }, { rateAtGrant: 3 })[1];
+        // $8,000 at 3.0 = 24,000 is worth more than the 18,500 now.
+        expect(shares.ordinaryLayer).toBeCloseTo(18_500, 6);
+        expect(shares.costBasis).toBe(0);
+        const mostly = sourcesFor({ taxTrack: capitalRoute, grantPriceUSD: 45 }, { rateAtGrant: 3 })[1];
+        expect(mostly.ordinaryLayer + mostly.costBasis).toBeLessThanOrEqual(mostly.balance + 1e-9);
+      });
+
+      it("leaves Section 3(i) shares and the ordinary-income route on the current rate", () => {
+        const nonTrustee = sourcesFor({ taxTrack: "section3iNonTrustee", grantPriceUSD: 20 }, { rateAtGrant: 3 });
+        expect(nonTrustee[0].costBasis).toBeCloseTo(7_400, 6);
+        const ordinary = sourcesFor({ taxTrack: "section102OrdinaryIncomeTrustee", grantPriceUSD: 20 }, { rateAtGrant: 3 });
+        expect(ordinary.find((source) => source.id === "employer-stock-ordinary-income")?.balance).toBeCloseTo(18_500, 6);
+      });
     });
 
     it("taxes the ordinary-income route entirely as ordinary income", () => {

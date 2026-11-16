@@ -7,6 +7,7 @@ import {
   type HouseholdMember,
   type RetirementTiming,
 } from "./household";
+import { bridgeIncomeLevels, bridgeWindowEndAge, memberCreditPoints, zeroTaxMonthlyIncome } from "./bridge";
 import { futureValueOfMonthlyContributions } from "./contributions";
 import {
   BANK_DEPOSITS_SOURCE_ID,
@@ -16,6 +17,7 @@ import {
   sourceTraceScope,
   type RetirementSource,
   type SourceKind,
+  type SourceLot,
   type TaxTreatment,
 } from "./sources";
 import {
@@ -31,6 +33,7 @@ import {
 } from "./trace";
 import {
   WITHDRAWAL_MIX_KEYS,
+  type BridgeMode,
   type ProfileData,
   type WithdrawalMix,
   type WithdrawalMixKey,
@@ -99,6 +102,37 @@ export interface DrawdownConversion {
   monthly: number;
 }
 
+/** One sale of employer shares under the tax-smart strategy, in a year. */
+export interface BridgeSale {
+  /** Index into `household.members` of the person who owns the shares. */
+  memberIndex: number;
+  /** The holding's ticker or company name. */
+  label: string;
+  /** The grant date of the batch, when known. */
+  grantDate: string | null;
+  /** What is sold, per year in today's money. */
+  amount: number;
+  /** The part of the sale taxed as ordinary income at the brackets, from 0 to 1. */
+  ordinaryShare: number;
+}
+
+/** How one member's year looks under the tax-smart strategy. */
+export interface BridgeMemberYear {
+  memberIndex: number;
+  /** True while the member is before their first fixed income (an annuity or the Bituach Leumi pension). */
+  inWindow: boolean;
+  /** The yearly ordinary income that bears no income tax after the credit points, in today's money. */
+  zeroTaxAnnual: number;
+  /** The yearly ordinary income from this year's share sales, in today's money. */
+  ordinaryAnnual: number;
+}
+
+/** What the tax-smart strategy did in a drawing year. */
+export interface DrawdownBridgeYear {
+  members: BridgeMemberYear[];
+  sales: BridgeSale[];
+}
+
 export interface DrawdownYear {
   /** The primary user's age. For a couple, the spouse is `age` minus the age gap. */
   age: number;
@@ -136,6 +170,8 @@ export interface DrawdownYear {
   spendable: number;
   /** What was drawn from that capital this year (per year, today's money); 0 before drawing starts. */
   drawn: number;
+  /** Set in the drawing years of the "taxSmart" strategy: which shares were sold and how the owners' brackets were used. */
+  bridge?: DrawdownBridgeYear;
 }
 
 /** Ways to run the simulation other than the household's own constant return. */
@@ -152,6 +188,8 @@ export interface DrawdownOptions {
   withdrawalStrategy?: WithdrawalStrategy;
   /** The split a "custom" draw follows, instead of the household's own `withdrawalMix`. */
   withdrawalMix?: WithdrawalMix;
+  /** How much of the employer shares a "taxSmart" draw sells in the bridge years, instead of the household's own `bridgeMode`. */
+  bridgeMode?: BridgeMode;
 }
 
 /**
@@ -181,6 +219,8 @@ interface SourceState {
   annualContribution: number;
   /** Set once the source's annuity has started and its balance has been paid into it. */
   converted: boolean;
+  /** The employer-share batches the balance is made of; tracked only by the "taxSmart" strategy. */
+  lots: SourceLot[] | null;
 }
 
 /** How a withdrawal from a source is taxed, from its current balance, cost basis and ordinary layer. */
@@ -328,6 +368,159 @@ function allocateDraw(
   return unlocked.map((entry) => taken.get(entry) ?? 0);
 }
 
+/** The part of a lot's value taxed as ordinary income when it is sold. */
+function lotOrdinaryShare(entry: SourceState, lot: SourceLot): number {
+  if (entry.source.taxTreatment === "ordinaryIncome") return 1;
+  return lot.balance > 0 ? Math.min(lot.ordinaryLayer / lot.balance, 1) : 0;
+}
+
+/** The part of a lot's value that is neither ordinary income nor a taxable gain when it is sold. */
+function lotExemptShare(entry: SourceState, lot: SourceLot): number {
+  if (entry.source.taxTreatment !== "capitalGains" || lot.balance <= 0) return 0;
+  return Math.min(lot.exempt / lot.balance, 1 - lotOrdinaryShare(entry, lot));
+}
+
+/** What the tax-smart draw takes from each source, down to the share batch, and how it used the owners' brackets. */
+interface TaxSmartAllocation {
+  /** In the order of `unlocked`. */
+  takenBy: number[];
+  /** Per source that tracks lots: what is sold of each of its lots. */
+  lotTaken: Map<SourceState, number[]>;
+  bridge: DrawdownBridgeYear;
+}
+
+/**
+ * The tax-smart draw. While an owner is in the bridge window (before their first annuity or
+ * Bituach Leumi pension) their employer shares are sold first, the batches with the largest
+ * ordinary-income part first, so that the sale is taxed at the low brackets of the window. The
+ * mode sets how far that goes: up to the level of income it names for each owner, or, matching
+ * the spending, up to the whole draw, filling the cheapest bracket of each owner before the
+ * next. Whatever is left of the draw comes out of the other money in the lowest-tax order, and
+ * only if that runs out are more shares sold. The total drawn never changes, only who pays it.
+ * Outside the window the shares are drawn like the other money, and the batches of a source
+ * in proportion to what is left of each.
+ */
+function allocateTaxSmartDraw(
+  unlocked: SourceState[],
+  draw: number,
+  years: number,
+  mode: BridgeMode,
+  members: HouseholdMember[],
+  windowEnds: readonly number[],
+  mix: WithdrawalMix,
+): TaxSmartAllocation {
+  const lotTaken = new Map<SourceState, number[]>();
+  for (const entry of unlocked) {
+    if (entry.lots) lotTaken.set(entry, entry.lots.map(() => 0));
+  }
+  const inWindow = (entry: SourceState): boolean => entry.member.currentAge + years < windowEnds[entry.memberIndex];
+  const windowed = unlocked.filter((entry) => entry.lots && entry.balance > 0 && inWindow(entry));
+  const ordinaryByMember = members.map(() => 0);
+
+  /** Sells up to `limit` of one member's windowed shares, largest ordinary part first, adding at most `room` of ordinary income. */
+  const sellFor = (memberIndex: number, limit: number, room: number): number => {
+    const candidates = windowed
+      .filter((entry) => entry.memberIndex === memberIndex)
+      .flatMap((entry) =>
+        entry.lots!.map((lot, index) => ({ entry, index, lot, share: lotOrdinaryShare(entry, lot) })),
+      )
+      .sort((a, b) => b.share - a.share);
+    const capped = Number.isFinite(room);
+    let sold = 0;
+    let roomLeft = room;
+    for (const { entry, index, lot, share } of candidates) {
+      if (limit - sold <= 1e-9 || roomLeft <= 1e-9) break;
+      if (capped && share <= 0) break;
+      const taken = lotTaken.get(entry)!;
+      const amount = Math.min(lot.balance - taken[index], limit - sold, share > 0 ? roomLeft / share : Infinity);
+      if (amount <= 0) continue;
+      taken[index] += amount;
+      sold += amount;
+      roomLeft -= amount * share;
+      ordinaryByMember[memberIndex] += amount * share;
+    }
+    return sold;
+  };
+
+  let remaining = draw;
+  const windowMembers = [...new Set(windowed.map((entry) => entry.memberIndex))];
+  const levels = new Map(
+    windowMembers.map((index) => [index, bridgeIncomeLevels(mode, memberCreditPoints(members[index]))]),
+  );
+  const layerCount = Math.max(0, ...[...levels.values()].map((list) => list.length));
+  for (let layer = 0; layer < layerCount && remaining > 1e-9; layer += 1) {
+    const byIncome = [...windowMembers].sort((a, b) => ordinaryByMember[a] - ordinaryByMember[b]);
+    for (const memberIndex of byIncome) {
+      if (remaining <= 1e-9) break;
+      const level = levels.get(memberIndex)![layer];
+      if (level === undefined) continue;
+      const room = level * 12 - ordinaryByMember[memberIndex];
+      if (room > 0) remaining -= sellFor(memberIndex, remaining, room);
+    }
+  }
+
+  const windowedSet = new Set(windowed);
+  const others = unlocked.filter((entry) => !windowedSet.has(entry));
+  const othersTotal = others.reduce((sum, entry) => sum + Math.max(entry.balance, 0), 0);
+  const othersDraw = Math.min(Math.max(remaining, 0), othersTotal);
+  const takenOthers =
+    othersDraw > 0 ? allocateDraw(others, othersTotal, othersDraw, "lowestTaxFirst", mix) : others.map(() => 0);
+  remaining -= othersDraw;
+  for (const memberIndex of windowMembers) {
+    if (remaining <= 1e-9) break;
+    remaining -= sellFor(memberIndex, remaining, Number.POSITIVE_INFINITY);
+  }
+
+  others.forEach((entry, position) => {
+    const lots = entry.lots;
+    const amount = takenOthers[position];
+    if (!lots || amount <= 0) return;
+    const taken = lotTaken.get(entry)!;
+    const total = lots.reduce((sum, lot) => sum + lot.balance, 0);
+    lots.forEach((lot, index) => {
+      taken[index] = total > 0 ? Math.min((amount * lot.balance) / total, lot.balance) : 0;
+    });
+  });
+
+  const takenByEntry = new Map<SourceState, number>();
+  others.forEach((entry, position) => takenByEntry.set(entry, takenOthers[position]));
+  const sales: BridgeSale[] = [];
+  const ordinaryAnnual = members.map(() => 0);
+  const takenBy = unlocked.map((entry) => {
+    const taken = lotTaken.get(entry);
+    if (!entry.lots || !taken) return takenByEntry.get(entry) ?? 0;
+    let total = 0;
+    entry.lots.forEach((lot, index) => {
+      if (taken[index] <= 0) return;
+      const share = lotOrdinaryShare(entry, lot);
+      total += taken[index];
+      ordinaryAnnual[entry.memberIndex] += taken[index] * share;
+      sales.push({
+        memberIndex: entry.memberIndex,
+        label: lot.label,
+        grantDate: lot.grantDate,
+        amount: taken[index],
+        ordinaryShare: share,
+      });
+    });
+    return total;
+  });
+
+  return {
+    takenBy,
+    lotTaken,
+    bridge: {
+      members: members.map((member, memberIndex) => ({
+        memberIndex,
+        inWindow: member.currentAge + years < windowEnds[memberIndex],
+        zeroTaxAnnual: zeroTaxMonthlyIncome(memberCreditPoints(member)) * 12,
+        ordinaryAnnual: ordinaryAnnual[memberIndex],
+      })),
+      sales,
+    },
+  };
+}
+
 /**
  * Year-by-year simulation of every source of a household, entirely in
  * today's money:
@@ -368,13 +561,17 @@ function recordDrawdownStart(
   monthlySpending: number,
   state: SourceState[],
   strategy: WithdrawalStrategy,
+  bridgeMode: BridgeMode,
 ): void {
   const { rate, retirementYears, horizonYears } = household;
   if (strategy !== "proRata") {
     recordStep("withdrawalStrategy", () => ({
       title: "Order in which the unlocked sources are drawn on",
       formula: "the withdrawal strategy chosen in the assumptions; pro rata when none is chosen",
-      inputs: { strategy: input(strategy, fromProfile("assumptions.withdrawalStrategy")) },
+      inputs: {
+        strategy: input(strategy, fromProfile("assumptions.withdrawalStrategy")),
+        ...(strategy === "taxSmart" ? { bridgeMode: input(bridgeMode, fromProfile("assumptions.bridgeMode")) } : {}),
+      },
       output: strategy,
       note: "The strategy changes which source pays each year's draw, and so the tax. Each year the same gross amount is drawn as with pro rata, while the money lasts; sources that earn different returns can still leave different balances behind.",
     }));
@@ -485,6 +682,17 @@ function recordDrawdownStart(
   }));
 }
 
+/**
+ * A copy of the share batches of a source for the tax-smart draw to sell from, or null when the
+ * source has none or they do not add up to its balance (a source made by hand).
+ */
+function copyLots(source: RetirementSource): SourceLot[] | null {
+  if (!source.lots || source.lots.length === 0) return null;
+  const total = source.lots.reduce((sum, lot) => sum + lot.balance, 0);
+  if (Math.abs(total - source.balance) > 1e-6 * Math.max(1, source.balance)) return null;
+  return source.lots.map((lot) => ({ ...lot }));
+}
+
 function simulate(
   household: Household,
   monthlySpending: number,
@@ -494,6 +702,8 @@ function simulate(
   const { yearlyRates, lean = false } = options;
   const strategy = lean ? "proRata" : (options.withdrawalStrategy ?? household.withdrawalStrategy);
   const mix = options.withdrawalMix ?? household.withdrawalMix;
+  const bridgeMode = options.bridgeMode ?? household.bridgeMode;
+  const windowEnds = members.map(bridgeWindowEndAge);
   const annualSpending = monthlySpending * 12;
   const primary = members[0];
 
@@ -507,10 +717,11 @@ function simulate(
       ordinaryLayer: Math.min(source.ordinaryLayer, Math.max(source.balance - source.costBasis, 0)),
       annualContribution: futureValueOfMonthlyContributions(source.monthlyContribution, source.realReturn, 1),
       converted: false,
+      lots: strategy === "taxSmart" ? copyLots(source) : null,
     })),
   );
   if (isTracing()) {
-    recordDrawdownStart(household, monthlySpending, state, strategy);
+    recordDrawdownStart(household, monthlySpending, state, strategy, bridgeMode);
   }
   const traceRows: TraceScalar[][] | null = isTracing() ? [] : null;
   const traceCover: TraceScalar[][] | null = isTracing() ? [] : null;
@@ -525,6 +736,9 @@ function simulate(
         const age = entry.member.currentAge + years;
         const yearRate = shockedRate ?? entry.source.realReturn;
         entry.balance *= 1 + yearRate;
+        entry.lots?.forEach((lot) => {
+          lot.balance *= 1 + yearRate;
+        });
         if (age <= entry.member.retirementAge) {
           entry.balance +=
             shockedRate === undefined
@@ -544,6 +758,7 @@ function simulate(
           entry.balance = 0;
           entry.basis = 0;
           entry.ordinaryLayer = 0;
+          entry.lots = null;
         }
       }
     }
@@ -569,6 +784,8 @@ function simulate(
     let drawn = 0;
     let unmet = 0;
     let takenBy: number[] | null = null;
+    let lotTaken: Map<SourceState, number[]> | null = null;
+    let bridge: DrawdownBridgeYear | undefined;
     if (years > 0 && years >= retirementYears) {
       const streamsAnnual = PAYMENT_SOURCES.reduce((sum, band) => sum + streams[band], 0) * 12;
       const coverAnnual = averageMonthlyCoverCost(household, years) * 12;
@@ -578,7 +795,14 @@ function simulate(
       drawn = draw;
       unmet = needed - draw;
       if (unlockedTotal > 0) {
-        takenBy = allocateDraw(unlocked, unlockedTotal, draw, strategy, mix);
+        if (strategy === "taxSmart") {
+          const allocation = allocateTaxSmartDraw(unlocked, draw, years, bridgeMode, members, windowEnds, mix);
+          takenBy = allocation.takenBy;
+          lotTaken = allocation.lotTaken;
+          bridge = allocation.bridge;
+        } else {
+          takenBy = allocateDraw(unlocked, unlockedTotal, draw, strategy, mix);
+        }
       }
     }
 
@@ -597,11 +821,25 @@ function simulate(
       }
     }
     const unlockedSet = new Set(unlocked);
+    // A source whose share batches were sold is taxed on the mix of those batches, not on its average.
+    const soldMix = (entry: SourceState): { ordinaryFraction: number; gainFraction: number } => {
+      const taken = lotTaken?.get(entry);
+      const total = taken?.reduce((sum, part) => sum + part, 0) ?? 0;
+      if (!entry.lots || !taken || total <= 0) return taxMix(entry);
+      const ordinary = entry.lots.reduce((sum, lot, index) => sum + taken[index] * lotOrdinaryShare(entry, lot), 0);
+      const exempt = entry.lots.reduce((sum, lot, index) => sum + taken[index] * lotExemptShare(entry, lot), 0);
+      const ordinaryFraction = Math.min(ordinary / total, 1);
+      return {
+        ordinaryFraction,
+        gainFraction:
+          entry.source.taxTreatment === "capitalGains" ? Math.max(1 - exempt / total - ordinaryFraction, 0) : 0,
+      };
+    };
     const holdings: DrawdownHolding[] = lean
       ? []
       : state.map((entry) => {
           const { annuity, taxTreatment } = entry.source;
-          const { ordinaryFraction, gainFraction } = taxMix(entry);
+          const { ordinaryFraction, gainFraction } = soldMix(entry);
           return {
             memberIndex: entry.memberIndex,
             treatment: taxTreatment,
@@ -622,10 +860,33 @@ function simulate(
         entry.basis -= (entry.basis * taken) / entry.balance;
         entry.ordinaryLayer -= (entry.ordinaryLayer * taken) / entry.balance;
         entry.balance -= taken;
+        const soldLots = lotTaken?.get(entry);
+        if (entry.lots && soldLots) {
+          entry.lots.forEach((lot, lotIndex) => {
+            const part = soldLots[lotIndex];
+            if (part <= 0 || lot.balance <= 0) return;
+            lot.ordinaryLayer -= (lot.ordinaryLayer * part) / lot.balance;
+            lot.exempt -= (lot.exempt * part) / lot.balance;
+            lot.balance -= part;
+            if (lot.balance < DRAWDOWN_DUST) {
+              lot.balance = 0;
+              lot.ordinaryLayer = 0;
+              lot.exempt = 0;
+            }
+          });
+          entry.balance = entry.lots.reduce((sum, lot) => sum + lot.balance, 0);
+          entry.ordinaryLayer = entry.lots.reduce((sum, lot) => sum + lot.ordinaryLayer, 0);
+          entry.basis = entry.lots.reduce((sum, lot) => sum + lot.exempt, 0);
+        }
         if (entry.balance < DRAWDOWN_DUST) {
           entry.balance = 0;
           entry.basis = 0;
           entry.ordinaryLayer = 0;
+          entry.lots?.forEach((lot) => {
+            lot.balance = 0;
+            lot.ordinaryLayer = 0;
+            lot.exempt = 0;
+          });
         }
       });
       if (traceDraws && drawn > 0) {
@@ -655,6 +916,7 @@ function simulate(
       unmet,
       spendable: unlockedTotal,
       drawn,
+      ...(bridge ? { bridge } : {}),
     });
   }
 
@@ -705,6 +967,8 @@ function simulate(
         note:
           strategy === "custom"
             ? `Your mix: study fund ${mix.studyFund}%, ESOP ${mix.esop}%, other shares ${mix.shares}%, bank deposits ${mix.deposits}% of each year's draw. A kind that has run out (or is still locked) gives what it has and the rest is asked of the other kinds by their percents; inside a kind the draw is shared in proportion to balances. If every named kind is empty, the rest comes pro rata from the other unlocked money.`
+            : strategy === "taxSmart"
+            ? `Tax-smart bridge (mode ${bridgeMode}): while an owner is before their first annuity or Bituach Leumi pension, their employer shares are sold first, the batches with the most ordinary income first, up to the income level of the mode (or the whole draw when matching the spending); the rest comes from the other sources in the lowest-tax order. After that window the shares are sold with the least ordinary income first, in the lowest-tax order. The total drawn is the same as under the other strategies.`
             : strategy === "taxableFirst"
             ? "Taxable first: the non-pension investments (employer shares included) are used up first, then the investment provident fund, then pension-like money, and the tax-free study fund last. Sources in the same group share the draw in proportion to their balances."
             : "Lowest tax first: the study fund first, then capital-gains money by the tax on its gain (gain share × tax rate), then pension-like money, and money taxed as ordinary income last. Sources in the same group share the draw in proportion to their balances. The order only ranks the sources; the tax itself comes from the tax step.",

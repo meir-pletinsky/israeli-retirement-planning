@@ -392,4 +392,20 @@ describe("verification pack with a cover plan", () => {
   });
 });
 
+describe("verification pack with one-month share sales", () => {
+  const base = buildTraceCouple();
+  const profile: ProfileData = { ...base, assumptions: { ...base.assumptions, lumpSumSales: true } };
+  const { pack } = buildVerificationPack({
+    profile,
+    target: { kind: "scenario", scenario: "standard" },
+    evaluatedAt: EVALUATED_AT,
+  });
+
+  it("traces the one-month stacking and re-checks cleanly", () => {
+    expect(pack.selfCheck.issues).toEqual([]);
+    const step = pack.trace.steps.find((candidate) => candidate.id.endsWith("shareSalesInOneMonth"));
+    expect(step?.inputs.lumpSumSales).toMatchObject({ value: true, from: "profile:assumptions.lumpSumSales" });
+  });
+});
+
 export type { VerificationPack };

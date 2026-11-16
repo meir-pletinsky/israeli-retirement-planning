@@ -11,6 +11,8 @@ import {
   type IdleSource,
   type IncomeBandKey,
   type IncomeBasis,
+  type IncomeBridgeSale,
+  type IncomeBridgeYear,
   type IncomeSourceLine,
   type IncomeSourceOrigin,
   type IncomeYearDetail,
@@ -222,6 +224,64 @@ function Group({
   );
 }
 
+function BridgeSales({ bridge, couple }: { bridge: IncomeBridgeYear; couple: boolean }) {
+  const { t } = useTranslation();
+  const { money, rate } = useWhatIfFormat();
+  if (!bridge.active) return <p className="text-xs text-slate-500">{t("whatIf.sources.bridge.outside")}</p>;
+
+  const inWindow = bridge.members.filter((member) => member.inWindow);
+  const sales = bridge.sales.filter(
+    (sale) => sale.monthly >= 0.5 && inWindow.some((member) => member.owner === sale.owner),
+  );
+  const saleName = (sale: IncomeBridgeSale) =>
+    [sale.label, sale.grantDate ? t("whatIf.sources.bridge.grantOf", { date: isolate(formatDate(sale.grantDate)) }) : null]
+      .filter(Boolean)
+      .join(", ");
+
+  return (
+    <section>
+      <h5 className="flex items-baseline justify-between gap-3 border-b border-slate-200 pb-1 text-xs font-semibold text-slate-600">
+        <span>{t("whatIf.sources.bridge.title")}</span>
+        <span className="tabular-nums">{isolate(money(sales.reduce((sum, sale) => sum + sale.monthly, 0)))}</span>
+      </h5>
+      <p className="pt-1 text-xs text-slate-500">{t("whatIf.sources.bridge.intro")}</p>
+      <ul className="divide-y divide-slate-100">
+        {sales.map((sale) => (
+          <li key={`${sale.owner}:${sale.label}:${sale.grantDate ?? ""}`} className="flex items-start gap-3 py-2">
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-medium text-slate-900">{saleName(sale)}</span>
+              <span className="block text-xs text-slate-500">
+                {[
+                  ...(couple ? [t(`whatIf.sources.owner.${sale.owner}`)] : []),
+                  sale.ordinaryShare > 0
+                    ? t("whatIf.sources.bridge.ordinaryShare", { share: isolate(rate(sale.ordinaryShare * 100)) })
+                    : t("whatIf.sources.bridge.gainsOnly"),
+                ].join(" · ")}
+              </span>
+            </span>
+            <span className="shrink-0 text-sm font-medium tabular-nums text-slate-900">{isolate(money(sale.monthly))}</span>
+          </li>
+        ))}
+      </ul>
+      <ul className="flex flex-col gap-0.5 pt-1 text-xs text-slate-600">
+        {inWindow.map((member) => {
+          const values = {
+            used: isolate(money(member.ordinaryMonthly)),
+            room: isolate(money(member.zeroTaxMonthly)),
+          };
+          return (
+            <li key={member.owner}>
+              {couple
+                ? t("whatIf.sources.bridge.roomCouple", { ...values, owner: t(`whatIf.sources.owner.${member.owner}`) })
+                : t("whatIf.sources.bridge.room", values)}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 interface YearDetailProps {
   year: IncomeYearDetail;
   bandLabels: Record<IncomeBandKey, string>;
@@ -275,6 +335,8 @@ function YearDetail({ year, bandLabels, strategy, mix, capPct }: YearDetailProps
           )}
         </>
       )}
+
+      {year.bridge && year.bridge.sales.length > 0 && <BridgeSales bridge={year.bridge} couple={couple} />}
 
       <dl className="flex flex-col gap-1 border-t border-slate-300 pt-2 text-sm">
         <div className="flex items-baseline justify-between gap-3 font-semibold text-slate-900">
@@ -390,13 +452,17 @@ export function WhatIfYearSources({ draft, basis, bandLabels }: WhatIfYearSource
                     onChange={(event) => setChosenAge(Number(event.target.value))}
                     className="field-control mt-1 h-11 w-full px-3"
                   >
-                    {years.map((option) => (
-                      <option key={option.age} value={option.age}>
-                        {option.spouseAge === null
+                    {years.map((option) => {
+                      const text =
+                        option.spouseAge === null
                           ? t("whatIf.sources.yearOption", { age: option.age })
-                          : t("whatIf.sources.yearOptionCouple", { age: option.age, spouseAge: option.spouseAge })}
-                      </option>
-                    ))}
+                          : t("whatIf.sources.yearOptionCouple", { age: option.age, spouseAge: option.spouseAge });
+                      return (
+                        <option key={option.age} value={option.age}>
+                          {option.bridge?.active ? t("whatIf.sources.yearOptionBridge", { option: text }) : text}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
                 <button

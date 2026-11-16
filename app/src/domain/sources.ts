@@ -117,6 +117,24 @@ export interface RetirementSource {
    * return for every source except the bank deposits, which earn their own rates.
    */
   realReturn: number;
+  /**
+   * The employer-share lots the balance is made of, when the owner's grants can be sold one batch
+   * at a time (the Section 102 and ordinary-income employer stock). Their balances add up to
+   * `balance` and their ordinary layers to `ordinaryLayer`.
+   */
+  lots?: SourceLot[];
+}
+
+/** One batch of employer shares inside a source: what it holds today and the part of that taxed as ordinary income. */
+export interface SourceLot {
+  /** The holding's ticker, or its company name. */
+  label: string;
+  /** The award's grant date, for telling the lots of one holding apart; null when unknown. */
+  grantDate: string | null;
+  balance: number;
+  ordinaryLayer: number;
+  /** Part of `balance` that is neither ordinary income nor a taxable gain; it stays fixed while the balance grows. */
+  exempt: number;
 }
 
 /** Ids of the sources made of investments rather than of a pension account. */
@@ -301,9 +319,16 @@ export function employerStockRoute(
 /** Shares of one employer holding that are taxed alike: their value, the part of it worth that at the grant, and the route. */
 interface EmployerLot {
   value: number;
-  /** Value at the grant date, never above `value`; missing grant prices count as zero. */
+  /**
+   * Value at the grant date, never above `value`; missing grant prices count as zero. On the Section 102
+   * capital route it is worth the dollar rate at the grant when that is known, so it is what is taxed as salary.
+   */
   grantValue: number;
+  /** The part of `value` that is neither salary nor a taxed gain: the change in the dollar rate since the grant (Section 102 capital route only). */
+  exempt: number;
   route: EmployerStockRoute;
+  label: string;
+  grantDate: string | null;
 }
 
 /**
@@ -325,6 +350,10 @@ function employerLots(
   const details = holding.employerGrantDetails;
   const shareValue = (holding.currentMarketPriceUSD ?? 0) * fxRate;
   const holdingGrantPrice = Math.max(details.costBasisAtGrantUSD ?? 0, 0);
+  const rateAtGrant =
+    details.usdToIlsRateAtGrant !== null && Number.isFinite(details.usdToIlsRateAtGrant) && details.usdToIlsRateAtGrant > 0
+      ? details.usdToIlsRateAtGrant
+      : null;
   const nowMs = engineNowMs();
   const retirementMs = momentAfterYears(nowMs, yearsToRetirement);
 
@@ -339,30 +368,54 @@ function employerLots(
         : Math.max(yearsToRetirement, yearsBetween(nowMs, batch.vestMs));
     const value = batch.quantity * shareValue;
     const grantPriceUSD = Math.max(batch.grantPriceUSD ?? holdingGrantPrice, 0);
+    const route = stockRoute(details.taxTrack, details.grantDate, details.trusteeHoldingPeriodMet, yearsToSale);
+    const grantValueNow = batch.quantity * grantPriceUSD * fxRate;
+    // On the capital route the salary part is the grant's price in shekels on the day of the grant; the
+    // change in the dollar rate since then is neither salary nor a taxed gain, as with the rate rule of purchases.
+    const grantValueThen =
+      route === "section102Capital" && rateAtGrant !== null ? batch.quantity * grantPriceUSD * rateAtGrant : grantValueNow;
+    const grantValue = Math.min(grantValueThen, value);
     lots.push({
       value,
-      grantValue: Math.min(batch.quantity * grantPriceUSD * fxRate, value),
-      route: stockRoute(details.taxTrack, details.grantDate, details.trusteeHoldingPeriodMet, yearsToSale),
+      grantValue,
+      exempt: Math.min(Math.max(grantValueNow - grantValueThen, 0), value - grantValue),
+      route,
+      label: holding.tickerSymbol || holding.companyName,
+      grantDate: details.grantDate,
     });
   }
   return lots;
 }
 
 interface EquitySplit {
-  /** Section 102 capital-route shares: value and the part taxed as ordinary income. */
-  capitalRoute: { value: number; ordinaryLayer: number };
-  /** Employer shares taxed entirely as ordinary income, by value. */
+  /** Section 102 capital-route shares: value, the part taxed as ordinary income, and the lots they are made of. */
+  capitalRoute: { value: number; ordinaryLayer: number; exempt: number; lots: SourceLot[] };
+  /** Employer shares taxed entirely as ordinary income, by value, and the lots they are made of. */
   ordinaryValue: number;
+  ordinaryLots: SourceLot[];
   /** Section 3(i) shares: value and the part already taxed as income at the grant. */
   nonTrustee: { value: number; grantValue: number };
   /** Every other holding, which stays in the generic investments bucket. */
   rest: StockHolding[];
 }
 
+/** Adds `lot` to `lots`, joining it to the lot of the same holding and grant date when there is one. */
+function addSourceLot(lots: SourceLot[], lot: SourceLot): void {
+  const same = lots.find(({ label, grantDate }) => label === lot.label && grantDate === lot.grantDate);
+  if (same) {
+    same.balance += lot.balance;
+    same.ordinaryLayer += lot.ordinaryLayer;
+    same.exempt += lot.exempt;
+  } else {
+    lots.push({ ...lot });
+  }
+}
+
 function splitEquityByTaxRoute(profile: ProfileData, yearsToRetirement: number): EquitySplit {
   const split: EquitySplit = {
-    capitalRoute: { value: 0, ordinaryLayer: 0 },
+    capitalRoute: { value: 0, ordinaryLayer: 0, exempt: 0, lots: [] },
     ordinaryValue: 0,
+    ordinaryLots: [],
     nonTrustee: { value: 0, grantValue: 0 },
     rest: [],
   };
@@ -375,14 +428,29 @@ function splitEquityByTaxRoute(profile: ProfileData, yearsToRetirement: number):
       continue;
     }
     for (const lot of employerLots(holding, yearsToRetirement, fxRate, vestingRows)) {
-      if (isTracing()) lotRows.push([holding.id, lot.value, lot.grantValue, lot.route]);
+      if (isTracing()) lotRows.push([holding.id, lot.value, lot.grantValue, lot.exempt, lot.route]);
       switch (lot.route) {
         case "section102Capital":
           split.capitalRoute.value += lot.value;
           split.capitalRoute.ordinaryLayer += lot.grantValue;
+          split.capitalRoute.exempt += lot.exempt;
+          addSourceLot(split.capitalRoute.lots, {
+            label: lot.label,
+            grantDate: lot.grantDate,
+            balance: lot.value,
+            ordinaryLayer: lot.grantValue,
+            exempt: lot.exempt,
+          });
           break;
         case "ordinaryIncome":
           split.ordinaryValue += lot.value;
+          addSourceLot(split.ordinaryLots, {
+            label: lot.label,
+            grantDate: lot.grantDate,
+            balance: lot.value,
+            ordinaryLayer: 0,
+            exempt: 0,
+          });
           break;
         default:
           split.nonTrustee.value += lot.value;
@@ -401,9 +469,9 @@ function splitEquityByTaxRoute(profile: ProfileData, yearsToRetirement: number):
   if (lotRows.length > 0) {
     recordTable("employerLots", () => ({
       title: "Employer-granted share lots and their tax route",
-      columns: ["holdingId", "valueIls", "grantValueIls", "route"],
+      columns: ["holdingId", "valueIls", "grantValueIls", "fxExemptIls", "route"],
       rows: lotRows,
-      note: `Values are quantity × price in USD × ${fxRate} (${fxRateOrigin(profile)}); grantValueIls is the part worth that at the grant (ordinary income on the Section 102 capital route, already-taxed income on Section 3(i)). One lot per batch in the employerVesting table that is not forfeited. A lot is sold at the later of retirement and its vest date, and on the Section 102 capital route it stays on that route when the sale falls at least ${TAX_RATES.section102HoldingPeriodYears} years after the award's grant date (or the holding period is confirmed, or the grant date is unknown).`,
+      note: `Values are quantity × price in USD × ${fxRate} (${fxRateOrigin(profile)}); grantValueIls is the part worth that at the grant (ordinary income on the Section 102 capital route, already-taxed income on Section 3(i)). On the Section 102 capital route, when the dollar rate at the grant is known, grantValueIls uses it instead of the current rate, and fxExemptIls is the grant price in dollars × the rise of the rate since the grant, which is neither ordinary income nor taxed gain (never below 0, never above the rest of the value). It is 0 on the other routes and when the rate at the grant is unknown. One lot per batch in the employerVesting table that is not forfeited. A lot is sold at the later of retirement and its vest date, and on the Section 102 capital route it stays on that route when the sale falls at least ${TAX_RATES.section102HoldingPeriodYears} years after the award's grant date (or the holding period is confirmed, or the grant date is unknown).`,
     }));
   }
   return split;
@@ -972,7 +1040,7 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
   const investment = (
     id: string,
     balance: number,
-    tax: Pick<RetirementSource, "taxTreatment" | "costBasis" | "ordinaryLayer" | "capitalGainsTaxRate">,
+    tax: Pick<RetirementSource, "taxTreatment" | "costBasis" | "ordinaryLayer" | "capitalGainsTaxRate" | "lots">,
     balanceFrom: string,
     own?: { realReturn: number; growth: number; growthFrom: string },
   ): RetirementSource =>
@@ -1090,9 +1158,10 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
         equity.capitalRoute.value,
         {
           taxTreatment: "capitalGains",
-          costBasis: 0,
+          costBasis: equity.capitalRoute.exempt,
           ordinaryLayer: equity.capitalRoute.ordinaryLayer,
           capitalGainsTaxRate: TAX_RATES.capitalGainsRate,
+          lots: equity.capitalRoute.lots,
         },
         fromDerived("employerLots table: lots on the section102Capital route"),
       ),
@@ -1108,6 +1177,7 @@ export function buildSources(profile: ProfileData, retirementAge: number): Retir
           costBasis: 0,
           ordinaryLayer: 0,
           capitalGainsTaxRate: TAX_RATES.capitalGainsRate,
+          lots: equity.ordinaryLots,
         },
         fromDerived("employerLots table: lots on the ordinaryIncome route"),
       ),

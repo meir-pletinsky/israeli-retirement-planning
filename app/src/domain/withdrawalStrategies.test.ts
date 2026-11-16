@@ -3,8 +3,9 @@ import { describe, expect, it } from "vitest";
 import { buildTestProfile } from "../test/domainFixtures";
 import { WITHDRAWAL_STRATEGIES } from "../types";
 import { simulateDrawdown } from "./drawdown";
+import { buildHousehold, retirementTimingAtAge } from "./household";
 import { estimateNetIncome } from "./netIncome";
-import { compareWithdrawalStrategies } from "./withdrawalStrategies";
+import { compareWithdrawalStrategies, hasEmployerShares } from "./withdrawalStrategies";
 
 const zeroReal = { investmentReturnPct: 4, inflationPct: 4 };
 
@@ -187,9 +188,29 @@ describe("compareWithdrawalStrategies", () => {
 
   it("has one result per strategy, starting with the plan's own order", () => {
     const comparison = compareWithdrawalStrategies(profile);
-    expect(comparison.results.map((result) => result.strategy)).toEqual([...WITHDRAWAL_STRATEGIES]);
+    // The tax-smart order is only offered when there are employer shares to sell.
+    expect(comparison.results.map((result) => result.strategy)).toEqual(
+      WITHDRAWAL_STRATEGIES.filter((strategy) => strategy !== "taxSmart"),
+    );
     expect(comparison.current).toBe("proRata");
     expect(comparison.desiredMonthly).toBe(9_000);
+  });
+
+  it("adds the tax-smart order for a household with employer shares, or that already uses it", () => {
+    const withShares = buildTestProfile({
+      age: 60,
+      retirementAge: 60,
+      ...zeroReal,
+      otherAssets: 400_000,
+      equity: [{ quantity: 1000, priceUSD: 100, ticker: "ACME", employerGrant: { grantPriceUSD: 10 } }],
+      usdToIlsRate: { rate: 3.6 },
+    });
+    expect(hasEmployerShares(buildHousehold(withShares, retirementTimingAtAge(withShares, 60)))).toBe(true);
+    expect(compareWithdrawalStrategies(withShares).results.map((result) => result.strategy)).toEqual([...WITHDRAWAL_STRATEGIES]);
+
+    expect(hasEmployerShares(buildHousehold(profile, retirementTimingAtAge(profile, 60)))).toBe(false);
+    const saved = { ...profile, assumptions: { ...profile.assumptions, withdrawalStrategy: "taxSmart" as const } };
+    expect(compareWithdrawalStrategies(saved).results.map((result) => result.strategy)).toContain("taxSmart");
   });
 
   it("matches the main plan for the order the plan uses", () => {

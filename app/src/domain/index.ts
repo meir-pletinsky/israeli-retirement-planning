@@ -4,6 +4,7 @@ export * from "./cashFlow";
 export * from "./bankDeposits";
 export * from "./bituachLeumi";
 export * from "./bituachLeumiRates";
+export * from "./bridgeWindow";
 export * from "./constants";
 export * from "./contributions";
 export * from "./coverAnalysis";

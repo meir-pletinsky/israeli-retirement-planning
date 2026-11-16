@@ -61,7 +61,7 @@ describe("EquityStep — dollar rate of the grant date", () => {
     await user.type(grantDate(), "2024-03-01");
     await waitFor(() => expect(rateField()).toHaveValue(3.65));
     expect(screen.getByText(/Bank of Israel rate of 01\/03\/2024/)).toBeInTheDocument();
-    expect(screen.getByText(/the tax calculations do not use it\./)).toBeInTheDocument();
+    expect(screen.getByText(/the dollar's later rise is treated as exempt/)).toBeInTheDocument();
 
     await user.type(screen.getByLabelText(/^Ticker symbol/), "abc");
     await user.type(screen.getByLabelText(/^Quantity \(shares\)/), "10");

@@ -12,6 +12,7 @@ import {
   baselineWhatIf,
   buildAgeGrid,
   canChoosePensionStart,
+  canUseTaxSmartOrder,
   effectiveWithdrawalMix,
   evaluateWhatIf,
   rebalanceWithdrawalMix,
@@ -76,6 +77,26 @@ const annuitant = buildTestProfile({
   inflationPct: 2.5,
   maritalStatus: "married",
   spouse: { age: 52, retirementAge: 63, monthlyGrossSalary: 12_000 },
+});
+
+const esopHolder = buildTestProfile({
+  age: 57,
+  gender: "male",
+  retirementAge: 57,
+  pensionBalances: [600_000],
+  pensionAccountOverrides: [{ productCategory: "comprehensivePension", annuityParameters: FACTOR_200 }],
+  equity: [
+    {
+      quantity: 1_000,
+      priceUSD: 100,
+      ticker: "ACME",
+      employerGrant: { grantPriceUSD: 10, grantDate: "2018-01-01", holdingPeriodMet: true },
+    },
+  ],
+  usdToIlsRate: { rate: 3.6 },
+  retirementMonthlyExpenses: 9_000,
+  investmentReturnPct: 4,
+  inflationPct: 2.5,
 });
 
 describe("applyWhatIf", () => {
@@ -181,6 +202,53 @@ describe("applyWhatIf", () => {
     expect(derived.assumptions).toMatchObject({ withdrawalStrategy: "custom", withdrawalMix: values.withdrawalMix });
     expect(buildHousehold(derived, { selfAge: 62, spouseAge: 60 }).withdrawalMix).toEqual(values.withdrawalMix);
     expect(whatIfPlanPatch(couple, values).assumptions).toMatchObject({ withdrawalStrategy: "custom" });
+  });
+
+  it("carries the bridge mode into the saved plan and treats the plan's own mode as unchanged", () => {
+    const base = baselineWhatIf(esopHolder);
+    expect(base.bridgeMode).toBe("matchSpending");
+    const values = { ...base, withdrawalStrategy: "taxSmart" as const, bridgeMode: "zeroTax" as const };
+    expect(applyWhatIf(esopHolder, values).assumptions).toMatchObject({ withdrawalStrategy: "taxSmart", bridgeMode: "zeroTax" });
+    expect(whatIfPlanPatch(esopHolder, values).assumptions).toMatchObject({ bridgeMode: "zeroTax" });
+    expect(sameWhatIfValue("bridgeMode", base, values)).toBe(false);
+    expect(sameWhatIfValue("bridgeMode", base, { ...base })).toBe(true);
+  });
+
+  it("carries the one-month sales choice into the saved plan and into the tax", () => {
+    const base = baselineWhatIf(esopHolder);
+    expect(base.lumpSumSales).toBe(false);
+    const values = { ...base, lumpSumSales: true };
+    expect(applyWhatIf(esopHolder, values).assumptions.lumpSumSales).toBe(true);
+    expect(whatIfPlanPatch(esopHolder, values).assumptions.lumpSumSales).toBe(true);
+    expect(sameWhatIfValue("lumpSumSales", base, values)).toBe(false);
+  });
+
+  it("changes the tax only when the sales are large enough to matter", () => {
+    // Most of each sale is ordinary income here, so a year's sales fill the contribution ceiling.
+    const heavy = buildTestProfile({
+      age: 57,
+      gender: "male",
+      retirementAge: 57,
+      pensionBalances: [600_000],
+      pensionAccountOverrides: [{ productCategory: "comprehensivePension", annuityParameters: FACTOR_200 }],
+      equity: [
+        {
+          quantity: 1_000,
+          priceUSD: 100,
+          ticker: "ACME",
+          employerGrant: { grantPriceUSD: 90, grantDate: "2018-01-01", holdingPeriodMet: true },
+        },
+      ],
+      usdToIlsRate: { rate: 3.6 },
+      retirementMonthlyExpenses: 9_000,
+      investmentReturnPct: 4,
+      inflationPct: 2.5,
+    });
+    const once = applyWhatIf(heavy, { ...baselineWhatIf(heavy), lumpSumSales: true });
+    expect(evaluateWhatIf(once).totalTax).not.toBe(evaluateWhatIf(heavy).totalTax);
+    expect(evaluateWhatIf(applyWhatIf(esopHolder, { ...baselineWhatIf(esopHolder), lumpSumSales: true })).totalTax).toBe(
+      evaluateWhatIf(esopHolder).totalTax,
+    );
   });
 
   it("treats a mix with the same parts as unchanged", () => {
@@ -340,7 +408,21 @@ describe("canChoosePensionStart", () => {
   });
 });
 
+describe("canUseTaxSmartOrder", () => {
+  it("is offered only to a plan that holds employer shares", () => {
+    expect(canUseTaxSmartOrder(esopHolder)).toBe(true);
+    expect(canUseTaxSmartOrder(single)).toBe(false);
+  });
+});
+
 describe("evaluateWhatIf", () => {
+  it("adds up the tax over the retirement years", () => {
+    const outcome = evaluateWhatIf(esopHolder);
+    expect(outcome.totalTax).toBeGreaterThan(0);
+    const later = evaluateWhatIf(applyWhatIf(esopHolder, { ...baselineWhatIf(esopHolder), retirementAge: 70 }));
+    expect(Number.isFinite(later.totalTax)).toBe(true);
+  });
+
   it("agrees with the plan's own funding gap at the baseline", () => {
     const outcome = evaluateWhatIf(single);
     const gap = calculateFundingGap(single, "standard");

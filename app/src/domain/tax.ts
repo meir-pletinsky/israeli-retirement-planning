@@ -57,6 +57,11 @@ export interface PersonTaxInput {
    * health tax and (before the statutory age) Bituach Leumi contributions.
    */
   ordinaryInvestmentMonthly: number;
+  /**
+   * True when the year's employer-share sales are all made in one month: the contribution ceiling
+   * then applies once to the whole year's ordinary income instead of to each month's share of it.
+   */
+  lumpSumSales?: boolean;
   creditPoints: number;
   /** Tax-free severance already withdrawn, which shrinks the conditional exemption. */
   pastTaxFreeSeverance: number;
@@ -158,23 +163,31 @@ export function earlyPensionHealthTax(pensionMonthly: number): number {
  * reduced rates apply to the part of the stack up to the reduced bracket.
  * Health tax is due at any age; Bituach Leumi only before the statutory
  * retirement age.
+ *
+ * With `lumpSum`, the year's ordinary income (12 × `ordinaryMonthly`) is all received in one month, so
+ * the ceiling counts once; the result is that one month's contributions spread back over 12 months.
  */
 export function employerShareContributions(
   startMonthly: number,
   ordinaryMonthly: number,
   beforeStatutoryAge: boolean,
+  lumpSum = false,
 ): { nationalInsurance: number; health: number } {
   const ceiling = RATES.contributionCeilingMonthly;
   const bracket = RATES.healthTaxReducedBracketMonthly;
   const lower = Math.min(Math.max(startMonthly, 0), ceiling);
-  const upper = Math.min(lower + Math.max(ordinaryMonthly, 0), ceiling);
+  const stacked = lumpSum ? Math.max(ordinaryMonthly, 0) * 12 : Math.max(ordinaryMonthly, 0);
+  const upper = Math.min(lower + stacked, ceiling);
   const reduced = Math.max(Math.min(upper, bracket) - Math.min(lower, bracket), 0);
   const full = upper - lower - reduced;
+  const perMonth = (amount: number) => (lumpSum ? amount / 12 : amount);
   return {
-    nationalInsurance: beforeStatutoryAge
-      ? reduced * RATES.nationalInsuranceReducedRate + full * RATES.nationalInsuranceFullRate
-      : 0,
-    health: reduced * RATES.healthTaxReducedRate + full * RATES.healthTaxFullRate,
+    nationalInsurance: perMonth(
+      beforeStatutoryAge
+        ? reduced * RATES.nationalInsuranceReducedRate + full * RATES.nationalInsuranceFullRate
+        : 0,
+    ),
+    health: perMonth(reduced * RATES.healthTaxReducedRate + full * RATES.healthTaxFullRate),
   };
 }
 
@@ -204,6 +217,7 @@ export function calculatePersonTax(input: PersonTaxInput): PersonTax {
     input.beforeStatutoryAge ? pension : 0,
     ordinaryInvestment,
     input.beforeStatutoryAge,
+    input.lumpSumSales === true,
   );
   const healthTaxMonthly = pensionHealthTax + shareContributions.health;
   const nationalInsuranceMonthly = shareContributions.nationalInsurance;
@@ -479,10 +493,12 @@ export function recordPersonTaxSteps(
         output: pensionHealthTax,
       }));
 
+  const lump = taxInput.lumpSumSales === true;
   const shares = employerShareContributions(
     taxInput.beforeStatutoryAge ? pension : 0,
     ordinaryInvestment,
     taxInput.beforeStatutoryAge,
+    lump,
   );
   let shareHealthId: string;
   let shareInsuranceId: string;
@@ -490,8 +506,9 @@ export function recordPersonTaxSteps(
     const ceiling = RATES.contributionCeilingMonthly;
     const bracket = RATES.healthTaxReducedBracketMonthly;
     const start = taxInput.beforeStatutoryAge ? pension : 0;
+    const stacked = lump ? ordinaryInvestment * 12 : ordinaryInvestment;
     const shareLower = Math.min(Math.max(start, 0), ceiling);
-    const shareUpper = Math.min(shareLower + ordinaryInvestment, ceiling);
+    const shareUpper = Math.min(shareLower + stacked, ceiling);
     const shareReduced = Math.max(Math.min(shareUpper, bracket) - Math.min(shareLower, bracket), 0);
     const shareFull = shareUpper - shareLower - shareReduced;
     const lowerId = recordStep("shareContributionStart", () => ({
@@ -505,13 +522,26 @@ export function recordPersonTaxSteps(
       output: shareLower,
       note: start === 0 ? "From the statutory age the pension adds no contributions, so the stack starts at 0." : undefined,
     }));
+    const stackedId = lump
+      ? recordStep("shareSalesInOneMonth", () => ({
+          title: "The year's ordinary-income share sales, all received in one month",
+          formula: "monthly average × 12 (every sale of the year is made in January)",
+          expr: "ordinaryInvestment * 12",
+          inputs: {
+            ordinaryInvestment: input(ordinaryInvestment, fromStep(ordinaryId)),
+            lumpSumSales: input(true, from("lumpSumSales")),
+          },
+          output: stacked,
+          note: "Assumes the contribution ceiling counts once for that month; verify with a tax adviser.",
+        }))
+      : ordinaryId;
     const upperId = recordStep("shareContributionTop", () => ({
       title: "Where the ordinary-income shares end in the contribution stack",
       formula: "start + ordinary income, capped at the ceiling",
       expr: "min(start + ordinaryInvestment, ceiling)",
       inputs: {
         start: input(shareLower, fromStep(lowerId)),
-        ordinaryInvestment: input(ordinaryInvestment, fromStep(ordinaryId)),
+        ordinaryInvestment: input(stacked, fromStep(stackedId)),
         ceiling: input(ceiling, rate("contributionCeilingMonthly")),
       },
       output: shareUpper,
@@ -540,8 +570,12 @@ export function recordPersonTaxSteps(
     }));
     shareHealthId = recordStep("shareHealthTax", () => ({
       title: "Health tax on the ordinary-income shares",
-      formula: "reduced part × reduced rate + full part × full rate",
-      expr: "reduced * reducedRate + full * fullRate",
+      formula: lump
+        ? "(reduced part × reduced rate + full part × full rate) / 12, the one month's tax spread over the year"
+        : "reduced part × reduced rate + full part × full rate",
+      expr: lump
+        ? "(reduced * reducedRate + full * fullRate) / 12"
+        : "reduced * reducedRate + full * fullRate",
       inputs: {
         reduced: input(shareReduced, fromStep(reducedId)),
         full: input(shareFull, fromStep(fullId)),
@@ -567,8 +601,12 @@ export function recordPersonTaxSteps(
       return taxInput.beforeStatutoryAge
         ? {
             ...common,
-            formula: "reduced part × reduced rate + full part × full rate (before the statutory age only)",
-            expr: "reduced * reducedRate + full * fullRate",
+            formula: lump
+              ? "(reduced part × reduced rate + full part × full rate) / 12, before the statutory age only"
+              : "reduced part × reduced rate + full part × full rate (before the statutory age only)",
+            expr: lump
+              ? "(reduced * reducedRate + full * fullRate) / 12"
+              : "reduced * reducedRate + full * fullRate",
           }
         : { ...common, formula: "0 from the statutory retirement age" };
     });

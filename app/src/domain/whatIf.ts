@@ -1,5 +1,6 @@
 import {
   WITHDRAWAL_MIX_KEYS,
+  type BridgeMode,
   type ExpensesData,
   type PlanningHorizonAge,
   type ProfileData,
@@ -31,6 +32,7 @@ import { estimateHouseholdRetirementIncome } from "./retirementIncome";
 import { roundToSum } from "./rounding";
 import { startsAnnuityByChoice } from "./sources";
 import { withPriceDrop } from "./stressTests";
+import { hasEmployerShares } from "./withdrawalStrategies";
 
 /**
  * The what-if layer: a draft set of values that is laid over the saved profile to make a derived
@@ -61,6 +63,10 @@ export interface WhatIfValues {
   withdrawalStrategy: WithdrawalStrategy;
   /** How a draw is split between study funds, ESOP, other shares and bank deposits under the "custom" strategy. */
   withdrawalMix: WithdrawalMix;
+  /** How much employer stock the "taxSmart" strategy sells a year while the owner is between work and the first annuity. */
+  bridgeMode: BridgeMode;
+  /** True when a year's employer-share sales are all made in one month, so the contribution ceiling counts once. */
+  lumpSumSales: boolean;
 }
 
 export type WhatIfOverrides = Partial<WhatIfValues>;
@@ -68,7 +74,7 @@ export type WhatIfOverrides = Partial<WhatIfValues>;
 /** The values that move along a slider. */
 export type WhatIfSliderKey = Exclude<
   keyof WhatIfValues,
-  "planningHorizonAge" | "withdrawalStrategy" | "withdrawalMix"
+  "planningHorizonAge" | "withdrawalStrategy" | "withdrawalMix" | "bridgeMode" | "lumpSumSales"
 >;
 
 export interface WhatIfRange {
@@ -90,6 +96,8 @@ export const PLAN_KEYS = [
   "planningHorizonAge",
   "withdrawalStrategy",
   "withdrawalMix",
+  "bridgeMode",
+  "lumpSumSales",
 ] as const satisfies readonly (keyof WhatIfValues)[];
 
 /** Whether `key` holds the same value in both sets; the mix is compared by its parts, not by identity. */
@@ -157,6 +165,11 @@ export function availableWithdrawalKinds(profile: ProfileData): WithdrawalMixKey
   return WITHDRAWAL_MIX_KEYS.filter((kind) => held.has(kind));
 }
 
+/** True when the plan holds employer shares the tax-smart order can sell batch by batch. */
+export function canUseTaxSmartOrder(profile: ProfileData): boolean {
+  return hasEmployerShares(buildHousehold(profile, resolveRetirementTiming(profile, "standard")));
+}
+
 export type PensionStartKey = "pensionStartAge" | "spousePensionStartAge";
 
 const RETIREMENT_KEY_OF: Record<PensionStartKey, "retirementAge" | "spouseRetirementAge"> = {
@@ -201,6 +214,8 @@ export function baselineWhatIf(profile: ProfileData): WhatIfValues {
     incomeCapPct: profile.assumptions.incomeCapPct,
     withdrawalStrategy: profile.assumptions.withdrawalStrategy,
     withdrawalMix: profile.assumptions.withdrawalMix,
+    bridgeMode: profile.assumptions.bridgeMode,
+    lumpSumSales: profile.assumptions.lumpSumSales,
   };
 }
 
@@ -375,6 +390,8 @@ export function applyWhatIf(profile: ProfileData, values: WhatIfValues): Profile
       incomeCapPct: values.incomeCapPct,
       withdrawalStrategy: values.withdrawalStrategy,
       withdrawalMix: values.withdrawalMix,
+      bridgeMode: values.bridgeMode,
+      lumpSumSales: values.lumpSumSales,
     },
     expenses: withSpending(profile.expenses, values.monthlySpending),
     equity: {
@@ -418,6 +435,8 @@ export interface WhatIfOutcome {
   horizonAge: number;
   /** Savings when the household starts drawing, today's money. */
   netWorthAtRetirement: number;
+  /** Income tax and other deductions over every retirement year, today's money. */
+  totalTax: number;
 }
 
 export function evaluateWhatIf(profile: ProfileData): WhatIfOutcome {
@@ -434,6 +453,7 @@ export function evaluateWhatIf(profile: ProfileData): WhatIfOutcome {
     runsOutAge: funding.shortfallAge,
     horizonAge: funding.horizonAge,
     netWorthAtRetirement: Math.round(estimateHouseholdRetirementIncome(household).netWorthAtRetirement),
+    totalTax: net.years.reduce((sum, year) => sum + year.taxMonthly * 12, 0),
   };
 }
 

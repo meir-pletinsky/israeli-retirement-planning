@@ -8,18 +8,33 @@ export type AssumptionPreset = "conservative" | "base" | "optimistic";
  * Which savings are drawn first once spending starts (see `domain/drawdown.ts`):
  * every unlocked source at the same share, taxable investments before pension
  * money and the tax-free study fund last, the cheapest-taxed money first, or the user's own
- * split between study funds, shares and bank deposits (`WithdrawalMix`).
+ * split between study funds, shares and bank deposits (`WithdrawalMix`). The tax-smart bridge sells
+ * the employer shares that carry the most ordinary income in the years between retirement and the
+ * first pension payment, sized to the chosen tax bracket (`BridgeMode`), and draws the rest in the
+ * lowest-tax order.
  */
-export type WithdrawalStrategy = "proRata" | "taxableFirst" | "lowestTaxFirst" | "custom";
+export type WithdrawalStrategy = "proRata" | "taxableFirst" | "lowestTaxFirst" | "taxSmart" | "custom";
 
 export const WITHDRAWAL_STRATEGIES: readonly WithdrawalStrategy[] = [
   "proRata",
   "taxableFirst",
   "lowestTaxFirst",
+  "taxSmart",
   "custom",
 ];
 
 export const DEFAULT_WITHDRAWAL_STRATEGY: WithdrawalStrategy = "proRata";
+
+/**
+ * How much of the employer shares the tax-smart bridge sells each year before the first pension
+ * payment: enough to meet the spending, or only as much as keeps the owner's taxable income inside
+ * a bracket. Money still comes from the other savings, so the spending is met either way.
+ */
+export type BridgeMode = "matchSpending" | "zeroTax" | "bracket10" | "bracket14";
+
+export const BRIDGE_MODES: readonly BridgeMode[] = ["matchSpending", "zeroTax", "bracket10", "bracket14"];
+
+export const DEFAULT_BRIDGE_MODE: BridgeMode = "matchSpending";
 
 /**
  * The kinds of savings a custom withdrawal split is set over. `esop` is employer stock held through
@@ -74,6 +89,13 @@ export interface Assumptions {
   withdrawalStrategy: WithdrawalStrategy;
   /** The split of withdrawals between study funds, shares and bank deposits; used by the "custom" strategy only. */
   withdrawalMix: WithdrawalMix;
+  /** How much the "taxSmart" strategy sells of the employer shares in the years before the pension starts. */
+  bridgeMode: BridgeMode;
+  /**
+   * True when a year's employer-share sales are all made in one month (January), so the Bituach Leumi
+   * and health-tax ceiling is reached once instead of every month. Income tax does not change.
+   */
+  lumpSumSales: boolean;
   /** The age every result runs to; for a couple, the age the younger spouse reaches. */
   planningHorizonAge: PlanningHorizonAge;
   /** How far a year's income may rise above the planned spending, in percent, before the plan flags it. */
@@ -791,6 +813,8 @@ export const EMPTY_PROFILE: ProfileData = {
     volatilityPct: DEFAULT_VOLATILITY_PCT,
     withdrawalStrategy: DEFAULT_WITHDRAWAL_STRATEGY,
     withdrawalMix: { ...DEFAULT_WITHDRAWAL_MIX },
+    bridgeMode: DEFAULT_BRIDGE_MODE,
+    lumpSumSales: false,
     planningHorizonAge: DEFAULT_PLANNING_HORIZON_AGE,
     incomeCapPct: DEFAULT_INCOME_CAP_PCT,
   },
@@ -882,6 +906,8 @@ function normalizeAssumptions(value: Partial<Assumptions> | undefined): Assumpti
     volatilityPct: finiteOrNull(merged.volatilityPct) ?? DEFAULT_VOLATILITY_PCT,
     withdrawalStrategy: oneOf(WITHDRAWAL_STRATEGIES, merged.withdrawalStrategy, DEFAULT_WITHDRAWAL_STRATEGY),
     withdrawalMix: normalizeWithdrawalMix(merged.withdrawalMix),
+    bridgeMode: oneOf(BRIDGE_MODES, merged.bridgeMode, DEFAULT_BRIDGE_MODE),
+    lumpSumSales: merged.lumpSumSales === true,
     planningHorizonAge: oneOfNumbers(PLANNING_HORIZON_AGES, merged.planningHorizonAge, DEFAULT_PLANNING_HORIZON_AGE),
     incomeCapPct: Math.min(
       Math.max(finiteOrNull(merged.incomeCapPct) ?? DEFAULT_INCOME_CAP_PCT, 0),

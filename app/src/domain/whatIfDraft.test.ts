@@ -79,6 +79,24 @@ describe("readWhatIfDraft", () => {
     expect(read.overrides).toEqual({ retirementAge: 66 });
   });
 
+  it("keeps a valid bridge mode, drops an unknown one and one that equals the plan's", () => {
+    const read = (bridgeMode: unknown) =>
+      readWhatIfDraft({ ...EMPTY_WHAT_IF_DRAFT, overrides: { bridgeMode } }, single).overrides;
+
+    expect(read("zeroTax")).toEqual({ bridgeMode: "zeroTax" });
+    expect(read("everything")).toEqual({});
+    expect(read("matchSpending")).toEqual({});
+  });
+
+  it("keeps a one-month sales choice that differs from the plan and drops other values", () => {
+    const read = (lumpSumSales: unknown) =>
+      readWhatIfDraft({ ...EMPTY_WHAT_IF_DRAFT, overrides: { lumpSumSales } }, single).overrides;
+
+    expect(read(true)).toEqual({ lumpSumSales: true });
+    expect(read(false)).toEqual({});
+    expect(read("yes")).toEqual({});
+  });
+
   it("keeps the spouse's values only while the plan covers a spouse", () => {
     const saved = { ...EMPTY_WHAT_IF_DRAFT, overrides: { spouseRetirementAge: 60 } };
 

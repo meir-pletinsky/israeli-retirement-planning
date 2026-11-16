@@ -194,6 +194,48 @@ describe("WhatIfPanel", () => {
     });
   });
 
+  it("offers the tax-smart bridge only with employer shares, and saves the mode chosen for it", async () => {
+    const user = userEvent.setup();
+    await renderMixPanel({ esop: true, studyFund: false });
+    expect(screen.queryByRole("radio", { name: /^Match my spending/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/This app is not a tax adviser/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: "Tax-smart bridge" }));
+    expect(screen.getByRole("radio", { name: /^Match my spending/ })).toBeChecked();
+    expect(screen.getByText(/This app is not a tax adviser/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: /^Zero income tax/ }));
+    await user.click(screen.getByRole("button", { name: "Apply to my plan" }));
+    await waitFor(async () => {
+      const saved = (await loadProfileFromDb())?.assumptions;
+      expect(saved?.withdrawalStrategy).toBe("taxSmart");
+      expect(saved?.bridgeMode).toBe("zeroTax");
+    });
+  });
+
+  it("offers selling once a year with employer shares, and saves the choice", async () => {
+    const user = userEvent.setup();
+    await renderMixPanel({ esop: true, studyFund: false });
+
+    await user.click(screen.getByRole("checkbox", { name: /^Sell once a year, in January/ }));
+    await user.click(screen.getByRole("button", { name: "Apply to my plan" }));
+    await waitFor(async () => {
+      expect((await loadProfileFromDb())?.assumptions.lumpSumSales).toBe(true);
+    });
+  });
+
+  it("leaves the once-a-year choice out when the plan holds no employer shares", async () => {
+    await renderMixPanel({ esop: false, studyFund: false });
+
+    expect(screen.queryByRole("checkbox", { name: /^Sell once a year/ })).not.toBeInTheDocument();
+  });
+
+  it("leaves the tax-smart bridge out when the plan holds no employer shares", async () => {
+    await renderMixPanel({ esop: false, studyFund: false });
+
+    expect(screen.queryByRole("radio", { name: "Tax-smart bridge" })).not.toBeInTheDocument();
+  });
+
   it("offers a slider only for the kinds of savings the plan holds", async () => {
     const user = userEvent.setup();
     await renderMixPanel({ esop: false, studyFund: false });

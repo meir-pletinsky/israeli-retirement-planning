@@ -48,10 +48,12 @@ interface WhatIfSummaryProps {
   changed: boolean;
   /** The Monte Carlo chance of the draft and of the plan, in whole percent; null when none is available. */
   chance: { draft: number | null; plan: number | null; updating: boolean } | null;
+  /** True when the tax-smart order is in play, so the tax it saves or adds is worth showing. */
+  showTax?: boolean;
 }
 
 /** The handful of numbers that say what a draft does to the plan, each against the saved plan. */
-export function WhatIfSummary({ draft, plan, changed, chance }: WhatIfSummaryProps) {
+export function WhatIfSummary({ draft, plan, changed, chance, showTax = false }: WhatIfSummaryProps) {
   const { t } = useTranslation();
   const { money, signedMoney, signedNumber } = useWhatIfFormat();
 
@@ -69,6 +71,14 @@ export function WhatIfSummary({ draft, plan, changed, chance }: WhatIfSummaryPro
       : null;
   const chanceChange =
     changed && chance && chance.draft !== null && chance.plan !== null ? chance.draft - chance.plan : null;
+
+  const taxChange =
+    changed && showTax
+      ? {
+          text: signedMoney(draft.totalTax - plan.totalTax),
+          tone: toneOf(-(Math.round(draft.totalTax) - Math.round(plan.totalTax))),
+        }
+      : null;
 
   return (
     <dl className="grid grid-cols-2 gap-2 xl:grid-cols-3">
@@ -105,6 +115,9 @@ export function WhatIfSummary({ draft, plan, changed, chance }: WhatIfSummaryPro
         value={isolate(money(draft.netWorthAtRetirement))}
         change={moneyChange(draft.netWorthAtRetirement, plan.netWorthAtRetirement)}
       />
+      {showTax && (
+        <Stat label={t("whatIf.stat.totalTax")} value={isolate(money(draft.totalTax))} change={taxChange} />
+      )}
       {chance && (
         <Stat
           label={t("whatIf.stat.chance")}

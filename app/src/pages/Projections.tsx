@@ -6,6 +6,7 @@ import { useChosenScenario } from "../app/chosenScenario";
 import { useProfile } from "../app/ProfileContext";
 import { useHeavyResult } from "../app/useHeavyResult";
 import { BalanceTable, PathEventsList } from "../components/BalancePathNotes";
+import { BridgeWindowCard } from "../components/BridgeWindowCard";
 import { BudgetCard } from "../components/BudgetCard";
 import { CashFlowCard } from "../components/CashFlowCard";
 import { BalancesByKindChart } from "../components/charts/BalancesByKindChart";
@@ -44,6 +45,7 @@ import {
   buildLeavingEarlyCosts,
   buildLiquidityLadder,
   buildLongevityTest,
+  buildBridgeWindow,
   buildRetirementTimeline,
   buildSourceCostTable,
   buildStressTest,
@@ -120,6 +122,10 @@ export function Projections() {
   const withdrawalComparison = useMemo(
     () => compareWithdrawalStrategies(profile, scenario),
     [profile, scenario],
+  );
+  const bridgeWindow = useMemo(
+    () => buildBridgeWindow(profile, scenario, withdrawalComparison),
+    [profile, scenario, withdrawalComparison],
   );
   const { feasibility, confidentAge, confidentAgePending } = useRetirementFeasibility(profile);
   const coverComparisons = useMemo(() => compareCoverOptions(profile), [profile]);
@@ -329,6 +335,8 @@ export function Projections() {
             scenarioTag={scenarioTag}
           />
         )}
+
+        {hasNetIncome && bridgeWindow && <BridgeWindowCard bridge={bridgeWindow} scenarioTag={scenarioTag} />}
 
         <SourceCostCard
           rows={sourceCosts}

@@ -1,6 +1,6 @@
 import { WITHDRAWAL_STRATEGIES, type ProfileData, type WithdrawalMix, type WithdrawalStrategy } from "../types";
 import { desiredRetirementMonthly } from "./expenses";
-import { buildHousehold, resolveRetirementTiming } from "./household";
+import { buildHousehold, resolveRetirementTiming, type Household } from "./household";
 import { estimateNetIncomeForHousehold, type NetIncomeYear } from "./netIncome";
 import { TAX_RATES } from "./taxRates";
 import type { RetirementScenario } from "./types";
@@ -34,10 +34,15 @@ export interface WithdrawalStrategyComparison {
   desiredMonthly: number | null;
   /** The annual taxable income above which the surtax applies. */
   surtaxThresholdAnnual: number;
-  /** One result per strategy, in the order of `WITHDRAWAL_STRATEGIES`. */
+  /** One result per strategy, in the order of `WITHDRAWAL_STRATEGIES`; the tax-smart bridge only when there are employer shares (or it is in use). */
   results: WithdrawalStrategyResult[];
   /** True when every order gives the same tax every year, so the choice does not matter for this plan. */
   identical: boolean;
+}
+
+/** True when any member holds employer shares the tax-smart strategy can sell batch by batch. */
+export function hasEmployerShares(household: Household): boolean {
+  return household.members.some(({ sources }) => sources.some(({ lots }) => lots !== undefined && lots.length > 0));
 }
 
 function summarise(
@@ -99,7 +104,10 @@ export function compareWithdrawalStrategies(
 ): WithdrawalStrategyComparison {
   const household = buildHousehold(profile, resolveRetirementTiming(profile, scenario));
   const desiredMonthly = desiredRetirementMonthly(profile.expenses);
-  const results = WITHDRAWAL_STRATEGIES.map((strategy) =>
+  const strategies = WITHDRAWAL_STRATEGIES.filter(
+    (strategy) => strategy !== "taxSmart" || strategy === household.withdrawalStrategy || hasEmployerShares(household),
+  );
+  const results = strategies.map((strategy) =>
     summarise(
       strategy,
       estimateNetIncomeForHousehold({ ...household, withdrawalStrategy: strategy }).years,

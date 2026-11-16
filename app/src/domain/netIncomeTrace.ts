@@ -442,6 +442,7 @@ function recordMemberTax(
     const sources: PersonTaxSources = {
       pensionMonthly: fromStep(parts.pensionId),
       ordinaryInvestmentMonthly: fromStep(parts.ordinaryId),
+      lumpSumSales: fromProfile("assumptions.lumpSumSales"),
       capitalGainMonthly: fromStep(parts.gainId),
       capitalGainsRate: fromStep(parts.rateId),
       exemptionApplies: fromStep(pastId),

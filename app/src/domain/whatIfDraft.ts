@@ -1,8 +1,10 @@
 import {
+  BRIDGE_MODES,
   PLANNING_HORIZON_AGES,
   WITHDRAWAL_STRATEGIES,
   hasProfileData,
   readWithdrawalMix,
+  type BridgeMode,
   type PlanningHorizonAge,
   type ProfileData,
   type WithdrawalStrategy,
@@ -84,6 +86,8 @@ const OVERRIDE_KEYS: readonly (keyof WhatIfValues)[] = [
   "incomeCapPct",
   "withdrawalStrategy",
   "withdrawalMix",
+  "bridgeMode",
+  "lumpSumSales",
 ];
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -137,6 +141,9 @@ function buildDraft(saved: Record<string, unknown>, profile: ProfileData): WhatI
   }
   const mix = readWithdrawalMix(stored.withdrawalMix);
   if (mix) picked.withdrawalMix = mix;
+  const bridgeMode = stored.bridgeMode;
+  if (BRIDGE_MODES.includes(bridgeMode as BridgeMode)) picked.bridgeMode = bridgeMode as BridgeMode;
+  if (typeof stored.lumpSumSales === "boolean") picked.lumpSumSales = stored.lumpSumSales;
 
   const overrides: WhatIfOverrides = {};
   for (const key of OVERRIDE_KEYS) {

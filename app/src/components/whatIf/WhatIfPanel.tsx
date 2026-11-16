@@ -21,6 +21,7 @@ import {
   baselineWhatIf,
   buildAgeGrid,
   canChoosePensionStart,
+  canUseTaxSmartOrder,
   desiredRetirementMonthly,
   effectivePensionStartAge,
   evaluateWhatIf,
@@ -35,7 +36,7 @@ import {
   whatIfSensitivity,
   whatIfValues,
 } from "../../domain";
-import { PLANNING_HORIZON_AGES, WITHDRAWAL_STRATEGIES } from "../../types";
+import { BRIDGE_MODES, PLANNING_HORIZON_AGES, WITHDRAWAL_STRATEGIES } from "../../types";
 import { ChartFrame } from "../charts/ChartFrame";
 import { IncomeBreakdownTable } from "../charts/ChartTables";
 import { useChartTakeaways } from "../charts/chartTakeaways";
@@ -89,6 +90,7 @@ export function WhatIfPanel({ bandLabels }: WhatIfPanelProps) {
 
   const baseline = useMemo(() => baselineWhatIf(profile), [profile]);
   const availableKinds = useMemo(() => availableWithdrawalKinds(profile), [profile]);
+  const taxSmartOffered = useMemo(() => canUseTaxSmartOrder(profile), [profile]);
   const values = useMemo(() => whatIfValues(profile, overrides), [profile, overrides]);
   const ranges = useMemo(() => whatIfRanges(profile, values), [profile, values]);
   const pensionChoice = useMemo(
@@ -246,7 +248,9 @@ export function WhatIfPanel({ bandLabels }: WhatIfPanelProps) {
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-1 text-sm font-semibold text-slate-900">{t("whatIf.group.withdrawals")}</legend>
           <p className="text-xs text-slate-500">{t("whatIf.withdrawals.intro")}</p>
-          {WITHDRAWAL_STRATEGIES.map((strategy) => (
+          {WITHDRAWAL_STRATEGIES.filter(
+            (strategy) => strategy !== "taxSmart" || taxSmartOffered || values.withdrawalStrategy === "taxSmart",
+          ).map((strategy) => (
             <label key={strategy} className="flex cursor-pointer items-center gap-2 text-sm text-slate-800">
               <input
                 type="radio"
@@ -273,6 +277,54 @@ export function WhatIfPanel({ bandLabels }: WhatIfPanelProps) {
                 value: t(`projections.withdrawal.strategy.${baseline.withdrawalStrategy}.name`),
               })}
             </button>
+          )}
+          {values.withdrawalStrategy === "taxSmart" && (
+            <div className="flex flex-col gap-1.5 rounded-lg bg-slate-50 p-3">
+              <p className="text-xs font-semibold text-slate-700">{t("whatIf.bridge.modeTitle")}</p>
+              {BRIDGE_MODES.map((mode) => (
+                <label key={mode} className="flex cursor-pointer items-start gap-2 text-sm text-slate-800">
+                  <input
+                    type="radio"
+                    name="whatif-bridge-mode"
+                    checked={values.bridgeMode === mode}
+                    onChange={() => update({ bridgeMode: mode })}
+                    className="mt-1 accent-brand-600"
+                  />
+                  <span>
+                    <span className={clsx("block", values.bridgeMode === mode && "font-semibold")}>
+                      {t(`whatIf.bridge.mode.${mode}.name`)}
+                    </span>
+                    <span className="block text-xs text-slate-600">{t(`whatIf.bridge.mode.${mode}.description`)}</span>
+                  </span>
+                </label>
+              ))}
+              {values.bridgeMode !== baseline.bridgeMode && (
+                <button
+                  type="button"
+                  onClick={() => update({ bridgeMode: baseline.bridgeMode })}
+                  className="self-start text-xs font-medium text-brand-700 hover:underline"
+                >
+                  {t("whatIf.slider.backToPlan", { value: t(`whatIf.bridge.mode.${baseline.bridgeMode}.name`) })}
+                </button>
+              )}
+              <p className="text-xs text-slate-500">{t("common.notTaxAdvice")}</p>
+            </div>
+          )}
+          {(taxSmartOffered || values.lumpSumSales) && (
+            <label className="flex cursor-pointer items-start gap-2 text-sm text-slate-800">
+              <input
+                type="checkbox"
+                checked={values.lumpSumSales}
+                onChange={(event) => update({ lumpSumSales: event.target.checked })}
+                className="mt-1 accent-brand-600"
+              />
+              <span>
+                <span className={clsx("block", values.lumpSumSales && "font-semibold")}>
+                  {t("whatIf.bridge.lumpSum.label")}
+                </span>
+                <span className="block text-xs text-slate-600">{t("whatIf.bridge.lumpSum.help")}</span>
+              </span>
+            </label>
           )}
           {values.withdrawalStrategy === "custom" && (
             <WithdrawalMixControl
@@ -323,7 +375,13 @@ export function WhatIfPanel({ bandLabels }: WhatIfPanelProps) {
       <div className={clsx("flex min-w-0 flex-col gap-6 transition-opacity", updating && "opacity-60")} aria-busy={updating}>
         <div className="card flex flex-col gap-3">
           <p className="text-sm text-slate-700">{t(changed ? "whatIf.draftNotice" : "whatIf.planNotice")}</p>
-          <WhatIfSummary draft={draftOutcome} plan={planOutcome} changed={changed} chance={chance} />
+          <WhatIfSummary
+            draft={draftOutcome}
+            plan={planOutcome}
+            changed={changed}
+            chance={chance}
+            showTax={draft.assumptions.withdrawalStrategy === "taxSmart" || profile.assumptions.withdrawalStrategy === "taxSmart"}
+          />
         </div>
 
         <section aria-labelledby="whatif-chart-title" className="card">

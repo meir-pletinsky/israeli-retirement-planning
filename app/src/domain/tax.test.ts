@@ -366,5 +366,53 @@ describe("calculatePersonTax", () => {
       // 70,000 in total is 9,870 above the threshold, all of it capital income.
       expect(tax.surtaxMonthly).toBeCloseTo(9_870 * 0.03 + 9_870 * 0.02, 6);
     });
+
+    describe("when the year's sales are all made in one month", () => {
+      const lump = (monthly: number, extra: Partial<PersonTaxInput> = {}) => ({
+        ...NO_INCOME,
+        beforeStatutoryAge: true,
+        ordinaryInvestmentMonthly: monthly,
+        ...extra,
+      });
+
+      it("charges the contributions on one month's ceiling, then spreads them over the year", () => {
+        const tax = calculatePersonTax(lump(20_000, { lumpSumSales: true }));
+        // 240,000 in the month, of which only 51,910 bears contributions.
+        const full = 51_910 - 7_703;
+        expect(tax.nationalInsuranceMonthly).toBeCloseTo((7_703 * 0.0104 + full * 0.07) / 12, 6);
+        expect(tax.healthTaxMonthly).toBeCloseTo((7_703 * 0.0323 + full * 0.0517) / 12, 6);
+      });
+
+      it("costs less than spreading the sales when the monthly income is high", () => {
+        const spread = calculatePersonTax(lump(20_000));
+        const once = calculatePersonTax(lump(20_000, { lumpSumSales: true }));
+        expect(once.totalMonthly).toBeLessThan(spread.totalMonthly);
+      });
+
+      it("costs more than spreading the sales when the monthly income is low", () => {
+        const spread = calculatePersonTax(lump(3_000));
+        const once = calculatePersonTax(lump(3_000, { lumpSumSales: true }));
+        expect(once.totalMonthly).toBeGreaterThan(spread.totalMonthly);
+      });
+
+      it("does not change the income tax", () => {
+        const spread = calculatePersonTax(lump(20_000));
+        const once = calculatePersonTax(lump(20_000, { lumpSumSales: true }));
+        expect(once.incomeTaxMonthly).toBe(spread.incomeTaxMonthly);
+      });
+
+      it("changes nothing without ordinary income", () => {
+        const spread = calculatePersonTax({ ...lump(0), pensionMonthly: 9_000 });
+        const once = calculatePersonTax({ ...lump(0, { lumpSumSales: true }), pensionMonthly: 9_000 });
+        expect(once).toEqual(spread);
+      });
+
+      it("charges no Bituach Leumi from the statutory age, but still health tax", () => {
+        const tax = calculatePersonTax(lump(20_000, { lumpSumSales: true, beforeStatutoryAge: false }));
+        const full = 51_910 - 7_703;
+        expect(tax.nationalInsuranceMonthly).toBe(0);
+        expect(tax.healthTaxMonthly).toBeCloseTo((7_703 * 0.0323 + full * 0.0517) / 12, 6);
+      });
+    });
   });
 });

@@ -287,6 +287,57 @@ describe("incomeYearDetails", () => {
   });
 });
 
+describe("incomeYearDetails with the tax-smart order", () => {
+  const OLD = {
+    quantity: 1_000,
+    priceUSD: 100,
+    ticker: "OLD",
+    employerGrant: { grantPriceUSD: 10, grantDate: "2018-01-01", holdingPeriodMet: true },
+  };
+  const NEW = {
+    quantity: 1_000,
+    priceUSD: 100,
+    ticker: "NEW",
+    employerGrant: { grantPriceUSD: 80, grantDate: "2023-01-01", holdingPeriodMet: true },
+  };
+  const retiree = (withdrawalStrategy: "taxSmart" | "proRata") =>
+    buildTestProfile({
+      age: 57,
+      gender: "male",
+      retirementAge: 57,
+      pensionBalances: [600_000],
+      pensionAccountOverrides: [{ productCategory: "comprehensivePension", annuityParameters: ANNUITY }],
+      equity: [OLD, NEW],
+      usdToIlsRate: { rate: 3.6 },
+      retirementMonthlyExpenses: 8_000,
+      investmentReturnPct: 4,
+      inflationPct: 4,
+      withdrawalStrategy,
+    });
+
+  it("names the grants sold in a bridge year and the tax-free room used", () => {
+    const details = incomeYearDetails(retiree("taxSmart"), "planned");
+    const inside = details.find((detail) => detail.age === 58)!;
+    expect(inside.bridge?.active).toBe(true);
+    expect(inside.bridge?.members).toEqual([
+      expect.objectContaining({ owner: "self", inWindow: true, zeroTaxMonthly: expect.any(Number) }),
+    ]);
+    const [first] = inside.bridge!.sales;
+    expect(first.owner).toBe("self");
+    expect(first.label).toBe("NEW");
+    expect(first.grantDate).toBe("2023-01-01");
+    expect(first.ordinaryShare).toBeCloseTo(0.8, 6);
+    expect(first.monthly).toBeGreaterThan(0);
+
+    const after = details.find((detail) => detail.age === 60)!;
+    expect(after.bridge?.active).toBe(false);
+  });
+
+  it("has no bridge detail under another strategy", () => {
+    expect(incomeYearDetails(retiree("proRata"), "planned").every((detail) => detail.bridge === null)).toBe(true);
+  });
+});
+
 describe("incomeYearDetails with a later pension start", () => {
   const ANNUITY_3K = { ...ANNUITY, estimatedMonthlyAnnuity: 3_000 };
   const saved = buildTestProfile({

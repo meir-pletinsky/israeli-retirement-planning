@@ -184,7 +184,12 @@ export function EquityHoldingForm({
           {hint && <p className="mt-1">{f("priceHintAdjusted")}</p>}
           {rateHint && (
             <p className={hint ? "mt-1" : undefined}>
-              {t("myData.steps.equity.fields.rateHint", { date: formatDate(rateHint.rateDate) })}
+              {t(
+                category === "employerGrantedStock"
+                  ? "myData.steps.equity.fields.rateHintGrant"
+                  : "myData.steps.equity.fields.rateHint",
+                { date: formatDate(rateHint.rateDate) },
+              )}
             </p>
           )}
         </div>

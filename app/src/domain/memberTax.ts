@@ -97,6 +97,7 @@ export function personTaxInput(
     beforeStatutoryAge: !pastStatutoryAge,
     taxYear: household.baseYear + yearsFromNow,
     ordinaryInvestmentMonthly: income.ordinaryInvestmentMonthly,
+    lumpSumSales: household.lumpSumSales,
     capitalGainMonthly: income.capitalGainMonthly,
     capitalGainsRate:
       income.capitalGainMonthly > 0

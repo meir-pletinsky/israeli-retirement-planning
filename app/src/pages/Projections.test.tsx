@@ -1172,6 +1172,127 @@ describe("Projections", () => {
     });
   });
 
+  describe("bridge window", () => {
+    const BIDI_MARKS = /[\u2066\u2069]/g;
+    const reads = (pattern: RegExp) => (content: string) => pattern.test(content.replace(BIDI_MARKS, ""));
+    const REGION = "Your bridge window";
+
+    const share = (ticker: string, grantPriceUSD: number, grantDate: string, owner?: "spouse") => ({
+      quantity: 1000,
+      priceUSD: 100,
+      ticker,
+      employerGrant: { grantPriceUSD, grantDate, holdingPeriodMet: true, ...(owner ? { owner } : {}) },
+    });
+    const saver = {
+      age: 57,
+      gender: "male" as const,
+      retirementAge: 57,
+      investmentReturnPct: 4,
+      inflationPct: 4,
+      pensionBalances: [600_000],
+      pensionAccountOverrides: [
+        {
+          productCategory: "comprehensivePension" as const,
+          annuityParameters: {
+            hasGuaranteedFactor: true,
+            conversionFactor: null,
+            estimatedMonthlyAnnuity: 5_000,
+            annuityTaxType: null,
+            guaranteedPaymentMonths: null,
+          },
+        },
+      ],
+      usdToIlsRate: { rate: 3.6 },
+      otherAssets: 300_000,
+      retirementMonthlyExpenses: 10_000,
+      bridgeMode: "zeroTax" as const,
+    };
+
+    const renderCard = async (profile: ReturnType<typeof buildTestProfile>) => {
+      await saveProfileToDb(profile);
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+      return screen.findByRole("region", { name: REGION });
+    };
+
+    it("describes the years before the annuity, the tax-free room and what is sold first", async () => {
+      const card = await renderCard(
+        buildTestProfile({ ...saver, equity: [share("OLD", 10, "2018-01-01"), share("NEW", 80, "2023-01-01")] }),
+      );
+
+      expect(within(card).getByText(reads(/^Ages 58–59, before the pension annuity starts at 60\.$/))).toBeInTheDocument();
+      expect(
+        within(card).getByText(
+          reads(/^₪5,445 a month of salary income bears no income tax; the sales add ₪5,445 a month on average\.$/),
+        ),
+      ).toBeInTheDocument();
+      expect(within(card).getByText("Sold first")).toBeInTheDocument();
+      expect(within(card).getByText(reads(/^NEW, grant of /))).toBeInTheDocument();
+      expect(within(card).queryByText(reads(/^OLD/))).not.toBeInTheDocument();
+      expect(within(card).getByText(reads(/80% taxed as salary income · ₪[\d,]+ sold from age 58/))).toBeInTheDocument();
+      expect(within(card).getByText(reads(/^How much is sold: Zero income tax$/))).toBeInTheDocument();
+      // A person alone is not given a heading naming who it is.
+      expect(within(card).queryByRole("heading", { name: "You" })).not.toBeInTheDocument();
+      expect(
+        within(card).getByText(/^Avoid selling employer shares in the year you stop working: .* The plan starts selling the year after\.$/),
+      ).toBeInTheDocument();
+    });
+
+    it("says how much tax it saves compared with the order in use", async () => {
+      const card = await renderCard(buildTestProfile({ ...saver, equity: [share("NEW", 80, "2023-01-01")] }));
+
+      expect(
+        within(card).getByText(reads(/^About ₪[\d,]+ less tax over your retirement than the order “Evenly”\.$/)),
+      ).toBeInTheDocument();
+    });
+
+    it("carries the tax-adviser note once, links to What if and names a once-a-year sale", async () => {
+      const card = await renderCard(
+        buildTestProfile({ ...saver, equity: [share("NEW", 80, "2023-01-01")], lumpSumSales: true }),
+      );
+
+      expect(within(card).getAllByText(/This app is not a tax adviser/)).toHaveLength(1);
+      expect(within(card).getByRole("link", { name: "Try other settings in What if" })).toHaveAttribute(
+        "href",
+        "/projections/what-if",
+      );
+      expect(within(card).getByText(reads(/All of a year's sales are made in one month \(January\)\./))).toBeInTheDocument();
+    });
+
+    it("shows each person's own window in a couple", async () => {
+      const card = await renderCard(
+        buildTestProfile({
+          ...saver,
+          bridgeMode: "matchSpending",
+          withdrawalStrategy: "taxSmart",
+          maritalStatus: "married",
+          spouse: { age: 57, gender: "female", retirementAge: 57 },
+          otherAssets: 100_000,
+          retirementMonthlyExpenses: 14_000,
+          equity: [share("NEW", 80, "2023-01-01"), share("HERS", 80, "2023-01-01", "spouse")],
+        }),
+      );
+
+      expect(within(card).getByRole("heading", { name: "You" })).toBeInTheDocument();
+      expect(within(card).getByRole("heading", { name: "Your spouse" })).toBeInTheDocument();
+      expect(within(card).getByText(/^Avoid selling employer shares in the year their owner stops working: /)).toBeInTheDocument();
+      expect(within(card).getByText(reads(/^Ages 58–59, before the pension annuity starts at 60\.$/))).toBeInTheDocument();
+      expect(
+        within(card).getByText(reads(/^Ages 60–78\. Nothing in your plan starts paying later, so every year you draw on savings is treated this way\.$/)),
+      ).toBeInTheDocument();
+      expect(within(card).getByText(reads(/^About ₪[\d,]+ less tax over your retirement than the order “Evenly”\.$/))).toBeInTheDocument();
+    });
+
+    it("is not shown without employer shares", async () => {
+      await saveProfileToDb(buildTestProfile({ ...saver, equity: [] }));
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      await screen.findByRole("heading", { name: "Projections" });
+      expect(screen.queryByRole("region", { name: REGION })).not.toBeInTheDocument();
+    });
+  });
+
   describe("source costs", () => {
     const REGION = "What each source costs to draw on";
     // Invisible direction marks wrap the amounts and years; text matchers look through them.

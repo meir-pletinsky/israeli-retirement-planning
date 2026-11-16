@@ -22,7 +22,8 @@
       "error": "Your latest change could not be saved on this device. Check that your browser lets this site store data, and use \u201cExport data\u201d in Settings to keep a copy."
     },
     "currencySymbol": "\u20aa",
-    "pickDate": "Pick a date"
+    "pickDate": "Pick a date",
+    "notTaxAdvice": "This app is not a tax adviser. The figures are estimates from today's rules; use them with care and check with a tax adviser before you act."
   },
   "charts": {
     "compareName": "Income after tax for each compared retirement age",
@@ -734,7 +735,8 @@
           "priceHintAdjusted": "Prices come from a public S&P 500 dataset and are adjusted for later stock splits and dividends. Enter the quantity as you hold it today, and expect older prices to be a little lower than the price quoted at the time. Check them against your broker statement, and edit any value to use your own.",
           "entryRate": "Dollar rate on that date",
           "entryRateHelper": "Shekels per US dollar on the purchase or grant date. Filled in automatically; type your own to replace it.",
-          "rateHint": "The dollar rate was filled in from the Bank of Israel rate of {{date}}, the last business day on or before the date you entered. It is saved with the entry for your records; the tax calculations do not use it. For ESPP and private shares, list each purchase under the details below to have its rate used.",
+          "rateHint": "The dollar rate was filled in from the Bank of Israel rate of {{date}}, the last business day on or before the date you entered. It is saved with the entry and used to measure the gain in shekels. To enter several purchases, list each one under the details below.",
+          "rateHintGrant": "The dollar rate was filled in from the Bank of Israel rate of {{date}}, the last business day on or before the date you entered. For a Section 102 capital-route grant the estimate uses it: the part taxed as salary is the grant price at this rate, and the dollar's later rise is treated as exempt (verify with a tax adviser). For other grant types it is only saved for your records.",
           "esppPriceOnPurchaseDate": "Share price on purchase date",
           "esppPriceOnPurchaseDateHelper": "Per share, in USD: the market price on the purchase day, before the ESPP discount. The taxable gain is measured from it. What you actually paid goes under the details below.",
           "personalPurchasePrice": "Purchase price per share",
@@ -1325,6 +1327,10 @@
           "name": "Lowest tax first",
           "description": "The tax-free study fund first, then money taxed only on its gain, then pension money. Money taxed as ordinary income is last."
         },
+        "taxSmart": {
+          "name": "Tax-smart bridge",
+          "description": "Before your first pension or Bituach Leumi payment, your employer shares (ESOP) are sold first, the batches taxed most as salary first, to use the low tax brackets of those years. The rest comes from your other savings, lowest tax first, and the shares are drawn like other savings afterwards."
+        },
         "custom": {
           "name": "Your mix",
           "description": "Your own split of each year's withdrawals between the kinds of savings you hold (study fund, employer stock options, other shares and bank deposits), set under What if. A source that has run out or is still locked passes its share to the others."
@@ -1355,6 +1361,27 @@
       "howLocked": "Money that is still locked is not drawn on until it opens. The order applies to all of your unlocked savings together; each spouse is taxed on their own part.",
       "howRisk": "The risk analysis and the historical test do not depend on the order.",
       "howEstimate": "Tax is estimated with today's rules. This is not tax advice, and no order is a recommendation."
+    },
+    "bridge": {
+      "title": "Your bridge window",
+      "intro": "Before your first pension or Bituach Leumi payment your taxable income is low, so selling employer shares in those years can cost less tax than selling them later. This is what the tax-smart bridge does with your plan.",
+      "saved": "About {{amount}} less tax over your retirement than the order “{{order}}”.",
+      "costs": "About {{amount}} more tax over your retirement than the order “{{order}}”, because this order keeps your income level rather than minimising the tax.",
+      "same": "The same tax over your retirement as the order “{{order}}”.",
+      "mode": "How much is sold: {{mode}}",
+      "lumpSum": "All of a year's sales are made in one month (January).",
+      "retirementYear": "Avoid selling employer shares in the year you stop working: the part taxed as salary would be added to your last pay and any severance. The plan starts selling the year after.",
+      "retirementYearCouple": "Avoid selling employer shares in the year their owner stops working: the part taxed as salary would be added to that person's last pay and any severance. The plan starts selling the year after.",
+            "years": {
+        "annuity": "Ages {{from}}–{{to}}, before the pension annuity starts at {{end}}.",
+        "bituachLeumi": "Ages {{from}}–{{to}}, before the Bituach Leumi pension starts at {{end}}.",
+        "open": "Ages {{from}}–{{to}}. Nothing in your plan starts paying later, so every year you draw on savings is treated this way."
+      },
+      "room": "{{room}} a month of salary income bears no income tax; the sales add {{sold}} a month on average.",
+      "firstSold": "Sold first",
+      "sold": "{{amount}} sold from age {{age}}",
+      "more": "and {{count}} more",
+      "tryIt": "Try other settings in What if"
     },
     "timeline": {
       "title": "Retirement timeline",
@@ -1469,6 +1496,31 @@
     "withdrawals": {
       "intro": "When pensions and Bituach Leumi do not cover your spending, your savings pay the rest. Choose how they are drawn."
     },
+    "bridge": {
+      "lumpSum": {
+        "label": "Sell once a year, in January",
+        "help": "All of a year's share sales are made in one month, so Bituach Leumi and health tax are charged on one month's ceiling instead of twelve. This only helps when your monthly share income is high (roughly above ₪9–10K a month); below that it raises those contributions. Income tax does not change. Verify with a tax adviser before relying on it."
+      },
+      "modeTitle": "How much to sell in those years",
+      "mode": {
+        "matchSpending": {
+          "name": "Match my spending",
+          "description": "Sell shares for the whole of each year's spending, filling each person's cheapest brackets first."
+        },
+        "zeroTax": {
+          "name": "Zero income tax",
+          "description": "Sell only as much salary-taxed income as your credit points shield from income tax. The rest of your spending comes from other savings."
+        },
+        "bracket10": {
+          "name": "Up to the 10% bracket",
+          "description": "As above, and also fill the 10% income tax bracket."
+        },
+        "bracket14": {
+          "name": "Up to the 14% bracket",
+          "description": "As above, and also fill the 10% and 14% income tax brackets."
+        }
+      }
+    },
     "mix": {
       "studyFund": "Study fund",
       "esop": "ESOP (employer shares)",
@@ -1499,6 +1551,7 @@
       "lastsTo": "To age {{age}}",
       "runsOutAt": "Only to age {{age}}",
       "savings": "Savings when drawing starts, in today's money",
+      "totalTax": "Total tax over your retirement",
       "chance": "Chance the plan holds",
       "calculating": "Calculating…",
       "yearsUnit": "yr",
@@ -1521,6 +1574,7 @@
       "year": "Year",
       "yearOption": "Age {{age}}",
       "yearOptionCouple": "You {{age}} · your spouse {{spouseAge}}",
+      "yearOptionBridge": "{{option}} · bridge year",
       "previous": "Previous year",
       "next": "Next year",
       "heading": "Monthly income at age {{age}}",
@@ -1574,6 +1628,16 @@
         }
       },
       "unfunded": "Not paid by any source",
+      "bridge": {
+        "title": "Employer shares sold this year",
+        "intro": "Before the first pension or Bituach Leumi payment, shares are sold first, the batches taxed most as salary first, so that the sales fall in the low brackets of these years.",
+        "room": "{{used}} a month taxed as salary income, against {{room}} a month that bears no income tax.",
+        "roomCouple": "{{owner}}: {{used}} a month taxed as salary income, against {{room}} a month that bears no income tax.",
+        "grantOf": "grant of {{date}}",
+        "ordinaryShare": "{{share}} taxed as salary income",
+        "gainsOnly": "Taxed only on its gain",
+        "outside": "No sale falls before a first pension payment this year, so the shares are drawn like your other savings."
+      },
       "idle": {
         "title": "Not paying this year",
         "balance": "Holds {{amount}}",

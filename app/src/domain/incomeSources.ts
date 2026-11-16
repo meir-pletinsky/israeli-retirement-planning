@@ -109,6 +109,35 @@ export interface IdleSource {
   reason: IdleReason;
 }
 
+/** One batch of employer shares sold in a year under the tax-smart order; per month, today's money. */
+export interface IncomeBridgeSale {
+  owner: MemberRole;
+  label: string;
+  grantDate: string | null;
+  monthly: number;
+  /** The part of the sale taxed as ordinary (salary) income, from 0 to 1. */
+  ordinaryShare: number;
+}
+
+/** How one person's low-tax window is used in a year. */
+export interface IncomeBridgeMember {
+  owner: MemberRole;
+  /** True while the person is before their first pension annuity or Bituach Leumi payment. */
+  inWindow: boolean;
+  /** Ordinary income that bears no income tax after the credit points, per month. */
+  zeroTaxMonthly: number;
+  /** Ordinary income from this year's share sales, per month. */
+  ordinaryMonthly: number;
+}
+
+/** What the tax-smart order did in a year. */
+export interface IncomeBridgeYear {
+  members: IncomeBridgeMember[];
+  sales: IncomeBridgeSale[];
+  /** True when a sale falls in somebody's bridge window. */
+  active: boolean;
+}
+
 /** One year of the income chart traced to the funds, policies and savings behind it. */
 export interface IncomeYearDetail {
   /** The primary user's age; the chart's year. */
@@ -123,6 +152,8 @@ export interface IncomeYearDetail {
   planned: number | null;
   /** The planned spending nobody pays; null on the sustainable basis. */
   unfunded: number | null;
+  /** The shares the tax-smart order sells this year; null under any other order or when nothing is drawn. */
+  bridge: IncomeBridgeYear | null;
 }
 
 /** Which kind of a custom withdrawal split a source belongs to; null for pension-like money, which the split does not name. */
@@ -346,6 +377,29 @@ function allocate(candidates: Candidate[], target: number): IncomeSourceLine[] {
 const rowsByAge = (rows: DrawdownYear[]) =>
   new Map(rows.map((row): [number, DrawdownYear] => [row.age, row]));
 
+function bridgeYear(household: Household, row: DrawdownYear): IncomeBridgeYear | null {
+  const { bridge } = row;
+  if (!bridge) return null;
+  const sales = bridge.sales
+    .filter((sale) => sale.amount > 0)
+    .map((sale) => ({
+      owner: household.members[sale.memberIndex].role,
+      label: sale.label,
+      grantDate: sale.grantDate,
+      monthly: sale.amount / 12,
+      ordinaryShare: sale.ordinaryShare,
+    }))
+    .sort((a, b) => b.ordinaryShare - a.ordinaryShare || b.monthly - a.monthly);
+  const members = bridge.members.map((member) => ({
+    owner: household.members[member.memberIndex].role,
+    inWindow: member.inWindow,
+    zeroTaxMonthly: member.zeroTaxAnnual / 12,
+    ordinaryMonthly: member.ordinaryAnnual / 12,
+  }));
+  const active = sales.some((sale) => members.some((member) => member.owner === sale.owner && member.inWindow));
+  return { members, sales, active };
+}
+
 function yearDetail(
   household: Household,
   slots: Slot[],
@@ -502,6 +556,7 @@ function yearDetail(
     total: INCOME_BAND_KEYS.reduce((sum, band) => sum + point[band], 0),
     planned,
     unfunded: point.unfunded ?? null,
+    bridge: bridgeYear(household, row),
   };
 }
 

@@ -2,6 +2,7 @@ import type {
   BankDeposit,
   BankDepositRateType,
   BituachLeumiData,
+  BridgeMode,
   CoverPlan,
   ExpenseItem,
   AccountOwner,
@@ -55,6 +56,10 @@ export function buildTestProfile(overrides: {
   withdrawalStrategy?: WithdrawalStrategy;
   /** The split the "custom" strategy follows; defaults to the app's default. */
   withdrawalMix?: WithdrawalMix;
+  /** How much employer stock the tax-smart strategy sells a year; defaults to the app's default. */
+  bridgeMode?: BridgeMode;
+  /** True when a year's employer-share sales are all made in one month; defaults to the app's default. */
+  lumpSumSales?: boolean;
   /** The age the plan runs to; defaults to the app's default. */
   planningHorizonAge?: PlanningHorizonAge;
   pensionAccountOverrides?: Partial<PensionAccount>[];
@@ -121,6 +126,8 @@ export function buildTestProfile(overrides: {
     volatilityPct,
     withdrawalStrategy,
     withdrawalMix,
+    bridgeMode,
+    lumpSumSales,
     planningHorizonAge,
     pensionBalances = [],
     pensionAccountOverrides = [],
@@ -287,6 +294,8 @@ export function buildTestProfile(overrides: {
       volatilityPct: volatilityPct ?? EMPTY_PROFILE.assumptions.volatilityPct,
       withdrawalStrategy: withdrawalStrategy ?? EMPTY_PROFILE.assumptions.withdrawalStrategy,
       withdrawalMix: withdrawalMix ?? EMPTY_PROFILE.assumptions.withdrawalMix,
+      bridgeMode: bridgeMode ?? EMPTY_PROFILE.assumptions.bridgeMode,
+      lumpSumSales: lumpSumSales ?? EMPTY_PROFILE.assumptions.lumpSumSales,
       planningHorizonAge: planningHorizonAge ?? EMPTY_PROFILE.assumptions.planningHorizonAge,
       incomeCapPct: EMPTY_PROFILE.assumptions.incomeCapPct,
     },

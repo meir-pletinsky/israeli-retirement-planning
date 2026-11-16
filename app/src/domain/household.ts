@@ -1,4 +1,11 @@
-import type { Gender, ProfileData, StockHolding, WithdrawalMix, WithdrawalStrategy } from "../types";
+import type {
+  BridgeMode,
+  Gender,
+  ProfileData,
+  StockHolding,
+  WithdrawalMix,
+  WithdrawalStrategy,
+} from "../types";
 import { EMPTY_PROFILE, EMPTY_SPOUSE } from "../types";
 import { COVER_RULES, ACCESS_RULES } from "./accessRules";
 import { estimateBituachLeumiPension } from "./bituachLeumi";
@@ -93,6 +100,10 @@ export interface Household {
   withdrawalStrategy: WithdrawalStrategy;
   /** The split the "custom" strategy follows. */
   withdrawalMix: WithdrawalMix;
+  /** How much of the employer shares the "taxSmart" strategy sells in the years before the pension starts. */
+  bridgeMode: BridgeMode;
+  /** True when a year's employer-share sales are all made in one month, so the contribution ceiling counts once. */
+  lumpSumSales: boolean;
   /**
    * The primary user's age when household drawing starts: their own
    * retirement age for a single person, the later spouse's retirement moment
@@ -328,6 +339,8 @@ export function buildHousehold(
     planningHorizonAge: profile.assumptions.planningHorizonAge,
     withdrawalStrategy: profile.assumptions.withdrawalStrategy,
     withdrawalMix: profile.assumptions.withdrawalMix,
+    bridgeMode: profile.assumptions.bridgeMode,
+    lumpSumSales: profile.assumptions.lumpSumSales,
     // Exact for the common case that the primary user retires last (or alone).
     drawdownStartAge:
       primaryRetirementYears === retirementYears
