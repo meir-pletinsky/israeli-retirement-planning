@@ -53,6 +53,8 @@ interface EquityCategoryTableProps {
   /** The category's own "Add" button; omitted for the legacy no-category table. */
   toolbar?: ReactNode;
   emptyMessage: ReactNode;
+  /** Adds a column saying whose each employer grant is; for a plan with a partner. */
+  showOwner?: boolean;
 }
 
 /** One category's holdings as its own table, with its own "Add" button and totals. */
@@ -64,6 +66,7 @@ export function EquityCategoryTable({
   onRemove,
   toolbar,
   emptyMessage,
+  showOwner = false,
 }: EquityCategoryTableProps) {
   const { t } = useTranslation();
   const currency = t("common.currencySymbol");
@@ -123,6 +126,14 @@ export function EquityCategoryTable({
   // Worked out from the vesting batches as of today; never stored in the profile.
   if (category === "employerGrantedStock") {
     const nowMs = engineNowMs();
+    if (showOwner) {
+      columns.push({
+        key: "owner",
+        header: t(`${FIELDS}.fields.owner`),
+        cell: (holding) =>
+          t(`${FIELDS}.options.owner.${holding.employerGrantDetails.owner === "spouse" ? "spouse" : "self"}`),
+      });
+    }
     columns.push({
       key: "vestedQuantity",
       header: t(`${FIELDS}.fields.vestedQuantity`),

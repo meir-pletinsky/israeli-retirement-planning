@@ -463,6 +463,55 @@ describe("household projections", () => {
   });
 });
 
+describe("grants owned by the partner", () => {
+  const withOwner = (owner: "self" | "spouse") =>
+    buildTestProfile({
+      age: 50,
+      retirementAge: 60,
+      ...ZERO_REAL,
+      ...MARRIED,
+      spouse: { age: 48, retirementAge: 58 },
+      pensionBalances: [100_000],
+      equity: [{ quantity: 100, priceUSD: 50, employerGrant: { owner } }],
+    });
+  const sharesBalance = (profile: ReturnType<typeof buildTestProfile>, role: "self" | "spouse") =>
+    buildHousehold(profile, resolveRetirementTiming(profile, "standard"))
+      .members.find((member) => member.role === role)
+      ?.sources.filter((source) => source.kind === "otherInvestments")
+      .reduce((total, source) => total + source.balance, 0);
+
+  it("puts the shares with the partner's own savings, and none with the primary user", () => {
+    // 100 shares * $50 * 3.7.
+    expect(sharesBalance(withOwner("spouse"), "spouse")).toBeCloseTo(18_500);
+    expect(sharesBalance(withOwner("spouse"), "self")).toBe(0);
+    expect(sharesBalance(withOwner("self"), "self")).toBeCloseTo(18_500);
+    expect(sharesBalance(withOwner("self"), "spouse")).toBe(0);
+  });
+
+  it("keeps the household's net worth the same whoever the vested shares belong to", () => {
+    expect(aggregateCurrentNetWorth(withOwner("spouse"))).toBe(aggregateCurrentNetWorth(withOwner("self")));
+  });
+
+  it("keeps the shares out of the primary user's own balance, which excludes the partner's holdings", () => {
+    expect(projectBalanceAtAge(withOwner("spouse"), 60)).toBe(100_000);
+    expect(projectBalanceAtAge(withOwner("self"), 60)).toBeCloseTo(118_500);
+  });
+
+  it("counts them as the primary user's when the plan has no partner", () => {
+    const single = buildTestProfile({
+      age: 50,
+      retirementAge: 60,
+      ...ZERO_REAL,
+      maritalStatus: "single",
+      spouse: { age: 48 },
+      pensionBalances: [100_000],
+      equity: [{ quantity: 100, priceUSD: 50, employerGrant: { owner: "spouse" } }],
+    });
+    expect(sharesBalance(single, "self")).toBeCloseTo(18_500);
+    expect(projectBalanceAtAge(single, 60)).toBeCloseTo(118_500);
+  });
+});
+
 describe("planning horizon", () => {
   const plan = (planningHorizonAge?: 90 | 95 | 100) =>
     buildTestProfile({

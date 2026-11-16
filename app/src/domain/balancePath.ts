@@ -1,7 +1,12 @@
 import type { ProfileData } from "../types";
 import { simulateHouseholdDrawdown, type DrawdownYear } from "./drawdown";
 import { desiredRetirementMonthly } from "./expenses";
-import { buildHousehold, resolveRetirementTiming, selfProfileView } from "./household";
+import {
+  buildHousehold,
+  holdingRetirementMs,
+  resolveRetirementTiming,
+  selfProfileView,
+} from "./household";
 import { resolveCurrentAge, usdToIlsRate } from "./profileBasics";
 import { roundToSum } from "./rounding";
 import { SOURCE_KINDS, type SourceKind } from "./sources";
@@ -11,7 +16,6 @@ import {
   batchStatusAtRetirement,
   employerShareBatches,
   isEmployerGrant,
-  momentAfterYears,
   yearsBetween,
 } from "./vesting";
 
@@ -102,25 +106,25 @@ export function groupPathEvents(events: readonly PathEvent[]): PathEventGroup[] 
 }
 
 /**
- * The employer shares that are not vested today and still count in the path for a primary user
- * retiring at the scenario's age: the batches that vest by then, plus the later ones when the
- * grant keeps vesting after leaving. Batches that would be lost are left out, as the path leaves
- * them out.
+ * The employer shares that are not vested today and still count in the path: the batches that
+ * vest by the time their owner retires in the scenario, plus the later ones when the grant keeps
+ * vesting after leaving. Batches that would be lost are left out, as the path leaves them out.
+ * The ages are the primary user's.
  */
 export function unvestedSharesInPath(
   profile: ProfileData,
   scenario: RetirementScenario = "standard",
 ): UnvestedShares | null {
   const currentAge = resolveCurrentAge(selfProfileView(profile));
-  const yearsToRetire = Math.max(resolveRetirementTiming(profile, scenario).selfAge - currentAge, 0);
+  const timing = resolveRetirementTiming(profile, scenario);
   const nowMs = engineNowMs();
-  const retirementMs = momentAfterYears(nowMs, yearsToRetire);
   const fxRate = usdToIlsRate(profile);
 
   let value = 0;
   const vestAges: number[] = [];
   for (const holding of profile.equity.holdings) {
     if (!isEmployerGrant(holding)) continue;
+    const retirementMs = holdingRetirementMs(profile, holding, timing);
     const shareValue = (holding.currentMarketPriceUSD ?? 0) * fxRate;
     for (const batch of employerShareBatches(holding)) {
       if (batch.vestMs === null || batch.vestMs <= nowMs) continue;

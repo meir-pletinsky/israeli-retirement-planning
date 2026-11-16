@@ -5,7 +5,7 @@ import { CheckboxField } from "../../components/fields/CheckboxField";
 import { FormModal } from "../../components/FormModal";
 import { DEFAULT_VESTING_TEMPLATE } from "../../domain/vesting";
 import { formatNumber } from "../../i18n/formatters";
-import type { StockHolding, VestingSchedule } from "../../types";
+import type { AccountOwner, StockHolding, VestingSchedule } from "../../types";
 import { BulkHoldingsForm } from "./BulkHoldingsForm";
 import { buildBulkHoldings } from "./bulkHoldings";
 import { EquityHoldingForm } from "./EquityHoldingForm";
@@ -25,10 +25,12 @@ interface HoldingDialogProps {
   onClose: () => void;
   /** Saves the holdings, adding new ones and replacing the ones already saved. */
   onSave: (holdings: StockHolding[]) => void;
+  /** Lets an employer grant be marked as the partner's; off for a plan with only one person. */
+  showOwner?: boolean;
 }
 
 /** Adds or edits stock holdings, one at a time or, for a new one, many at once from pasted CSV. */
-export function HoldingDialog({ holding, isNew, onClose, onSave }: HoldingDialogProps) {
+export function HoldingDialog({ holding, isNew, onClose, onSave, showOwner = false }: HoldingDialogProps) {
   const { t } = useTranslation();
   const category = holding.investmentCategory;
   const canBulk = isNew && category !== null;
@@ -42,6 +44,7 @@ export function HoldingDialog({ holding, isNew, onClose, onSave }: HoldingDialog
   const [vestingSchedule, setVestingSchedule] = useState<VestingSchedule>({
     ...DEFAULT_VESTING_TEMPLATE,
   });
+  const [owner, setOwner] = useState<AccountOwner>("self");
 
   const personal = category === "personalBrokeragePurchase";
   const bulk = mode === "bulk" && canBulk;
@@ -77,6 +80,7 @@ export function HoldingDialog({ holding, isNew, onClose, onSave }: HoldingDialog
           rows: parsed.rows,
           symbol: bulkSymbol,
           vestingSchedule,
+          owner,
           histories,
           asReported,
         }),
@@ -163,6 +167,9 @@ export function HoldingDialog({ holding, isNew, onClose, onSave }: HoldingDialog
             onSymbolChange={setSymbol}
             vestingSchedule={vestingSchedule}
             onVestingScheduleChange={setVestingSchedule}
+            owner={owner}
+            onOwnerChange={setOwner}
+            showOwner={showOwner}
             text={text}
             onTextChange={setText}
             parsed={parsed}
@@ -174,6 +181,7 @@ export function HoldingDialog({ holding, isNew, onClose, onSave }: HoldingDialog
             <EquityHoldingForm
               holding={draft}
               restatedQuantity={restated.factor !== 1 ? restated.holding.quantity : undefined}
+              showOwner={showOwner}
               onChange={(change) => setDraft((current) => applyHoldingChange(current, change))}
             />
             {restated.factor !== 1 && (

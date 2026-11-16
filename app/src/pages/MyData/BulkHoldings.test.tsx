@@ -156,6 +156,31 @@ describe("HoldingDialog — bulk entry", () => {
     });
   });
 
+  it("offers no choice of whose grants they are to a single person", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
+    await openBulk(user, "Add ESOP / RSU grant");
+    expect(screen.queryByLabelText(/^Whose grant is this/)).not.toBeInTheDocument();
+  });
+
+  it("marks every row of a batch of grants as the partner's when chosen", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(buildTestProfile({ age: 50, maritalStatus: "married", spouse: { age: 48 } }));
+    renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
+    await openBulk(user, "Add ESOP / RSU grant");
+
+    expect(screen.getByLabelText(/^Whose grant is this/)).toHaveValue("self");
+    await user.selectOptions(screen.getByLabelText(/^Whose grant is this/), "spouse");
+    paste("01/03/2024, 40\n01/03/2025, 80");
+    await user.type(screen.getByLabelText(/^Ticker symbol/), "abc");
+    await user.click(screen.getByRole("button", { name: "Add 2 holdings" }));
+
+    await waitFor(async () => {
+      const holdings = (await loadProfileFromDb())?.equity.holdings ?? [];
+      expect(holdings.map((holding) => holding.employerGrantDetails.owner)).toEqual(["spouse", "spouse"]);
+    });
+  });
+
   it("reads quantities with a dot as the decimal point", async () => {
     const user = userEvent.setup();
     renderWithProviders(<EquityStep />, { route: "/my-data/equity" });

@@ -932,6 +932,40 @@ describe("Projections", () => {
       await screen.findByRole("region", { name: "When your money becomes usable" });
       expect(screen.queryByRole("region", { name: "Leaving before your shares vest" })).not.toBeInTheDocument();
     });
+
+    it("tells what the partner loses when they retire, apart from the primary user's own grants", async () => {
+      const grant = (owner: "self" | "spouse", vestDate: string) => ({
+        quantity: 100,
+        priceUSD: 50,
+        employerGrant: { owner, vestingTranches: [{ vestDate, quantity: 100 }] },
+      });
+      const card = await renderCard(
+        buildTestProfile({
+          age: 50,
+          retirementAge: 55,
+          maritalStatus: "married",
+          spouse: { age: 48, retirementAge: 51 },
+          otherAssets: 10_000,
+          pensionBalances: [400_000],
+          equity: [grant("self", "2033-01-01"), grant("spouse", "2032-01-01")],
+          investmentReturnPct: 4,
+          inflationPct: 4,
+        }),
+      );
+
+      expect(
+        within(card).getByText(
+          reads(/^If you retire on \d\d\/\d\d\/2031, you lose 100 shares of unvested company stock \(about ₪18,500\)\.$/),
+        ),
+      ).toBeInTheDocument();
+      expect(
+        within(card).getByText(
+          reads(
+            /^If your partner retires on \d\d\/\d\d\/2029, they lose 100 shares of unvested company stock \(about ₪18,500\)\.$/,
+          ),
+        ),
+      ).toBeInTheDocument();
+    });
   });
 
   describe("cover that ends when deposits stop", () => {

@@ -421,6 +421,44 @@ describe("My Data summary tables — Investments & Deposits", () => {
     expect(within(espp).queryByRole("columnheader", { name: "Vested quantity (shares)" })).toBeNull();
   });
 
+  it("shows whose each ESOP grant is for a couple, treating a grant saved without an owner as the primary user's, and no column for a single person", async () => {
+    const grants = [
+      { category: "employerGrantedStock" as const, ticker: "AAA", quantity: 10, priceUSD: 100 },
+      {
+        category: "employerGrantedStock" as const,
+        ticker: "BBB",
+        quantity: 20,
+        priceUSD: 100,
+        employerGrant: { owner: "spouse" as const },
+      },
+    ];
+    await saveProfileToDb(
+      buildTestProfile({ age: 50, maritalStatus: "married", spouse: { age: 48 }, equity: grants }),
+    );
+    renderStep("equity");
+
+    const esop = await screen.findByRole("table", { name: "ESOP / RSU at a glance" });
+    const headers = within(esop).getAllByRole("columnheader");
+    const ownerIndex = headers.findIndex((header) => header.textContent === "Whose grant is this?");
+    expect(ownerIndex).toBeGreaterThanOrEqual(0);
+    const [, mine, partners] = within(esop).getAllByRole("row");
+    expect(within(mine).getAllByRole("cell")[ownerIndex]).toHaveTextContent("Me");
+    expect(within(partners).getAllByRole("cell")[ownerIndex]).toHaveTextContent("Partner");
+  });
+
+  it("leaves the owner column out of the ESOP table for a single person", async () => {
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 50,
+        equity: [{ category: "employerGrantedStock", ticker: "AAA", quantity: 10, priceUSD: 100 }],
+      }),
+    );
+    renderStep("equity");
+
+    const esop = await screen.findByRole("table", { name: "ESOP / RSU at a glance" });
+    expect(within(esop).queryByRole("columnheader", { name: "Whose grant is this?" })).toBeNull();
+  });
+
   it("shows every table even when only one category has holdings, with no all-category total", async () => {
     await saveProfileToDb(
       buildTestProfile({

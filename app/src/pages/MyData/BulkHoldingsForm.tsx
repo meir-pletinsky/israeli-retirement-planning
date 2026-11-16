@@ -3,9 +3,10 @@ import { useTranslation } from "react-i18next";
 import { TextField } from "../../components/fields/TextField";
 import { formatDate, formatNumber } from "../../i18n/formatters";
 import type { StockHistoryFile } from "../../stockPrices/format";
-import type { InvestmentCategory, VestingSchedule } from "../../types";
+import type { AccountOwner, InvestmentCategory, VestingSchedule } from "../../types";
 import { displayFactor } from "./splitEntry";
 import { resolveRow } from "./bulkHoldings";
+import { GrantOwnerField } from "./GrantOwnerField";
 import type { HoldingCsvResult, HoldingCsvRow } from "./holdingCsv";
 import { useStockSuggestions } from "./useStockHistories";
 import { VestingScheduleFields } from "./VestingScheduleFields";
@@ -16,6 +17,10 @@ interface BulkHoldingsFormProps {
   onSymbolChange: (symbol: string) => void;
   vestingSchedule: VestingSchedule;
   onVestingScheduleChange: (schedule: VestingSchedule) => void;
+  /** Whose grants the rows are; shown for ESOP rows when the plan has a partner. */
+  owner: AccountOwner;
+  onOwnerChange: (owner: AccountOwner) => void;
+  showOwner: boolean;
   text: string;
   onTextChange: (text: string) => void;
   parsed: HoldingCsvResult;
@@ -34,6 +39,9 @@ export function BulkHoldingsForm({
   onSymbolChange,
   vestingSchedule,
   onVestingScheduleChange,
+  owner,
+  onOwnerChange,
+  showOwner,
   text,
   onTextChange,
   parsed,
@@ -63,6 +71,9 @@ export function BulkHoldingsForm({
           suggestionsId="bulk-stock-ticker-suggestions"
           helperText={b("symbolHelper")}
         />
+      )}
+      {category === "employerGrantedStock" && showOwner && (
+        <GrantOwnerField value={owner} onChange={onOwnerChange} />
       )}
       {category === "employerGrantedStock" && (
         <VestingScheduleFields

@@ -5,7 +5,7 @@ import {
   adjustQuantityForSplits,
   splitFactorSince,
 } from "../../stockPrices/splits";
-import type { InvestmentCategory, StockHolding, VestingSchedule } from "../../types";
+import type { AccountOwner, InvestmentCategory, StockHolding, VestingSchedule } from "../../types";
 import { createEmptyStockHolding } from "../../types";
 import type { HoldingCsvRow } from "./holdingCsv";
 import { entryDatePatch, entryPricePatch, withVestingTranches } from "./holdingEntry";
@@ -17,6 +17,8 @@ export interface BulkHoldingsInput {
   symbol: string;
   /** Vesting schedule shared by every ESOP row. */
   vestingSchedule: VestingSchedule;
+  /** Whose grants the ESOP rows are; the primary user's when left out. */
+  owner?: AccountOwner;
   histories: ReadonlyMap<string, StockHistoryFile>;
   /** True when the rows give shares and prices as reported at the time, before later splits. */
   asReported: boolean;
@@ -58,6 +60,7 @@ export function buildBulkHoldings({
   rows,
   symbol,
   vestingSchedule,
+  owner = "self",
   histories,
   asReported,
 }: BulkHoldingsInput): StockHolding[] {
@@ -84,7 +87,7 @@ export function buildBulkHoldings({
     if (category === "employerGrantedStock") {
       holding = withVestingTranches({
         ...holding,
-        employerGrantDetails: { ...holding.employerGrantDetails, vestingSchedule },
+        employerGrantDetails: { ...holding.employerGrantDetails, vestingSchedule, owner },
       });
     }
     return holding;

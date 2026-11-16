@@ -740,6 +740,8 @@
           "personalPurchasePrice": "Purchase price per share",
           "personalPurchasePriceHelper": "Per share, in USD: what you paid on the purchase date. Used for tax: the gain above it is taxed when you sell, unless you declare the gain under More details.",
           "totalValue": "Total value",
+          "owner": "Whose grant is this?",
+          "ownerHelper": "Unvested shares are lost when the person they belong to stops working. Grants saved before this choice existed count as yours.",
           "sectionEmployerGrantDetails": "Tax and vesting - affects your estimate",
           "employerGrantIntro": "Used to tax these shares at sale: under Section 102 (capital gains route) the grant-date value is taxed at your marginal rate and the growth above it at the capital gains rate.",
           "grantDate": "Grant date",
@@ -761,6 +763,10 @@
           "capitalGainsTaxRatePercent": "Capital gains tax rate"
         },
         "options": {
+          "owner": {
+            "self": "Me",
+            "spouse": "Partner"
+          },
           "investmentCategory": {
             "employerGrantedStock": "Employer-granted stock (RSU / options)",
             "employerEsppDiscount": "ESPP (employee stock purchase plan)",
@@ -1210,6 +1216,8 @@
       "lost": "If you retire on {{date}}, you lose {{shares}} of unvested company stock (about {{value}}).",
       "next": "Staying {{period}} longer, until {{date}}, would keep another {{shares}} (about {{value}}).",
       "nextGain": "That adds about {{amount}} a month to your net retirement income.",
+      "lostSpouse": "If your partner retires on {{date}}, they lose {{shares}} of unvested company stock (about {{value}}).",
+      "nextSpouse": "If they stay {{period}} longer, until {{date}}, they would keep another {{shares}} (about {{value}}).",
       "sharesCount_one": "{{amount}} share",
       "sharesCount_other": "{{amount}} shares",
       "monthsCount_one": "{{amount}} month",

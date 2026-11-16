@@ -24,6 +24,7 @@ import {
   hasAdvancedDetails,
   type HoldingChange,
 } from "./holdingEntry";
+import { GrantOwnerField } from "./GrantOwnerField";
 import { VestingScheduleFields } from "./VestingScheduleFields";
 import { useEntryRateAutofill } from "./useEntryRateAutofill";
 import { useStockPriceAutofill } from "./useStockPriceAutofill";
@@ -39,12 +40,15 @@ interface EquityHoldingFormProps {
   onChange: (change: HoldingChange) => void;
   /** The quantity the holding will be saved with, when a split restates what was typed. */
   restatedQuantity?: number | null;
+  /** Lets an employer grant be marked as the partner's; off for a plan with only one person. */
+  showOwner?: boolean;
 }
 
 export function EquityHoldingForm({
   holding,
   onChange,
   restatedQuantity,
+  showOwner = false,
 }: EquityHoldingFormProps) {
   const { t } = useTranslation();
   const f = (key: string) => t(`myData.steps.equity.fields.${key}`);
@@ -100,6 +104,12 @@ export function EquityHoldingForm({
 
   return (
     <div className="flex flex-col gap-4">
+      {showOwner && category === "employerGrantedStock" && (
+        <GrantOwnerField
+          value={employerGrantDetails.owner}
+          onChange={(owner) => onChange({ employerGrantDetails: { ...employerGrantDetails, owner } })}
+        />
+      )}
       {category === null && (
         <SelectField
           label={f("investmentCategory")}

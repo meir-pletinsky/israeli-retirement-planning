@@ -476,6 +476,11 @@ export interface EmployerGrantDetails {
    * are forfeited and do not count towards the retirement savings.
    */
   keepsVestingAfterLeaving: boolean;
+  /**
+   * Whose award it is. Unvested batches are lost when this person stops
+   * working. Grants saved before the owner existed belong to the primary user.
+   */
+  owner: AccountOwner;
 }
 
 export const EMPTY_EMPLOYER_GRANT_DETAILS: EmployerGrantDetails = {
@@ -490,6 +495,7 @@ export const EMPTY_EMPLOYER_GRANT_DETAILS: EmployerGrantDetails = {
   vestingTranches: [],
   vestingSchedule: EMPTY_VESTING_SCHEDULE,
   keepsVestingAfterLeaving: false,
+  owner: "self",
 };
 
 export interface EsppDetails {
@@ -967,6 +973,7 @@ export function normalizeProfile(parsed: Partial<ProfileData> | null | undefined
           ...holding.employerGrantDetails,
           usdToIlsRateAtGrant: validRate(holding.employerGrantDetails?.usdToIlsRateAtGrant),
           keepsVestingAfterLeaving: holding.employerGrantDetails?.keepsVestingAfterLeaving === true,
+          owner: holding.employerGrantDetails?.owner === "spouse" ? "spouse" : "self",
           vestingTranches: Array.isArray(holding.employerGrantDetails?.vestingTranches)
             ? holding.employerGrantDetails.vestingTranches.map((tranche) => ({
                 ...createEmptyVestingTranche(),

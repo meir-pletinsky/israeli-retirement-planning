@@ -41,7 +41,7 @@ import { WithdrawalStrategyCard } from "../components/WithdrawalStrategyCard";
 import {
   MAX_RETIREMENT_SEARCH_AGE,
   type SourceKind,
-  buildLeavingEarlyCost,
+  buildLeavingEarlyCosts,
   buildLiquidityLadder,
   buildLongevityTest,
   buildRetirementTimeline,
@@ -112,7 +112,7 @@ export function Projections() {
   const plannedTimeline = useMemo(() => (cashFlow ? buildRetirementTimeline(cashFlow.years) : []), [cashFlow]);
   const hasInvestmentsBand = incomeData.some((point) => point.investments > 0);
   const ladder = useMemo(() => buildLiquidityLadder(profile, scenario), [profile, scenario]);
-  const leavingEarly = useMemo(() => buildLeavingEarlyCost(profile, scenario), [profile, scenario]);
+  const leavingEarly = useMemo(() => buildLeavingEarlyCosts(profile, scenario), [profile, scenario]);
   const sourceCosts = useMemo(() => buildSourceCostTable(profile, scenario), [profile, scenario]);
   const stress = useMemo(() => buildStressTest(profile, scenario), [profile, scenario]);
   const longevity = useMemo(() => buildLongevityTest(profile, scenario), [profile, scenario]);
@@ -149,7 +149,7 @@ export function Projections() {
   const showSection: Record<ProjectionSection, boolean> = {
     overview: true,
     income: true,
-    savings: ladder.rungs.length > 0 || leavingEarly !== null,
+    savings: ladder.rungs.length > 0 || leavingEarly.length > 0,
     spending: hasRetirementBudget(profile.expenses) || irregularCosts(profile.expenses) !== null,
     risk: true,
     age: true,
@@ -347,7 +347,7 @@ export function Projections() {
             hasBankDeposits={hasBankDeposits}
           />
 
-          <UnvestedSharesCard cost={leavingEarly} scenarioTag={scenarioTag} />
+          <UnvestedSharesCard costs={leavingEarly} scenarioTag={scenarioTag} />
         </ProjectionSectionGroup>
       )}
 

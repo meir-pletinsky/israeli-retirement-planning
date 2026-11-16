@@ -1,4 +1,4 @@
-import type { Gender, ProfileData, WithdrawalMix, WithdrawalStrategy } from "../types";
+import type { Gender, ProfileData, StockHolding, WithdrawalMix, WithdrawalStrategy } from "../types";
 import { EMPTY_PROFILE, EMPTY_SPOUSE } from "../types";
 import { COVER_RULES, ACCESS_RULES } from "./accessRules";
 import { estimateBituachLeumiPension } from "./bituachLeumi";
@@ -6,18 +6,22 @@ import { BITUACH_LEUMI_RATES as RATES } from "./bituachLeumiRates";
 import { coverCostOf, type CoverCost } from "./coverCost";
 import { coverOnFile } from "./coverPlan";
 import {
+  holdingOwner,
   isHouseholdActive,
   ownAccounts,
+  ownHoldings,
   realAnnualReturnRate,
   resolveCurrentAge,
   resolveRetirementAge,
   resolveSpouseCurrentAge,
   resolveSpouseRetirementAge,
   spouseAccounts,
+  spouseHoldings,
 } from "./profileBasics";
 import { buildSources, countUncategorizedAccounts, type RetirementSource } from "./sources";
 import {
   engineCurrentYear,
+  engineNowMs,
   fromConst,
   fromDerived,
   fromLatestStep,
@@ -30,6 +34,7 @@ import {
   withScope,
 } from "./trace";
 import type { BituachLeumiEstimate, RetirementScenario, SpouseSupplement } from "./types";
+import { momentAfterYears } from "./vesting";
 
 /**
  * Couples and households. The single-person engine (`sources.ts`,
@@ -45,7 +50,9 @@ import type { BituachLeumiEstimate, RetirementScenario, SpouseSupplement } from 
  *   working spouse's pay is assumed to cover living costs. Savings and the
  *   earlier retiree's pot keep growing meanwhile, and payments that start
  *   before that point (an earlier retiree's pension) are not counted.
- * - Other assets and equity are household-level and belong to the primary user.
+ * - Other assets and equity are household-level and belong to the primary user,
+ *   except employer grants marked as the spouse's: they follow the spouse, so
+ *   their unvested batches are lost when the spouse retires.
  * - The plan runs until the youngest spouse reaches the planning horizon
  *   (`assumptions.planningHorizonAge`, 90 unless the user chooses a later age).
  */
@@ -98,22 +105,28 @@ export interface Household {
   baseYear: number;
 }
 
-/** The primary user as a single-person profile: only their own accounts, no spouse. */
+/** The primary user as a single-person profile: only their own accounts and holdings, no spouse. */
 export function selfProfileView(profile: ProfileData): ProfileData {
+  const holdings = ownHoldings(profile);
   return {
     ...profile,
     spouse: EMPTY_SPOUSE,
     pensionSavings: { ...profile.pensionSavings, accounts: ownAccounts(profile) },
+    equity:
+      holdings.length === profile.equity.holdings.length
+        ? profile.equity
+        : { ...profile.equity, holdings },
   };
 }
 
 /**
- * The spouse as a single-person profile: their own details and accounts. The
- * household's other assets and equity stay with the primary user, and
- * expenses and assumptions are shared.
+ * The spouse as a single-person profile: their own details, accounts and
+ * employer grants. The household's other assets and the rest of the equity
+ * stay with the primary user, and expenses and assumptions are shared.
  */
 export function spouseProfileView(profile: ProfileData): ProfileData {
   const { spouse } = profile;
+  const holdings = spouseHoldings(profile);
   return {
     ...profile,
     personal: {
@@ -134,9 +147,31 @@ export function spouseProfileView(profile: ProfileData): ProfileData {
       reports: [],
       accounts: spouseAccounts(profile).map((account) => ({ ...account, owner: "self" })),
     },
-    equity: EMPTY_PROFILE.equity,
+    equity: holdings.length === 0 ? EMPTY_PROFILE.equity : { ...profile.equity, holdings },
     bankDeposits: EMPTY_PROFILE.bankDeposits,
   };
+}
+
+/** The moment `owner` retires under `timing`; the primary user's when there is no spouse. */
+export function ownerRetirementMs(
+  profile: ProfileData,
+  owner: MemberRole,
+  timing: RetirementTiming,
+): number {
+  const years =
+    owner === "spouse" && timing.spouseAge !== null
+      ? timing.spouseAge - resolveSpouseCurrentAge(profile)
+      : timing.selfAge - resolveCurrentAge(profile);
+  return momentAfterYears(engineNowMs(), years);
+}
+
+/** The moment the owner of `holding` retires, which is when its unvested batches are lost. */
+export function holdingRetirementMs(
+  profile: ProfileData,
+  holding: StockHolding,
+  timing: RetirementTiming,
+): number {
+  return ownerRetirementMs(profile, holdingOwner(profile, holding), timing);
 }
 
 /** Each spouse's retirement age for a scenario; both are shifted by the same offsets. */

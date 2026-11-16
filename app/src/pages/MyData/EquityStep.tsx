@@ -80,6 +80,12 @@ export function EquityStep() {
       equity.holdings.some((h) => h.investmentCategory === category),
     ).length + (uncategorized.length > 0 ? 1 : 0);
 
+  // Grants can belong to either person; keep the owner visible while any is still marked as the
+  // partner's after a status change.
+  const showOwner =
+    profile.personal.maritalStatus === "married" ||
+    equity.holdings.some((h) => h.employerGrantDetails.owner === "spouse");
+
   return (
     <div className="flex flex-col gap-4">
       <h2 className="text-base font-semibold text-slate-900">
@@ -95,6 +101,7 @@ export function EquityStep() {
             category={category}
             holdings={holdings}
             rate={rate}
+            showOwner={showOwner}
             onEdit={setEditingHolding}
             onRemove={(holding) => setRemovingHoldingId(holding.id)}
             emptyMessage={
@@ -157,6 +164,7 @@ export function EquityStep() {
           isNew={!equity.holdings.some((h) => h.id === editingHolding.id)}
           onClose={() => setEditingHolding(null)}
           onSave={handleSaveHoldings}
+          showOwner={showOwner}
         />
       )}
 

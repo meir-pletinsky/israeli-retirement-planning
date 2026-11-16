@@ -267,6 +267,24 @@ describe("normalizeProfile", () => {
     ]);
   });
 
+  it("marks grants saved before the owner existed as the primary user's and keeps a saved partner", () => {
+    const profile = buildTestProfile({
+      equity: [
+        { quantity: 10, priceUSD: 5, employerGrant: {} },
+        { quantity: 20, priceUSD: 5, employerGrant: { owner: "spouse" } },
+      ],
+    });
+    const holdings = profile.equity.holdings.map((holding, index) => {
+      const { owner: _owner, ...details } = holding.employerGrantDetails;
+      return index === 1 ? holding : { ...holding, employerGrantDetails: details };
+    });
+    const result = normalizeProfile({
+      ...profile,
+      equity: { holdings },
+    } as unknown as Parameters<typeof normalizeProfile>[0]);
+    expect(result.equity.holdings.map((holding) => holding.employerGrantDetails.owner)).toEqual(["self", "spouse"]);
+  });
+
   it("adds an empty lot list to holdings saved before purchase lots, keeps saved lots and drops a bad lot rate", () => {
     const profile = buildTestProfile({
       equity: [

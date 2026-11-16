@@ -6,7 +6,8 @@ import { formatDate as formatIsoDate, formatNumber } from "../i18n/formatters";
 import { ScenarioTitle } from "./ScenarioTag";
 
 interface UnvestedSharesCardProps {
-  cost: LeavingEarlyCost | null;
+  /** One entry per owner that would lose shares; the primary user first. */
+  costs: LeavingEarlyCost[];
   /** Names the retirement scenario shown, beside the title. */
   scenarioTag?: ReactNode;
 }
@@ -17,11 +18,11 @@ const isolate = (text: string) => `\u2066${text}\u2069`;
 const formatDate = (iso: string) => isolate(formatIsoDate(iso));
 
 /** What leaving before the company shares vest costs, and what waiting for the next batch would earn back. */
-export function UnvestedSharesCard({ cost, scenarioTag }: UnvestedSharesCardProps) {
+export function UnvestedSharesCard({ costs, scenarioTag }: UnvestedSharesCardProps) {
   const { t } = useTranslation();
   const currencySymbol = t("common.currencySymbol");
 
-  if (!cost) {
+  if (costs.length === 0) {
     return null;
   }
 
@@ -39,32 +40,39 @@ export function UnvestedSharesCard({ cost, scenarioTag }: UnvestedSharesCardProp
       </ScenarioTitle>
       <p className="mt-1 text-xs text-slate-500">{t("projections.unvested.intro")}</p>
 
-      <p role="status" className="mt-3 text-sm text-amber-800">
-        {t("projections.unvested.lost", {
-          date: formatDate(cost.retirementDate),
-          shares: shares(cost.lostShares),
-          value: money(cost.lostValue),
-        })}
-      </p>
+      {costs.map((cost) => {
+        const suffix = cost.owner === "spouse" ? "Spouse" : "";
+        return (
+          <div key={cost.owner}>
+            <p role="status" className="mt-3 text-sm text-amber-800">
+              {t(`projections.unvested.lost${suffix}`, {
+                date: formatDate(cost.retirementDate),
+                shares: shares(cost.lostShares),
+                value: money(cost.lostValue),
+              })}
+            </p>
 
-      {cost.next && (
-        <div className="mt-2 space-y-1 text-sm text-slate-700">
-          <p>
-            {t("projections.unvested.next", {
-              period: t("projections.unvested.monthsCount", {
-                count: cost.next.monthsLater,
-                amount: isolate(String(cost.next.monthsLater)),
-              }),
-              date: formatDate(cost.next.vestDate),
-              shares: shares(cost.next.shares),
-              value: money(cost.next.value),
-            })}
-          </p>
-          {cost.next.monthlyNetGain > 0 && (
-            <p>{t("projections.unvested.nextGain", { amount: money(cost.next.monthlyNetGain) })}</p>
-          )}
-        </div>
-      )}
+            {cost.next && (
+              <div className="mt-2 space-y-1 text-sm text-slate-700">
+                <p>
+                  {t(`projections.unvested.next${suffix}`, {
+                    period: t("projections.unvested.monthsCount", {
+                      count: cost.next.monthsLater,
+                      amount: isolate(String(cost.next.monthsLater)),
+                    }),
+                    date: formatDate(cost.next.vestDate),
+                    shares: shares(cost.next.shares),
+                    value: money(cost.next.value),
+                  })}
+                </p>
+                {cost.next.monthlyNetGain > 0 && (
+                  <p>{t("projections.unvested.nextGain", { amount: money(cost.next.monthlyNetGain) })}</p>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
 
       <details className="mt-3 text-sm text-slate-700">
         <summary className="cursor-pointer text-xs font-medium text-brand-700">

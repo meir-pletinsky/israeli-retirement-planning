@@ -4,6 +4,7 @@ import type {
   BituachLeumiData,
   CoverPlan,
   ExpenseItem,
+  AccountOwner,
   Gender,
   InvestmentCategory,
   MaritalStatus,
@@ -83,6 +84,8 @@ export function buildTestProfile(overrides: {
       vestingTranches?: { vestDate?: string; quantity: number; grantPriceUSD?: number }[];
       /** The plan lets unvested batches keep vesting after leaving. */
       keepsVestingAfterLeaving?: boolean;
+      /** Whose grant this is; defaults to the primary user's. */
+      owner?: AccountOwner;
     };
   }[];
   /** Typed monthly spending in retirement (totals mode). */
@@ -243,6 +246,7 @@ export function buildTestProfile(overrides: {
               }),
             ),
             keepsVestingAfterLeaving: holding.employerGrant?.keepsVestingAfterLeaving ?? false,
+            owner: holding.employerGrant?.owner ?? "self",
             vestingSchedule: { batches: null, everyMonths: null, firstVestMonths: null },
           },
           esppDetails: {

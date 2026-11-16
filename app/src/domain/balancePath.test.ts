@@ -193,6 +193,54 @@ describe("unvestedSharesInPath", () => {
     expect(without.unvestedShares).toBeNull();
     expect(path.points[0].netWorth - without.points[0].netWorth).toBeGreaterThanOrEqual(74_000 - 1);
   });
+
+  describe("when the grant belongs to the partner", () => {
+    /** A 55-year-old retiring at 65 and a 50-year-old partner retiring at 55, with 200 shares at $50 vesting in 3.5 and 8.5 years. */
+    const profileWithOwner = (owner: "self" | "spouse", married = true) =>
+      buildTestProfile({
+        age: 55,
+        retirementAge: 65,
+        pensionBalances: [400_000],
+        maritalStatus: married ? "married" : undefined,
+        spouse: married ? { age: 50, retirementAge: 55 } : undefined,
+        equity: [
+          {
+            quantity: 400,
+            priceUSD: 50,
+            employerGrant: {
+              owner,
+              vestingTranches: [
+                { vestDate: isoDateInYears(3.5), quantity: 200 },
+                { vestDate: isoDateInYears(8.5), quantity: 200 },
+              ],
+            },
+          },
+        ],
+      });
+
+    it("counts only what vests by the partner's own retirement", () => {
+      // 200 shares * $50 * 3.7; the batch vesting in 8.5 years is after the partner stops working in 5.
+      expect(unvestedSharesInPath(profileWithOwner("spouse"))).toEqual({
+        value: 37_000,
+        firstVestAge: 58,
+        lastVestAge: 58,
+      });
+    });
+
+    it("counts what vests by the primary user's retirement when the grant is theirs", () => {
+      expect(unvestedSharesInPath(profileWithOwner("self"))).toEqual({
+        value: 74_000,
+        firstVestAge: 58,
+        lastVestAge: 63,
+      });
+    });
+
+    it("treats the grant as the primary user's when the plan has no partner", () => {
+      expect(unvestedSharesInPath(profileWithOwner("spouse", false))).toEqual(
+        unvestedSharesInPath(profileWithOwner("self", false)),
+      );
+    });
+  });
 });
 
 describe("groupPathEvents", () => {

@@ -1,15 +1,9 @@
-import type { ProfileData } from "../types";
-import { resolveRetirementTiming, selfProfileView } from "./household";
+import type { AccountOwner, ProfileData } from "../types";
+import { ownerRetirementMs, resolveRetirementTiming } from "./household";
 import { estimateNetIncomeForTiming } from "./netIncome";
-import { resolveCurrentAge, usdToIlsRate } from "./profileBasics";
-import { engineNowMs } from "./trace";
+import { holdingOwner, usdToIlsRate } from "./profileBasics";
 import type { RetirementScenario } from "./types";
-import {
-  batchStatusAtRetirement,
-  employerShareBatches,
-  isEmployerGrant,
-  momentAfterYears,
-} from "./vesting";
+import { batchStatusAtRetirement, employerShareBatches, isEmployerGrant } from "./vesting";
 
 const MS_PER_MONTH = (365.25 * 24 * 60 * 60 * 1000) / 12;
 
@@ -29,9 +23,11 @@ export interface NextVestGain {
 
 /** The employer shares an early departure would lose, and what waiting for the next vest would earn back. */
 export interface LeavingEarlyCost {
-  /** ISO date the primary user retires in the scenario. */
+  /** Whose grants these are: the primary user's or their spouse's. */
+  owner: AccountOwner;
+  /** ISO date the owner retires in the scenario. */
   retirementDate: string;
-  /** Shares of employer grants that have not vested by then and are lost. */
+  /** Shares of the owner's employer grants that have not vested by then and are lost. */
   lostShares: number;
   /** Their worth at today's share price, before tax, in ILS. */
   lostValue: number;
@@ -48,14 +44,19 @@ interface LostBatch {
   value: number;
 }
 
-/** A copy of `profile` where the batches that vest after `fromMs` and by `untilMs` count as already vested. */
-function withBatchesVestedBy(profile: ProfileData, fromMs: number, untilMs: number): ProfileData {
+/** A copy of `profile` where `owner`'s batches that vest after `fromMs` and by `untilMs` count as already vested. */
+function withBatchesVestedBy(
+  profile: ProfileData,
+  owner: AccountOwner,
+  fromMs: number,
+  untilMs: number,
+): ProfileData {
   return {
     ...profile,
     equity: {
       ...profile.equity,
       holdings: profile.equity.holdings.map((holding) => {
-        if (!isEmployerGrant(holding)) return holding;
+        if (!isEmployerGrant(holding) || holdingOwner(profile, holding) !== owner) return holding;
         const details = holding.employerGrantDetails;
         return {
           ...holding,
@@ -73,67 +74,71 @@ function withBatchesVestedBy(profile: ProfileData, fromMs: number, untilMs: numb
 }
 
 /**
- * The cost of leaving the employer at the scenario's retirement date: the
+ * The cost of leaving the employer at the scenario's retirement date, for the
+ * primary user and for the spouse when they have grants of their own: the
  * unvested shares that are lost and, for the next batch to vest after that
  * date, how many more months it would take, how many shares it keeps and how
- * much after-tax monthly income they add. Returns null when nothing would be
- * lost (every share has vested, the grant keeps vesting after leaving, or the
- * lost shares have no price).
+ * much after-tax monthly income they add. Each grant is lost when its owner
+ * retires. Owners with nothing to lose (every share has vested, the grant keeps
+ * vesting after leaving, or the lost shares have no price) are left out, so the
+ * list is empty when nobody loses anything; the primary user comes first.
  *
  * The monthly gain is the difference between two income estimates that differ
- * only in that batch counting as vested, so the retirement age and the
+ * only in that batch counting as vested, so the retirement ages and the
  * contributions do not move. It is not part of the plan's figures.
  */
-export function buildLeavingEarlyCost(
+export function buildLeavingEarlyCosts(
   profile: ProfileData,
   scenario: RetirementScenario = "standard",
-): LeavingEarlyCost | null {
+): LeavingEarlyCost[] {
   const timing = resolveRetirementTiming(profile, scenario);
-  const yearsToLeave = Math.max(timing.selfAge - resolveCurrentAge(selfProfileView(profile)), 0);
-  const retirementMs = momentAfterYears(engineNowMs(), yearsToLeave);
   const fxRate = usdToIlsRate(profile);
+  let baseline: number | null = null;
+  const baselineIncome = () =>
+    (baseline ??= estimateNetIncomeForTiming(profile, timing).netMonthlyIncome);
 
-  const lost: LostBatch[] = [];
-  for (const holding of profile.equity.holdings) {
-    if (!isEmployerGrant(holding)) continue;
-    const shareValue = (holding.currentMarketPriceUSD ?? 0) * fxRate;
-    for (const batch of employerShareBatches(holding)) {
-      if (batch.vestMs === null || batch.vestDate === null) continue;
-      if (batchStatusAtRetirement(holding, batch, retirementMs) !== "forfeited") continue;
-      lost.push({
-        vestDate: batch.vestDate,
-        vestMs: batch.vestMs,
-        quantity: batch.quantity,
-        value: batch.quantity * shareValue,
-      });
+  const costs: LeavingEarlyCost[] = [];
+  for (const owner of ["self", "spouse"] as const) {
+    const retirementMs = ownerRetirementMs(profile, owner, timing);
+    const lost: LostBatch[] = [];
+    for (const holding of profile.equity.holdings) {
+      if (!isEmployerGrant(holding) || holdingOwner(profile, holding) !== owner) continue;
+      const shareValue = (holding.currentMarketPriceUSD ?? 0) * fxRate;
+      for (const batch of employerShareBatches(holding)) {
+        if (batch.vestMs === null || batch.vestDate === null) continue;
+        if (batchStatusAtRetirement(holding, batch, retirementMs) !== "forfeited") continue;
+        lost.push({
+          vestDate: batch.vestDate,
+          vestMs: batch.vestMs,
+          quantity: batch.quantity,
+          value: batch.quantity * shareValue,
+        });
+      }
     }
+    const sum = (batches: LostBatch[], pick: (batch: LostBatch) => number) =>
+      batches.reduce((total, batch) => total + pick(batch), 0);
+    const lostValue = sum(lost, (batch) => batch.value);
+    if (lost.length === 0 || lostValue <= 0) continue;
+
+    const first = lost.reduce((earliest, batch) => (batch.vestMs < earliest.vestMs ? batch : earliest));
+    const nextBatches = lost.filter((batch) => batch.vestMs <= first.vestMs);
+    const staying = estimateNetIncomeForTiming(
+      withBatchesVestedBy(profile, owner, retirementMs, first.vestMs),
+      timing,
+    ).netMonthlyIncome;
+    costs.push({
+      owner,
+      retirementDate: new Date(retirementMs).toISOString().slice(0, 10),
+      lostShares: round2(sum(lost, (batch) => batch.quantity)),
+      lostValue: Math.round(lostValue),
+      next: {
+        vestDate: first.vestDate,
+        monthsLater: Math.max(Math.ceil((first.vestMs - retirementMs) / MS_PER_MONTH), 1),
+        shares: round2(sum(nextBatches, (batch) => batch.quantity)),
+        value: Math.round(sum(nextBatches, (batch) => batch.value)),
+        monthlyNetGain: Math.max(Math.round(staying - baselineIncome()), 0),
+      },
+    });
   }
-  const sum = (batches: LostBatch[], pick: (batch: LostBatch) => number) =>
-    batches.reduce((total, batch) => total + pick(batch), 0);
-  const lostValue = sum(lost, (batch) => batch.value);
-  if (lost.length === 0 || lostValue <= 0) return null;
-
-  const base = {
-    retirementDate: new Date(retirementMs).toISOString().slice(0, 10),
-    lostShares: round2(sum(lost, (batch) => batch.quantity)),
-    lostValue: Math.round(lostValue),
-  };
-
-  const first = lost.reduce((earliest, batch) => (batch.vestMs < earliest.vestMs ? batch : earliest));
-  const nextBatches = lost.filter((batch) => batch.vestMs <= first.vestMs);
-  const baseline = estimateNetIncomeForTiming(profile, timing).netMonthlyIncome;
-  const staying = estimateNetIncomeForTiming(
-    withBatchesVestedBy(profile, retirementMs, first.vestMs),
-    timing,
-  ).netMonthlyIncome;
-  return {
-    ...base,
-    next: {
-      vestDate: first.vestDate,
-      monthsLater: Math.max(Math.ceil((first.vestMs - retirementMs) / MS_PER_MONTH), 1),
-      shares: round2(sum(nextBatches, (batch) => batch.quantity)),
-      value: Math.round(sum(nextBatches, (batch) => batch.value)),
-      monthlyNetGain: Math.max(Math.round(staying - baseline), 0),
-    },
-  };
+  return costs;
 }

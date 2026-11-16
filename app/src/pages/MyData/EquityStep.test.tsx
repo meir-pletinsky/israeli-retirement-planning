@@ -371,6 +371,70 @@ describe("EquityStep — vesting schedule", () => {
       expect(stored?.equity.holdings[0].employerGrantDetails.keepsVestingAfterLeaving).toBe(true);
     });
   });
+
+  describe("whose grant it is", () => {
+    const OWNER = /^Whose grant is this/;
+
+    it("is not asked for a single person, and the grant is saved as theirs", async () => {
+      const user = userEvent.setup();
+      renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
+
+      await openAddHolding(user, "employerGrantedStock");
+      expect(screen.queryByLabelText(OWNER)).not.toBeInTheDocument();
+      await user.type(screen.getByLabelText(/^Ticker symbol/), "abc");
+      await user.type(screen.getByLabelText(/^Quantity \(shares\)/), "10");
+      await user.type(screen.getByLabelText(/^Grant date/), "2024-03-01");
+      await user.click(screen.getByRole("button", { name: "Save" }));
+
+      await waitFor(async () => {
+        expect((await loadProfileFromDb())?.equity.holdings[0].employerGrantDetails.owner).toBe("self");
+      });
+    });
+
+    it("defaults to the primary user for a couple and saves a grant marked as the partner's", async () => {
+      const user = userEvent.setup();
+      await saveProfileToDb(buildTestProfile({ age: 50, maritalStatus: "married", spouse: { age: 48 } }));
+      renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
+
+      await openAddHolding(user, "employerGrantedStock");
+      expect(screen.getByLabelText(OWNER)).toHaveValue("self");
+      expect(screen.getByText(/lost when the person they belong to stops working/)).toBeInTheDocument();
+      await user.selectOptions(screen.getByLabelText(OWNER), "spouse");
+      await user.type(screen.getByLabelText(/^Ticker symbol/), "abc");
+      await user.type(screen.getByLabelText(/^Quantity \(shares\)/), "10");
+      await user.type(screen.getByLabelText(/^Grant date/), "2024-03-01");
+      await user.click(screen.getByRole("button", { name: "Save" }));
+
+      await waitFor(async () => {
+        expect((await loadProfileFromDb())?.equity.holdings[0].employerGrantDetails.owner).toBe("spouse");
+      });
+    });
+
+    it("is not offered for ESPP or private purchases, which stay with the primary user", async () => {
+      const user = userEvent.setup();
+      await saveProfileToDb(buildTestProfile({ age: 50, maritalStatus: "married", spouse: { age: 48 } }));
+      renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
+
+      await openAddHolding(user, "employerEsppDiscount");
+      expect(screen.queryByLabelText(OWNER)).not.toBeInTheDocument();
+    });
+
+    it("shows a grant saved before the choice existed as the primary user's when it is edited", async () => {
+      const user = userEvent.setup();
+      await saveProfileToDb(
+        buildTestProfile({
+          age: 50,
+          maritalStatus: "married",
+          spouse: { age: 48 },
+          equity: [{ category: "employerGrantedStock", ticker: "AAA", quantity: 10, priceUSD: 5 }],
+        }),
+      );
+      renderWithProviders(<EquityStep />, { route: "/my-data/equity" });
+
+      await user.click(await screen.findByRole("button", { name: "Edit" }));
+      expect(screen.getByLabelText(OWNER)).toHaveValue("self");
+    });
+  });
 });
 
 describe("EquityStep — bank deposit form", () => {

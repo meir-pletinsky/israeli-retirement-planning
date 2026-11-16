@@ -1,12 +1,16 @@
 import type { ProfileData, StockHolding } from "../types";
 import { desiredRetirementMonthly } from "./expenses";
-import { buildHousehold, resolveRetirementTiming, selfProfileView, type RetirementTiming } from "./household";
+import {
+  buildHousehold,
+  holdingRetirementMs,
+  resolveRetirementTiming,
+  type RetirementTiming,
+} from "./household";
 import { estimateNetIncomeForHousehold } from "./netIncome";
-import { holdingValueIls, resolveCurrentAge, usdToIlsRate } from "./profileBasics";
+import { holdingValueIls, usdToIlsRate } from "./profileBasics";
 import { estimateHouseholdRetirementIncome } from "./retirementIncome";
-import { engineNowMs } from "./trace";
 import type { RetirementScenario } from "./types";
-import { momentAfterYears, quantityAtRetirement } from "./vesting";
+import { quantityAtRetirement } from "./vesting";
 
 /** How far the employer shares' price falls in each employer-stock stress, in percent. */
 export const STRESS_EMPLOYER_STOCK_DROPS_PCT = [30, 50] as const;
@@ -153,13 +157,12 @@ export function buildStressTest(
   scenario: RetirementScenario = "standard",
 ): StressTest | null {
   const timing = resolveRetirementTiming(profile, scenario);
-  const yearsToLeave = Math.max(timing.selfAge - resolveCurrentAge(selfProfileView(profile)), 0);
-  const retirementMs = momentAfterYears(engineNowMs(), yearsToLeave);
   const rate = usdToIlsRate(profile);
 
   let dollarValue = 0;
   let employerValue = 0;
   for (const holding of profile.equity.holdings) {
+    const retirementMs = holdingRetirementMs(profile, holding, timing);
     const value = holdingValueIls(holding, rate, quantityAtRetirement(holding, retirementMs));
     dollarValue += value;
     if (isEmployerStock(holding)) employerValue += value;

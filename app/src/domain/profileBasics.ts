@@ -1,6 +1,7 @@
 import {
   ASSUMPTION_PRESET_KEYS,
   ASSUMPTION_PRESETS,
+  type AccountOwner,
   type Assumptions,
   type AssumptionPreset,
   type PensionAccount,
@@ -18,7 +19,7 @@ import {
 } from "./constants";
 import { engineNowMs } from "./trace";
 import type { RetirementScenario } from "./types";
-import { quantityAtRetirement, vestedQuantityAt } from "./vesting";
+import { isEmployerGrant, quantityAtRetirement, vestedQuantityAt } from "./vesting";
 
 /** `personal.age`, falling back to a reasonable default when not yet entered. */
 export function resolveCurrentAge(profile: ProfileData): number {
@@ -176,6 +177,29 @@ export function spouseAccounts(profile: ProfileData): PensionAccount[] {
 /** Every account the plan counts: the user's, plus the spouse's when the plan covers a spouse. */
 export function accountsInPlan(profile: ProfileData): PensionAccount[] {
   return [...ownAccounts(profile), ...spouseAccounts(profile)];
+}
+
+/**
+ * Whose a holding is. Only employer grants have an owner; the spouse owns one
+ * only while the plan covers a spouse, so a grant marked theirs counts as the
+ * primary user's until then.
+ */
+export function holdingOwner(profile: ProfileData, holding: StockHolding): AccountOwner {
+  return isHouseholdActive(profile) &&
+    isEmployerGrant(holding) &&
+    holding.employerGrantDetails.owner === "spouse"
+    ? "spouse"
+    : "self";
+}
+
+/** The holdings of the primary user: everything but the spouse's grants. */
+export function ownHoldings(profile: ProfileData): StockHolding[] {
+  return profile.equity.holdings.filter((holding) => holdingOwner(profile, holding) === "self");
+}
+
+/** The spouse's employer grants; empty unless the plan covers a spouse. */
+export function spouseHoldings(profile: ProfileData): StockHolding[] {
+  return profile.equity.holdings.filter((holding) => holdingOwner(profile, holding) === "spouse");
 }
 
 /** Sum of all counted pension/savings account balances (missing treated as 0), in ILS. */
