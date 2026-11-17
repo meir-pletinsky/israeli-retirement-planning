@@ -3,11 +3,13 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, NavLink, Outlet } from "react-router-dom";
 
+import { BackupFolderNotice } from "../components/BackupFolderNotice";
 import { BackupReminder } from "../components/BackupReminder";
 import { BuildInfo } from "../components/BuildInfo";
 import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { LogoMark } from "../components/LogoMark";
 import { PrivacyBanner } from "../components/PrivacyBanner";
+import { SyncPromptDialog } from "../components/SyncPromptDialog";
 import { SampleDataBanner } from "../pages/ClearingHouseImport/SampleDataBanner";
 import { useUsdToIlsRateRefresh } from "./useUsdToIlsRateRefresh";
 
@@ -89,6 +91,7 @@ export function AppShell() {
         </div>
         <main className="mx-auto w-full max-w-[76rem] flex-1 overflow-x-clip px-4 pt-4 pb-[calc(7rem+env(safe-area-inset-bottom))] md:px-8 md:pt-8 md:pb-10">
           <SampleDataBanner />
+          <BackupFolderNotice />
           <BackupReminder />
           <Outlet />
           <BuildInfo />
@@ -118,6 +121,7 @@ export function AppShell() {
           </NavLink>
         ))}
       </nav>
+      <SyncPromptDialog />
     </div>
   );
 }

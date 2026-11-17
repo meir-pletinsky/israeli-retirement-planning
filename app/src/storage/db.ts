@@ -1,6 +1,7 @@
 import Dexie, { type EntityTable } from "dexie";
 
 import { normalizeProfile, type ProfileData } from "../types";
+import type { VaultKey } from "./sync/snapshotCrypto";
 
 /**
  * Single-row record wrapping the whole profile. The app currently supports
@@ -26,10 +27,34 @@ export interface RestorePoint {
   data: ProfileData;
 }
 
+/**
+ * Which folder this device keeps its backups in, and how far they are in step with the plan here. It
+ * stays on this device and is not part of any backup: the folder handle and the key mean nothing elsewhere.
+ */
+export interface SyncFolderConfig {
+  id: string;
+  /** The browser's permission to use the folder travels with the handle, which is why it is kept as is. */
+  handle: FileSystemDirectoryHandle;
+  folderName: string;
+  /** Names this device in the backup files it writes. */
+  deviceId: string;
+  /** What to call this device in a prompt on another one, e.g. "Edge on Windows". */
+  deviceLabel: string;
+  /** The key the backups are sealed with, or null when they are written as plain text. */
+  vault: VaultKey | null;
+  /** The backup this device last saved to the folder or loaded from it. */
+  lastSyncedId: string | null;
+  /** Fingerprint of the plan as of `lastSyncedId`, to tell whether it changed since. */
+  lastSyncedHash: string | null;
+  /** ISO timestamp of that. */
+  lastSyncedAt: string | null;
+}
+
 class IrpDatabase extends Dexie {
   profile!: EntityTable<ProfileRecord, "id">;
   meta!: EntityTable<MetaRecord, "key">;
   restorePoints!: EntityTable<RestorePoint, "id">;
+  syncFolder!: EntityTable<SyncFolderConfig, "id">;
 
   constructor() {
     super("IsraeliRetirementPlanningDB");
@@ -44,6 +69,12 @@ class IrpDatabase extends Dexie {
       meta: "key",
       restorePoints: "id",
     });
+    this.version(3).stores({
+      profile: "id",
+      meta: "key",
+      restorePoints: "id",
+      syncFolder: "id",
+    });
   }
 }
 
@@ -51,6 +82,7 @@ export const db = new IrpDatabase();
 
 const PROFILE_ID = "current";
 const BEFORE_IMPORT_ID = "before-import";
+const SYNC_FOLDER_ID = "current";
 const ONBOARDED_KEY = "onboarded";
 const FX_LOOKUP_OFF_KEY = "fxLookupOff";
 const CPI_LOOKUP_OFF_KEY = "cpiLookupOff";
@@ -163,11 +195,32 @@ export async function clearBeforeImportRestorePoint(): Promise<void> {
   await db.restorePoints.delete(BEFORE_IMPORT_ID);
 }
 
+export async function loadSyncFolderConfig(): Promise<SyncFolderConfig | undefined> {
+  return db.syncFolder.get(SYNC_FOLDER_ID);
+}
+
+export async function saveSyncFolderConfig(config: Omit<SyncFolderConfig, "id">): Promise<void> {
+  await db.syncFolder.put({ ...config, id: SYNC_FOLDER_ID });
+}
+
+/** Changes part of the saved config; does nothing when no folder is connected. */
+export async function updateSyncFolderConfig(
+  patch: Partial<Pick<SyncFolderConfig, "lastSyncedId" | "lastSyncedHash" | "lastSyncedAt" | "vault">>,
+): Promise<void> {
+  await db.syncFolder.update(SYNC_FOLDER_ID, patch);
+}
+
+/** Disconnects the backup folder; the files in it stay where they are. */
+export async function clearSyncFolderConfig(): Promise<void> {
+  await db.syncFolder.clear();
+}
+
 /** Wipes all locally stored app data (used by Settings → Reset). */
 export async function clearAllData(): Promise<void> {
   await db.profile.clear();
   await db.meta.clear();
   await db.restorePoints.clear();
+  await db.syncFolder.clear();
 }
 
 const LEGACY_PROFILE_KEY = "irp_profile";

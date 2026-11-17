@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
 
 import { useBackupStatus } from "../app/backupStatus";
+import { isFolderInSync, useFolderSync } from "../app/folderSync";
 import { useProfile } from "../app/ProfileContext";
 import { useExportBackup } from "../app/useExportBackup";
 import { formatLocalDate } from "../i18n/formatters";
@@ -26,9 +27,16 @@ export function BackupReminder() {
   const { profile, evaluatedAt } = useProfile();
   const { lastExportedAt, snoozedUntil, snoozePrompt } = useBackupStatus();
   const exportBackup = useExportBackup();
+  const folder = useFolderSync();
   const [toast, setToast] = useState<string | null>(null);
 
+  // A folder that is saving the plan after every change is the backup; while it is still being
+  // checked, the reminder waits so it does not flash up and vanish.
+  const folderCovers =
+    folder.status === "checking" || (isFolderInSync(folder.status) && folder.lastSyncedAt !== null);
+
   const due =
+    !folderCovers &&
     PROMPT_PATHS.includes(pathname) &&
     isBackupDue({
       hasData: hasProfileData(profile),

@@ -36,11 +36,16 @@ export function downloadCsvFile(csv: string, nameSuffix = ""): void {
 }
 
 /**
- * Triggers a browser download of the given profile as a timestamped JSON file. The What if draft,
- * when there is one, rides along under its own top-level key so it never mixes with the plan.
+ * What a backup holds: the plan, and the What if draft, when there is one, under its own top-level
+ * key so it never mixes with the plan. The backup file and the backup folder share this shape.
  */
+export function buildExportObject(profile: ProfileData, whatIfDraft: object | null = null): Record<string, unknown> {
+  return whatIfDraft ? { ...profile, [WHAT_IF_DRAFT_KEY]: whatIfDraft } : { ...profile };
+}
+
+/** Triggers a browser download of the given profile, see {@link buildExportObject}, as a timestamped JSON file. */
 export function exportProfileToFile(profile: ProfileData, whatIfDraft: object | null = null): void {
-  downloadJsonFile(JSON.stringify(whatIfDraft ? { ...profile, [WHAT_IF_DRAFT_KEY]: whatIfDraft } : profile, null, 2));
+  downloadJsonFile(JSON.stringify(buildExportObject(profile, whatIfDraft), null, 2));
 }
 
 /** Top-level keys a plausible profile export should have at least one of. */
@@ -80,6 +85,11 @@ export async function readProfileFile(file: File): Promise<ProfileFile> {
     throw new Error("The selected file is not valid JSON.");
   }
 
+  return readProfileObject(parsed);
+}
+
+/** Like {@link readProfileFile}, for a backup that was already parsed, e.g. read from the backup folder. */
+export function readProfileObject(parsed: unknown): ProfileFile {
   const isPlausibleProfile =
     typeof parsed === "object" &&
     parsed !== null &&

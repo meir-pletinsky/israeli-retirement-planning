@@ -13,13 +13,15 @@ import {
   saveProfileToDb,
 } from "../storage/db";
 import { buildTestProfile } from "../test/domainFixtures";
+import { fakeFolderSync } from "../test/fakeFolderSync";
 import { renderWithProviders } from "../test/renderWithProviders";
 import { stubDownloads } from "../test/stubDownloads";
 import { createEmptyPensionAccount, type ProfileData } from "../types";
 import { AppShell } from "./AppShell";
+import { FolderSyncContext, type FolderSync } from "./folderSync";
 
-function renderShell(route: string) {
-  return renderWithProviders(
+function renderShell(route: string, sync?: FolderSync) {
+  const routes = (
     <Routes>
       <Route element={<AppShell />}>
         <Route path="/dashboard" element={<p>Dashboard page</p>} />
@@ -28,7 +30,10 @@ function renderShell(route: string) {
         <Route path="/settings" element={<p>Settings page</p>} />
         <Route path="/demo" element={<p>Demo page</p>} />
       </Route>
-    </Routes>,
+    </Routes>
+  );
+  return renderWithProviders(
+    sync ? <FolderSyncContext.Provider value={sync}>{routes}</FolderSyncContext.Provider> : routes,
     { route },
   );
 }
@@ -303,5 +308,29 @@ describe("AppShell — backup reminder", () => {
     expect(note.textContent?.replace(/[\u2066\u2069]/g, "")).toContain(
       "You last exported your plan on 16/05/2026.",
     );
+  });
+
+  it("is not needed while a backup folder keeps the plan saved", async () => {
+    await saveSomeData();
+    renderShell("/dashboard", fakeFolderSync({ status: "synced", lastSyncedAt: new Date().toISOString() }));
+
+    expect(await screen.findByText("Dashboard page")).toBeInTheDocument();
+    expect(screen.queryByRole("note", { name: REMINDER })).not.toBeInTheDocument();
+  });
+
+  it("is held back while the folder is still being checked", async () => {
+    await saveSomeData();
+    renderShell("/dashboard", fakeFolderSync({ status: "checking", folderName: "Backups" }));
+
+    expect(await screen.findByText("Dashboard page")).toBeInTheDocument();
+    expect(screen.queryByRole("note", { name: REMINDER })).not.toBeInTheDocument();
+  });
+
+  it("returns when the folder cannot be reached", async () => {
+    await saveSomeData();
+    renderShell("/dashboard", fakeFolderSync({ status: "needsPermission", permission: "prompt", folderName: "Backups" }));
+
+    expect(await screen.findByRole("note", { name: REMINDER })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Allow access" })).toBeInTheDocument();
   });
 });

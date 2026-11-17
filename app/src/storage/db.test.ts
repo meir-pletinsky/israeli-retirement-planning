@@ -4,12 +4,14 @@ import { buildTestProfile } from "../test/domainFixtures";
 import {
   clearAllData,
   clearBeforeImportRestorePoint,
+  clearSyncFolderConfig,
   loadBackupSnoozedUntilFromDb,
   loadBeforeImportRestorePoint,
   loadCpiLookupEnabledFromDb,
   loadFxLookupEnabledFromDb,
   loadLastExportedAtFromDb,
   loadOnboardedFromDb,
+  loadSyncFolderConfig,
   loadWhatIfDraftFromDb,
   saveBackupSnoozedUntilToDb,
   saveBeforeImportRestorePoint,
@@ -17,8 +19,11 @@ import {
   saveFxLookupEnabledToDb,
   saveLastExportedAtToDb,
   saveOnboardedToDb,
+  saveSyncFolderConfig,
   saveWhatIfDraftToDb,
+  updateSyncFolderConfig,
 } from "./db";
+import { decryptPayload, deriveVaultKey, encryptPayload } from "./sync/snapshotCrypto";
 
 beforeEach(async () => {
   await clearAllData();
@@ -130,5 +135,71 @@ describe("backup timestamps", () => {
 
     expect(await loadOnboardedFromDb()).toBe(false);
     expect(await loadFxLookupEnabledFromDb()).toBe(true);
+  });
+});
+
+describe("backup folder config", () => {
+  const handle = { kind: "directory", name: "Backups" } as unknown as FileSystemDirectoryHandle;
+  const base = {
+    handle,
+    folderName: "Backups",
+    deviceId: "abcd1234-ef56",
+    deviceLabel: "Edge on Windows",
+    vault: null,
+    lastSyncedId: null,
+    lastSyncedHash: null,
+    lastSyncedAt: null,
+  };
+
+  it("is absent until a folder is connected", async () => {
+    expect(await loadSyncFolderConfig()).toBeUndefined();
+  });
+
+  it("keeps the folder and changes to how far it is in step", async () => {
+    await saveSyncFolderConfig(base);
+    await updateSyncFolderConfig({ lastSyncedId: "20260615T102030456Z-abcd1234", lastSyncedHash: "h1" });
+
+    const config = await loadSyncFolderConfig();
+
+    expect(config?.folderName).toBe("Backups");
+    expect(config?.lastSyncedId).toBe("20260615T102030456Z-abcd1234");
+    expect(config?.lastSyncedHash).toBe("h1");
+  });
+
+  it("keeps a key that can still open a backup", async () => {
+    const vault = await deriveVaultKey("correct horse", undefined, { iterations: 1000 });
+    const sealed = await encryptPayload(vault, "20260615T102030456Z-abcd1234", { personal: { age: 50 } });
+    await saveSyncFolderConfig({ ...base, vault });
+
+    const stored = (await loadSyncFolderConfig())?.vault;
+
+    expect(stored).toBeTruthy();
+    const envelope = {
+      app: "israeli-retirement-planning" as const,
+      format: 1,
+      id: "20260615T102030456Z-abcd1234",
+      savedAt: "2026-06-15T10:20:30.456Z",
+      deviceId: "abcd1234",
+      deviceLabel: "Edge on Windows",
+      parentId: null,
+      ...sealed,
+    };
+    expect(await decryptPayload(stored as NonNullable<typeof stored>, envelope)).toEqual({ personal: { age: 50 } });
+  });
+
+  it("is dropped by disconnecting and by a reset", async () => {
+    await saveSyncFolderConfig(base);
+    await clearSyncFolderConfig();
+    expect(await loadSyncFolderConfig()).toBeUndefined();
+
+    await saveSyncFolderConfig(base);
+    await clearAllData();
+    expect(await loadSyncFolderConfig()).toBeUndefined();
+  });
+
+  it("does not appear from an update when no folder is connected", async () => {
+    await updateSyncFolderConfig({ lastSyncedId: "x" });
+
+    expect(await loadSyncFolderConfig()).toBeUndefined();
   });
 });

@@ -2,6 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { FolderSyncContext } from "../app/folderSync";
 import { resetFxCache } from "../fx/client";
 import {
   clearAllData,
@@ -19,6 +20,7 @@ import {
   saveWhatIfDraftToDb,
 } from "../storage/db";
 import { buildTestProfile } from "../test/domainFixtures";
+import { fakeFolderSync } from "../test/fakeFolderSync";
 import { renderWithProviders } from "../test/renderWithProviders";
 import { stubDownloads } from "../test/stubDownloads";
 import { Settings } from "./Settings";
@@ -334,6 +336,48 @@ describe("Settings — import protects the current plan", () => {
     expect(await screen.findByText(/Couldn't import this file/)).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(await savedAge()).toBe(52);
+  });
+});
+
+describe("Settings — backup folder", () => {
+  it("shows the folder card and mentions it in the privacy notes when the browser supports it", async () => {
+    renderWithProviders(
+      <FolderSyncContext.Provider value={fakeFolderSync()}>
+        <Settings />
+      </FolderSyncContext.Provider>,
+      { route: "/settings" },
+    );
+
+    expect(await screen.findByRole("heading", { name: "Backup folder" })).toBeInTheDocument();
+    expect(screen.getByText(/Backup folder \(optional, Chrome and Edge\)/)).toBeInTheDocument();
+  });
+
+  it("disconnects the folder, keeping its files, before it wipes the plan", async () => {
+    const calls: string[] = [];
+    const sync = fakeFolderSync({
+      status: "synced",
+      folderName: "Backups",
+      disconnect: vi.fn(async () => {
+        calls.push("disconnect");
+      }),
+    });
+    await saveProfileToDb(buildTestProfile({ age: 40 }));
+    const user = userEvent.setup();
+    renderWithProviders(
+      <FolderSyncContext.Provider value={sync}>
+        <Settings />
+      </FolderSyncContext.Provider>,
+      { route: "/settings" },
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Reset all data" }));
+    const dialog = await screen.findByRole("dialog", { name: "Reset all data?" });
+    expect(dialog).toHaveTextContent("The backup folder is disconnected");
+    await user.click(within(dialog).getByRole("button", { name: "Confirm" }));
+
+    await waitFor(() => expect(sync.disconnect).toHaveBeenCalledTimes(1));
+    await waitFor(async () => expect((await loadProfileFromDb())?.personal.age ?? null).toBeNull());
+    expect(calls).toEqual(["disconnect"]);
   });
 });
 

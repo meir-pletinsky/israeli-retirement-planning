@@ -14,11 +14,13 @@ import { areasEmptiedByImport, summarizePlan } from "../domain/planSummary";
 import { formatDate, formatLocalDate, formatNumber } from "../i18n/formatters";
 import { hasProfileData, type ProfileData } from "../types";
 import { useBackupStatus } from "../app/backupStatus";
+import { useFolderSync } from "../app/folderSync";
 import { useProfile } from "../app/ProfileContext";
 import { useExportBackup } from "../app/useExportBackup";
 import { useWhatIfDraft } from "../app/whatIfDraft";
 import { useLatestUsdIlsRate } from "../app/useLatestUsdIlsRate";
 import { usePersistenceStatus } from "../app/usePersistenceStatus";
+import { BackupFolderCard } from "../components/BackupFolderCard";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { CheckboxField } from "../components/fields/CheckboxField";
 import { ImportPreviewDialog } from "../components/ImportPreviewDialog";
@@ -40,6 +42,7 @@ export function Settings() {
     setCpiLookupEnabled,
   } = useProfile();
   const { restoreDraft } = useWhatIfDraft();
+  const folderSync = useFolderSync();
   const { rate: latestRate, settled: rateSettled } = useLatestUsdIlsRate(fxLookupEnabled);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingImport, setPendingImport] = useState<(ProfileFile & { fileName: string }) | null>(null);
@@ -137,6 +140,7 @@ export function Settings() {
           <li>{t("privacy.section.cpi")}</li>
           <li>{t("privacy.section.stocks")}</li>
           <li>{t("privacy.section.files")}</li>
+          {folderSync.supported && <li>{t("privacy.section.folder")}</li>}
         </ul>
       </section>
 
@@ -265,6 +269,8 @@ export function Settings() {
         </div>
       </section>
 
+      <BackupFolderCard />
+
       <VerificationExport
         onNotify={(message, tone) => {
           setToastTone(tone);
@@ -297,14 +303,16 @@ export function Settings() {
       <ConfirmModal
         open={confirmOpen}
         title={t("settings.resetConfirmTitle")}
-        body={t("settings.resetConfirmBody")}
+        body={t("settings.resetConfirmBody") + (folderSync.folderName ? ` ${t("settings.sync.resetNote")}` : "")}
         confirmLabel={t("common.confirm")}
         cancelLabel={t("common.cancel")}
         onCancel={() => setConfirmOpen(false)}
         onConfirm={() => {
-          resetProfile();
           setConfirmOpen(false);
-          navigate("/");
+          void folderSync.disconnect().finally(() => {
+            resetProfile();
+            navigate("/");
+          });
         }}
       />
       <Toast message={toast} tone={toastTone} onClear={() => setToast(null)} />

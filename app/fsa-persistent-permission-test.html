@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>File System Access – Persistent Permission Test</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { font-family: Segoe UI, system-ui, sans-serif; margin: 24px; max-width: 900px; color: #222; }
+  h1 { font-size: 1.4em; margin-bottom: 4px; }
+  .sub { color: #666; margin-top: 0; }
+  section { border: 1px solid #ddd; border-radius: 8px; padding: 12px 16px; margin: 14px 0; }
+  h2 { font-size: 1.05em; margin: 0 0 8px; }
+  button { margin: 4px 6px 4px 0; padding: 6px 12px; cursor: pointer; }
+  table { border-collapse: collapse; width: 100%; }
+  td { padding: 3px 8px; border-bottom: 1px solid #eee; vertical-align: top; }
+  td:first-child { width: 260px; color: #555; }
+  .ok { color: #0a7a2f; font-weight: 600; }
+  .bad { color: #b00020; font-weight: 600; }
+  .warn { color: #a66300; font-weight: 600; }
+  #log { background: #111; color: #ddd; font-family: Consolas, monospace; font-size: 12px;
+         padding: 10px; height: 260px; overflow: auto; border-radius: 6px; white-space: pre-wrap; }
+  ol li { margin-bottom: 4px; }
+  #verdict { font-size: 1.05em; }
+</style>
+</head>
+<body>
+<h1>File System Access API – "Allow on every visit" test</h1>
+<p class="sub">Checks whether this browser keeps folder access across visits and browser restarts.</p>
+
+<section>
+  <h2>1. Environment</h2>
+  <table id="env"></table>
+</section>
+
+<section>
+  <h2>2. Actions</h2>
+  <button id="btnPick">Pick folder (showDirectoryPicker)</button>
+  <button id="btnRequest">Re-request permission (stored handle)</button>
+  <button id="btnList">List folder contents</button>
+  <button id="btnWrite">Write test file</button>
+  <button id="btnCheck">Re-check permission state</button>
+  <button id="btnForget">Forget stored handle</button>
+  <button id="btnClearLog">Clear log</button>
+</section>
+
+<section>
+  <h2>3. Stored handle &amp; verdict</h2>
+  <table id="state"></table>
+  <p id="verdict"></p>
+</section>
+
+<section>
+  <h2>How to test</h2>
+  <ol>
+    <li><span style="text-decoration: line-through;">Serve this file over <b>http://localhost</b> or HTTPS (a <i>file://</i> page is not reliable for persistent permissions), e.g.
+        <i>python -m http.server 8080</i> in the folder, then open <i>http://localhost:8080/fsa-persistent-permission-test.html</i>.</span></li>
+    <li>Click <b>Pick folder</b>, choose a test folder, and grant <b>Edit</b> access (needed for the write test).</li>
+    <li>Close <b>all tabs</b> of this origin (or restart Edge), then open the page again.</li>
+    <li>The page reads the stored handle and shows its permission state. If it's <code>prompt</code>, click
+        <b>Re-request permission</b>. Look for the three-option prompt: <i>Allow this time / Allow on every visit / Don't allow</i>.</li>
+    <li>Choose <b>Allow on every visit</b>, close all tabs again, reopen. If the state is now <code>granted</code> on load,
+        without any prompt, the feature works.</li>
+    <li>Optional: check <code>edge://settings/content/fileEditing</code> or the site-info (lock icon) popup to see the granted folder.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Log</h2>
+  <div id="log"></div>
+</section>
+
+<script>
+(() => {
+  const DB_NAME = 'fsa-persist-test';
+  const STORE = 'handles';
+  const KEY = 'dir';
+  const META_KEY = 'fsa-persist-test-meta';
+  const $ = id => document.getElementById(id);
+
+  // ---------- logging ----------
+  function log(msg, cls) {
+    const t = new Date().toLocaleTimeString();
+    const line = document.createElement('div');
+    line.textContent = `[${t}] ${msg}`;
+    if (cls === 'ok') line.style.color = '#6fdc8c';
+    if (cls === 'bad') line.style.color = '#ff6b81';
+    if (cls === 'warn') line.style.color = '#ffc857';
+    $('log').appendChild(line);
+    $('log').scrollTop = $('log').scrollHeight;
+    console.log(msg);
+  }
+
+  function row(table, k, v, cls) {
+    const tr = document.createElement('tr');
+    const td1 = document.createElement('td'); td1.textContent = k;
+    const td2 = document.createElement('td'); td2.textContent = v;
+    if (cls) td2.className = cls;
+    tr.append(td1, td2); $(table).appendChild(tr);
+  }
+
+  // ---------- IndexedDB ----------
+  function openDb() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open(DB_NAME, 1);
+      r.onupgradeneeded = () => r.result.createObjectStore(STORE);
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+  }
+  async function idb(mode, fn) {
+    const db = await openDb();
+    return new Promise((res, rej) => {
+      const tx = db.transaction(STORE, mode);
+      const req = fn(tx.objectStore(STORE));
+      tx.oncomplete = () => res(req && req.result);
+      tx.onerror = () => rej(tx.error);
+    });
+  }
+  const saveHandle = h => idb('readwrite', s => s.put(h, KEY));
+  const loadHandle = () => idb('readonly', s => s.get(KEY));
+  const deleteHandle = () => idb('readwrite', s => s.delete(KEY));
+
+  // ---------- environment ----------
+  async function showEnv() {
+    $('env').innerHTML = '';
+    let brands = 'n/a';
+    if (navigator.userAgentData) {
+      try {
+        const hv = await navigator.userAgentData.getHighEntropyValues(['fullVersionList', 'platformVersion']);
+        brands = (hv.fullVersionList || navigator.userAgentData.brands)
+          .filter(b => !/Not.?A.?Brand/i.test(b.brand))
+          .map(b => `${b.brand} ${b.version}`).join(', ');
+      } catch { brands = navigator.userAgentData.brands.map(b => `${b.brand} ${b.version}`).join(', '); }
+    }
+    row('env', 'Browser (UA-CH)', brands);
+    row('env', 'User agent', navigator.userAgent);
+    row('env', 'Origin', location.origin);
+    row('env', 'Secure context', String(window.isSecureContext), window.isSecureContext ? 'ok' : 'bad');
+    if (location.protocol === 'file:') row('env', 'Warning', 'Opened via file:// – serve via http://localhost for a valid test', 'warn');
+    const hasPicker = 'showDirectoryPicker' in window;
+    row('env', 'showDirectoryPicker', hasPicker ? 'supported' : 'NOT supported', hasPicker ? 'ok' : 'bad');
+    const hasQP = typeof FileSystemHandle !== 'undefined' && 'queryPermission' in FileSystemHandle.prototype;
+    row('env', 'queryPermission / requestPermission', hasQP ? 'supported' : 'NOT supported', hasQP ? 'ok' : 'bad');
+    const standalone = matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: window-controls-overlay)').matches;
+    row('env', 'Running as installed app (PWA)', String(standalone));
+    if (standalone) row('env', 'Note', 'Installed apps keep access without the 3-way prompt', 'warn');
+  }
+
+  // ---------- state ----------
+  function getMeta() { try { return JSON.parse(localStorage.getItem(META_KEY)) || {}; } catch { return {}; } }
+  function setMeta(m) { localStorage.setItem(META_KEY, JSON.stringify(m)); }
+
+  async function checkState(origin) {
+    $('state').innerHTML = ''; $('verdict').textContent = ''; $('verdict').className = '';
+    const meta = getMeta();
+    let handle;
+    try { handle = await loadHandle(); } catch (e) { log('IndexedDB read failed: ' + e, 'bad'); }
+    if (!handle) {
+      row('state', 'Stored handle', 'none – click "Pick folder" first', 'warn');
+      return null;
+    }
+    row('state', 'Stored handle', `"${handle.name}" (kind: ${handle.kind})`, 'ok');
+    if (meta.pickedAt) row('state', 'Picked at', new Date(meta.pickedAt).toLocaleString());
+    if (meta.lastPageLoad) row('state', 'Previous page load', new Date(meta.lastPageLoad).toLocaleString());
+
+    const r = await handle.queryPermission({ mode: 'read' });
+    const rw = await handle.queryPermission({ mode: 'readwrite' });
+    const cls = s => s === 'granted' ? 'ok' : s === 'denied' ? 'bad' : 'warn';
+    row('state', 'queryPermission(read)', r, cls(r));
+    row('state', 'queryPermission(readwrite)', rw, cls(rw));
+    log(`[${origin}] Permission state – read: ${r}, readwrite: ${rw}`, cls(r) === 'ok' ? 'ok' : 'warn');
+
+    const v = $('verdict');
+    if (origin === 'page load' && meta.pickedAt) {
+      if (r === 'granted') {
+        v.textContent = 'PASS: access was granted on page load with no prompt. If you closed all tabs/restarted after choosing "Allow on every visit", the feature works.';
+        v.className = 'ok';
+      } else if (r === 'prompt') {
+        v.textContent = 'Access is not persisted yet. Click "Re-request permission" and look for the "Allow on every visit" option.';
+        v.className = 'warn';
+      } else {
+        v.textContent = 'Permission denied. Reset site permissions and try again.';
+        v.className = 'bad';
+      }
+    }
+    return handle;
+  }
+
+  // ---------- actions ----------
+  $('btnPick').onclick = async () => {
+    if (!('showDirectoryPicker' in window)) { log('showDirectoryPicker not supported', 'bad'); return; }
+    try {
+      const h = await window.showDirectoryPicker({ id: 'fsa-persist-test', mode: 'readwrite' });
+      await saveHandle(h);
+      setMeta({ ...getMeta(), pickedAt: Date.now() });
+      log(`Picked folder "${h.name}" and stored the handle in IndexedDB`, 'ok');
+      await checkState('after pick');
+    } catch (e) { log('Pick failed/cancelled: ' + e.name + ' – ' + e.message, 'bad'); }
+  };
+
+  $('btnRequest').onclick = async () => {
+    const h = await loadHandle();
+    if (!h) { log('No stored handle', 'warn'); return; }
+    try {
+      log('Calling requestPermission({mode:"readwrite"}) – watch for "Allow on every visit"...');
+      const res = await h.requestPermission({ mode: 'readwrite' });
+      log('requestPermission result: ' + res, res === 'granted' ? 'ok' : 'bad');
+      await checkState('after request');
+    } catch (e) { log('requestPermission error: ' + e.name + ' – ' + e.message, 'bad'); }
+  };
+
+  $('btnList').onclick = async () => {
+    const h = await loadHandle();
+    if (!h) { log('No stored handle', 'warn'); return; }
+    try {
+      let n = 0; const names = [];
+      for await (const [name, entry] of h.entries()) {
+        if (n < 20) names.push((entry.kind === 'directory' ? '[dir] ' : '') + name);
+        n++;
+      }
+      log(`Listed "${h.name}": ${n} entries${n ? '\n  ' + names.join('\n  ') + (n > 20 ? '\n  ...' : '') : ''}`, 'ok');
+    } catch (e) { log('List failed: ' + e.name + ' – ' + e.message, 'bad'); }
+  };
+
+  $('btnWrite').onclick = async () => {
+    const h = await loadHandle();
+    if (!h) { log('No stored handle', 'warn'); return; }
+    try {
+      const f = await h.getFileHandle('fsa-persist-test.txt', { create: true });
+      const w = await f.createWritable();
+      await w.write(`Written by FSA persistence test at ${new Date().toISOString()}\n${navigator.userAgent}\n`);
+      await w.close();
+      log('Wrote fsa-persist-test.txt successfully', 'ok');
+    } catch (e) { log('Write failed: ' + e.name + ' – ' + e.message, 'bad'); }
+  };
+
+  $('btnCheck').onclick = () => checkState('manual');
+
+  $('btnForget').onclick = async () => {
+    await deleteHandle(); localStorage.removeItem(META_KEY);
+    log('Stored handle and metadata removed', 'warn');
+    await checkState('manual');
+  };
+
+  $('btnClearLog').onclick = () => { $('log').innerHTML = ''; };
+
+  // ---------- init ----------
+  (async () => {
+    await showEnv();
+    log('Page loaded – checking stored handle without any user gesture...');
+    try { await checkState('page load'); } catch (e) { log('Check failed: ' + e, 'bad'); }
+    setMeta({ ...getMeta(), lastPageLoad: Date.now() });
+  })();
+})();
+</script>
+</body>
+</html>

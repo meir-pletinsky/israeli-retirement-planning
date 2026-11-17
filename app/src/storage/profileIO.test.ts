@@ -8,7 +8,7 @@ import {
   createEmptyPensionAccount,
   type ProfileData,
 } from "../types";
-import { exportProfileToFile, importProfileFromFile, readProfileFile } from "./profileIO";
+import { buildExportObject, exportProfileToFile, importProfileFromFile, readProfileFile, readProfileObject } from "./profileIO";
 
 function makeJsonFile(content: string, name = "profile.json"): File {
   return new File([content], name, { type: "application/json" });
@@ -144,6 +144,25 @@ describe("readProfileFile", () => {
     expect(withDraft.whatIfDraft).toEqual(draft);
     expect(withDraft.profile).not.toHaveProperty("whatIfDraft");
     expect(without.whatIfDraft).toBeNull();
+  });
+});
+
+describe("buildExportObject", () => {
+  it("is the plain plan, with the What if draft under its own key only when there is one", () => {
+    const draft = { overrides: { retirementAge: 62 } };
+
+    expect(buildExportObject(EMPTY_PROFILE)).toEqual(EMPTY_PROFILE);
+    expect(buildExportObject(EMPTY_PROFILE, draft)).toEqual({ ...EMPTY_PROFILE, whatIfDraft: draft });
+  });
+
+  it("reads back through readProfileObject the way the file import does", () => {
+    const profile = { ...EMPTY_PROFILE, personal: { ...EMPTY_PROFILE.personal, age: 47 } };
+    const draft = { overrides: { retirementAge: 62 } };
+
+    const result = readProfileObject(JSON.parse(JSON.stringify(buildExportObject(profile, draft))));
+
+    expect(result.profile.personal.age).toBe(47);
+    expect(result.whatIfDraft).toEqual(draft);
   });
 });
 

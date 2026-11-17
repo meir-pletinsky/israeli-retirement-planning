@@ -1959,7 +1959,8 @@
       "rates": "Exchange rates: the app can ask for the dollar rate, sending just the currency pair and a date. You can switch this off below.",
       "cpi": "Inflation figures: the Assumptions page can ask the Israeli Central Bureau of Statistics for the consumer price index. Nothing about you is sent. You can switch this off below.",
       "stocks": "Stock prices: choosing a ticker loads that stock's public price file from this site. None of your amounts, dates or other details are sent.",
-      "files": "Files you export or import stay with you. The app never uploads them."
+      "files": "Files you export or import stay with you. The app never uploads them.",
+      "folder": "Backup folder (optional, Chrome and Edge): the app saves copies of your plan in a folder you choose, encrypted by default. If a cloud app such as OneDrive or Dropbox syncs that folder, that app uploads the copies, not this one."
     }
   },
   "backup": {
@@ -1981,6 +1982,98 @@
     "backup": {
       "lastExported": "Last exported: {{date}}",
       "neverExported": "Last exported: never"
+    },
+    "sync": {
+      "title": "Backup folder",
+      "unsupported": "Saving backups to a folder works in Chrome and Edge on a computer. Use Export data and Import data to keep copies of your plan.",
+      "intro": "Save a copy of your plan to a folder after every change. If a cloud app such as OneDrive, Dropbox, iCloud Drive or Google Drive keeps that folder in sync, your other computers can load the plan from it. Backups are encrypted with a passphrase unless you turn that off.",
+      "choose": "Choose a folder…",
+      "pickFailed": "The folder could not be opened. Please try again.",
+      "folder": "Folder: {{name}}",
+      "lastSaved": "Last saved: {{date}}",
+      "neverSaved": "Nothing has been saved to this folder yet.",
+      "encryptionOn": "Backups are encrypted with your passphrase.",
+      "encryptionOff": "Backups are not encrypted. Anyone who can open the folder, or the cloud account that syncs it, can read your plan.",
+      "status": {
+        "needsPermission": "Waiting for you to allow access to the folder.",
+        "checking": "Checking the folder…",
+        "saving": "Saving…",
+        "synced": "Your plan is saved in the folder.",
+        "pending": "Changes will be saved in a moment.",
+        "paused": "The folder and this device hold different versions of your plan. Nothing is saved until you choose.",
+        "error": "Something is wrong with the folder."
+      },
+      "problem": {
+        "permission": "The browser no longer lets the app use the backup folder. Choose the folder again to continue.",
+        "missing": "The backup folder could not be found. Choose it again, or disconnect it.",
+        "failed": "Saving to the folder did not work. It will be tried again.",
+        "newerFormat": "The folder holds a backup from a newer version of the app. Reload the page to get the latest version.",
+        "unreadable": "Some backups in the folder cannot be read yet. A cloud app may still be copying them; this will be tried again."
+      },
+      "allowAccess": "Allow access",
+      "allowHint": "When the browser asks, choose \"{{option}}\" so it does not ask again.",
+      "review": "Review",
+      "saveNow": "Save now",
+      "changeFolder": "Change folder",
+      "changePassphrase": "Change passphrase",
+      "turnOnEncryption": "Turn on encryption",
+      "turnOffEncryption": "Turn off encryption",
+      "turnOffTitle": "Turn off encryption?",
+      "turnOffBody": "New backups will be saved as plain text that anyone with access to the folder can read. Backups already in the folder stay encrypted until they are replaced.",
+      "turnOffConfirm": "Turn off encryption",
+      "disconnect": "Disconnect",
+      "manualNote": "Export data and Import data in Data management work as before. Exported files are never encrypted.",
+      "wrongPassphrase": "That passphrase does not open the backups in this folder.",
+      "resetNote": "The backup folder is disconnected, and the backups already in it are not deleted.",
+      "setup": {
+        "title": "Save backups to this folder",
+        "connect": "Connect folder",
+        "newerFormat": "This folder holds a backup from a newer version of the app, so this version cannot use it. Reload the page to get the latest version.",
+        "existing": "This folder already holds a backup, saved {{date}} on {{device}}. If it differs from this device, you will be asked which version to keep.",
+        "unreadable": "Some files in this folder look like backups but cannot be read yet. If a cloud app is still downloading them, wait a moment and choose the folder again.",
+        "enterPassphrase": "Passphrase of the backups in this folder",
+        "encrypt": "Encrypt the backups with a passphrase (recommended)",
+        "olderPlain": "Backups already in this folder stay unencrypted until they are replaced.",
+        "plainWarning": "Without encryption, anyone who can open this folder, or the cloud account that syncs it, can read your whole plan.",
+        "failed": "Could not connect this folder. Please try again."
+      },
+      "passphrase": {
+        "label": "Passphrase",
+        "confirm": "Repeat the passphrase",
+        "rules": "At least {{min}} characters.",
+        "tooShort": "Use at least {{min}} characters.",
+        "mismatch": "The two passphrases do not match.",
+        "lossWarning": "Keep the passphrase somewhere safe. If it is lost, the backups cannot be opened and nobody can recover them.",
+        "turnOnTitle": "Turn on encryption",
+        "turnOnBody": "From now on, backups are saved encrypted with this passphrase.",
+        "changeTitle": "Change passphrase",
+        "changeBody": "New backups use the new passphrase. Your other devices ask for it the next time they open a backup from this folder.",
+        "failed": "Could not save the passphrase. Please try again."
+      },
+      "prompt": {
+        "title": {
+          "found": "A backup was found in your folder",
+          "newer": "The folder has a newer version",
+          "conflict": "Choose which version to keep"
+        },
+        "saved": "Saved {{date}} from {{device}}.",
+        "body": {
+          "found": "This device has no plan yet. Load the backup to continue where you left off.",
+          "newer": "Another device saved changes to the folder after this one last synced. Load them to bring this device up to date.",
+          "conflict": "This device and the folder both have changes the other lacks. Choose the version to continue with. Nothing is saved to the folder until you choose."
+        },
+        "restoreNote": "If you use the folder's version, your current plan is saved first, so you can undo this from Settings → Data management.",
+        "passphrase": "Passphrase of this backup",
+        "useCloud": "Use the folder's version",
+        "keepLocal": "Keep this device's version",
+        "later": "Decide later",
+        "failed": "That did not work. Please try again."
+      },
+      "notice": {
+        "needsPermission": "Your browser needs your permission to use the backup folder again.",
+        "paused": "The backup folder holds a different version of your plan. Nothing is saved to it until you choose.",
+        "openSettings": "Open Settings"
+      }
     },
     "persistence": {
       "persisted": "Your browser has agreed to keep this plan.",
