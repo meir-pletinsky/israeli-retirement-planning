@@ -40,6 +40,8 @@ export * from "./sources";
 export * from "./sourceCosts";
 export * from "./stressTests";
 export * from "./tax";
+export * from "./taxByAge";
+export * from "./taxByAgeRules";
 export * from "./taxRates";
 export {
   assumedRetirementAges,

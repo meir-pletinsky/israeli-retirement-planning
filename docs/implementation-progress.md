@@ -1852,6 +1852,65 @@ Texts: `myData.steps.pensionSavings.fields.lifeAnnuityFrom60*` in en, he and ru.
       left. The profile and the language were restored afterwards. 1336 passed and 1 skipped in
       all.
 
+## Tax by age (read-only My Data card)
+
+My Data → Pension & savings has a "How each account is taxed at different ages" card under the
+accounts table, for the person whose tab is open. It was first put on Projections, but it only
+reads the Pension & savings data (product type, balance breakdown, owner age and gender) and
+ignores the scenario and assumptions, so it moved next to the data it describes.
+Each account is a collapsed panel: the provider (or product type) as a header, which opens the
+table. For each pension fund, managers insurance, provident fund, study fund and
+investment provident fund it shows general rates and **2026 limits** (not a personal effective
+rate), how every part of the account is taxed before 60, from 60 and from
+the owner's own statutory retirement age, for a monthly annuity and for a lump sum where both
+exist. Nothing else in the plan changes: the engine still treats each account as one pension-like
+or capital-gains balance.
+
+How it works (`domain/taxByAge.ts`, `buildTaxByAge(profile, only?)`; rules in `domain/taxByAgeRules.ts`):
+- An account is split into the parts that follow their own rule: pension savings, ordinary and recognized annuity money,
+  money deposited up to 2007 (old capital), severance, and for a study fund the deposits within
+  and above the ceiling. The balance breakdown tells the parts apart when it covers at least 99%
+  of the balance; otherwise every part the product can hold is shown, with a note.
+- The three age bands are before 60, from 60, and from the owner's statutory retirement age
+  (per spouse). The qualifying-annuity rate is illustrated for the first eligible payment year;
+  it applies to the statutory ceiling, not the whole pension, and follows subsequent payment
+  years rather than being locked at retirement.
+- Rates the engine owns (brackets, exemption schedule, health tax, capital gains) come from
+  `TAX_RATES`. Reference-only withdrawal conditions, 2026 limits and early-pension NI rates
+  live in `TAX_BY_AGE_RULES`. Internal confidence is not shown to users.
+- Accounts with no product type, or one the view has no rules for, are left out and counted in a
+  note that says to edit the account and choose its product type.
+- The optional `only` argument keeps one person's accounts (and skipped count). My Data passes
+  the open tab's person; the partner's tab shows nothing while the household is inactive.
+
+Evidence review (2026-11-18; rule W in `docs/constants-to-verify.md`): lawful old capital is
+exempt subject to historical access conditions; recognized money has the conditional 15%
+nominal-gain route, unlike ordinary post-2008 deposits. Commutation may use remaining pension
+relief, rather than always paying marginal tax. The study-fund 3-year age route starts at
+statutory retirement age; its early tax applies only to taxable components. Harel's 2026 table
+supplies the minimum annuity, severance and study-fund limits. The UI shows practical conditions
+instead of evidence, sources or "unverified" badges. The card remains outside the calculation
+trace and verification pack; the engine's per-account tax simplifications are unchanged.
+
+Where it lives: `domain/taxByAgeRules.ts`, `domain/taxByAge.ts`, `components/TaxByAgeCard.tsx`,
+placed in `pages/MyData/PensionSavingsStep.tsx`. Texts: `myData.steps.pensionSavings.taxByAge.*`
+in en, he and ru.
+
+- [x] Domain rules and builder, exported from `domain/index.ts`.
+- [x] Domain tests in `taxByAge.test.ts` (empty profile, accounts with no or an unknown type,
+      pension annuity bands, parts and options, statutory age and exemption year for men and
+      women, per-spouse ages, one person's accounts, breakdown coverage, paying annuity,
+      investment fund, study fund, Amendment 190, old capital).
+- [x] Card and texts in en, he and ru; the locale parity test passes.
+- [x] Component tests in `TaxByAgeCard.test.tsx` (8, one per language for three), page tests in
+      `PensionSavingsStep.test.tsx` "tax rules by age" (3), and a guard in `Projections.test.tsx`
+      "tax by age" (1) that the card is no longer on Projections.
+- [x] Whole suite: 2584 passed and 1 skipped when the machine is otherwise idle. Under load, the
+      heaviest `HeavyWorker.test.tsx` and `Projections.test.tsx` tests can time out at 5 s (they
+      did before this work too, and both files pass alone).
+- [x] `SummaryTables.test.tsx` "shows each account as a card…" now asserts that the pension summary
+      has no table by name, since the tax-rules panels on the same page contain tables.
+
 ## Welcome page for returning visitors
 
 The welcome page used to appear on every visit unless the user had pressed Save on the last

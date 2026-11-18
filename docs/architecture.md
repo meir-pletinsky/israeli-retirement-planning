@@ -170,6 +170,17 @@ src/
                     # reports the savings at retirement and the lowest net
                     # monthly income for each. It is read-only and outside
                     # the trace.
+                    # taxByAge.ts and taxByAgeRules.ts (the "How each
+                    # account is taxed at different ages" card in My Data →
+                    # Pension & savings) list, per
+                    # account and per tax-relevant part, the rates before
+                    # 60, from 60 and from the owner's statutory age, for a
+                    # lump sum and for an annuity. taxByAgeRules.ts holds the
+                    # rules as data (rule W), separates ordinary and recognized
+                    # annuity money, and takes shared rates from TAX_RATES.
+                    # It illustrates payment-year exemptions, with 2026
+                    # withdrawal/deposit limits. It is read-only and outside
+                    # the trace; evidence and confidence stay out of the UI.
                     # sources.ts (takesGemelAnnuity, buildAnnuity) turns an
                     # investment provident fund the owner ticked ("Take as
                     # a life annuity from age 60") into an annuity source

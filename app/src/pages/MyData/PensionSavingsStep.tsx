@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 
@@ -6,7 +6,8 @@ import { useProfile } from "../../app/ProfileContext";
 import { ConfirmModal } from "../../components/ConfirmModal";
 import { FormModal } from "../../components/FormModal";
 import { NumberField } from "../../components/fields/NumberField";
-import { aggregatePensionBalance, isHouseholdActive } from "../../domain";
+import { TaxByAgeCard } from "../../components/TaxByAgeCard";
+import { aggregatePensionBalance, buildTaxByAge, isHouseholdActive } from "../../domain";
 import { createEmptyPensionAccount, type PensionAccount } from "../../types";
 import { useActivePerson, type Person } from "./activePerson";
 import { CollapsibleFieldLegend } from "./FieldLegend";
@@ -35,7 +36,7 @@ export function PensionSavingsStep() {
   const { person: selectedPerson, setPerson } = useActivePerson();
   const person: Person = showPeople ? selectedPerson : "self";
   const visibleAccounts = accountsOf(accounts, person);
-
+  const taxByAge = useMemo(() => buildTaxByAge(profile, person), [profile, person]);
   const [editingAccount, setEditingAccount] = useState<PensionAccount | null>(
     null,
   );
@@ -131,6 +132,8 @@ export function PensionSavingsStep() {
           <p className="mt-3 text-xs text-slate-500">{t("clearingHouse.entryHint")}</p>
         )}
       </PensionSummaryTable>
+
+      <TaxByAgeCard taxByAge={taxByAge} />
     </>
   );
 

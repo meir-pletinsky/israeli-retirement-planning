@@ -1450,6 +1450,25 @@ describe("Projections", () => {
     });
   });
 
+  describe("tax by age", () => {
+    it("does not repeat the per-account tax rules, which live in My Data", async () => {
+      await saveProfileToDb(
+        buildTestProfile({
+          age: 55,
+          gender: "male",
+          retirementAge: 60,
+          pensionBalances: [500_000],
+          pensionAccountOverrides: [{ productCategory: "investmentProvidentFund" }],
+        }),
+      );
+      await saveOnboardedToDb(true);
+      renderWithProviders(<Projections />);
+
+      await screen.findByRole("region", { name: "What each source costs to draw on" });
+      expect(screen.queryByRole("region", { name: "How each account is taxed at different ages" })).not.toBeInTheDocument();
+    });
+  });
+
   describe("stress tests", () => {
     const REGION = "If things go wrong";
     const BIDI_MARKS = /[\u2066\u2069]/g;

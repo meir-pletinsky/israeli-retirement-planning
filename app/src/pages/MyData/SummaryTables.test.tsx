@@ -682,7 +682,7 @@ describe("My Data summary tables — narrow screens", () => {
     renderStep("pension-savings");
 
     const list = await screen.findByRole("list", { name: "Pension & savings accounts" });
-    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.queryByRole("table", { name: "Pension & savings accounts" })).not.toBeInTheDocument();
     const [first, second] = within(list).getAllByRole("listitem");
     expect(first).toHaveTextContent("Acme Pension");
     expect(first).toHaveTextContent("Policy P-100");

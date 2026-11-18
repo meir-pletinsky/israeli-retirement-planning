@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -281,6 +281,62 @@ describe("PensionSavingsStep — accounts repeater", () => {
         expect(saved.reports).toHaveLength(0);
       });
     });
+  });
+});
+
+describe("PensionSavingsStep — tax rules by age", () => {
+  const TITLE = "How each account is taxed at different ages";
+
+  it("lists the tax rules of each account, collapsed until opened", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 50,
+        pensionBalances: [100_000],
+        pensionAccountOverrides: [{ productCategory: "investmentProvidentFund", providerName: "My Fund" }],
+      }),
+    );
+    renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
+
+    const card = await screen.findByRole("region", { name: TITLE });
+    const account = within(card).getByRole("group", { name: "My Fund" });
+    expect(account).not.toHaveAttribute("open");
+    await user.click(within(account).getByRole("heading", { name: "My Fund" }));
+    expect(account).toHaveAttribute("open");
+    expect(within(account).getByText("Whole balance")).toBeInTheDocument();
+  });
+
+  it("shows only the accounts of the person whose tab is open", async () => {
+    const user = userEvent.setup();
+    await saveProfileToDb(
+      buildTestProfile({
+        age: 50,
+        maritalStatus: "married",
+        spouse: { age: 48 },
+        pensionBalances: [100_000, 40_000],
+        pensionAccountOverrides: [
+          { owner: "self", providerName: "My Fund", productCategory: "studyFund" },
+          { owner: "spouse", providerName: "Partner Fund", productCategory: "studyFund" },
+        ],
+      }),
+    );
+    renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
+
+    const card = await screen.findByRole("region", { name: TITLE });
+    expect(within(card).getByRole("group", { name: "My Fund" })).toBeInTheDocument();
+    expect(within(card).queryByRole("group", { name: "Partner Fund" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: /^Partner/ }));
+    const partnerCard = await screen.findByRole("region", { name: TITLE });
+    expect(within(partnerCard).getByRole("group", { name: "Partner Fund" })).toBeInTheDocument();
+    expect(within(partnerCard).queryByRole("group", { name: "My Fund" })).not.toBeInTheDocument();
+  });
+
+  it("is not shown when there are no accounts", async () => {
+    renderWithProviders(<PensionSavingsStep />, { route: "/my-data/pension-savings" });
+
+    await screen.findByRole("button", { name: "Add account" });
+    expect(screen.queryByRole("region", { name: TITLE })).not.toBeInTheDocument();
   });
 });
 

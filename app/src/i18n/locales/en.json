@@ -543,6 +543,68 @@
       },
       "pensionSavings": {
         "label": "Pension & Savings",
+        "taxByAge": {
+          "title": "How each account is taxed at different ages",
+          "intro": "Tax rates only, the same for everyone, not your personal rate. Each account is split into the parts that follow their own tax rule, and shows a monthly annuity and a lump sum where both exist.",
+          "partColumn": "Part and way to take it",
+          "band": {
+            "before60": "Before age 60",
+            "from60": "Age 60 up to {{age}}",
+            "fromStatutory": "From age {{age}} (statutory retirement age)"
+          },
+          "part": {
+            "pensionMoney": "Pension savings",
+            "annuityMoney": "Qualifying-annuity savings (ordinary deposits from 2008)",
+            "recognizedMoney": "Recognized-annuity money (including eligible Amendment 190 deposits)",
+            "oldCapital": "Old capital (deposits up to 2007)",
+            "severance": "Severance pay",
+            "studyFundWithinCeiling": "Deposits within the tax-free ceiling",
+            "studyFundAboveCeiling": "Deposits above the ceiling",
+            "wholeBalance": "Whole balance"
+          },
+          "option": {
+            "annuity": "Monthly annuity",
+            "lumpSum": "Lump sum"
+          },
+          "condition": {
+            "afterLeavingEmployer": "After the job ends",
+            "minimumAnnuity": "From eligible recognized-annuity money, with a pension of at least {{minimum}} a month (2026) and withdrawal conditions met",
+            "partialCommutation": "Lawful commutation, subject to the fund's rules and minimum-pension requirements",
+            "lawfulOldCapital": "If the historical deposit-date and account-tenure conditions are met",
+            "recognizedAnnuity": "Only the part classified as a recognized annuity",
+            "investmentAnnuity": "After transfer to an annuity-paying fund",
+            "studyFundSixYears": "6 years after the first deposit",
+            "studyFundThreeYearsFromStatutory": "3 years after the first deposit, from statutory retirement age",
+            "studyFundEarlier": "Before it is liquid"
+          },
+          "treatment": {
+            "unavailable": "Not available",
+            "penalty": "If withdrawal conditions are not met: generally the higher of {{rate}} and your marginal rate; exceptions apply",
+            "exempt": "0%, exempt",
+            "marginal": "{{range}} by income bracket",
+            "marginalHealth": "{{range}} on taxable income; an early employment pension may also bear health contributions of {{health}} and National Insurance of {{insurance}}",
+            "partlyExempt": "Exemption up to {{exempt}} of the qualifying-annuity ceiling ({{year}}), subject to remaining entitlement; taxable balance {{range}}, no pension health contributions",
+            "exemptUpToCap": "Exemption up to {{cap}} per year of service (2026), subject to salary and eligibility; taxable balance {{range}}",
+            "commutation": "May use the remaining pension exemption if eligible, reducing future pension relief; the taxable balance is taxed at {{range}}",
+            "studyFundEarly": "{{range}} on taxable components only; deposits already taxed or not deducted are not taxed again",
+            "flatGain": {
+              "real": "{{rate}} of the real gain",
+              "nominal": "{{rate}} of the nominal gain"
+            },
+            "unknown": "Depends on the classification of the money and withdrawal conditions"
+          },
+          "exemptYearNote": "Shown: {{percent}} for payments in {{year}}. The exemption follows the payment tax year, not the year you retired, and reaches {{finalPercent}} from {{finalYear}}. Future increases depend on the allocation chosen when fixing your tax rights.",
+          "studyFundCeilings": "2026 limits: employee salary {{salary}}/month, normally 7.5% employer + 2.5% employee (about {{employee}}/year). Self-employed: gains exemption on deposits up to {{selfEmployed}}/year; the separate income deduction is up to 4.5% of eligible income, capped at {{deduction}}.",
+          "allPartsNote": "This account does not say how its balance splits, so every kind of money the product can hold is shown. Only the parts you actually have apply.",
+          "skipped": "Accounts without a product type are not shown ({{count}}). Edit the account and choose its product type to include it.",
+          "howTitle": "How this works",
+          "howAges": "Annuities normally start from 60. The qualifying-annuity exemption starts at the later of statutory retirement age and the first qualifying-annuity payment, with disability exceptions. Statutory retirement age also allows study-fund access after 3 years, rather than 6.",
+          "howRates": "These are base rates before credits and any surtax. Tax depends on total taxable income. Pension exemption percentages apply to the statutory ceiling, not your whole pension; tax-free severance and commutations may reduce the available relief.",
+          "howParts": "The tax treatment follows the money, not just the product. Ordinary post-2008 deposits do not automatically qualify for Amendment 190. IRA is an investment-management arrangement; a provident fund or IRA may need a transfer to an annuity-paying fund. A severance annuity has no separate lump-sum severance exemption; already-taxed contributions may form a recognized annuity.",
+          "howConditions": "Withdrawal before retirement age is not automatically unlawful. Old capital depends on historical dates and tenure; unlawful-withdrawal rates have historical and other exceptions. Study funds also have a separate 3-year route for eligible training. Confirm personal withdrawal conditions with the fund.",
+          "howHealth": "For a liable early pension in 2026, reduced contributions apply to the first {{bracket}}/month and full contributions to the portion above, up to {{ceiling}}/month, taking other earnings and exemptions into account. After statutory retirement age, these contributions are not deducted from the pension; health payments may still be due elsewhere.",
+          "howReadOnly": "This only shows rules. It changes none of the plan's numbers, which treat each account as one balance. It is an estimate, not tax advice."
+        },
         "accountsTitle": "Pension & savings accounts",
         "accountsTitleFor": {
           "self": "My accounts",
