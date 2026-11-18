@@ -1,10 +1,17 @@
-import { screen, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "../../app/App";
+import { FolderSyncProvider, type FolderSyncDeps } from "../../app/FolderSyncProvider";
+import { ProfileProvider } from "../../app/ProfileContext";
+import "../../i18n";
 import { clearAllData } from "../../storage/db";
+import { deriveVaultKey } from "../../storage/sync/snapshotCrypto";
+import { backupPayload, writeSnapshot } from "../../storage/sync/syncEngine";
 import { buildTestProfile } from "../../test/domainFixtures";
+import { createMemoryFolder, type MemoryFolder } from "../../test/memoryFolder";
 import { renderWithProviders } from "../../test/renderWithProviders";
 
 beforeEach(async () => {
@@ -196,6 +203,105 @@ describe("Welcome page — loading a saved file", () => {
     );
 
     expect(await screen.findByText(/Couldn't import this file/)).toBeInTheDocument();
+    expect(screen.getByText("Your retirement plan, on your device")).toBeInTheDocument();
+  });
+});
+
+describe("Welcome page — connecting a backup folder", () => {
+  const PASSPHRASE = "correct horse battery";
+  const ITERATIONS = 1000;
+  const handle = { kind: "directory", name: "Backups" } as unknown as FileSystemDirectoryHandle;
+  let folder: MemoryFolder;
+
+  async function seedBackup({ sealed = false } = {}) {
+    const vault = sealed ? await deriveVaultKey(PASSPHRASE, undefined, { iterations: ITERATIONS }) : null;
+    await writeSnapshot(folder, {
+      payload: backupPayload(buildTestProfile({ age: 45, retirementAge: 67, pensionBalances: [250000] }), null),
+      vault,
+      deviceId: "other-device-1",
+      deviceLabel: "Chrome on Android",
+      parentId: null,
+      now: new Date("2026-06-15T10:00:00.000Z"),
+    });
+  }
+
+  async function renderWelcomeWithFolder({ supported = true } = {}) {
+    folder = createMemoryFolder("Backups");
+    const deps: FolderSyncDeps = {
+      pickFolder: vi.fn(async () => handle),
+      openFolder: vi.fn(() => folder),
+      queryPermission: vi.fn(async () => "granted" as const),
+      requestPermission: vi.fn(async () => "granted" as const),
+    };
+    const view = render(
+      <MemoryRouter>
+        <ProfileProvider>
+          <FolderSyncProvider deps={deps} supported={supported} kdfIterations={ITERATIONS}>
+            <App />
+          </FolderSyncProvider>
+        </ProfileProvider>
+      </MemoryRouter>,
+    );
+    await screen.findByText("Your retirement plan, on your device");
+    return view;
+  }
+
+  it("is not offered in a browser that cannot keep a backup folder", async () => {
+    await renderWelcomeWithFolder({ supported: false });
+
+    expect(screen.queryByRole("button", { name: "Connect to my backup folder" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Or connect the folder where the app saved your backups/)).not.toBeInTheDocument();
+  });
+
+  it("loads the newest backup from a folder and opens the dashboard", async () => {
+    const user = userEvent.setup();
+    await renderWelcomeWithFolder();
+    await seedBackup();
+
+    expect(screen.getByText(/Or connect the folder where the app saved your backups/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Connect to my backup folder" }));
+
+    const setup = await screen.findByRole("dialog", { name: "Connect your backup folder" });
+    expect(setup).toHaveTextContent(/This folder holds a backup, saved .*15\/06\/2026.* on .*Chrome on Android/);
+    await user.click(within(setup).getByRole("checkbox", { name: /Encrypt the backups/ }));
+    await user.click(within(setup).getByRole("button", { name: "Connect folder" }));
+
+    const found = await screen.findByRole("dialog", { name: "A backup was found in your folder" });
+    await user.click(within(found).getByRole("button", { name: "Use the folder's version" }));
+
+    expect(await screen.findByText("Sustainable income after tax")).toBeInTheDocument();
+  });
+
+  it("asks for the passphrase of an encrypted backup", async () => {
+    const user = userEvent.setup();
+    await renderWelcomeWithFolder();
+    await seedBackup({ sealed: true });
+
+    await user.click(screen.getByRole("button", { name: "Connect to my backup folder" }));
+    const setup = await screen.findByRole("dialog", { name: "Connect your backup folder" });
+    await user.type(within(setup).getByLabelText(/^Passphrase of the backups/), "not the passphrase");
+    await user.click(within(setup).getByRole("button", { name: "Connect folder" }));
+    expect(
+      await within(setup).findByText("That passphrase does not open the backups in this folder."),
+    ).toBeInTheDocument();
+
+    await user.clear(within(setup).getByLabelText(/^Passphrase of the backups/));
+    await user.type(within(setup).getByLabelText(/^Passphrase of the backups/), PASSPHRASE);
+    await user.click(within(setup).getByRole("button", { name: "Connect folder" }));
+    const found = await screen.findByRole("dialog", { name: "A backup was found in your folder" });
+    await user.click(within(found).getByRole("button", { name: "Use the folder's version" }));
+
+    expect(await screen.findByText("Sustainable income after tax")).toBeInTheDocument();
+  });
+
+  it("says so when the chosen folder holds no backup, and stays on the welcome page", async () => {
+    const user = userEvent.setup();
+    await renderWelcomeWithFolder();
+
+    await user.click(screen.getByRole("button", { name: "Connect to my backup folder" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("No backup was found in this folder.");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.getByText("Your retirement plan, on your device")).toBeInTheDocument();
   });
 });

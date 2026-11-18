@@ -2,13 +2,16 @@ import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 
+import { useFolderSync } from "../../app/folderSync";
 import { useProfile } from "../../app/ProfileContext";
 import { useWhatIfDraft } from "../../app/whatIfDraft";
 import { LanguageSwitcher } from "../../components/LanguageSwitcher";
 import { LogoMark } from "../../components/LogoMark";
+import { SyncPromptDialog } from "../../components/SyncPromptDialog";
 import { Toast } from "../../components/Toast";
 import { readProfileFile } from "../../storage/profileIO";
 import { AboutBox } from "./AboutBox";
+import { ConnectFolderButton } from "./ConnectFolderButton";
 import { FastTrackCard } from "./FastTrackCard";
 import { GetStartedFlow } from "./GetStartedFlow";
 import { PrivacyBox } from "./PrivacyBox";
@@ -21,6 +24,7 @@ export function Welcome() {
   const navigate = useNavigate();
   const { updateProfile, completeOnboarding } = useProfile();
   const { restoreDraft } = useWhatIfDraft();
+  const { supported: folderSupported } = useFolderSync();
   const [toast, setToast] = useState<string | null>(null);
   const [toastTone, setToastTone] = useState<"default" | "error">("default");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -80,8 +84,10 @@ export function Welcome() {
                 if (file) void handleImportFile(file);
               }}
             />
+            {folderSupported && <ConnectFolderButton />}
           </div>
           <p className="mt-3 text-xs text-slate-500">{t("welcome.loadSavedHint")}</p>
+          {folderSupported && <p className="mt-1.5 text-xs text-slate-500">{t("welcome.connectFolderHint")}</p>}
           <Link to="/demo" className="btn btn-ghost mt-4">
             <PlayIcon />
             {t("welcome.watchDemo")}
@@ -96,6 +102,7 @@ export function Welcome() {
         <FastTrackCard />
       </div>
       <Toast message={toast} tone={toastTone} onClear={() => setToast(null)} />
+      <SyncPromptDialog />
     </div>
   );
 }

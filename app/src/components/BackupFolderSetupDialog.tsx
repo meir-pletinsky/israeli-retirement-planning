@@ -14,10 +14,12 @@ const isolate = (text: string) => `\u2066${text}\u2069`;
 interface BackupFolderSetupDialogProps {
   chosen: ChosenFolder;
   onClose: () => void;
+  /** The user is starting from a backup that is already in the folder, e.g. on the welcome page. */
+  restore?: boolean;
 }
 
 /** Asks how to protect the backups in the folder the user just picked, then connects it. */
-export function BackupFolderSetupDialog({ chosen, onClose }: BackupFolderSetupDialogProps) {
+export function BackupFolderSetupDialog({ chosen, onClose, restore = false }: BackupFolderSetupDialogProps) {
   const { t } = useTranslation();
   const { connectFolder } = useFolderSync();
   const formId = useId();
@@ -52,7 +54,7 @@ export function BackupFolderSetupDialog({ chosen, onClose }: BackupFolderSetupDi
   return (
     <FormModal
       open
-      title={t("settings.sync.setup.title")}
+      title={t(restore ? "settings.sync.setup.restoreTitle" : "settings.sync.setup.title")}
       closeLabel={t("common.close")}
       onClose={onClose}
       footer={
@@ -91,7 +93,7 @@ export function BackupFolderSetupDialog({ chosen, onClose }: BackupFolderSetupDi
 
         {usable && chosen.head && (
           <p>
-            {t("settings.sync.setup.existing", {
+            {t(restore ? "settings.sync.setup.restoreExisting" : "settings.sync.setup.existing", {
               date: isolate(formatLocalDate(chosen.head.savedAt)),
               device: isolate(chosen.head.deviceLabel),
             })}

@@ -95,6 +95,9 @@
     "watchDemo": "Watch the demo video",
     "loadSaved": "Load my saved data file",
     "loadSavedHint": "Used the app before? Choose the .json file you saved earlier with \u201cExport data\u201d in Settings.",
+        "connectFolder": "Connect to my backup folder",
+        "connectFolderHint": "Or connect the folder where the app saved your backups, to continue from the latest one.",
+        "connectFolderEmpty": "No backup was found in this folder. Choose the folder where the app saves your backups.",
     "about": {
       "title": "What this app does",
       "body": "You enter your pension, provident and study funds, stocks, Bituach Leumi pension and expected spending. The app turns them into a retirement picture.",
@@ -2027,9 +2030,11 @@
       "resetNote": "The backup folder is disconnected, and the backups already in it are not deleted.",
       "setup": {
         "title": "Save backups to this folder",
+        "restoreTitle": "Connect your backup folder",
         "connect": "Connect folder",
         "newerFormat": "This folder holds a backup from a newer version of the app, so this version cannot use it. Reload the page to get the latest version.",
         "existing": "This folder already holds a backup, saved {{date}} on {{device}}. If it differs from this device, you will be asked which version to keep.",
+                "restoreExisting": "This folder holds a backup, saved {{date}} on {{device}}. After connecting, you can load it here. From then on the app saves your plan to this folder after every change.",
         "unreadable": "Some files in this folder look like backups but cannot be read yet. If a cloud app is still downloading them, wait a moment and choose the folder again.",
         "enterPassphrase": "Passphrase of the backups in this folder",
         "encrypt": "Encrypt the backups with a passphrase (recommended)",
