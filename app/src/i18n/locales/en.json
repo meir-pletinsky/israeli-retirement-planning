@@ -40,7 +40,9 @@
       "compareOne": "Retiring at {{age}} gives {{net}} a month after tax.",
       "cashFlowFunded": "Your planned {{planned}} a month is fully covered every year to age {{lastAge}}.",
       "cashFlowShortfall": "Your planned {{planned}} a month is fully covered up to age {{coveredTo}}. After that it is not, and {{unfunded}} a month is unfunded at age {{lastAge}}.",
-      "cashFlowFromStart": "Your planned {{planned}} a month is not fully covered from the first year of retirement, age {{age}}: {{unfunded}} a month is unfunded at age {{lastAge}}."
+      "cashFlowFromStart": "Your planned {{planned}} a month is not fully covered from the first year of retirement, age {{age}}: {{unfunded}} a month is unfunded at age {{lastAge}}.",
+      "tax": "Tax peaks at {{peak}} a month at age {{age}}. Over retirement it adds up to about {{total}}, in today's money.",
+      "taxNone": "No tax is expected on this income."
     },
     "axis": {
       "age": "Age",
@@ -62,7 +64,8 @@
       "result": "Result",
       "finalNetWorth": "Net worth at the end",
       "shortAt": "Ran short at age {{age}}",
-      "gross": "Income before tax"
+      "gross": "Income before tax",
+      "tax": "Estimated tax"
     }
   },
   "nav": {
@@ -1624,9 +1627,13 @@
     },
     "chart": {
       "title": "Monthly income by year",
-      "notePlanned": "Where the money comes from each year to pay your {{amount}} a month, before tax. The part nobody pays is shown as unfunded.",
-      "noteSustainable": "What your savings can sustain each year to the end of the plan, before tax.",
+      "notePlanned": "Where the money comes from each year to pay your {{amount}} a month, <bold>before tax</bold>. The part nobody pays is shown as unfunded.",
+      "noteSustainable": "What your savings can sustain each year to the end of the plan, <bold>before tax</bold>.",
       "baseline": "Your saved plan"
+    },
+    "taxChart": {
+      "title": "Estimated tax by year",
+      "note": "A rough estimate of the tax on the income above, year by year: income tax, health tax, capital gains tax and surtax for the household. A monthly average for each year, in today's money."
     },
     "surplus": {
       "single": "At age {{age}} your income is more than {{cap}} above your spending, by {{excess}} a month.",

@@ -16,7 +16,7 @@ import { desiredRetirementMonthly, expenseTotals } from "./expenses";
 import { estimateIncomeBreakdown, type IncomeBreakdownPoint } from "./incomeBreakdown";
 import { mixKeyOfSource } from "./drawdown";
 import { buildHousehold, resolveRetirementTiming } from "./household";
-import { estimateNetIncome } from "./netIncome";
+import { estimateNetIncome, type NetIncomeYear } from "./netIncome";
 import { projectSpendingFunding } from "./netWorth";
 import {
   isHouseholdActive,
@@ -425,6 +425,8 @@ export interface WhatIfOutcome {
   income: IncomeBreakdownPoint[];
   /** The planned spending paid year by year; null when no spending is planned. */
   cashFlow: CashFlowPlan | null;
+  /** Income, tax and what is kept in every retirement year, on the sustainable income. */
+  netYears: NetIncomeYear[];
   /** The lowest after-tax monthly income of any retirement year. */
   netMonthlyIncome: number;
   monthlySpending: number;
@@ -447,6 +449,7 @@ export function evaluateWhatIf(profile: ProfileData): WhatIfOutcome {
   return {
     income: estimateIncomeBreakdown(profile, "standard"),
     cashFlow: projectCashFlow(profile, "standard"),
+    netYears: net.years,
     netMonthlyIncome: net.netMonthlyIncome,
     monthlySpending,
     monthlyGap: monthlySpending > 0 ? Math.round(net.netMonthlyIncome - monthlySpending) : null,
@@ -455,6 +458,25 @@ export function evaluateWhatIf(profile: ProfileData): WhatIfOutcome {
     netWorthAtRetirement: Math.round(estimateHouseholdRetirementIncome(household).netWorthAtRetirement),
     totalTax: net.years.reduce((sum, year) => sum + year.taxMonthly * 12, 0),
   };
+}
+
+/** One retirement year's estimated tax, per month in today's money (the yearly average). */
+export interface TaxYear {
+  /** The primary user's age. */
+  age: number;
+  taxMonthly: number;
+}
+
+/**
+ * The estimated tax of each retirement year, on the same income the income chart shows: the
+ * planned spending as it is paid, or the sustainable income. Falls back to the sustainable income
+ * when no spending is planned.
+ */
+export function taxByYear(outcome: WhatIfOutcome, basis: "planned" | "sustainable"): TaxYear[] {
+  if (basis === "planned" && outcome.cashFlow) {
+    return outcome.cashFlow.years.map(({ age, tax }) => ({ age, taxMonthly: tax }));
+  }
+  return outcome.netYears.map(({ age, taxMonthly }) => ({ age, taxMonthly }));
 }
 
 /**

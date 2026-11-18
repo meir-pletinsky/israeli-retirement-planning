@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 
@@ -161,6 +161,30 @@ describe("WhatIfPanel", () => {
     expect((await screen.findAllByText("Planned spending")).length).toBeGreaterThan(0);
     expect(screen.getByText(/Drawing order:/)).toBeInTheDocument();
     expect((await screen.findAllByText("In shekels")).length).toBeGreaterThan(0);
+  });
+
+  it("shows the estimated tax by year below the income chart, and follows the basis", async () => {
+    const user = userEvent.setup();
+    await renderSurplusPanel(8_000);
+
+    const income = await screen.findByRole("region", { name: "Monthly income by year" });
+    const tax = screen.getByRole("region", { name: "Estimated tax by year" });
+    expect(income.compareDocumentPosition(tax) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(income).getByText("before tax", { selector: "strong" })).toBeInTheDocument();
+    expect(within(tax).getByText(/^Tax peaks at/)).toBeInTheDocument();
+
+    await user.click(within(tax).getByRole("button", { name: "Show as table" }));
+    const table = within(tax).getByRole("table", { name: "Estimated tax by year" });
+    expect(table.querySelectorAll("tbody tr").length).toBeGreaterThan(5);
+    expect(within(table).getByRole("columnheader", { name: "Estimated tax" })).toBeInTheDocument();
+
+    const planned = table.textContent;
+    await user.click(screen.getByRole("button", { name: "Sustainable income" }));
+    await waitFor(() =>
+      expect(
+        within(screen.getByRole("region", { name: "Estimated tax by year" })).queryByRole("table")?.textContent,
+      ).not.toBe(planned),
+    );
   });
 
   it("splits the withdrawals between the kinds the plan holds and saves the mix", async () => {

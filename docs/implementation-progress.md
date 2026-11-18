@@ -1911,6 +1911,35 @@ in en, he and ru.
 - [x] `SummaryTables.test.tsx` "shows each account as a card…" now asserts that the pension summary
       has no table by name, since the tax-rules panels on the same page contain tables.
 
+## Estimated tax by year (What-if page chart)
+
+The What-if page (`/projections/what-if`) has a bar chart "Estimated tax by year" in its own card
+directly below "Monthly income by year". It is a rough view of the tax on the income the chart above
+shows. Each bar is one retirement year, as a **monthly average in today's money** so it reads on the
+same scale and caption as the income chart; the takeaway adds the peak year and the total over
+retirement (the monthly figures times 12).
+
+- Follows the income chart's basis toggle. "At my planned spending" reads `cashFlow.years[].tax`
+  (tax on what is actually drawn); "Sustainable income" reads the net-income years' `taxMonthly`.
+  With no planned spending only the sustainable basis exists.
+- `taxByYear(outcome, basis)` in `domain/whatIf.ts` returns `{ age, taxMonthly }[]`; `WhatIfOutcome`
+  now carries `netYears` so the sustainable basis does not recompute the net income.
+- The card is hidden when there are no retirement years. When every year's tax rounds to zero, the
+  takeaway says no tax is expected and the axis shows ₪0–₪100 instead of tiny ticks.
+- A single muted bar series, the same colour as tax elsewhere (`CHART_COLORS.muted`); no
+  comparison line against the saved plan.
+- The income chart's notes (`whatIf.chart.notePlanned` / `noteSustainable`) say the figures are
+  **before tax**; the words are bold through react-i18next `<Trans>` with a `<bold>` tag
+  (`<bold>before tax</bold>` in each locale).
+- Where it lives: `components/charts/TaxByYearChart.tsx`, `TaxByYearTable` in `ChartTables.tsx`,
+  `tax` takeaway in `chartTakeaways.ts`, the section in `components/whatIf/WhatIfPanel.tsx`.
+  Texts: `whatIf.taxChart.*`, `charts.takeaway.tax` and `taxNone`, `charts.table.tax` in en, he, ru.
+
+- [x] Domain helper and tests in `whatIf.test.ts` "taxByYear" (2).
+- [x] Chart accessibility test in `chartConsistency.test.tsx`.
+- [x] Panel test in `WhatIfPanel.test.tsx`: the card follows the income card, has a table, and the
+      table changes with the basis.
+
 ## Welcome page for returning visitors
 
 The welcome page used to appear on every visit unless the user had pressed Save on the last

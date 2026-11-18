@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import { useDeferredValue, useEffect, useMemo, useState, type SetStateAction } from "react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 
 import { useProfile } from "../../app/ProfileContext";
 import { useHeavyResult } from "../../app/useHeavyResult";
@@ -30,6 +30,7 @@ import {
   pensionStartOf,
   sameWhatIfValue,
   successPercent,
+  taxByYear,
   whatIfNotes,
   whatIfPlanPatch,
   whatIfRanges,
@@ -38,9 +39,10 @@ import {
 } from "../../domain";
 import { BRIDGE_MODES, PLANNING_HORIZON_AGES, WITHDRAWAL_STRATEGIES } from "../../types";
 import { ChartFrame } from "../charts/ChartFrame";
-import { IncomeBreakdownTable } from "../charts/ChartTables";
+import { IncomeBreakdownTable, TaxByYearTable } from "../charts/ChartTables";
 import { useChartTakeaways } from "../charts/chartTakeaways";
 import { IncomeBreakdownChart } from "../charts/IncomeBreakdownChart";
+import { TaxByYearChart } from "../charts/TaxByYearChart";
 import { WhatIfAgeGrid } from "./WhatIfAgeGrid";
 import { WhatIfSensitivity } from "./WhatIfSensitivity";
 import { WhatIfSlider } from "./WhatIfSlider";
@@ -143,6 +145,9 @@ export function WhatIfPanel({ bandLabels }: WhatIfPanelProps) {
       ? takeaways.cashFlow(draftOutcome.cashFlow)
       : takeaways.income(draftOutcome.income);
   const chartName = t("whatIf.chart.title");
+  const taxYears = useMemo(() => taxByYear(draftOutcome, basis), [draftOutcome, basis]);
+  const taxTakeaway = takeaways.tax(taxYears);
+  const taxChartName = t("whatIf.taxChart.title");
 
   const hasOverrides = Object.keys(overrides).length > 0;
   const planChanged = PLAN_KEYS.some((key) => !sameWhatIfValue(key, values, baseline));
@@ -411,11 +416,18 @@ export function WhatIfPanel({ bandLabels }: WhatIfPanelProps) {
             </div>
           )}
           <p className="mb-3 mt-2 text-xs text-slate-500">
-            {basis === "planned" && draftOutcome.cashFlow
-              ? t("whatIf.chart.notePlanned", {
-                  amount: isolate(format.money(draftOutcome.cashFlow.monthlySpending)),
-                })
-              : t("whatIf.chart.noteSustainable")}
+            {basis === "planned" && draftOutcome.cashFlow ? (
+              <Trans
+                i18nKey="whatIf.chart.notePlanned"
+                values={{ amount: isolate(format.money(draftOutcome.cashFlow.monthlySpending)) }}
+                components={{ bold: <strong className="font-semibold text-slate-700" /> }}
+              />
+            ) : (
+              <Trans
+                i18nKey="whatIf.chart.noteSustainable"
+                components={{ bold: <strong className="font-semibold text-slate-700" /> }}
+              />
+            )}
           </p>
           {surplus?.peak && (
             <div role="note" className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
@@ -465,6 +477,27 @@ export function WhatIfPanel({ bandLabels }: WhatIfPanelProps) {
           </ChartFrame>
           <WhatIfYearSources draft={draft} basis={basis} bandLabels={bandLabels} />
         </section>
+
+        {taxYears.length > 0 && (
+          <section aria-labelledby="whatif-tax-chart-title" className="card">
+            <h3 id="whatif-tax-chart-title" className="text-base font-semibold text-slate-900">
+              {taxChartName}
+            </h3>
+            <p className="mb-3 mt-2 text-xs text-slate-500">{t("whatIf.taxChart.note")}</p>
+            <ChartFrame
+              takeaway={taxTakeaway}
+              table={<TaxByYearTable years={taxYears} caption={taxChartName} />}
+            >
+              <TaxByYearChart
+                name={taxChartName}
+                description={taxTakeaway ?? taxChartName}
+                data={taxYears}
+                currencySymbol={currencySymbol}
+                taxLabel={t("charts.table.tax")}
+              />
+            </ChartFrame>
+          </section>
+        )}
 
         <WhatIfSensitivity rows={sensitivity} hasSpending={shown.monthlySpending > 0} />
 

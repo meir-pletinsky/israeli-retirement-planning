@@ -8,6 +8,7 @@ import {
   type MonteCarloFanPoint,
   type NetIncomeYear,
   type NetWorthPoint,
+  type TaxYear,
 } from "../../domain";
 import { formatNumber } from "../../i18n/formatters";
 import type { ComparisonChartPoint } from "./ComparisonChart";
@@ -116,6 +117,14 @@ export function useChartTakeaways() {
         age: age(lowest.age),
         tax: money(lowest.taxMonthly),
       });
+    },
+
+    tax(years: TaxYear[]): string | null {
+      if (years.length === 0) return null;
+      const peak = years.reduce((best, year) => (year.taxMonthly > best.taxMonthly ? year : best));
+      if (peak.taxMonthly < 0.5) return t("charts.takeaway.taxNone");
+      const total = years.reduce((sum, year) => sum + year.taxMonthly * 12, 0);
+      return t("charts.takeaway.tax", { peak: money(peak.taxMonthly), age: age(peak.age), total: money(total) });
     },
 
     compare(points: ComparisonChartPoint[]): string | null {

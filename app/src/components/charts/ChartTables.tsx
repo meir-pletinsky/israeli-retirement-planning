@@ -9,6 +9,7 @@ import {
   type MonteCarloFanPoint,
   type NetIncomeYear,
   type NetWorthPoint,
+  type TaxYear,
 } from "../../domain";
 import { formatNumber } from "../../i18n/formatters";
 
@@ -140,6 +141,19 @@ export function IncomeBreakdownTable({ points, labels, caption }: IncomeBreakdow
         ...bands.map((band) => money(point[band])),
         money(bands.reduce((sum, band) => sum + point[band], 0)),
       ])}
+    />
+  );
+}
+
+/** Each year's estimated tax, per month. */
+export function TaxByYearTable({ years, caption }: { years: TaxYear[]; caption: string }) {
+  const { t } = useTranslation();
+  const money = useMoney();
+  return (
+    <DataTable
+      caption={caption}
+      headers={[t("charts.table.age"), t("charts.table.tax")]}
+      rows={years.map((year) => [year.age, money(year.taxMonthly)])}
     />
   );
 }

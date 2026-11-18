@@ -14,6 +14,7 @@ import { INCOME_BAND_COLORS } from "./incomeBandColors";
 import { MonteCarloFanChart } from "./MonteCarloFanChart";
 import { NetIncomeChart } from "./NetIncomeChart";
 import { NetWorthChart, NetWorthTooltip } from "./NetWorthChart";
+import { TaxByYearChart } from "./TaxByYearChart";
 import { useChartTexts } from "./useChartTexts";
 
 // jsdom has no layout, so the real container draws nothing; give it a size.
@@ -90,6 +91,19 @@ describe("chart accessibility", () => {
         taxLabel="Tax"
         plannedMonthly={15_000}
         plannedLabel="Planned"
+      />,
+    );
+    expectNamedImage(container);
+  });
+
+  it("names the tax by year chart", () => {
+    const { container } = render(
+      <TaxByYearChart
+        name={NAME}
+        description={DESCRIPTION}
+        data={netIncome.map(({ age, taxMonthly }) => ({ age, taxMonthly }))}
+        currencySymbol="₪"
+        taxLabel="Tax"
       />,
     );
     expectNamedImage(container);

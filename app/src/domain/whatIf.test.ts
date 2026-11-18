@@ -17,6 +17,7 @@ import {
   evaluateWhatIf,
   rebalanceWithdrawalMix,
   sameWhatIfValue,
+  taxByYear,
   whatIfMargin,
   whatIfNotes,
   whatIfPlanPatch,
@@ -439,6 +440,26 @@ describe("evaluateWhatIf", () => {
     const none = evaluateWhatIf(buildTestProfile({ age: 55, retirementAge: 65, pensionBalances: [1_500_000] }));
     expect(none.monthlyGap).toBeNull();
     expect(none.cashFlow).toBeNull();
+  });
+});
+
+describe("taxByYear", () => {
+  it("reads the tax of the planned spending as it is paid, and of the sustainable income", () => {
+    const outcome = evaluateWhatIf(esopHolder);
+    expect(outcome.cashFlow).not.toBeNull();
+
+    expect(taxByYear(outcome, "planned")).toEqual(
+      outcome.cashFlow?.years.map(({ age, tax }) => ({ age, taxMonthly: tax })),
+    );
+    const sustainable = taxByYear(outcome, "sustainable");
+    expect(sustainable.map((year) => year.age)).toEqual(outcome.netYears.map((year) => year.age));
+    expect(sustainable.reduce((sum, year) => sum + year.taxMonthly * 12, 0)).toBeCloseTo(outcome.totalTax);
+  });
+
+  it("uses the sustainable income when no spending is planned", () => {
+    const none = evaluateWhatIf(buildTestProfile({ age: 55, retirementAge: 65, pensionBalances: [1_500_000] }));
+    expect(taxByYear(none, "planned")).toEqual(taxByYear(none, "sustainable"));
+    expect(taxByYear(none, "planned").length).toBeGreaterThan(0);
   });
 });
 
